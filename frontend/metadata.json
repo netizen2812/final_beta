@@ -1,0 +1,9 @@
+{
+  "name": "Imam - Faith-Tech Education",
+  "description": "A mobile-first Islamic utility and education platform featuring AI-guided learning, prayer tracking, and live Tarbiyah classes.",
+  "requestFramePermissions": [
+    "camera",
+    "microphone",
+    "geolocation"
+  ]
+}

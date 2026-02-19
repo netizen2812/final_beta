@@ -470,7 +470,7 @@ const CoreChat: React.FC<CoreChatProps> = ({ madhab, setMadhab, tone: mood, setT
                             ? <FormattedContent content={msg.text} />
                             : <p className="text-[15px] leading-relaxed font-medium">{msg.text}</p>
                           }
-                          <div className={`mt - 2.5 text - [9px] font - black uppercase tracking - widest opacity - 35 ${msg.role === 'user' ? 'text-white text-right' : 'text-[#052e16]'} `}>
+                          <div className={`mt-1 text-[10px] md:text-[11px] font-medium tracking-wide ${msg.role === 'user' ? 'text-white/70 text-right' : 'text-slate-400/90'} `}>
                             {msg.timestamp.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                           </div>
                         </div>

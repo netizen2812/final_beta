@@ -42,8 +42,16 @@ export const chatWithImam = async (req, res) => {
     }
 
     // 3. Generate AI Response
-    // Use OpenRouter Service
-    const reply = await generateResponse(prompt, clerkId, madhab);
+    // Use OpenRouter Service with RAG Context
+    let context = "";
+    try {
+      const { getIslamicContext } = await import("../services/ragService.js");
+      context = await getIslamicContext(prompt, madhab);
+    } catch (ragErr) {
+      console.warn("RAG Context retrieval failed:", ragErr);
+    }
+
+    const reply = await generateResponse(prompt, clerkId, madhab, context);
 
     // 4. Increment Count & Track
     user.dailyChatCount += 1;

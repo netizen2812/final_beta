@@ -1,9 +1,26 @@
 import { ClerkExpressRequireAuth } from '@clerk/clerk-sdk-node';
 import User from "../models/User.js";
 
-export const requireAuth = ClerkExpressRequireAuth({
-  // Add options if needed
-});
+export const requireAuth = (req, res, next) => {
+  // 1. Log the attempt
+  console.log(`🔐 Auth Check: ${req.method} ${req.path}`);
+  console.log(`   - Auth Header Present: ${!!req.headers.authorization}`);
+  if (req.headers.authorization) {
+    console.log(`   - Token Start: ${req.headers.authorization.substring(0, 15)}...`);
+  }
+
+  // 2. Pass to Clerk
+  return ClerkExpressRequireAuth({
+    // Enable debug if needed, though it can be noisy
+    // debug: true 
+  })(req, res, (err) => {
+    if (err) {
+      console.error("❌ Clerk Auth Failed:", err);
+      // Don't swallow error, let express handle or return 401
+    }
+    next(err);
+  });
+};
 
 export const isAdmin = async (req, res, next) => {
   try {

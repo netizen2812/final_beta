@@ -13,6 +13,7 @@ interface ChildContextType {
   deleteChild: (id: string) => void;
   setActiveChild: (id: string) => void;
   incrementProgress: (childId: string, xpGain: number) => void;
+  refreshChildren: () => Promise<void>;
 }
 
 const ChildContext = createContext<ChildContextType | undefined>(undefined);
@@ -93,9 +94,21 @@ export const ChildProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     setActiveChildId(id);
   };
 
+  const refreshChildren = async () => {
+    try {
+      const token = await getToken();
+      if (token) {
+        const data = await tarbiyahService.getChildren(getToken);
+        setChildrenList(data);
+      }
+    } catch (error) {
+      console.error("Failed to refresh children", error);
+    }
+  };
+
   const incrementProgress = async (childId: string, xpGain: number) => {
-    // Optimistic Update
-    let newProgressState = { xp: 0, level: 1, lessons_completed: 0 };
+    // Optimistic Update for XP only
+    let newProgressState = { xp: 0, level: 1 };
 
     setChildrenList(prev => prev.map(c => {
       if (c.id !== childId) return c;
@@ -109,21 +122,24 @@ export const ChildProvider: React.FC<{ children: React.ReactNode }> = ({ childre
           ...prog,
           xp: newXp,
           level: newLevel,
-          lessons_completed: (prog.lessons_completed || 0) + 1,
+          // Do NOT increment lessons_completed here blindly. Rely on backend.
           last_activity: new Date().toISOString()
         }]
       };
 
-      newProgressState = { xp: newXp, level: newLevel, lessons_completed: updatedChild.child_progress[0].lessons_completed };
+      newProgressState = { xp: newXp, level: newLevel };
       return updatedChild;
     }));
 
-    // Sync with Backend
+    // Sync XP/Level with Backend (but NOT lessons_completed)
     try {
-      await tarbiyahService.updateProgress(childId, newProgressState, getToken);
+      // We only send XP and Level. We do NOT send lessons_completed to avoid overwriting backend's count.
+      // Note: check if updateProgress backend handles partial updates.
+      // The backend uses: children.child_progress[0].lessons_completed = lessons_completed !== undefined ? ...
+      // So if we omit it, it keeps existing value. Perfect.
+      await tarbiyahService.updateProgress(childId, { ...newProgressState, lessons_completed: undefined } as any, getToken);
     } catch (error) {
       console.error("Failed to sync progress", error);
-      // Could revert here if needed
     }
   };
 
@@ -136,7 +152,8 @@ export const ChildProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       updateChild,
       deleteChild,
       setActiveChild,
-      incrementProgress
+      incrementProgress,
+      refreshChildren
     }}>
       {children}
     </ChildContext.Provider>

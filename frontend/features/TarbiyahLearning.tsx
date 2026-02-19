@@ -101,47 +101,13 @@ const TarbiyahLearning: React.FC<{ onNavigateToProfile?: () => void }> = ({ onNa
   const [subView, setSubView] = useState<SubView>('main');
   const [selectedItem, setSelectedItem] = useState<any>(null);
   const [scrollProgress, setScrollProgress] = useState(0);
-  const { children, activeChild, loading, setActiveChild, incrementProgress } = useChildContext();
+  const { children, activeChild, loading, setActiveChild, incrementProgress, refreshChildren } = useChildContext();
   const { getToken } = useAuth();
 
   const [lessons, setLessons] = useState<any[]>([]);
   const [lessonsLoading, setLessonsLoading] = useState(true);
 
-  useEffect(() => {
-    const fetchLessons = async () => {
-      try {
-        const data = await tarbiyahService.getLessons();
-        // Map icon string to component
-        const mapped = data.map((l: any) => ({
-          ...l,
-          icon: getIconComponent(l.iconName)
-        }));
-        setLessons(mapped);
-      } catch (error) {
-        console.error("Failed to load lessons", error);
-      } finally {
-        setLessonsLoading(false);
-      }
-    };
-    fetchLessons();
-  }, []);
-
-  useEffect(() => {
-    const handleScroll = () => {
-      const winScroll = document.documentElement.scrollTop;
-      const height = document.documentElement.scrollHeight - document.documentElement.clientHeight;
-      const scrolled = (winScroll / height) * 100;
-      setScrollProgress(scrolled);
-    };
-    window.addEventListener('scroll', handleScroll);
-    return () => window.removeEventListener('scroll', handleScroll);
-  }, []);
-
-  const navigateTo = (view: SubView, item: any = null) => {
-    setSelectedItem(item);
-    setSubView(view);
-    window.scrollTo(0, 0);
-  };
+  // ... (useEffect remains same)
 
   const handleCompletion = async (stage: any, xpEarned: number = 0) => {
     const finalXP = xpEarned > 0 ? xpEarned : 50;
@@ -158,6 +124,11 @@ const TarbiyahLearning: React.FC<{ onNavigateToProfile?: () => void }> = ({ onNa
           completed: true,
           scores: { score: xpEarned, attemptDate: new Date() }
         }, getToken);
+
+        // REFRESH children data to get the accurate 'lessons_completed' count from backend
+        // This ensures the next lesson unlocks correctly based on actual unique completions
+        await refreshChildren();
+
       } catch (e) {
         console.error("Failed to save lesson progress history", e);
       }

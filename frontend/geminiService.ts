@@ -3,6 +3,7 @@ import { Madhab } from "./types";
 import { useAuth } from "@clerk/clerk-react";
 
 const API_BASE = import.meta.env.VITE_API_URL || "http://localhost:5000";
+console.log("🔌 API_BASE:", API_BASE);
 
 
 export const identifyRecitation = async (
@@ -59,8 +60,12 @@ export const getImamResponse = async (
     );
 
     return response.data.response;
-  } catch (error) {
+  } catch (error: any) {
     console.error("Backend chat failed:", error);
-    return "I am reflecting on this. Allah knows best.";
+    // Return the actual error message if available, otherwise a polite fallback
+    if (error.response?.data?.message) {
+      return `I encountered an issue: ${error.response.data.message}. Please try again later.`;
+    }
+    return "I am unable to connect to my knowledge source at the moment. Please check your connection or try again later. Allah knows best.";
   }
 };

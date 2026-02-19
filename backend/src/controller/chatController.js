@@ -8,7 +8,11 @@ export const chatWithImam = async (req, res) => {
     const { prompt, madhab, mood, history, conversationId } = req.body;
     const clerkId = req.auth?.sub;
 
-    if (!clerkId) return res.status(401).json({ message: "Unauthorized" });
+    if (!clerkId) {
+      console.log("❌ Chat Request: Missing req.auth.sub");
+      return res.status(401).json({ message: "Unauthorized: No User ID" });
+    }
+    console.log(`✅ Chat Request Authenticated for User: ${clerkId}`);
 
     // 1. Fetch User to check Rate Limit
     let user = await User.findOne({ clerkId });
@@ -85,6 +89,9 @@ export const chatWithImam = async (req, res) => {
     res.json({ response });
   } catch (error) {
     console.error("Chat error:", error);
-    res.status(500).json({ message: "AI processing failed" });
+    if (error.message?.includes("429") || error.message?.includes("Quota")) {
+      return res.status(429).json({ message: "Daily AI limit reached. Please try again tomorrow." });
+    }
+    res.status(500).json({ message: "AI processing failed. Please try again." });
   }
 };

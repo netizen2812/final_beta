@@ -358,17 +358,29 @@ const UpcomingSessions = ({ token, activeChildId, onJoin }: { token: any, active
     fetchSessions();
   }, [token]);
 
-  const handleJoin = async (sessionId: string) => {
+  const handleJoin = async (batchId: string) => {
     if (!activeChildId) return alert("Select a child first");
     try {
       const t = await token();
-      const res = await axios.post(`${API_BASE}/api/live/${sessionId}/join`, {
+      // Try to join/start session for this batch
+      const res = await axios.post(`${API_BASE}/api/live/${batchId}/join`, {
         childId: activeChildId
       }, {
         headers: { Authorization: `Bearer ${t}` }
       });
-      onJoin(res.data.session);
+      // The backend 'join' endpoint should return the session object
+      // If it returns a session, we're good.
+      if (res.data.session) {
+        onJoin(res.data.session);
+      } else {
+        // Fallback if structure is different
+        alert("Joined batch. Please refresh/wait for session.");
+      }
     } catch (err: any) {
+      // If 403 or error, it might be "Already Joined" - but our backend handles that by returning existing session?
+      // Let's check backend logic again.
+      // Actually backend `joinBatch` returns { session, message }.
+      // If it fails, maybe we should just try to "Start/Get" the session?
       alert(err.response?.data?.message || "Failed to join");
     }
   };

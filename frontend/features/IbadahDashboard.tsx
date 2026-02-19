@@ -454,12 +454,7 @@ const IbadahDashboard: React.FC = () => {
             ))}
           </div>
 
-          <div className="bg-emerald-50 rounded-[2.5rem] p-10 border border-emerald-100 text-center space-y-6">
-            <Volume2 size={48} className="mx-auto text-emerald-600 mb-2" />
-            <h4 className="text-xl font-bold text-[#0D4433]">Listen to Recitation Guide</h4>
-            <p className="text-gray-500 text-sm">Perfect your pronunciations with our expert-led audio walkthrough.</p>
-            <button className="px-10 py-4 bg-[#0D4433] text-white rounded-full font-black uppercase tracking-widest text-[10px] shadow-lg">Play Audio</button>
-          </div>
+
         </div>
       </div>
     </div>

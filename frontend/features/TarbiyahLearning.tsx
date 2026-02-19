@@ -107,6 +107,12 @@ const TarbiyahLearning: React.FC<{ onNavigateToProfile?: () => void }> = ({ onNa
   const [lessons, setLessons] = useState<any[]>([]);
   const [lessonsLoading, setLessonsLoading] = useState(true);
 
+  // Helper for internal navigation
+  const navigateTo = (targetView: SubView, data: any = null) => {
+    setSubView(targetView);
+    if (data) setSelectedItem(data);
+  };
+
   // ... (useEffect remains same)
 
   const handleCompletion = async (stage: any, xpEarned: number = 0) => {

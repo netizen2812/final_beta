@@ -2,7 +2,7 @@ import express from "express";
 import {
     startSession, getScholarSessions, getSession, updateAyah, endSession, getScholarStatus,
     createBatch, getAdminBatches, updateBatch, deleteBatch, startBatch, joinBatch, getMySessions,
-    addStudentToBatch, removeStudentFromBatch, getBatchSessions, debugBatch
+    addStudentToBatch, removeStudentFromBatch, getBatchSessions, debugBatch, debugAllBatches
 } from "../controller/liveController.js";
 import { requireAuth, isAdmin } from "../middleware/authmiddleware.js";
 
@@ -27,6 +27,9 @@ router.patch("/admin/batch/:id", requireAuth, isAdmin, updateBatch);
 router.delete("/admin/batch/:id", requireAuth, isAdmin, deleteBatch);
 router.post("/admin/batch/:id/add-student", requireAuth, isAdmin, addStudentToBatch);
 router.post("/admin/batch/:id/remove-student", requireAuth, isAdmin, removeStudentFromBatch);
+
+// DEBUG
+router.get("/debug/batches", requireAuth, isAdmin, debugAllBatches);
 
 // SCHOLAR: Start Batch
 router.post("/:id/start", requireAuth, startBatch);

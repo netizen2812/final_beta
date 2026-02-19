@@ -310,7 +310,7 @@ const LiveClassRoom: React.FC = () => {
             <Users size={12} /> Live Classes
           </div>
           <h1 className="text-4xl font-serif font-bold text-[#052e16]">Live Quran Sessions</h1>
-          <p className="text-slate-500 font-medium">Join your scheduled classes or request access to new batches.</p>
+          <p className="text-slate-500 font-medium">Join your active classes or request access to new batches.</p>
         </div>
 
         {activeChild ? (
@@ -393,7 +393,7 @@ const UpcomingSessions = ({ token, activeChildId, onJoin }: { token: any, active
         <div className="w-16 h-16 bg-slate-50 rounded-full flex items-center justify-center mx-auto mb-4 text-slate-400">
           <Clock size={24} />
         </div>
-        <h3 className="font-bold text-slate-800 text-lg">No Scheduled Classes</h3>
+        <h3 className="font-bold text-slate-800 text-lg">No Active Classes</h3>
         <p className="text-slate-500 text-sm mt-1">You are not enrolled in any active batches.</p>
       </div>
     );

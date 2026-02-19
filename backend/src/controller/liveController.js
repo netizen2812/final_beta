@@ -428,31 +428,49 @@ export const joinBatch = async (req, res) => {
     }
 };
 
-// USER: GET /api/live/my-sessions - List sessions available to user
+// USER/SCHOLAR: GET /api/live/my-sessions - List sessions/batches available to user
 export const getMySessions = async (req, res) => {
     try {
         const userId = req.auth.userId;
+        const user = await User.findOne({ clerkId: userId });
 
-        // Find sessions where:
-        // 1. Access is Open OR
-        // 2. Access is Restricted AND User is in allowedParents
+        if (!user) return res.status(404).json({ message: "User not found" });
+
         const { default: Batch } = await import("../models/Batch.js");
-        // Find Batches where user's children are enrolled?
-        // Complex query: Find batches where `students` contains any of User's children IDs.
+        let batches = [];
 
-        const { default: Child } = await import("../models/Child.js");
-        const children = await Child.find({ parent_id: await User.findOne({ clerkId: userId }).select('_id') });
-        const childIds = children.map(c => c._id);
+        if (user.role === 'scholar') {
+            // Scholar: Find batches assigned to them
+            batches = await Batch.find({
+                scholar: user._id,
+                status: { $ne: 'archived' }
+            }).sort({ createdAt: -1 });
 
-        const sessions = await Batch.find({
-            students: { $in: childIds },
-            status: { $ne: 'archived' }
-        }).populate('scholar', 'name').sort({ createdAt: -1 });
+        } else {
+            // Parent: Find batches where their children are enrolled
+            const { default: Child } = await import("../models/Child.js");
+            const children = await Child.find({ parent_id: user._id });
+            const childIds = children.map(c => c._id);
 
-        // Map to expected format if needed, or update frontend to read Batch object
-        res.json(sessions);
+            batches = await Batch.find({
+                students: { $in: childIds },
+                status: { $ne: 'archived' }
+            }).populate('scholar', 'name').sort({ createdAt: -1 });
+        }
 
-        res.json(sessions);
+        // Map to Frontend Expected Format (LiveSession equivalent for list view)
+        const mappedSessions = batches.map(b => ({
+            _id: b._id,
+            title: b.name || `Batch ${b._id.toString().substr(-4)}`, // Fallback for empty name
+            description: b.name,
+            status: b.status,
+            scholarName: b.scholar?.name || 'Assigned Scholar',
+            schedule: b.schedule,
+            isBatch: true // Flag to distinguish from individual sessions
+        }));
+
+        res.json(mappedSessions);
+
     } catch (error) {
         console.error("Get my sessions error:", error);
         res.status(500).json({ message: "Server error" });
@@ -527,6 +545,29 @@ export const debugBatch = async (req, res) => {
             students: batch.students.map(s => ({ id: s._id, name: s.name })),
             status: batch.status
         });
+    } catch (error) {
+        res.status(500).json({ error: error.message });
+    }
+};
+
+// ADMIN DEBUG: GET /api/live/debug/batches
+export const debugAllBatches = async (req, res) => {
+    try {
+        const { default: Batch } = await import("../models/Batch.js");
+        const batches = await Batch.find({}).populate('scholar', 'name email clerkId');
+
+        const report = batches.map(b => ({
+            id: b._id,
+            name: b.name,
+            scholarId: b.scholar?._id,
+            scholarName: b.scholar?.name,
+            scholarClerkId: b.scholar?.clerkId,
+            studentsCount: b.students.length,
+            status: b.status,
+            schedule: b.schedule
+        }));
+
+        res.json(report);
     } catch (error) {
         res.status(500).json({ error: error.message });
     }

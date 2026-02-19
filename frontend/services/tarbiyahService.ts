@@ -292,5 +292,30 @@ export const tarbiyahService = {
     }
 
     return await response.json();
+  },
+
+  async getLessons() {
+    const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
+    // No auth needed for public list, or use token if preferred. Logic in backend was "public".
+    // But let's send token just in case we change backend later.
+    const { data: { session } } = await supabase.auth.getSession();
+    const token = session?.access_token;
+
+    // If we want it public, we can skip token. But consistency is nice. 
+    // Backend route is: router.get("/list", getLessons);
+    // Let's just fetch.
+    const response = await fetch(`${API_URL}/api/tarbiyah/list`, {
+      method: 'GET',
+      headers: {
+        'Content-Type': 'application/json',
+        ...(token ? { 'Authorization': `Bearer ${token}` } : {})
+      }
+    });
+
+    if (!response.ok) {
+      throw new Error('Failed to fetch lessons');
+    }
+
+    return await response.json();
   }
 };

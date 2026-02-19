@@ -5,14 +5,31 @@ import {
   Trophy, Flame, Target, Sparkles, Leaf, Moon,
   ChevronLeft, X, CheckCircle, Award, Mic, Loader2, Users,
   Settings, Clock, TrendingUp, Shield, BarChart2, Calendar,
-  Download, Share2
+  Download, Share2, Bug, Globe, Feather
 } from 'lucide-react';
 import { PieChart, Pie, Cell, ResponsiveContainer, BarChart, Bar, XAxis, Tooltip } from 'recharts';
-import { SubView, JOURNEY_STAGES, BADGES, COLORS, RANK_LEVELS, SCORING_RULES } from './TarbiyahData';
+import { SubView, BADGES, COLORS, RANK_LEVELS, SCORING_RULES } from './TarbiyahData'; // JOURNEY_STAGES removed
 import { calculateRank, RankCalculationResult } from '../utils/tarbiyahUtils';
 import { useChildContext } from '../contexts/ChildContext';
 import { tarbiyahService, ParentDashboardData } from '../services/tarbiyahService';
 import { useAuth } from '@clerk/clerk-react';
+
+// Icon Mapping Helper
+const getIconComponent = (iconName: string) => {
+  switch (iconName) {
+    case 'Moon': return <Moon size={24} />;
+    case 'Bug': return <Bug size={24} />;
+    case 'Feather': return <Feather size={24} />;
+    case 'Sparkles': return <Sparkles size={24} />;
+    case 'Award': return <Award size={24} />;
+    case 'Heart': return <Heart size={24} />;
+    case 'Sun': return <Sun size={24} />;
+    case 'Cloud': return <Cloud size={24} />;
+    case 'Flame': return <Flame size={24} />;
+    case 'Globe': return <Globe size={24} />;
+    default: return <Star size={24} />;
+  }
+};
 
 const MovingBackground = React.memo(() => {
   const particles = useMemo(() => {
@@ -86,6 +103,28 @@ const TarbiyahLearning: React.FC = () => {
   const [scrollProgress, setScrollProgress] = useState(0);
   const { children, activeChild, loading, setActiveChild, incrementProgress } = useChildContext();
   const { getToken } = useAuth();
+
+  const [lessons, setLessons] = useState<any[]>([]);
+  const [lessonsLoading, setLessonsLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchLessons = async () => {
+      try {
+        const data = await tarbiyahService.getLessons();
+        // Map icon string to component
+        const mapped = data.map((l: any) => ({
+          ...l,
+          icon: getIconComponent(l.iconName)
+        }));
+        setLessons(mapped);
+      } catch (error) {
+        console.error("Failed to load lessons", error);
+      } finally {
+        setLessonsLoading(false);
+      }
+    };
+    fetchLessons();
+  }, []);
 
   useEffect(() => {
     const handleScroll = () => {
@@ -184,6 +223,8 @@ const TarbiyahLearning: React.FC = () => {
               activeChild={activeChild}
               children={children}
               onChildChange={(id) => setActiveChild(id)}
+              lessons={lessons}
+              lessonsLoading={lessonsLoading}
             />
           ) : (
             <ParentsView onNavigate={navigateTo} activeChild={activeChild} />
@@ -199,22 +240,24 @@ const KidsMain: React.FC<{
   onNavigate: (v: SubView, i?: any) => void,
   activeChild: any,
   children: any[],
-  onChildChange: (id: string) => void
-}> = ({ scrollProgress, onNavigate, activeChild, children, onChildChange }) => {
+  onChildChange: (id: string) => void,
+  lessons: any[],
+  lessonsLoading: boolean
+}> = ({ scrollProgress, onNavigate, activeChild, children, onChildChange, lessons, lessonsLoading }) => {
 
   // Use shared utility for consistent rank calculation
   const progress = activeChild?.child_progress?.[0] || { xp: 0, lessons_completed: 0 };
   const rankData: RankCalculationResult = calculateRank(progress.xp);
   const { currentRank, nextRank, xpIntoRank, xpToNext, progressPercent } = rankData;
 
-  const stagesWithStatus = JOURNEY_STAGES.map((s, idx) => ({
+  const stagesWithStatus = lessons.map((s, idx) => ({
     ...s,
     completed: idx < progress.lessons_completed,
     locked: idx > progress.lessons_completed
   }));
 
   const maxCompletedIdx = progress.lessons_completed;
-  const pathFillPercentage = Math.min(100, (maxCompletedIdx / (JOURNEY_STAGES.length - 1)) * 100);
+  const pathFillPercentage = Math.min(100, (maxCompletedIdx / (lessons.length - 1)) * 100);
 
   return (
     <div className="max-w-3xl mx-auto space-y-8 sm:space-y-10 lg:space-y-12">

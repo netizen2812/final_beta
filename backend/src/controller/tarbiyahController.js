@@ -2,6 +2,7 @@ import TarbiyahProgress from "../models/TarbiyahProgress.js";
 import TarbiyahUserStats from "../models/TarbiyahUserStats.js";
 import Child from "../models/Child.js";
 import User from "../models/User.js";
+import Lesson from "../models/Lesson.js";
 import mongoose from "mongoose";
 import { calculateRank, getBadgesCount } from "../utils/tarbiyahUtils.js";
 import { trackEvent } from "../services/analyticsService.js";
@@ -410,5 +411,15 @@ export const updateLessonProgress = async (req, res) => {
     } catch (error) {
         console.error("Update lesson progress error:", error);
         res.status(500).json({ message: "Server error" });
+    }
+};
+// GET /api/tarbiyah/list
+export const getLessons = async (req, res) => {
+    try {
+        const lessons = await Lesson.find({}).sort({ id: 1 });
+        res.json(lessons);
+    } catch (error) {
+        console.error("Get lessons error:", error);
+        res.status(500).json({ message: "Server error fetching lessons" });
     }
 };

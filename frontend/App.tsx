@@ -103,7 +103,7 @@ const App: React.FC = () => {
       case AppTab.IBADAH:
         return <IbadahDashboard />;
       case AppTab.TARBIYAH:
-        return <TarbiyahLearning />;
+        return <TarbiyahLearning onNavigateToProfile={() => setActiveTab(AppTab.PROFILE)} />;
       case AppTab.LIVE:
         return <LiveClassRoom />;
       case AppTab.ADMIN:

@@ -96,7 +96,102 @@ const WithBackground = ({ children }: { children: React.ReactNode }) => (
   </div>
 );
 
-const TarbiyahLearning: React.FC = () => {
+const TarbiyahLearning: React.FC<{ onNavigateToProfile?: () => void }> = ({ onNavigateToProfile }) => {
+  const [view, setView] = useState<'kids' | 'parent'>('kids');
+  const [subView, setSubView] = useState<SubView>('main');
+  const [selectedItem, setSelectedItem] = useState<any>(null);
+  const [scrollProgress, setScrollProgress] = useState(0);
+  const { children, activeChild, loading, setActiveChild, incrementProgress } = useChildContext();
+  const { getToken } = useAuth();
+
+  const [lessons, setLessons] = useState<any[]>([]);
+  const [lessonsLoading, setLessonsLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchLessons = async () => {
+      try {
+        const data = await tarbiyahService.getLessons();
+        // Map icon string to component
+        const mapped = data.map((l: any) => ({
+          ...l,
+          icon: getIconComponent(l.iconName)
+        }));
+        setLessons(mapped);
+      } catch (error) {
+        console.error("Failed to load lessons", error);
+      } finally {
+        setLessonsLoading(false);
+      }
+    };
+    fetchLessons();
+  }, []);
+
+  useEffect(() => {
+    const handleScroll = () => {
+      const winScroll = document.documentElement.scrollTop;
+      const height = document.documentElement.scrollHeight - document.documentElement.clientHeight;
+      const scrolled = (winScroll / height) * 100;
+      setScrollProgress(scrolled);
+    };
+    window.addEventListener('scroll', handleScroll);
+    return () => window.removeEventListener('scroll', handleScroll);
+  }, []);
+
+  const navigateTo = (view: SubView, item: any = null) => {
+    setSelectedItem(item);
+    setSubView(view);
+    window.scrollTo(0, 0);
+  };
+
+  const handleCompletion = async (stage: any, xpEarned: number = 0) => {
+    const finalXP = xpEarned > 0 ? xpEarned : 50;
+
+    if (activeChild) {
+      await incrementProgress(activeChild.id, finalXP);
+
+      try {
+        await tarbiyahService.saveLessonProgress({
+          childUserId: activeChild.childUserId || activeChild.id,
+          lessonId: stage.id,
+          lessonTitle: stage.title,
+          xpEarned: finalXP,
+          completed: true,
+          scores: { score: xpEarned, attemptDate: new Date() }
+        }, getToken);
+      } catch (e) {
+        console.error("Failed to save lesson progress history", e);
+      }
+    }
+    navigateTo('completion', { ...stage, earnedXP: finalXP });
+  };
+
+  if (loading) return (
+    <div className="min-h-screen bg-[#022c22] flex flex-col items-center justify-center space-y-4">
+      <Loader2 className="animate-spin text-emerald-400" size={40} />
+      <p className="text-emerald-100/50 font-bold uppercase tracking-widest text-xs">Journey Mapping...</p>
+    </div>
+  );
+
+  if (children.length === 0) return (
+    <div className="min-h-screen bg-[#022c22] flex flex-col items-center justify-center p-10 text-center space-y-8 animate-in fade-in">
+      <div className="w-24 h-24 bg-emerald-500/10 rounded-[2.5rem] flex items-center justify-center text-emerald-400 border border-emerald-500/20 shadow-2xl">
+        <Users size={48} />
+      </div>
+      <div>
+        <h2 className="text-3xl font-serif font-bold text-white">No Child Profiles</h2>
+        <p className="text-emerald-100/40 mt-4 max-w-xs mx-auto text-sm leading-relaxed mb-8">Visit the Profile tab to create a profile for your child and begin their learning adventure.</p>
+
+        {onNavigateToProfile && (
+          <button
+            onClick={onNavigateToProfile}
+            className="px-8 py-3 bg-emerald-500 hover:bg-emerald-400 text-[#022c22] rounded-full font-bold uppercase tracking-widest text-xs shadow-lg shadow-emerald-500/20 transition-all hover:scale-105"
+          >
+            Add Child
+          </button>
+        )}
+      </div>
+    </div>
+  );
   const [view, setView] = useState<'kids' | 'parent'>('kids');
   const [subView, setSubView] = useState<SubView>('main');
   const [selectedItem, setSelectedItem] = useState<any>(null);

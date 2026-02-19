@@ -88,3 +88,52 @@ export const forceEndSession = async (req, res) => {
         res.status(500).json({ message: "Server error" });
     }
 };
+
+// GET /api/admin/users
+export const getAllUsers = async (req, res) => {
+    try {
+        // Fetch all users
+        const users = await User.find().sort({ createdAt: -1 });
+
+        // Enhance with children count
+        // Optimisation: Aggregate directly or just loop parallel
+        const enrichedUsers = await Promise.all(users.map(async (u) => {
+            const childCount = await Child.countDocuments({ parent: u._id });
+            return {
+                _id: u._id,
+                name: u.name,
+                email: u.email,
+                role: u.role,
+                createdAt: u.createdAt,
+                childCount,
+                liveAccess: u.features?.liveAccess || false
+            };
+        }));
+
+        res.json(enrichedUsers);
+    } catch (error) {
+        console.error("Admin get users error:", error);
+        res.status(500).json({ message: "Server error" });
+    }
+};
+
+// PATCH /api/admin/user/:id/access
+export const updateUserStatus = async (req, res) => {
+    try {
+        const { id } = req.params;
+        const { liveAccess } = req.body; // Boolean
+
+        const user = await User.findById(id);
+        if (!user) return res.status(404).json({ message: "User not found" });
+
+        if (!user.features) user.features = {};
+        user.features.liveAccess = liveAccess;
+
+        await user.save();
+
+        res.json({ message: "User access updated", liveAccess: user.features.liveAccess });
+    } catch (error) {
+        console.error("Admin update user error:", error);
+        res.status(500).json({ message: "Server error" });
+    }
+};

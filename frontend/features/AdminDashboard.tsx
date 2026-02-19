@@ -4,19 +4,26 @@ import axios from 'axios';
 import {
     Users, Activity, Video, BarChart2, Shield,
     RefreshCw, TrendingUp, UserCheck, AlertTriangle,
-    Play, StopCircle, Lock, Unlock, Server, Database
+    Play, StopCircle, Lock, Unlock, Server, Database, Search,
+    Radio
 } from 'lucide-react';
 
 const API_BASE = import.meta.env.VITE_API_URL || "http://localhost:5000";
 
-const AdminDashboard: React.FC = () => {
+interface AdminDashboardProps {
+    onNavigateToLive?: () => void;
+}
+
+const AdminDashboard: React.FC<AdminDashboardProps> = ({ onNavigateToLive }) => {
     const { getToken } = useAuth();
     const { user } = useUser();
     const [loading, setLoading] = useState(true);
     const [stats, setStats] = useState<any>(null);
     const [sessions, setSessions] = useState<any[]>([]);
+    const [users, setUsers] = useState<any[]>([]);
     const [tab, setTab] = useState<'overview' | 'sessions' | 'users'>('overview');
     const [error, setError] = useState<string | null>(null);
+    const [searchQuery, setSearchQuery] = useState('');
 
     const fetchStats = async () => {
         try {
@@ -46,6 +53,16 @@ const AdminDashboard: React.FC = () => {
         }
     };
 
+    const fetchUsers = async () => {
+        try {
+            const token = await getToken();
+            const res = await axios.get(`${API_BASE}/api/admin/users`, {
+                headers: { Authorization: `Bearer ${token}` }
+            });
+            setUsers(res.data);
+        } catch (err) { console.error(err); }
+    };
+
     const handleForceEnd = async (sessionId: string) => {
         if (!confirm("Are you sure you want to FORCE END this session?")) return;
         try {
@@ -61,10 +78,27 @@ const AdminDashboard: React.FC = () => {
         }
     };
 
+    const toggleLiveAccess = async (userId: string, currentStatus: boolean) => {
+        if (!confirm(`Turn Live Access ${currentStatus ? 'OFF' : 'ON'} for this user?`)) return;
+        try {
+            const token = await getToken();
+            await axios.patch(`${API_BASE}/api/admin/user/${userId}/access`, { liveAccess: !currentStatus }, {
+                headers: { Authorization: `Bearer ${token}` }
+            });
+            fetchUsers();
+        } catch (err) { alert("Failed to update access"); }
+    };
+
     useEffect(() => {
         fetchStats();
         if (tab === 'sessions') fetchSessions();
+        if (tab === 'users') fetchUsers();
     }, [tab]);
+
+    const filteredUsers = users.filter(u =>
+        u.name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        u.email?.toLowerCase().includes(searchQuery.toLowerCase())
+    );
 
     if (loading) return (
         <div className="min-h-screen flex items-center justify-center bg-gray-50 text-emerald-800 font-bold">
@@ -82,7 +116,7 @@ const AdminDashboard: React.FC = () => {
     );
 
     return (
-        <div className="min-h-screen bg-slate-50 font-sans">
+        <div className="min-h-screen bg-slate-50 font-sans pb-20">
             {/* Sidebar / Header Combo */}
             <div className="bg-[#022c22] text-white p-6 sticky top-0 z-50 shadow-xl flex justify-between items-center">
                 <div className="flex items-center gap-3">
@@ -103,11 +137,22 @@ const AdminDashboard: React.FC = () => {
                         <BarChart2 size={16} /> Overview
                     </button>
                     <button
+                        onClick={() => setTab('users')}
+                        className={`px-4 py-2 rounded-lg text-sm font-bold flex items-center gap-2 transition-all ${tab === 'users' ? 'bg-emerald-600 text-white' : 'hover:bg-white/10 text-emerald-200'}`}
+                    >
+                        <Users size={16} /> Users
+                    </button>
+                    <button
                         onClick={() => setTab('sessions')}
                         className={`px-4 py-2 rounded-lg text-sm font-bold flex items-center gap-2 transition-all ${tab === 'sessions' ? 'bg-emerald-600 text-white' : 'hover:bg-white/10 text-emerald-200'}`}
                     >
                         <Video size={16} /> Live Sessions
                     </button>
+                    {onNavigateToLive && (
+                        <button onClick={onNavigateToLive} className="px-4 py-2 rounded-lg text-sm font-bold flex items-center gap-2 bg-emerald-100/10 hover:bg-white/20 text-emerald-200 border border-emerald-500/30">
+                            <Radio size={16} /> Manage Classes
+                        </button>
+                    )}
                 </div>
             </div>
 
@@ -139,11 +184,80 @@ const AdminDashboard: React.FC = () => {
                     </div>
                 )}
 
+                {/* USERS MANAGER */}
+                {tab === 'users' && (
+                    <div className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden animate-in fade-in">
+                        <div className="p-6 border-b border-slate-100 flex justify-between items-center gap-4">
+                            <h2 className="font-bold text-lg text-slate-800 whitespace-nowrap">User Manager</h2>
+                            <div className="relative w-full max-w-md">
+                                <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={16} />
+                                <input
+                                    className="w-full pl-10 pr-4 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                                    placeholder="Search by name or email..."
+                                    value={searchQuery}
+                                    onChange={e => setSearchQuery(e.target.value)}
+                                />
+                            </div>
+                            <button onClick={fetchUsers} className="text-sm text-emerald-600 font-bold hover:underline flex items-center gap-1"><RefreshCw size={14} /> Refresh</button>
+                        </div>
+                        <div className="overflow-x-auto">
+                            <table className="w-full text-sm text-left">
+                                <thead className="bg-slate-50 text-slate-500 font-bold uppercase text-xs">
+                                    <tr>
+                                        <th className="px-6 py-4">User</th>
+                                        <th className="px-6 py-4">Role</th>
+                                        <th className="px-6 py-4">Kids</th>
+                                        <th className="px-6 py-4">Joined</th>
+                                        <th className="px-6 py-4">Live Access</th>
+                                        <th className="px-6 py-4 text-right">Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody className="divide-y divide-slate-100">
+                                    {filteredUsers.map((u) => (
+                                        <tr key={u._id} className="hover:bg-slate-50 transition-colors">
+                                            <td className="px-6 py-4">
+                                                <div className="font-bold text-slate-800">{u.name || "Unnamed"}</div>
+                                                <div className="text-slate-500 text-xs">{u.email}</div>
+                                                <div className="text-slate-300 text-[10px] font-mono">{u._id}</div>
+                                            </td>
+                                            <td className="px-6 py-4">
+                                                <span className={`px-2 py-1 rounded text-xs font-bold uppercase ${u.role === 'scholar' ? 'bg-purple-100 text-purple-700' : 'bg-slate-100 text-slate-600'}`}>
+                                                    {u.role}
+                                                </span>
+                                            </td>
+                                            <td className="px-6 py-4 text-slate-600 font-bold">{u.childCount}</td>
+                                            <td className="px-6 py-4 text-slate-500 text-xs">{new Date(u.createdAt).toLocaleDateString()}</td>
+                                            <td className="px-6 py-4">
+                                                {u.liveAccess ? (
+                                                    <span className="flex items-center gap-1 text-emerald-600 font-bold text-xs"><Shield size={12} fill="currentColor" /> Enabled</span>
+                                                ) : (
+                                                    <span className="flex items-center gap-1 text-slate-400 text-xs"><Lock size={12} /> Disabled</span>
+                                                )}
+                                            </td>
+                                            <td className="px-6 py-4 text-right">
+                                                <button
+                                                    onClick={() => toggleLiveAccess(u._id, u.liveAccess)}
+                                                    className={`px-3 py-1.5 rounded-md text-xs font-bold transition-all ${u.liveAccess
+                                                        ? 'bg-red-50 text-red-600 hover:bg-red-100 border border-red-200'
+                                                        : 'bg-emerald-50 text-emerald-600 hover:bg-emerald-100 border border-emerald-200'
+                                                        }`}
+                                                >
+                                                    {u.liveAccess ? 'Revoke Access' : 'Grant Access'}
+                                                </button>
+                                            </td>
+                                        </tr>
+                                    ))}
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                )}
+
                 {/* SESSIONS TABLE */}
                 {tab === 'sessions' && (
                     <div className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden animate-in fade-in">
                         <div className="p-6 border-b border-slate-100 flex justify-between items-center">
-                            <h2 className="font-bold text-lg text-slate-800">Live Session Manager</h2>
+                            <h2 className="font-bold text-lg text-slate-800">Live Session Monitor</h2>
                             <button onClick={fetchSessions} className="text-sm text-emerald-600 font-bold hover:underline flex items-center gap-1"><RefreshCw size={14} /> Refresh</button>
                         </div>
                         <div className="overflow-x-auto">

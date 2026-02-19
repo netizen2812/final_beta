@@ -79,14 +79,39 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onNavigateToLive }) => 
     };
 
     const toggleLiveAccess = async (userId: string, currentStatus: boolean) => {
-        if (!confirm(`Turn Live Access ${currentStatus ? 'OFF' : 'ON'} for this user?`)) return;
+        // Optimistic UI update could go here, but let's just wait for verify
         try {
             const token = await getToken();
-            await axios.patch(`${API_BASE}/api/admin/user/${userId}/access`, { liveAccess: !currentStatus }, {
+            await axios.patch(`${API_BASE}/api/admin/user/${userId}`, { liveAccess: !currentStatus }, {
                 headers: { Authorization: `Bearer ${token}` }
             });
             fetchUsers();
         } catch (err) { alert("Failed to update access"); }
+    };
+
+    const updateUserRole = async (userId: string, newRole: string) => {
+        if (!confirm(`Change user role to ${newRole.toUpperCase()}? This grants special permissions.`)) return;
+        try {
+            const token = await getToken();
+            await axios.patch(`${API_BASE}/api/admin/user/${userId}`, { role: newRole }, {
+                headers: { Authorization: `Bearer ${token}` }
+            });
+            fetchUsers();
+        } catch (err) { alert("Failed to update role"); }
+    };
+
+    const resetProgress = async (userId: string) => {
+        const confirmText = prompt("Type 'RESET' to confirm wiping all progress for this user's children. This cannot be undone.");
+        if (confirmText !== 'RESET') return;
+
+        try {
+            const token = await getToken();
+            const res = await axios.post(`${API_BASE}/api/admin/user/${userId}/reset-progress`, {}, {
+                headers: { Authorization: `Bearer ${token}` }
+            });
+            alert(res.data.message);
+            fetchUsers();
+        } catch (err) { alert("Failed to reset progress"); }
     };
 
     useEffect(() => {
@@ -221,29 +246,44 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onNavigateToLive }) => 
                                                 <div className="text-slate-300 text-[10px] font-mono">{u._id}</div>
                                             </td>
                                             <td className="px-6 py-4">
-                                                <span className={`px-2 py-1 rounded text-xs font-bold uppercase ${u.role === 'scholar' ? 'bg-purple-100 text-purple-700' : 'bg-slate-100 text-slate-600'}`}>
-                                                    {u.role}
-                                                </span>
+                                                <select
+                                                    value={u.role}
+                                                    onChange={(e) => updateUserRole(u._id, e.target.value)}
+                                                    className={`px-2 py-1 rounded text-xs font-bold uppercase border-none focus:ring-2 focus:ring-emerald-500 cursor-pointer ${u.role === 'scholar' ? 'bg-purple-100 text-purple-700' :
+                                                        u.role === 'admin' ? 'bg-red-100 text-red-700' :
+                                                            'bg-slate-100 text-slate-600'
+                                                        }`}
+                                                >
+                                                    <option value="parent">Parent</option>
+                                                    <option value="scholar">Scholar</option>
+                                                    <option value="student">Student</option>
+                                                    <option value="admin">Admin</option>
+                                                </select>
                                             </td>
                                             <td className="px-6 py-4 text-slate-600 font-bold">{u.childCount}</td>
                                             <td className="px-6 py-4 text-slate-500 text-xs">{new Date(u.createdAt).toLocaleDateString()}</td>
                                             <td className="px-6 py-4">
-                                                {u.liveAccess ? (
-                                                    <span className="flex items-center gap-1 text-emerald-600 font-bold text-xs"><Shield size={12} fill="currentColor" /> Enabled</span>
-                                                ) : (
-                                                    <span className="flex items-center gap-1 text-slate-400 text-xs"><Lock size={12} /> Disabled</span>
-                                                )}
-                                            </td>
-                                            <td className="px-6 py-4 text-right">
                                                 <button
                                                     onClick={() => toggleLiveAccess(u._id, u.liveAccess)}
-                                                    className={`px-3 py-1.5 rounded-md text-xs font-bold transition-all ${u.liveAccess
-                                                        ? 'bg-red-50 text-red-600 hover:bg-red-100 border border-red-200'
-                                                        : 'bg-emerald-50 text-emerald-600 hover:bg-emerald-100 border border-emerald-200'
+                                                    className={`flex items-center gap-1.5 px-2 py-1 rounded text-xs font-bold transition-all ${u.liveAccess
+                                                        ? 'text-emerald-700 bg-emerald-100 hover:bg-emerald-200'
+                                                        : 'text-slate-500 bg-slate-100 hover:bg-slate-200'
                                                         }`}
                                                 >
-                                                    {u.liveAccess ? 'Revoke Access' : 'Grant Access'}
+                                                    {u.liveAccess ? <Shield size={12} fill="currentColor" /> : <Lock size={12} />}
+                                                    {u.liveAccess ? 'Enabled' : 'Disabled'}
                                                 </button>
+                                            </td>
+                                            <td className="px-6 py-4 text-right">
+                                                <div className="flex justify-end gap-2">
+                                                    <button
+                                                        onClick={() => resetProgress(u._id)}
+                                                        className="text-red-500 hover:text-red-700 hover:bg-red-50 p-2 rounded-lg transition-colors"
+                                                        title="Hard Reset Progress (Fix Bugs)"
+                                                    >
+                                                        <AlertTriangle size={16} />
+                                                    </button>
+                                                </div>
                                             </td>
                                         </tr>
                                     ))}

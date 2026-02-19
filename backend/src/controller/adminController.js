@@ -117,23 +117,77 @@ export const getAllUsers = async (req, res) => {
     }
 };
 
-// PATCH /api/admin/user/:id/access
-export const updateUserStatus = async (req, res) => {
+// PATCH /api/admin/user/:id
+export const updateUser = async (req, res) => {
     try {
         const { id } = req.params;
-        const { liveAccess } = req.body; // Boolean
+        const { liveAccess, role } = req.body;
 
         const user = await User.findById(id);
         if (!user) return res.status(404).json({ message: "User not found" });
 
-        if (!user.features) user.features = {};
-        user.features.liveAccess = liveAccess;
+        if (liveAccess !== undefined) {
+            if (!user.features) user.features = {};
+            user.features.liveAccess = liveAccess;
+        }
+
+        if (role) {
+            user.role = role.toLowerCase();
+        }
 
         await user.save();
 
-        res.json({ message: "User access updated", liveAccess: user.features.liveAccess });
+        res.json({
+            message: "User updated",
+            user: {
+                _id: user._id,
+                role: user.role,
+                liveAccess: user.features?.liveAccess
+            }
+        });
     } catch (error) {
         console.error("Admin update user error:", error);
         res.status(500).json({ message: "Server error" });
+    }
+};
+
+// POST /api/admin/user/:id/reset-progress
+export const resetUserProgress = async (req, res) => {
+    try {
+        const { id } = req.params; // User ID (Parent)
+
+        // 1. Find all children for this parent
+        const children = await Child.find({ parent_id: id });
+        const childUserIds = children.map(c => c.childUserId).filter(Boolean);
+
+        if (childUserIds.length === 0) {
+            return res.json({ message: "No children found for this user to reset." });
+        }
+
+        // 2. Delete all TarbiyahProgress for these children
+        const deleteResult = await TarbiyahProgress.deleteMany({ childUserId: { $in: childUserIds } });
+
+        // 3. Reset Child Stats in Child collection
+        await Child.updateMany(
+            { parent_id: id },
+            {
+                $set: {
+                    "child_progress.0.xp": 0,
+                    "child_progress.0.level": 1,
+                    "child_progress.0.lessons_completed": 0,
+                    "child_progress.0.last_activity": null
+                }
+            }
+        );
+
+        // 4. Reset Session Logs? (Optional, maybe keep them for history)
+
+        console.log(`[Admin] Reset progress for user ${id}. Deleted ${deleteResult.deletedCount} progress records.`);
+
+        res.json({ message: `Progress reset. cleared ${deleteResult.deletedCount} lesson records.` });
+
+    } catch (error) {
+        console.error("Admin reset progress error:", error);
+        res.status(500).json({ message: "Server error resetting progress" });
     }
 };

@@ -112,7 +112,7 @@ const BatchManager = ({ token }: { token: any }) => {
         scholar: '',
         level: 'Beginner',
         status: 'active',
-        schedule: { days: [], time: '', durationMinutes: 60 }
+        // schedule: { days: [], time: '', durationMinutes: 60 } // Removed
     });
     const [scholars, setScholars] = useState<any[]>([]);
 
@@ -245,11 +245,6 @@ const BatchManager = ({ token }: { token: any }) => {
                     <input className="w-full border p-2 rounded" placeholder="Batch Name (e.g. Quran Beginners A)" value={newItem.name} onChange={e => setNewItem({ ...newItem, name: e.target.value })} />
 
                     <div className="grid grid-cols-2 gap-4">
-                        <input className="border p-2 rounded" type="text" placeholder="Time (e.g. 18:00 UTC)" value={newItem.schedule.time} onChange={e => setNewItem({ ...newItem, schedule: { ...newItem.schedule, time: e.target.value } })} />
-                        <input className="border p-2 rounded" type="number" placeholder="Duration (mins)" value={newItem.schedule.durationMinutes} onChange={e => setNewItem({ ...newItem, schedule: { ...newItem.schedule, durationMinutes: parseInt(e.target.value) } })} />
-                    </div>
-
-                    <div className="grid grid-cols-2 gap-4">
                         <select className="w-full border p-2 rounded" value={newItem.level} onChange={e => setNewItem({ ...newItem, level: e.target.value })}>
                             <option value="Beginner">Beginner</option>
                             <option value="Intermediate">Intermediate</option>
@@ -282,10 +277,7 @@ const BatchManager = ({ token }: { token: any }) => {
                                 <span className={`text-xs px-2 py-0.5 rounded font-mono ${b.status === 'active' ? 'bg-emerald-100 text-emerald-700' : 'bg-slate-100'}`}>{b.status}</span>
                                 <span className="bg-slate-100 text-xs px-2 py-0.5 rounded font-mono">{b.level}</span>
                             </div>
-                            <p className="text-sm text-slate-500">
-                                {b.schedule?.time} ({b.schedule?.durationMinutes} mins)
-                            </p>
-                            <p className="text-xs text-slate-400 mt-1">Scholar: {b.scholar?.name || 'Unknown'}</p>
+                            <p className="text-sm text-slate-500 mt-1"> Scholar: {b.scholar?.name || 'Unknown'}</p>
                         </div>
                         <div className="flex gap-2">
                             <button onClick={() => openManage(b)} className="text-slate-400 hover:text-blue-500 p-2"><Users size={18} /></button>

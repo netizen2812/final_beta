@@ -336,7 +336,7 @@ const LiveClassRoom: React.FC = () => {
   );
 };
 
-// Sub-Component: Upcoming Sessions List
+// Sub-Component: My Classes List
 const UpcomingSessions = ({ token, activeChildId, onJoin }: { token: any, activeChildId?: string, onJoin: (s: LiveSession) => void }) => {
   const [sessions, setSessions] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
@@ -399,20 +399,17 @@ const UpcomingSessions = ({ token, activeChildId, onJoin }: { token: any, active
               <span className="text-xs text-slate-400 font-medium">Batch: {s.title}</span>
             </div>
             <h3 className="font-bold text-[#052e16] text-lg">{s.description || s.title}</h3>
-            <p className="text-sm text-slate-500 mt-1 flex items-center gap-2">
-              <Clock size={14} />
-              {new Date(s.scheduledStartTime).toLocaleString()}
-            </p>
+
           </div>
           <button
             onClick={() => handleJoin(s._id)}
             disabled={s.status === 'ended' || !activeChildId}
-            className={`px-6 py-3 rounded-xl font-bold text-sm flex items-center gap-2 shrink-0 ${s.status === 'active'
+            className={`px-6 py-3 rounded-xl font-bold text-sm flex items-center gap-2 shrink-0 ${s.status !== 'ended'
               ? 'bg-[#052e16] text-white hover:bg-emerald-900 shadow-lg hover:shadow-emerald-900/20'
               : 'bg-slate-100 text-slate-400 cursor-not-allowed'
               }`}
           >
-            {s.status === 'active' ? 'Join Now' : 'Scheduled'}
+            {s.status === 'active' ? 'Join Class' : 'Open Class'}
           </button>
         </div>
       ))}

@@ -365,7 +365,10 @@ export const joinBatch = async (req, res) => {
                 currentAyah: 1,
                 status: 'active',
                 startedAt: new Date(),
-                batchId: batch._id // Optional: Link to batch if schema supports it, effectively "tagging" it
+                // Fix: Model requires scheduled times
+                scheduledStartTime: new Date(),
+                scheduledEndTime: new Date(Date.now() + 60 * 60 * 1000), // Default 1 hour
+                batchId: batch._id // Optional Link
             });
         }
 

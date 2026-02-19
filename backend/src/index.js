@@ -25,6 +25,8 @@ const app = express();
 // CORS Configuration
 const allowedOrigins = [
   process.env.FRONTEND_URL,
+  "https://tryimam.vercel.app",
+  "https://imam.vercel.app",
   "http://localhost:5173",
   "http://localhost:3000"
 ].filter(Boolean);

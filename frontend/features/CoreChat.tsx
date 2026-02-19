@@ -1,4 +1,5 @@
 import React, { useState, useRef, useEffect, useCallback } from 'react';
+import { useNavigate } from 'react-router-dom';
 import {
   Send, ChevronDown, CloudRain, Sun, Smile,
   AlertTriangle, SlidersHorizontal, X, Sparkles,
@@ -9,6 +10,8 @@ import { getImamResponse } from '../geminiService';
 import { useAuth } from "@clerk/clerk-react";
 import LeftContextPanel from '../components/LeftContextPanel';
 import GuidanceControlPanel from '../components/RightUtilityPanel';
+
+const API_URL = import.meta.env.VITE_API_URL || "http://localhost:5000";
 
 // ─── Animated Background ────────────────────────────────────────────────────
 const AnimatedBackground: React.FC = () => (
@@ -194,7 +197,7 @@ const CoreChat: React.FC<CoreChatProps> = ({ madhab, setMadhab, tone: mood, setT
     setIsHistoryLoading(true);
     try {
       const token = await getToken();
-      const res = await fetch('http://localhost:5000/api/conversations', {
+      const res = await fetch(`${API_URL}/api/conversations`, {
         headers: { Authorization: `Bearer ${token}` },
       });
       if (res.ok) {
@@ -215,7 +218,7 @@ const CoreChat: React.FC<CoreChatProps> = ({ madhab, setMadhab, tone: mood, setT
   const handleNewChat = async () => {
     try {
       const token = await getToken();
-      const res = await fetch('http://localhost:5000/api/conversations', {
+      const res = await fetch(`${API_URL}/api/conversations`, {
         method: 'POST',
         headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
       });
@@ -241,7 +244,7 @@ const CoreChat: React.FC<CoreChatProps> = ({ madhab, setMadhab, tone: mood, setT
     setIsLoading(true);
     try {
       const token = await getToken();
-      const res = await fetch(`http://localhost:5000/api/conversations/${id}`, {
+      const res = await fetch(`${API_URL}/api/conversations/${id}`, {
         headers: { Authorization: `Bearer ${token}` },
       });
       if (res.ok) {
@@ -265,7 +268,7 @@ const CoreChat: React.FC<CoreChatProps> = ({ madhab, setMadhab, tone: mood, setT
   const handleDeleteConversation = async (id: string) => {
     try {
       const token = await getToken();
-      await fetch(`http://localhost:5000/api/conversations/${id}`, {
+      await fetch(`${API_URL}/api/conversations/${id}`, {
         method: 'DELETE',
         headers: { Authorization: `Bearer ${token}` },
       });
@@ -288,7 +291,7 @@ const CoreChat: React.FC<CoreChatProps> = ({ madhab, setMadhab, tone: mood, setT
     if (!convId) {
       try {
         const token = await getToken();
-        const res = await fetch('http://localhost:5000/api/conversations', {
+        const res = await fetch(`${API_URL}/api/conversations`, {
           method: 'POST',
           headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
         });
@@ -394,7 +397,7 @@ const CoreChat: React.FC<CoreChatProps> = ({ madhab, setMadhab, tone: mood, setT
                     <ChevronLeft size={18} />
                   </button>
                 )}
-                <div className={`w-10 h-10 ${activeMood.bg} rounded-[1.25rem] flex items-center justify-center ${activeMood.color} border ${activeMood.border} shadow-sm transition-all`}>
+                <div className={`w - 10 h - 10 ${activeMood.bg} rounded - [1.25rem] flex items - center justify - center ${activeMood.color} border ${activeMood.border} shadow - sm transition - all`}>
                   {activeMood.icon}
                 </div>
                 <div>
@@ -457,17 +460,17 @@ const CoreChat: React.FC<CoreChatProps> = ({ madhab, setMadhab, tone: mood, setT
                       {group.messages.map((msg, msgIdx) => (
                         <div
                           key={msg.id}
-                          className={`animate-in fade-in slide-in-from-bottom-3 duration-300 ${msg.role === 'user'
+                          className={`animate -in fade -in slide -in -from - bottom - 3 duration - 300 ${msg.role === 'user'
                             ? 'p-4 md:p-5 rounded-[1.75rem] rounded-tr-sm bg-gradient-to-br from-[#052e16] to-[#064e3b] text-white shadow-lg shadow-[#052e16]/20'
                             : 'p-5 md:p-7 rounded-[1.75rem] rounded-tl-sm bg-white/90 backdrop-blur-sm text-slate-800 border border-slate-100/80 shadow-md hover:shadow-lg hover:scale-[1.001] transition-all duration-200'
-                            }`}
-                          style={{ animationDelay: `${msgIdx * 30}ms` }}
+                            } `}
+                          style={{ animationDelay: `${msgIdx * 30} ms` }}
                         >
                           {msg.role === 'model'
                             ? <FormattedContent content={msg.text} />
                             : <p className="text-[15px] leading-relaxed font-medium">{msg.text}</p>
                           }
-                          <div className={`mt-2.5 text-[9px] font-black uppercase tracking-widest opacity-35 ${msg.role === 'user' ? 'text-white text-right' : 'text-[#052e16]'}`}>
+                          <div className={`mt - 2.5 text - [9px] font - black uppercase tracking - widest opacity - 35 ${msg.role === 'user' ? 'text-white text-right' : 'text-[#052e16]'} `}>
                             {msg.timestamp.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                           </div>
                         </div>
@@ -537,7 +540,7 @@ const CoreChat: React.FC<CoreChatProps> = ({ madhab, setMadhab, tone: mood, setT
                     <button
                       key={idx}
                       onClick={() => setMood(m.label)}
-                      className={`flex items-center gap-3 px-4 py-3.5 rounded-2xl transition-all border ${mood === m.label ? 'bg-[#052e16] text-white border-[#052e16] shadow-lg' : 'bg-slate-50 border-emerald-50 text-slate-400 hover:border-emerald-100'}`}
+                      className={`flex items - center gap - 3 px - 4 py - 3.5 rounded - 2xl transition - all border ${mood === m.label ? 'bg-[#052e16] text-white border-[#052e16] shadow-lg' : 'bg-slate-50 border-emerald-50 text-slate-400 hover:border-emerald-100'} `}
                     >
                       <div className={mood === m.label ? 'text-white' : m.color}>{m.icon}</div>
                       <span className="text-[10px] font-black uppercase tracking-widest">{m.label}</span>
@@ -553,7 +556,7 @@ const CoreChat: React.FC<CoreChatProps> = ({ madhab, setMadhab, tone: mood, setT
                     <button
                       key={m}
                       onClick={() => setMadhab(m)}
-                      className={`py-3.5 rounded-xl text-[10px] font-bold border transition-all ${madhab === m ? 'bg-emerald-50 border-[#052e16] text-[#052e16]' : 'bg-slate-50 border-emerald-50 text-slate-500'}`}
+                      className={`py - 3.5 rounded - xl text - [10px] font - bold border transition - all ${madhab === m ? 'bg-emerald-50 border-[#052e16] text-[#052e16]' : 'bg-slate-50 border-emerald-50 text-slate-500'} `}
                     >
                       {m}
                     </button>

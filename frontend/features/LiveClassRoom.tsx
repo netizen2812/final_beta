@@ -34,7 +34,7 @@ interface ScholarStatus {
   activeSessions?: number;
 }
 
-const API_BASE = "http://localhost:5000";
+const API_BASE = import.meta.env.VITE_API_URL || "http://localhost:5000";
 
 const LiveClassRoom: React.FC = () => {
   const { activeChild } = useChildContext();
@@ -322,8 +322,8 @@ const LiveClassRoom: React.FC = () => {
 
       {/* Scholar Status Card */}
       <div className={`flex items-center gap-4 px-6 py-4 rounded-2xl border font-medium text-sm transition-all ${statusLoading ? 'bg-slate-50 border-slate-100 text-slate-400' :
-          scholarStatus.online ? 'bg-emerald-50 border-emerald-100 text-emerald-800' :
-            'bg-red-50 border-red-100 text-red-700'
+        scholarStatus.online ? 'bg-emerald-50 border-emerald-100 text-emerald-800' :
+          'bg-red-50 border-red-100 text-red-700'
         }`}>
         {statusLoading ? (
           <Loader2 size={18} className="animate-spin text-slate-400" />

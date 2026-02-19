@@ -339,6 +339,7 @@ const KidsMain: React.FC<{
   lessons: any[],
   lessonsLoading: boolean
 }> = ({ scrollProgress, onNavigate, activeChild, children, onChildChange, lessons, lessonsLoading }) => {
+  const { getToken } = useAuth();
 
   // Use shared utility for consistent rank calculation
   const progress = activeChild?.child_progress?.[0] || { xp: 0, lessons_completed: 0 };

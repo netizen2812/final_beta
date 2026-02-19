@@ -381,7 +381,21 @@ const KidsMain: React.FC<{
                     </div>
 
                     {!stage.locked && (
-                      <button onClick={() => onNavigate('lesson-detail', stage)} className={`w-full py-3 sm:py-3.5 rounded-xl sm:rounded-2xl text-xs sm:text-sm font-black uppercase tracking-wider flex items-center justify-center gap-2 transition-all shadow-lg relative z-10 ${stage.completed ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 hover:bg-emerald-500/30' : 'bg-emerald-500 hover:bg-emerald-400 text-[#022c22] shadow-[0_0_15px_rgba(16,185,129,0.4)] hover:shadow-[0_0_25px_rgba(16,185,129,0.6)]'}`}>
+                      <button onClick={() => {
+                        const start = async () => {
+                          try {
+                            await tarbiyahService.startLesson({
+                              childUserId: activeChild.childUserId || activeChild.id,
+                              lessonId: stage.id,
+                              lessonTitle: stage.title
+                            }, getToken);
+                            onNavigate('lesson-detail', stage);
+                          } catch (e: any) {
+                            alert(e.message || "Cannot start lesson");
+                          }
+                        };
+                        start();
+                      }} className={`w-full py-3 sm:py-3.5 rounded-xl sm:rounded-2xl text-xs sm:text-sm font-black uppercase tracking-wider flex items-center justify-center gap-2 transition-all shadow-lg relative z-10 ${stage.completed ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 hover:bg-emerald-500/30' : 'bg-emerald-500 hover:bg-emerald-400 text-[#022c22] shadow-[0_0_15px_rgba(16,185,129,0.4)] hover:shadow-[0_0_25px_rgba(16,185,129,0.6)]'}`}>
                         {stage.completed ? 'Replay Lesson' : 'Play Lesson'} <Play size={14} fill="currentColor" />
                       </button>
                     )}
@@ -399,9 +413,31 @@ const KidsMain: React.FC<{
 };
 
 const LessonDetail = ({ stage, onNext, onBack }: any) => {
+  const { getToken } = useAuth();
+  const { activeChild } = useChildContext();
+
+  const handleBack = async () => {
+    // Track exit
+    try {
+      if (activeChild) {
+        await tarbiyahService.saveLessonProgress({
+          childUserId: activeChild.childUserId || activeChild.id,
+          lessonId: stage.id,
+          lessonTitle: stage.title,
+          xpEarned: 0,
+          completed: false,
+          exitSession: true
+        }, getToken);
+      }
+    } catch (e) {
+      console.error("Failed to track exit", e);
+    }
+    onBack();
+  };
+
   return (
     <div className="pt-8 sm:pt-12 lg:pt-16 pb-16 sm:pb-20 px-4 sm:px-6 lg:px-8 max-w-4xl mx-auto animate-in fade-in slide-in-from-bottom-8 duration-500">
-      <button onClick={onBack} className="flex items-center gap-2 text-emerald-400 font-bold mb-6 sm:mb-8 hover:text-white transition-colors"><ChevronLeft size={20} /> Back to Map</button>
+      <button onClick={handleBack} className="flex items-center gap-2 text-emerald-400 font-bold mb-6 sm:mb-8 hover:text-white transition-colors"><ChevronLeft size={20} /> Back to Map</button>
       <div className="bg-white/10 backdrop-blur-2xl rounded-[2rem] sm:rounded-[2.5rem] lg:rounded-[3rem] p-6 sm:p-10 lg:p-16 border border-white/20 shadow-2xl relative overflow-hidden space-y-8 sm:space-y-10">
         <div className="absolute top-0 right-0 p-8 sm:p-12 opacity-10 text-emerald-300 group-hover:scale-110 transition-transform">
           <Sun size={80} sm:size={120} />

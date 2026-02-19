@@ -48,11 +48,27 @@ const WelcomeScreen: React.FC<WelcomeScreenProps> = ({ onComplete }) => {
 
     // Attempt autoplay
     useEffect(() => {
-        if (videoRef.current) {
-            videoRef.current.play().catch(err => {
-                console.log("Autoplay blocked, showing fallback play button", err);
-            });
-        }
+        const playVideo = async () => {
+            if (videoRef.current) {
+                try {
+                    await videoRef.current.play();
+                } catch (err) {
+                    console.log("Autoplay blocked, waiting for interaction", err);
+                }
+            }
+        };
+
+        playVideo();
+
+        // Mobile fallback: Play on first touch if autoplay failed
+        const handleTouch = () => {
+            if (videoRef.current && videoRef.current.paused) {
+                videoRef.current.play().catch(e => console.error("Touch play failed", e));
+            }
+        };
+
+        window.addEventListener('touchstart', handleTouch, { once: true });
+        return () => window.removeEventListener('touchstart', handleTouch);
     }, []);
 
     return (
@@ -64,7 +80,9 @@ const WelcomeScreen: React.FC<WelcomeScreenProps> = ({ onComplete }) => {
                     ref={videoRef}
                     className="absolute inset-0 w-full h-full object-cover opacity-90 transition-opacity duration-1000"
                     muted
+                    loop={false}
                     playsInline
+                    autoPlay
                     preload="auto"
                     onLoadedData={() => setIsVideoLoaded(true)}
                 >

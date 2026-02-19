@@ -32,6 +32,16 @@ const liveSessionSchema = new mongoose.Schema(
             enum: ["active", "ended", "waiting"],
             default: "waiting",
         },
+        startedAt: {
+            type: Date,
+        },
+        endedAt: {
+            type: Date,
+        },
+        durationMinutes: {
+            type: Number,
+            default: 0,
+        },
     },
     { timestamps: true }
 );

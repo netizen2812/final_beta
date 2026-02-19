@@ -244,10 +244,50 @@ export const updateParentSettings = async (req, res) => {
         });
     }
 };
+// POST /api/tarbiyah/start
+export const startLesson = async (req, res) => {
+    try {
+        const { childUserId, lessonId, lessonTitle } = req.body;
+
+        // 1. Check Daily Limit
+        const { checkDailyLimit } = await import("../utils/limitUtils.js");
+        const limitCheck = await checkDailyLimit(childUserId);
+
+        if (!limitCheck.allowed) {
+            return res.status(403).json({
+                message: "Daily learning limit reached",
+                limitValues: limitCheck
+            });
+        }
+
+        // 2. Find or Create Progress
+        let progressDoc = await TarbiyahProgress.findOne({ childUserId: String(childUserId), lessonId });
+
+        if (!progressDoc) {
+            progressDoc = new TarbiyahProgress({
+                childUserId: String(childUserId),
+                lessonId,
+                lessonTitle,
+                activeSessionStart: new Date()
+            });
+        } else {
+            // Start a new session if not already active
+            progressDoc.activeSessionStart = new Date();
+        }
+
+        await progressDoc.save();
+        res.json({ success: true, message: "Lesson session started" });
+
+    } catch (error) {
+        console.error("Start lesson error:", error);
+        res.status(500).json({ message: "Server error" });
+    }
+};
+
 // POST /api/tarbiyah/progress
 export const updateLessonProgress = async (req, res) => {
     try {
-        const { childUserId, lessonId, lessonTitle, xpEarned, scores, completed } = req.body;
+        const { childUserId, lessonId, lessonTitle, xpEarned, scores, completed, exitSession } = req.body;
         const parentId = req.auth.sub;
 
         // 1. Verify Parent (Optional but good for security if we had parentId in body, but here we trust the childUserId is valid for now or could verify parent relation if needed.
@@ -263,19 +303,10 @@ export const updateLessonProgress = async (req, res) => {
             return res.status(403).json({ message: "Not authorized for this child" });
         }
 
-        // 3. Update or Create TarbiyahProgress
-        // valid fields: childUserId, lessonId, lessonTitle, badge, videoWatchedAt, quizAttempts, completedAt, xpEarned
-
-        const updateData = {
-            lessonTitle,
-            // If completed, set completedAt
-            ...(completed ? { completedAt: new Date(), xpEarned } : {}),
-            // If we have quiz scores/attempts, push them
-        };
-
         let progressDoc = await TarbiyahProgress.findOne({ childUserId: String(childUserId), lessonId });
 
         if (!progressDoc) {
+            // Implicit start if missing (fallback)
             progressDoc = new TarbiyahProgress({
                 childUserId: String(childUserId),
                 lessonId,
@@ -310,6 +341,25 @@ export const updateLessonProgress = async (req, res) => {
                     progressDoc.quizAttempts = progressDoc.quizAttempts.slice(-10);
                 }
             }
+        }
+
+        // --- SESSION DURATION TRACKING ---
+        // If exiting or completing, calculate duration
+        if ((exitSession || completed) && progressDoc.activeSessionStart) {
+            const endedAt = new Date();
+            const diffMs = endedAt - progressDoc.activeSessionStart;
+            const diffMinutes = Math.floor(diffMs / 60000);
+
+            if (diffMinutes > 0) {
+                const { addActivityMinutes } = await import("../utils/limitUtils.js");
+                // Pass topic if we can infer it ?? For now generic.
+                // We could infer topic from lessonTitle or added metadata.
+                await addActivityMinutes(childUserId, diffMinutes);
+                console.log(`[Time Track] Added ${diffMinutes} mins for lesson ${lessonId}`);
+            }
+
+            // Reset active session
+            progressDoc.activeSessionStart = null;
         }
 
         await progressDoc.save();

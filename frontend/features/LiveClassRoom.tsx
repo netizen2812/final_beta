@@ -152,7 +152,11 @@ const LiveClassRoom: React.FC = () => {
       setCurrentSession(res.data.session);
     } catch (err: any) {
       console.error("Failed to start session", err);
-      alert(`Could not start session: ${err.response?.data?.detail || err.message}`);
+      if (err.response?.status === 403) {
+        alert(`Daily Limit Reached: ${err.response.data.message}`);
+      } else {
+        alert(`Could not start session: ${err.response?.data?.detail || err.message}`);
+      }
     } finally {
       setIsLoading(false);
     }

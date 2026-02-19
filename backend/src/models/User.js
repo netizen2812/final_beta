@@ -14,6 +14,10 @@ const userSchema = new mongoose.Schema(
     name: {
       type: String,
     },
+    lastHeartbeat: {
+      type: Date,
+      default: Date.now
+    },
 
     role: {
       type: String,

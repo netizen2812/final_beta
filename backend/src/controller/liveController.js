@@ -23,33 +23,24 @@ const getOrCreateScholar = async () => {
 // GET /api/live/scholar/status - Check if scholar is available
 export const getScholarStatus = async (req, res) => {
     try {
-        const scholar = await User.findOne({
-            email: { $regex: new RegExp(`^${SCHOLAR_EMAIL.replace('.', '\\.')}$`, 'i') },
-            role: 'scholar'
-        });
+        // Find the scholar user
+        const scholar = await User.findOne({ email: "scholar1.imam@gmail.com" });
+        const activeSessions = await LiveSession.countDocuments({ status: "active" });
 
-        if (!scholar) {
-            return res.json({ online: false, scholarName: "Scholar" });
+        let isOnline = false;
+        if (scholar && scholar.lastHeartbeat) {
+            const twoMinutesAgo = new Date(Date.now() - 2 * 60 * 1000);
+            isOnline = scholar.lastHeartbeat > twoMinutesAgo;
         }
 
-        // Scholar is "online" if they've synced in the last 10 minutes
-        const tenMinutesAgo = new Date(Date.now() - 10 * 60 * 1000);
-        const isRecentlyActive = scholar.updatedAt && new Date(scholar.updatedAt) > tenMinutesAgo;
-
-        // Also check if they have active sessions they're monitoring
-        const activeSessions = await LiveSession.countDocuments({
-            scholarId: scholar._id,
-            status: 'active'
-        });
-
         res.json({
-            online: isRecentlyActive || activeSessions > 0,
-            activeSessions,
-            scholarName: scholar.name || "Scholar"
+            online: isOnline,
+            scholarName: scholar ? scholar.name : "Scholar",
+            activeSessions
         });
     } catch (error) {
         console.error("Scholar status error:", error);
-        res.json({ online: false, scholarName: "Scholar" });
+        res.status(500).json({ message: "Server error" });
     }
 };
 
@@ -63,6 +54,17 @@ export const startSession = async (req, res) => {
 
         if (!childId) {
             return res.status(400).json({ message: "childId is required" });
+        }
+
+        // 1. Check Daily Limit
+        const { checkDailyLimit } = await import("../utils/limitUtils.js");
+        const limitCheck = await checkDailyLimit(childId);
+
+        if (!limitCheck.allowed) {
+            return res.status(403).json({
+                message: "Daily learning limit reached",
+                limitValues: limitCheck
+            });
         }
 
         // Get or create scholar safely (no duplicate key errors)
@@ -83,13 +85,15 @@ export const startSession = async (req, res) => {
                 scholarId: scholar._id,
                 currentSurah: 1,
                 currentAyah: 1,
-                status: "active"
+                status: "active",
+                startedAt: new Date() // Track start time
             });
             await session.save();
             console.log("New session created:", session._id);
         } else {
             if (session.status === 'waiting') {
                 session.status = 'active';
+                if (!session.startedAt) session.startedAt = new Date(); // Ensure start time
                 await session.save();
             }
             console.log("Reusing existing session:", session._id);
@@ -201,8 +205,23 @@ export const endSession = async (req, res) => {
         }
 
         session.status = 'ended';
+        session.endedAt = new Date();
+
+        // Calculate Duration
+        if (session.startedAt) {
+            const diffMs = session.endedAt - session.startedAt;
+            const diffMinutes = Math.floor(diffMs / 60000);
+            session.durationMinutes = diffMinutes;
+
+            // Update ChildActivity
+            if (diffMinutes > 0) {
+                const { addActivityMinutes } = await import("../utils/limitUtils.js");
+                await addActivityMinutes(session.childId, diffMinutes);
+            }
+        }
+
         await session.save();
-        res.json({ message: "Session ended" });
+        res.json({ message: "Session ended", duration: session.durationMinutes });
     } catch (error) {
         console.error("End session error:", error);
         res.status(500).json({ message: "Server error" });

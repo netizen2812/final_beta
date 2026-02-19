@@ -15,6 +15,8 @@ import parentRoutes from "./routes/parentRoutes.js";
 import childRoutes from "./routes/childRoutes.js";
 import tarbiyahRoutes from "./routes/tarbiyahRoutes.js";
 import conversationRoutes from "./routes/conversationRoutes.js";
+import adminRoutes from "./routes/adminRoutes.js";
+import path from "path";
 
 
 // Connect to database
@@ -61,6 +63,7 @@ app.use("/api/zakat", zakatRoutes);
 app.use("/api/parent", parentRoutes);
 app.use("/api/child", childRoutes);
 app.use("/api/tarbiyah", tarbiyahRoutes);
+app.use("/api/admin", adminRoutes);
 app.use("/api/conversations", conversationRoutes);
 
 console.log("✅ All routes registered:");

@@ -46,9 +46,23 @@ export const syncUser = async (req, res) => {
       }
     }
 
-    res.json(user);
+    res.status(200).json({ message: "User synced", user });
   } catch (error) {
-    console.error("Sync error FULL:", error);
+    console.error("Error syncing user:", error);
+    res.status(500).json({ message: "Server error" });
+  }
+};
+
+export const heartbeat = async (req, res) => {
+  try {
+    const { userId } = req.auth;
+    await User.findOneAndUpdate(
+      { clerkId: userId },
+      { lastHeartbeat: new Date() } // Update heartbeat
+    );
+    res.status(200).send("OK");
+  } catch (error) {
+    console.error("Heartbeat error:", error);
     res.status(500).json({ message: "Server error" });
   }
 };

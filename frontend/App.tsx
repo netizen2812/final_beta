@@ -8,7 +8,8 @@ import TarbiyahLearning from "./features/TarbiyahLearning";
 import LiveClassRoom from "./features/LiveClassRoom";
 import ProfilePage from "./features/ProfilePage";
 import WelcomeScreen from "./features/WelcomeScreen";
-import { User } from "lucide-react";
+import AdminDashboard from "./features/AdminDashboard";
+import { User, Settings } from "lucide-react";
 
 import {
   SignedIn,
@@ -21,6 +22,8 @@ import {
 
 import axios from "axios";
 
+import { useHeartbeat } from "./hooks/useHeartbeat";
+
 const App: React.FC = () => {
   const [activeTab, setActiveTab] = useState<AppTab>(AppTab.CORE);
   const [madhab, setMadhab] = useState<Madhab>(Madhab.GENERAL);
@@ -29,6 +32,9 @@ const App: React.FC = () => {
 
   const { user, isLoaded } = useUser();
   const { getToken } = useAuth();
+
+  // 💓 Heartbeat for presence
+  useHeartbeat();
 
   // Welcome Video Logic
   const [showWelcome, setShowWelcome] = useState(false);
@@ -100,6 +106,8 @@ const App: React.FC = () => {
         return <TarbiyahLearning />;
       case AppTab.LIVE:
         return <LiveClassRoom />;
+      case AppTab.ADMIN:
+        return <AdminDashboard />;
       case AppTab.PROFILE:
         return <ProfilePage />;
       default:
@@ -120,6 +128,10 @@ const App: React.FC = () => {
     { id: AppTab.TARBIYAH, label: "Tarbiyah", icon: <Icons.Book /> },
     { id: AppTab.LIVE, label: "Live", icon: <Icons.Live /> },
   ];
+
+  if (user?.primaryEmailAddress?.emailAddress?.toLowerCase() === "sarthakjuneja1999@gmail.com") {
+    navItems.push({ id: AppTab.ADMIN, label: "Admin", icon: <Settings /> });
+  }
 
   return (
     <>

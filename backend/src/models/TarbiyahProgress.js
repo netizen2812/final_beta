@@ -48,6 +48,11 @@ const tarbiyahProgressSchema = new mongoose.Schema(
             type: Number,
             default: 0,
         },
+        // Track when a child enters the lesson to calculate duration on exit
+        activeSessionStart: {
+            type: Date,
+            default: null,
+        },
     },
     { timestamps: true }
 );

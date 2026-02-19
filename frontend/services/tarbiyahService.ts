@@ -244,6 +244,7 @@ export const tarbiyahService = {
     xpEarned: number;
     completed: boolean;
     scores?: { score: number; attemptDate: Date };
+    exitSession?: boolean; // Added for tracking exit
   }, getToken: () => Promise<string | null>) {
     const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
     const token = await getToken();
@@ -259,6 +260,35 @@ export const tarbiyahService = {
 
     if (!response.ok) {
       throw new Error('Failed to save lesson progress');
+    }
+
+    return await response.json();
+  },
+
+  async startLesson(payload: {
+    childUserId: string;
+    lessonId: string;
+    lessonTitle: string;
+  }, getToken: () => Promise<string | null>) {
+    const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
+    const token = await getToken();
+
+    const response = await fetch(`${API_URL}/api/tarbiyah/start`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${token}`
+      },
+      body: JSON.stringify(payload)
+    });
+
+    if (response.status === 403) {
+      const data = await response.json();
+      throw new Error(data.message || 'Daily limit reached');
+    }
+
+    if (!response.ok) {
+      throw new Error('Failed to start lesson');
     }
 
     return await response.json();

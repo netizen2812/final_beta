@@ -374,8 +374,7 @@ export const joinBatch = async (req, res) => {
             batch.activeParticipants.push({
                 childId,
                 childName,
-                currentSurah: 1,
-                currentAyah: 1,
+                // Do not set Surah/Ayah defaults (allow frontend to determine or stay null)
                 lastSeen: new Date(),
                 isActive: true
             });
@@ -587,14 +586,16 @@ export const batchPing = async (req, res) => {
 export const updateBatchProgress = async (req, res) => {
     try {
         const { batchId, childId, surah, ayah } = req.body;
+        console.log("UPDATED AYAH", { childId, surah, ayah }); // DEBUG LOG
+
         const { default: Batch } = await import("../models/Batch.js");
 
         await Batch.updateOne(
             { _id: batchId, "activeParticipants.childId": childId },
             {
                 $set: {
-                    "activeParticipants.$.currentSurah": surah,
-                    "activeParticipants.$.currentAyah": ayah,
+                    "activeParticipants.$.currentSurah": Number(surah),
+                    "activeParticipants.$.currentAyah": Number(ayah),
                     "activeParticipants.$.lastSeen": new Date(),
                     "activeParticipants.$.isActive": true
                 }
@@ -646,6 +647,16 @@ export const getBatchActiveParticipants = async (req, res) => {
         if (dirty) await batch.save();
 
         const liveParticipants = batch.activeParticipants.filter(p => p.isActive);
+
+        // DEBUG LOG
+        liveParticipants.forEach(p => {
+            console.log("FETCH PARTICIPANTS", {
+                childId: p.childId,
+                surah: p.currentSurah,
+                ayah: p.currentAyah
+            });
+        });
+
         res.json(liveParticipants);
 
     } catch (error) {

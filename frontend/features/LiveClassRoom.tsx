@@ -103,8 +103,8 @@ const LiveClassRoom: React.FC = () => {
               parentId: "unknown",
               childId: p.childId,
               scholarId: "scholar",
-              currentSurah: p.currentSurah || 1,
-              currentAyah: p.currentAyah || 1,
+              currentSurah: p.currentSurah, // Allow null/undefined
+              currentAyah: p.currentAyah,
               status: 'active',
               studentName: p.childName,
               parentName: `Batch: ${batch.title || batch.name}`,
@@ -125,7 +125,7 @@ const LiveClassRoom: React.FC = () => {
     };
 
     fetchScholarData();
-    const interval = setInterval(fetchScholarData, 5000); // Poll every 5s
+    const interval = setInterval(fetchScholarData, 3000); // Poll every 3s (Real-time)
     return () => clearInterval(interval);
   }, [userRole, getToken]);
 
@@ -299,6 +299,8 @@ const LiveClassRoom: React.FC = () => {
 
   // RENDER: ACTIVE SESSION (Quran View)
   if (currentSession) {
+    const hasPosition = currentSession.currentSurah && currentSession.currentAyah;
+
     return (
       <div className="fixed inset-0 z-[1000] bg-white flex flex-col animate-in fade-in duration-300">
         <div className="bg-emerald-900 text-white p-4 flex justify-between items-center shadow-lg">
@@ -320,19 +322,31 @@ const LiveClassRoom: React.FC = () => {
         </div>
 
         <div className="flex-1 overflow-y-auto relative">
-          <QuranPage
-            onBack={handleExitSession}
-            sessionCurrentSurah={currentSession.currentSurah}
-            sessionCurrentAyah={currentSession.currentAyah}
-            onAyahClick={handleAyahClick}
-            readOnly={userRole === 'scholar'}
-          />
+          {!hasPosition && userRole === 'scholar' ? (
+            <div className="absolute inset-0 flex items-center justify-center bg-slate-50">
+              <div className="text-center p-6">
+                <div className="w-16 h-16 bg-slate-200 rounded-full flex items-center justify-center mx-auto mb-4 animate-pulse">
+                  <BookOpen className="text-slate-400" />
+                </div>
+                <h3 className="font-bold text-slate-700">Student is selecting a Surah...</h3>
+                <p className="text-sm text-slate-500">The Quran view will appear once they start reading.</p>
+              </div>
+            </div>
+          ) : (
+            <QuranPage
+              onBack={handleExitSession}
+              sessionCurrentSurah={currentSession.currentSurah || 1}
+              sessionCurrentAyah={currentSession.currentAyah || 1}
+              onAyahClick={handleAyahClick}
+              readOnly={userRole === 'scholar'}
+            />
+          )}
 
           {userRole === 'scholar' && (
             <div className="absolute bottom-6 left-1/2 -translate-x-1/2 bg-black/80 text-white px-6 py-3 rounded-full backdrop-blur-md shadow-2xl border border-white/10 z-50">
               <p className="text-xs font-bold uppercase tracking-widest flex items-center gap-2">
                 <span className="w-2 h-2 bg-green-500 rounded-full animate-pulse" />
-                Live Sync Active
+                Live Sync Active (3s)
               </p>
             </div>
           )}
@@ -389,7 +403,7 @@ const LiveClassRoom: React.FC = () => {
                     <span className="text-slate-500">Current Position</span>
                   </div>
                   <p className="font-bold text-slate-800 mt-1">
-                    Surah {session.currentSurah}, Ayah {session.currentAyah}
+                    {session.currentSurah ? `Surah ${session.currentSurah}, Ayah ${session.currentAyah}` : "Selecting..."}
                   </p>
                 </div>
 

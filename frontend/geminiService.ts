@@ -65,7 +65,7 @@ export const getImamResponse = async (
       return response.data.message || "I am currently meditating. Please try again in a moment.";
     }
 
-    return response.data.response;
+    return response.data.reply || response.data.response;
   } catch (error: any) {
     console.error("Backend chat failed:", error);
 

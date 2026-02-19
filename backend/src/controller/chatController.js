@@ -1,11 +1,11 @@
-import { generateImamResponse } from "../services/aiService.js";
+import { generateResponse } from "../services/aiService.js";
 import User from "../models/User.js";
 import Conversation from "../models/Conversation.js";
 import { trackEvent } from "../services/analyticsService.js";
 
 export const chatWithImam = async (req, res) => {
   try {
-    const { prompt, madhab, mood, history, conversationId } = req.body;
+    const { prompt, history, conversationId } = req.body;
     const clerkId = req.auth?.userId;
 
     if (!clerkId) {
@@ -29,55 +29,41 @@ export const chatWithImam = async (req, res) => {
     // If last chat was BEFORE today (midnight passed), reset count
     if (lastChatDay.getTime() < today.getTime()) {
       user.dailyChatCount = 0;
-      // Don't update lastChatDate yet, wait for successful message
     }
 
     // STRICT LIMIT: Allow max 3 messages
     if (user.dailyChatCount >= 3) {
-      // Log attempted breach
       trackEvent(clerkId, 'CHAT_LIMIT_REACHED', { attemptedAt: new Date() });
-
       return res.json({
-        response: "I apologize, but to ensure I can help everyone, I am limited to 3 questions per day. Please come back tomorrow, Insha'Allah.",
+        success: false,
+        message: "I apologize, but to ensure I can help everyone, I am limited to 3 questions per day. Please come back tomorrow, Insha'Allah.",
+        reply: "Daily limit reached." // Fallback for frontend
       });
     }
 
     // 3. Generate AI Response
-    const response = await generateImamResponse({
-      prompt,
-      madhab,
-      mood,
-      history: history || [],
-    });
+    // Construct a context-aware prompt if needed, or pass raw prompt
+    // The previous service had complex logic. The user wants SIMPLE implementation.
+    // We will pass the raw prompt for now, or a simple wrapper.
+    const reply = await generateResponse(prompt);
 
     // 4. Increment Count & Track
     user.dailyChatCount += 1;
     user.lastChatDate = new Date();
     await user.save();
 
-    // Track successful chat
     trackEvent(clerkId, 'CHAT_MESSAGE_SENT', {
       promptLength: prompt.length,
-      dailyCount: user.dailyChatCount,
-      madhab
+      dailyCount: user.dailyChatCount
     });
 
-    // 5. Persist messages to conversation (non-blocking — don't fail the response if DB write fails)
+    // 5. Persist messages
     if (conversationId) {
       try {
         const conversation = await Conversation.findOne({ _id: conversationId, clerkId });
         if (conversation) {
-          const isFirstMessage = conversation.messages.length === 0;
-
           conversation.messages.push({ role: "user", content: prompt, timestamp: new Date() });
-          conversation.messages.push({ role: "model", content: response, timestamp: new Date() });
-
-          // Auto-title from first message
-          if (isFirstMessage) {
-            conversation.title = prompt.slice(0, 60).trim() + (prompt.length > 60 ? "…" : "");
-            trackEvent(clerkId, 'CONVERSATION_STARTED', { conversationId });
-          }
-
+          conversation.messages.push({ role: "model", content: reply, timestamp: new Date() });
           await conversation.save();
         }
       } catch (dbErr) {
@@ -86,26 +72,17 @@ export const chatWithImam = async (req, res) => {
     }
 
     console.log(`Chat processed for ${user.name}. Count: ${user.dailyChatCount}`);
-    res.json({ response });
+
+    // STEP 2 — CHAT CONTROLLER MUST HANDLE FAILURE
+    return res.json({ success: true, reply });
+
   } catch (error) {
-    console.error("🔥 [CHAT CONTROLLER CAUGHT ERROR]:", error);
+    console.error("🔥 [CHAT CONTROLLER CAUGHT ERROR]:", error.message);
 
-    // PART 2: HARD FAIL PREVENTION
-    // Never return raw error to user, never crash.
-
-    // 1. Check for Rate Limit (Clerk or Gemini)
-    if (error.message?.includes("429") || error.message?.includes("Quota")) {
-      return res.status(429).json({
-        success: false,
-        message: "Daily AI limit reached. Please try again tomorrow."
-      });
-    }
-
-    // 2. Generic AI Failure
-    return res.status(200).json({
+    // Never return 500. Return success: false
+    return res.json({
       success: false,
-      message: "AI temporarily unavailable. Please try again in a moment.",
-      debug: process.env.NODE_ENV === 'development' ? error.message : undefined
+      message: "AI temporarily unavailable. Please try again."
     });
   }
 };

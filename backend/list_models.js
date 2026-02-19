@@ -25,7 +25,7 @@ async function listModels() {
             console.log("Available Models:");
             data.models.forEach(m => console.log(`- ${m.name} (${m.supportedGenerationMethods})`));
         } else {
-            console.log("No models found or error:", data);
+            console.log("No models found. Response Data:", JSON.stringify(data, null, 2));
         }
 
     } catch (error) {

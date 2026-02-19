@@ -6,10 +6,10 @@ import { trackEvent } from "../services/analyticsService.js";
 export const chatWithImam = async (req, res) => {
   try {
     const { prompt, madhab, mood, history, conversationId } = req.body;
-    const clerkId = req.auth?.sub;
+    const clerkId = req.auth?.userId;
 
     if (!clerkId) {
-      console.log("❌ Chat Request: Missing req.auth.sub");
+      console.log("❌ Chat Request: Missing req.auth.userId");
       return res.status(401).json({ message: "Unauthorized: No User ID" });
     }
     console.log(`✅ Chat Request Authenticated for User: ${clerkId}`);

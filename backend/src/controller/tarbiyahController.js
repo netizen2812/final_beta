@@ -41,18 +41,25 @@ export const getParentDashboard = async (req, res) => {
         const { childUserId: childDocId } = req.params; // receiving Child Document ID
         const parentId = req.auth.sub; // Clerk ID of parent
 
+        console.log(`[Dashboard] Request params - childDocId: ${childDocId}, parentId (Auth): ${parentId}`);
+
         // 1. Verify Parent
         const parentUser = await User.findOne({ clerkId: parentId });
         if (!parentUser) {
+            console.error(`[Dashboard] Parent not found for clerkId: ${parentId}`);
+            // Attempt auto-sync or just error? For now error.
             return res.status(404).json({ message: "Parent not found" });
         }
+        console.log(`[Dashboard] Parent found: ${parentUser._id} (${parentUser.name})`);
 
         // 2. Verify Child belongs to Parent
         const childDoc = await Child.findOne({ _id: childDocId, parent_id: parentUser._id });
 
         if (!childDoc) {
+            console.error(`[Dashboard] Child not found or authorized. searching for _id: ${childDocId}, parent_id: ${parentUser._id}`);
             return res.status(404).json({ message: "Child not found or not authorized" });
         }
+        console.log(`[Dashboard] Child found: ${childDoc._id}, childUserId link: ${childDoc.childUserId}`);
 
         // 3. Get the actual User ID for the child from the Child document
         if (!childDoc.childUserId) {

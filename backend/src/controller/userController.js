@@ -5,7 +5,7 @@ export const syncUser = async (req, res) => {
   try {
     console.log("Inside syncUser");
 
-    const clerkId = req.auth.sub;
+    const clerkId = req.auth.userId;
 
     if (!clerkId) {
       return res.status(400).json({ message: "Invalid token payload" });

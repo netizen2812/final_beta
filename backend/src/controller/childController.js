@@ -4,7 +4,7 @@ import User from "../models/User.js";
 // GET /api/child - Get all children for logged-in parent
 export const getChildren = async (req, res) => {
     try {
-        const userId = req.auth.sub;
+        const userId = req.auth.userId;
 
         // Find user by clerkId to get MongoDB _id
         const user = await User.findOne({ clerkId: userId });
@@ -24,7 +24,7 @@ export const getChildren = async (req, res) => {
 // POST /api/child - Create a new child profile
 export const createChild = async (req, res) => {
     try {
-        const userId = req.auth.sub;
+        const userId = req.auth.userId;
         const { name, age, gender, learning_level } = req.body;
 
         // Find parent user by clerkId to get MongoDB _id
@@ -89,7 +89,7 @@ export const createChild = async (req, res) => {
 export const updateChild = async (req, res) => {
     try {
         const { childId } = req.params;
-        const userId = req.auth.sub;
+        const userId = req.auth.userId;
         const updates = req.body;
 
         // Find user by clerkId to get MongoDB _id
@@ -120,7 +120,7 @@ export const updateChild = async (req, res) => {
 export const deleteChild = async (req, res) => {
     try {
         const { childId } = req.params;
-        const userId = req.auth.sub;
+        const userId = req.auth.userId;
 
         // Find user by clerkId to get MongoDB _id
         const user = await User.findOne({ clerkId: userId });
@@ -164,7 +164,7 @@ export const deleteChild = async (req, res) => {
 export const updateProgress = async (req, res) => {
     try {
         const { childId } = req.params;
-        const userId = req.auth.sub;
+        const userId = req.auth.userId;
         const { xp, level, lessons_completed } = req.body;
 
         // Find user by clerkId to get MongoDB _id

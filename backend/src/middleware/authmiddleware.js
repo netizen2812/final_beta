@@ -15,10 +15,15 @@ export const requireAuth = (req, res, next) => {
     // debug: true 
   })(req, res, (err) => {
     if (err) {
-      console.error("❌ Clerk Auth Failed:", err);
-      // Don't swallow error, let express handle or return 401
+      console.error("❌ Clerk Auth Failed:", err.message);
+      // PART 6: CLERK TOKEN FIX
+      // If token is invalid/expired (401) or malformed (422), return 401
+      if (err.message.includes("401") || err.message.includes("422") || err.message.includes("token")) {
+        return res.status(401).json({ message: "Unauthorized: Invalid or missing token" });
+      }
+      return res.status(401).json({ message: "Unauthorized" });
     }
-    next(err);
+    next();
   });
 };
 

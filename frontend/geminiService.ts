@@ -59,13 +59,22 @@ export const getImamResponse = async (
       }
     );
 
+    // PART 7: FRONTEND RESILIENCE
+    // Handle "Hard Fail" 200 responses
+    if (response.data.success === false) {
+      return response.data.message || "I am currently meditating. Please try again in a moment.";
+    }
+
     return response.data.response;
   } catch (error: any) {
     console.error("Backend chat failed:", error);
-    // Return the actual error message if available, otherwise a polite fallback
+
+    // Handle 429 (Rate Limit) or legacy 500s
     if (error.response?.data?.message) {
-      return `I encountered an issue: ${error.response.data.message}. Please try again later.`;
+      return error.response.data.message;
     }
-    return "I am unable to connect to my knowledge source at the moment. Please check your connection or try again later. Allah knows best.";
+
+    // Fallback for network errors
+    return "I am unable to connect to the server at the moment. Please check your connection.";
   }
 };

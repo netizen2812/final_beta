@@ -88,10 +88,24 @@ export const chatWithImam = async (req, res) => {
     console.log(`Chat processed for ${user.name}. Count: ${user.dailyChatCount}`);
     res.json({ response });
   } catch (error) {
-    console.error("Chat error:", error);
+    console.error("🔥 [CHAT CONTROLLER CAUGHT ERROR]:", error);
+
+    // PART 2: HARD FAIL PREVENTION
+    // Never return raw error to user, never crash.
+
+    // 1. Check for Rate Limit (Clerk or Gemini)
     if (error.message?.includes("429") || error.message?.includes("Quota")) {
-      return res.status(429).json({ message: "Daily AI limit reached. Please try again tomorrow." });
+      return res.status(429).json({
+        success: false,
+        message: "Daily AI limit reached. Please try again tomorrow."
+      });
     }
-    res.status(500).json({ message: `AI processing failed: ${error.message}` });
+
+    // 2. Generic AI Failure
+    return res.status(200).json({
+      success: false,
+      message: "AI temporarily unavailable. Please try again in a moment.",
+      debug: process.env.NODE_ENV === 'development' ? error.message : undefined
+    });
   }
 };

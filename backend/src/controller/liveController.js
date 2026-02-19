@@ -333,53 +333,79 @@ export const startBatch = async (req, res) => {
 
 // USER: POST /api/live/:id/join - Student joins a batch
 export const joinBatch = async (req, res) => {
+    console.log("🚀 joinBatch called for Batch ID:", req.params.id);
+    console.log("Request Body:", req.body);
+    console.log("Auth User:", req.auth.userId);
+
     try {
         const { id } = req.params; // Batch ID
         const { childId } = req.body;
         const userId = req.auth.userId;
 
-        const { default: Batch } = await import("../models/Batch.js");
-        const batch = await Batch.findById(id);
-        if (!batch) return res.status(404).json({ message: "Batch not found" });
-
-        // 1. Check if child is enrolled
-        if (!batch.students.includes(childId)) {
-            return res.status(403).json({ message: "Student not enrolled in this batch" });
+        // 1. Input Validation
+        if (!id || !childId) {
+            console.error("❌ Join batch error: Missing batchId or childId");
+            return res.status(400).json({ success: false, message: "Missing required fields" });
         }
 
-        // 2. Create/Activate a Personal Live Session for this student
-        // This allows them to read independently, and the Scholar to "observe" (join) this session.
+        const { default: Batch } = await import("../models/Batch.js");
+        const { default: LiveSession } = await import("../models/LiveSession.js");
+        const { default: LiveAttendance } = await import("../models/LiveAttendance.js");
 
-        // Check for existing active session for this child
+        // 2. Find Batch
+        const batch = await Batch.findById(id);
+        if (!batch) {
+            console.error(`❌ Join batch error: Batch ${id} not found`);
+            console.error(`❌ Join batch error: Batch ${id} not found`);
+            return res.status(404).json({ success: false, message: "Batch not found" });
+        }
+
+        console.log("Found Batch:", batch.name);
+
+        // 3. Verify Enrollment (Handle ObjectId vs String)
+        const isEnrolled = batch.students.some(s => s.toString() === childId.toString());
+        if (!isEnrolled) {
+            console.error(`❌ Join batch error: Student ${childId} not enrolled in batch ${id}`);
+            return res.status(403).json({ success: false, message: "Student not enrolled in this batch" });
+        }
+
+        // 4. Get Scholar
+        if (!batch.scholar) {
+            console.error(`❌ Join batch error: Batch ${id} has no assigned scholar`);
+            return res.status(400).json({ success: false, message: "Batch has no assigned scholar" });
+        }
+
+        // 5. Create/Activate Session
         let session = await LiveSession.findOne({
             childId,
             status: 'active'
         });
 
         if (!session) {
-            if (!batch.scholar) {
-                console.error(`Join batch error: Batch ${id} has no assigned scholar for child ${childId}`);
-                return res.status(400).json({ message: "Batch has no assigned scholar" });
+            console.log("Creating new session for child:", childId);
+            try {
+                session = await LiveSession.create({
+                    title: batch.name,
+                    parentId: userId,
+                    childId,
+                    scholarId: batch.scholar,
+                    currentSurah: 1,
+                    currentAyah: 1,
+                    status: 'active',
+                    startedAt: new Date(),
+                    scheduledStartTime: new Date(),
+                    scheduledEndTime: new Date(Date.now() + 60 * 60 * 1000),
+                    batchId: batch._id
+                });
+            } catch (dbError) {
+                console.error("❌ DB Error creating session:", dbError);
+                throw dbError;
             }
-
-            session = await LiveSession.create({
-                title: batch.name, // Set Title to Batch Name
-                parentId: userId, // Clerk ID of parent
-                childId,
-                scholarId: batch.scholar, // Linked to Batch Scholar
-                currentSurah: 1,
-                currentAyah: 1,
-                status: 'active',
-                startedAt: new Date(),
-                // Fix: Model requires scheduled times
-                scheduledStartTime: new Date(),
-                scheduledEndTime: new Date(Date.now() + 60 * 60 * 1000), // Default 1 hour
-                batchId: batch._id // Optional Link
-            });
+        } else {
+            console.log("Resuming existing session:", session._id);
         }
 
-        // Log Attendance
-        const { default: LiveAttendance } = await import("../models/LiveAttendance.js");
+        // 6. Log Attendance
         await LiveAttendance.create({
             sessionId: session._id,
             userId,
@@ -388,10 +414,17 @@ export const joinBatch = async (req, res) => {
             joinTime: new Date()
         });
 
-        res.json({ session, message: "Joined successfully" });
+        console.log("✅ Join successful. Session:", session._id);
+        res.json({ success: true, session, message: "Joined successfully" });
+
     } catch (error) {
-        console.error("❌ Join batch error:", error.message, error.stack);
-        res.status(500).json({ message: "Server error joining batch", detail: error.message });
+        console.error("❌ CRITICAL JOIN BATCH ERROR:", error);
+        res.status(500).json({
+            success: false,
+            message: "Server error joining batch",
+            error: "JOIN_BATCH_FAILED",
+            reason: error.message
+        });
     }
 };
 
@@ -468,5 +501,33 @@ export const endSession = async (req, res) => {
     } catch (error) {
         console.error("End session error:", error);
         res.status(500).json({ message: "Server error" });
+    }
+};
+
+// DEBUG: GET /api/live/:id/debug
+export const debugBatch = async (req, res) => {
+    try {
+        const { id } = req.params;
+        const { default: Batch } = await import("../models/Batch.js");
+
+        // Validate ID format
+        if (!id.match(/^[0-9a-fA-F]{24}$/)) {
+            return res.json({ error: "Invalid ID format" });
+        }
+
+        const batch = await Batch.findById(id).populate('scholar').populate('students');
+        if (!batch) return res.status(404).json({ exists: false });
+
+        res.json({
+            exists: true,
+            id: batch._id,
+            name: batch.name,
+            scholar: batch.scholar ? { id: batch.scholar._id, name: batch.scholar.name } : null,
+            studentsCount: batch.students.length,
+            students: batch.students.map(s => ({ id: s._id, name: s.name })),
+            status: batch.status
+        });
+    } catch (error) {
+        res.status(500).json({ error: error.message });
     }
 };

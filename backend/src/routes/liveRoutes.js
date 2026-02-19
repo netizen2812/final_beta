@@ -2,7 +2,7 @@ import express from "express";
 import {
     startSession, getScholarSessions, getSession, updateAyah, endSession, getScholarStatus,
     createBatch, getAdminBatches, updateBatch, deleteBatch, startBatch, joinBatch, getMySessions,
-    addStudentToBatch, removeStudentFromBatch, getBatchSessions
+    addStudentToBatch, removeStudentFromBatch, getBatchSessions, debugBatch
 } from "../controller/liveController.js";
 import { requireAuth, isAdmin } from "../middleware/authmiddleware.js";
 
@@ -16,6 +16,9 @@ router.get("/my-sessions", requireAuth, getMySessions);
 
 // USER: Join Batch
 router.post("/:id/join", requireAuth, joinBatch);
+
+// DEBUG: Check Batch Status
+router.get("/:id/debug", debugBatch);
 
 // ADMIN: Batch Management
 router.post("/admin/batch", requireAuth, isAdmin, createBatch);

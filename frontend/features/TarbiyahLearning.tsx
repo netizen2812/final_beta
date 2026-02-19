@@ -113,7 +113,27 @@ const TarbiyahLearning: React.FC<{ onNavigateToProfile?: () => void }> = ({ onNa
     if (data) setSelectedItem(data);
   };
 
-  // ... (useEffect remains same)
+  useEffect(() => {
+    const fetchLessons = async () => {
+      try {
+        setLessonsLoading(true);
+        const data = await tarbiyahService.getLessons();
+        if (Array.isArray(data)) {
+          setLessons(data);
+        } else {
+          console.error("Lessons data is not an array:", data);
+          setLessons([]);
+        }
+      } catch (error) {
+        console.error("Failed to fetch lessons", error);
+        setLessons([]);
+      } finally {
+        setLessonsLoading(false);
+      }
+    };
+
+    fetchLessons();
+  }, []);
 
   const handleCompletion = async (stage: any, xpEarned: number = 0) => {
     const finalXP = xpEarned > 0 ? xpEarned : 50;

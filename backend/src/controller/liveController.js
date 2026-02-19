@@ -357,7 +357,13 @@ export const joinBatch = async (req, res) => {
         });
 
         if (!session) {
+            if (!batch.scholar) {
+                console.error(`Join batch error: Batch ${id} has no assigned scholar for child ${childId}`);
+                return res.status(400).json({ message: "Batch has no assigned scholar" });
+            }
+
             session = await LiveSession.create({
+                title: batch.name, // Set Title to Batch Name
                 parentId: userId, // Clerk ID of parent
                 childId,
                 scholarId: batch.scholar, // Linked to Batch Scholar
@@ -384,8 +390,8 @@ export const joinBatch = async (req, res) => {
 
         res.json({ session, message: "Joined successfully" });
     } catch (error) {
-        console.error("Join batch error:", error);
-        res.status(500).json({ message: "Server error" });
+        console.error("❌ Join batch error:", error.message, error.stack);
+        res.status(500).json({ message: "Server error joining batch", detail: error.message });
     }
 };
 

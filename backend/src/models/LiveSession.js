@@ -40,6 +40,12 @@ const liveSessionSchema = new mongoose.Schema(
             required: true,
         },
 
+        // Link to Batch (Optional but recommended for grouping)
+        batchId: {
+            type: mongoose.Schema.Types.ObjectId,
+            ref: "Batch"
+        },
+
         // Access Control
         accessMode: {
             type: String,

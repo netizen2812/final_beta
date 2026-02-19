@@ -14,8 +14,10 @@ import zakatRoutes from "./routes/zakatRoutes.js";
 import parentRoutes from "./routes/parentRoutes.js";
 import childRoutes from "./routes/childRoutes.js";
 import tarbiyahRoutes from "./routes/tarbiyahRoutes.js";
+import tarbiyahRoutes from "./routes/tarbiyahRoutes.js";
 import conversationRoutes from "./routes/conversationRoutes.js";
 import adminRoutes from "./routes/adminRoutes.js";
+import accessRoutes from "./routes/accessRoutes.js";
 import path from "path";
 
 
@@ -270,6 +272,7 @@ app.use("/api/child", childRoutes);
 app.use("/api/tarbiyah", tarbiyahRoutes);
 app.use("/api/admin", adminRoutes);
 app.use("/api/conversations", conversationRoutes);
+app.use("/api/live/access", accessRoutes);
 
 console.log("✅ All routes registered:");
 console.log("   - POST /api/chat");

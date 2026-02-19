@@ -40,6 +40,14 @@ const userSchema = new mongoose.Schema(
       type: Date,
       default: null,
     },
+
+    // Feature Flags / Permissions
+    features: {
+      liveAccess: {
+        type: Boolean,
+        default: false
+      }
+    }
   },
   { timestamps: true }
 );

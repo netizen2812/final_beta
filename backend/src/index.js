@@ -21,6 +21,10 @@ import accessRoutes from "./routes/accessRoutes.js";
 // Connect to database
 connectDB().then(async () => {
   try {
+    // Log AI Provider Info
+    console.log("AI provider: OpenRouter");
+    console.log("Model: openai/gpt-4o-mini");
+
     const Lesson = (await import("./models/Lesson.js")).default;
     const { standardLessons } = await import("./data/lessons.js");
 
@@ -72,7 +76,7 @@ app.get("/", (req, res) => {
   res.status(200).send("API is running");
 });
 
-// STEP 6 — TEST ROUTE
+// STEP 7 — TEST ENDPOINT
 app.get("/ai-test", async (req, res) => {
   try {
     const reply = await generateResponse("Say hello in one sentence.");
@@ -94,7 +98,7 @@ app.use("/api/conversations", conversationRoutes);
 app.use("/api/live/access", accessRoutes);
 
 console.log("✅ All routes registered:");
-console.log("   - GET /ai-test (Temporary)");
+console.log("   - GET /ai-test (OpenRouter Verification)");
 console.log("   - POST /api/chat");
 console.log("   - /api/users/*");
 console.log("   - /api/live/*");

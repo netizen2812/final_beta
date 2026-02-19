@@ -58,10 +58,4 @@ echo.
 echo ==========================================
 echo ✅ DONE! Your code is now on GitHub.
 echo ==========================================
-echo.
-echo Next Steps:
-echo 1. Go to Render.com -> New Web Service -> Select this repo.
-echo 2. Go to Vercel.com -> Add New -> Select this repo.
-echo 3. Use 'prod_secrets.env' for your environment variables.
-echo ==========================================
 pause

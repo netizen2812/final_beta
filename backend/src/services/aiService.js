@@ -1,27 +1,49 @@
-import { GoogleGenerativeAI } from "@google/generative-ai";
+import axios from "axios";
 
-const apiKey = process.env.GEMINI_API_KEY;
+const OPENROUTER_API_KEY = process.env.OPENROUTER_API_KEY;
 
-if (!apiKey) {
-  console.error("GEMINI_API_KEY missing");
-} else {
-  console.log("AI initialized successfully");
+if (!OPENROUTER_API_KEY) {
+  console.error("OPENROUTER_API_KEY missing");
 }
 
-const genAI = new GoogleGenerativeAI(apiKey);
+const OPENROUTER_URL = "https://openrouter.ai/api/v1/chat/completions";
 
-// STABLE WORKING MODEL
-const model = genAI.getGenerativeModel({
-  model: "gemini-1.5-flash-latest"
-});
+// Stable high quality model
+const MODEL = "openai/gpt-4o-mini";
 
-export async function generateResponse(prompt) {
+export async function generateResponse(prompt, userId = "anonymous") {
   try {
-    const result = await model.generateContent(prompt);
-    const response = await result.response;
-    return response.text();
+    const response = await axios.post(
+      OPENROUTER_URL,
+      {
+        model: MODEL,
+        messages: [
+          {
+            role: "system",
+            content:
+              "You are a knowledgeable Islamic assistant grounded in Quran, Sunnah, and classical scholarship. Provide clear, respectful, madhab-aware answers."
+          },
+          {
+            role: "user",
+            content: prompt
+          }
+        ],
+        temperature: 0.6
+      },
+      {
+        headers: {
+          Authorization: `Bearer ${OPENROUTER_API_KEY}`,
+          "Content-Type": "application/json",
+          "HTTP-Referer": "https://tryimam.vercel.app",
+          "X-Title": "IMAM Platform"
+        },
+        timeout: 15000
+      }
+    );
+
+    return response.data.choices[0].message.content;
   } catch (error) {
-    console.error("AI_ERROR:", error.message);
+    console.error("AI_ERROR_OPENROUTER:", error.message);
     throw new Error("AI_FAILED");
   }
 }

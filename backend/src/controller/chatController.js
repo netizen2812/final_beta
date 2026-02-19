@@ -37,15 +37,13 @@ export const chatWithImam = async (req, res) => {
       return res.json({
         success: false,
         message: "I apologize, but to ensure I can help everyone, I am limited to 3 questions per day. Please come back tomorrow, Insha'Allah.",
-        reply: "Daily limit reached." // Fallback for frontend
+        reply: "Daily limit reached."
       });
     }
 
     // 3. Generate AI Response
-    // Construct a context-aware prompt if needed, or pass raw prompt
-    // The previous service had complex logic. The user wants SIMPLE implementation.
-    // We will pass the raw prompt for now, or a simple wrapper.
-    const reply = await generateResponse(prompt);
+    // Use OpenRouter Service
+    const reply = await generateResponse(prompt, clerkId);
 
     // 4. Increment Count & Track
     user.dailyChatCount += 1;
@@ -73,7 +71,7 @@ export const chatWithImam = async (req, res) => {
 
     console.log(`Chat processed for ${user.name}. Count: ${user.dailyChatCount}`);
 
-    // STEP 2 — CHAT CONTROLLER MUST HANDLE FAILURE
+    // STEP 3 — CHAT CONTROLLER MUST HANDLE FAILURE
     return res.json({ success: true, reply });
 
   } catch (error) {

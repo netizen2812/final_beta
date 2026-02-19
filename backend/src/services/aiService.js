@@ -2,7 +2,9 @@ import { GoogleGenerativeAI } from "@google/generative-ai";
 import fetch from "node-fetch";
 import dotenv from 'dotenv'
 dotenv.config();
-const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
+// Fallback/Force new key since Render env might be stale
+const API_KEY = "AIzaSyDYfFwEIgCScS6xIZ2PZDedQYlQNm_DGlo";
+const genAI = new GoogleGenerativeAI(API_KEY);
 
 /* ============================= */
 /* FIQH CONTEXT                  */

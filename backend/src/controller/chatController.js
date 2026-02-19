@@ -92,6 +92,6 @@ export const chatWithImam = async (req, res) => {
     if (error.message?.includes("429") || error.message?.includes("Quota")) {
       return res.status(429).json({ message: "Daily AI limit reached. Please try again tomorrow." });
     }
-    res.status(500).json({ message: "AI processing failed. Please try again." });
+    res.status(500).json({ message: `AI processing failed: ${error.message}` });
   }
 };

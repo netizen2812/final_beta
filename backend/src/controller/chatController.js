@@ -5,7 +5,7 @@ import { trackEvent } from "../services/analyticsService.js";
 
 export const chatWithImam = async (req, res) => {
   try {
-    const { prompt, history, conversationId } = req.body;
+    const { prompt, history, conversationId, madhab } = req.body;
     const clerkId = req.auth?.userId;
 
     if (!clerkId) {
@@ -43,7 +43,7 @@ export const chatWithImam = async (req, res) => {
 
     // 3. Generate AI Response
     // Use OpenRouter Service
-    const reply = await generateResponse(prompt, clerkId);
+    const reply = await generateResponse(prompt, clerkId, madhab);
 
     // 4. Increment Count & Track
     user.dailyChatCount += 1;
@@ -52,7 +52,8 @@ export const chatWithImam = async (req, res) => {
 
     trackEvent(clerkId, 'CHAT_MESSAGE_SENT', {
       promptLength: prompt.length,
-      dailyCount: user.dailyChatCount
+      dailyCount: user.dailyChatCount,
+      madhab: madhab
     });
 
     // 5. Persist messages

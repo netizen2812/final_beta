@@ -100,7 +100,8 @@ export const getAdminStats = async (req, res) => {
         // 🧒 TIER 2 — PARENT + CHILD
 
         // Child Learning
-        const avgLessons = totalChildren ? (totalLessons / (await Child.countDocuments() || 1)).toFixed(1) : 0;
+        const totalChildren = await Child.countDocuments();
+        const avgLessons = totalChildren ? (totalLessons / (totalChildren || 1)).toFixed(1) : 0;
 
         // Parent Involvement
         const parentViews = await AnalyticsEvent.countDocuments({ eventType: 'PARENT_DASHBOARD_VIEW', timestamp: { $gte: sevenDaysAgo } });

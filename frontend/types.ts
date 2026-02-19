@@ -5,7 +5,8 @@ export enum AppTab {
   TARBIYAH = 'tarbiyah',
   LIVE = 'live',
   PROFILE = 'profile',
-  ADMIN = 'admin'
+  ADMIN = 'admin',
+  ADMIN_LIVE = 'admin-live'
 }
 
 export enum Madhab {

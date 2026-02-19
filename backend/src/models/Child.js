@@ -52,6 +52,10 @@ const childSchema = new mongoose.Schema(
             type: String,
             default: "Beginner",
         },
+        batch: {
+            type: mongoose.Schema.Types.ObjectId,
+            ref: "Batch" // Active batch assignment
+        },
         child_progress: [childProgressSchema],
     },
     { timestamps: true }

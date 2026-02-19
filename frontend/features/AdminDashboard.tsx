@@ -5,7 +5,7 @@ import {
     Users, Activity, Video, BarChart2, Shield,
     RefreshCw, TrendingUp, UserCheck, AlertTriangle,
     Play, StopCircle, Lock, Unlock, Server, Database, Search,
-    Radio
+    Radio, Calendar, Layers, ChevronDown, ChevronRight, Plus
 } from 'lucide-react';
 
 const API_BASE = import.meta.env.VITE_API_URL || "http://localhost:5000";
@@ -20,114 +20,97 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onNavigateToLive }) => 
     const [loading, setLoading] = useState(true);
     const [stats, setStats] = useState<any>(null);
     const [sessions, setSessions] = useState<any[]>([]);
+    const [batches, setBatches] = useState<any[]>([]);
     const [users, setUsers] = useState<any[]>([]);
-    const [tab, setTab] = useState<'overview' | 'sessions' | 'users'>('overview');
+    const [tab, setTab] = useState<'overview' | 'sessions' | 'users' | 'batches'>('overview');
     const [error, setError] = useState<string | null>(null);
     const [searchQuery, setSearchQuery] = useState('');
+    const [expandedUser, setExpandedUser] = useState<string | null>(null);
+
+    // Form States
+    const [showBatchModal, setShowBatchModal] = useState(false);
+    const [newBatchName, setNewBatchName] = useState("");
+    const [showSessionModal, setShowSessionModal] = useState(false);
+    const [newSessionData, setNewSessionData] = useState({ title: "", batchId: "", date: "" });
 
     const fetchStats = async () => {
         try {
             const token = await getToken();
-            const res = await axios.get(`${API_BASE}/api/admin/stats`, {
-                headers: { Authorization: `Bearer ${token}` }
-            });
+            const res = await axios.get(`${API_BASE}/api/admin/stats`, { headers: { Authorization: `Bearer ${token}` } });
             setStats(res.data);
             setError(null);
         } catch (err: any) {
-            console.error("Fetch stats error", err.response?.data || err.message);
+            console.error("Fetch stats error", err);
             setError("Failed to load stats. Are you an admin?");
-        } finally {
-            setLoading(false);
-        }
+        } finally { setLoading(false); }
     };
 
     const fetchSessions = async () => {
         try {
             const token = await getToken();
-            const res = await axios.get(`${API_BASE}/api/admin/sessions`, {
-                headers: { Authorization: `Bearer ${token}` }
-            });
-            setSessions(res.data.sessions);
-        } catch (err) {
-            console.error("Fetch sessions error", err);
-        }
+            const res = await axios.get(`${API_BASE}/api/admin/sessions`, { headers: { Authorization: `Bearer ${token}` } });
+            setSessions(res.data);
+        } catch (err) { console.error(err); }
+    };
+
+    const fetchBatches = async () => {
+        try {
+            const token = await getToken();
+            const res = await axios.get(`${API_BASE}/api/admin/batches`, { headers: { Authorization: `Bearer ${token}` } });
+            setBatches(res.data);
+        } catch (err) { console.error(err); }
     };
 
     const fetchUsers = async () => {
         try {
             const token = await getToken();
-            const res = await axios.get(`${API_BASE}/api/admin/users`, {
-                headers: { Authorization: `Bearer ${token}` }
-            });
+            const res = await axios.get(`${API_BASE}/api/admin/users`, { headers: { Authorization: `Bearer ${token}` } });
             setUsers(res.data);
         } catch (err) { console.error(err); }
     };
 
-    const handleForceEnd = async (sessionId: string) => {
-        if (!confirm("Are you sure you want to FORCE END this session?")) return;
+    const createBatch = async () => {
+        if (!newBatchName) return;
         try {
             const token = await getToken();
-            await axios.post(`${API_BASE}/api/admin/session/${sessionId}/end`, {}, {
-                headers: { Authorization: `Bearer ${token}` }
-            });
-            fetchStats();
+            // Assign current admin as scholar for simplicity in this version, or add scholar picker later
+            await axios.post(`${API_BASE}/api/admin/batches`,
+                { name: newBatchName, scholar: users.find(u => u.role === 'scholar')?._id || users[0]?._id },
+                { headers: { Authorization: `Bearer ${token}` } }
+            );
+            setShowBatchModal(false);
+            setNewBatchName("");
+            fetchBatches();
+        } catch (err) { alert("Failed to create batch"); }
+    };
+
+    const createSession = async () => {
+        if (!newSessionData.batchId || !newSessionData.date) return;
+        try {
+            const token = await getToken();
+            await axios.post(`${API_BASE}/api/admin/sessions`,
+                {
+                    title: newSessionData.title,
+                    batchId: newSessionData.batchId,
+                    scheduledAt: newSessionData.date
+                },
+                { headers: { Authorization: `Bearer ${token}` } }
+            );
+            setShowSessionModal(false);
             fetchSessions();
-            alert("Session ended.");
-        } catch (err) {
-            alert("Failed to end session");
-        }
-    };
-
-    const toggleLiveAccess = async (userId: string, currentStatus: boolean) => {
-        // Optimistic UI update could go here, but let's just wait for verify
-        try {
-            const token = await getToken();
-            await axios.patch(`${API_BASE}/api/admin/user/${userId}`, { liveAccess: !currentStatus }, {
-                headers: { Authorization: `Bearer ${token}` }
-            });
-            fetchUsers();
-        } catch (err) { alert("Failed to update access"); }
-    };
-
-    const updateUserRole = async (userId: string, newRole: string) => {
-        if (!confirm(`Change user role to ${newRole.toUpperCase()}? This grants special permissions.`)) return;
-        try {
-            const token = await getToken();
-            await axios.patch(`${API_BASE}/api/admin/user/${userId}`, { role: newRole }, {
-                headers: { Authorization: `Bearer ${token}` }
-            });
-            fetchUsers();
-        } catch (err) { alert("Failed to update role"); }
-    };
-
-    const resetProgress = async (userId: string) => {
-        const confirmText = prompt("Type 'RESET' to confirm wiping all progress for this user's children. This cannot be undone.");
-        if (confirmText !== 'RESET') return;
-
-        try {
-            const token = await getToken();
-            const res = await axios.post(`${API_BASE}/api/admin/user/${userId}/reset-progress`, {}, {
-                headers: { Authorization: `Bearer ${token}` }
-            });
-            alert(res.data.message);
-            fetchUsers();
-        } catch (err) { alert("Failed to reset progress"); }
+        } catch (err) { alert("Failed to schedule session"); }
     };
 
     useEffect(() => {
         fetchStats();
-        if (tab === 'sessions') fetchSessions();
+        if (tab === 'sessions') { fetchSessions(); fetchBatches(); }
         if (tab === 'users') fetchUsers();
+        if (tab === 'batches') fetchBatches();
     }, [tab]);
-
-    const filteredUsers = users.filter(u =>
-        u.name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        u.email?.toLowerCase().includes(searchQuery.toLowerCase())
-    );
 
     if (loading) return (
         <div className="min-h-screen flex items-center justify-center bg-gray-50 text-emerald-800 font-bold">
-            <RefreshCw className="animate-spin mr-2" /> Verifying Admin Access...
+            <RefreshCw className="animate-spin mr-2" /> Loading Dashboard...
         </div>
     );
 
@@ -136,238 +119,248 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onNavigateToLive }) => 
             <Shield size={64} className="mb-4" />
             <h1 className="text-3xl font-bold mb-2">Access Denied</h1>
             <p className="max-w-md">{error}</p>
-            <p className="text-sm mt-4 text-red-400">Allowed: sarthakjuneja1999@gmail.com</p>
         </div>
     );
 
     return (
         <div className="min-h-screen bg-slate-50 font-sans pb-20">
-            {/* Sidebar / Header Combo */}
+            {/* Header */}
             <div className="bg-[#022c22] text-white p-6 sticky top-0 z-50 shadow-xl flex justify-between items-center">
                 <div className="flex items-center gap-3">
-                    <div className="bg-emerald-500 p-2 rounded-lg">
-                        <Shield size={24} className="text-[#022c22]" />
-                    </div>
+                    <div className="bg-emerald-500 p-2 rounded-lg"><Shield size={24} className="text-[#022c22]" /></div>
                     <div>
                         <h1 className="text-xl font-bold font-serif tracking-wide">Imam Admin</h1>
                         <p className="text-xs text-emerald-400 font-mono">SYSTEM MONITOR</p>
                     </div>
                 </div>
-
                 <div className="flex gap-2">
-                    <button
-                        onClick={() => setTab('overview')}
-                        className={`px-4 py-2 rounded-lg text-sm font-bold flex items-center gap-2 transition-all ${tab === 'overview' ? 'bg-emerald-600 text-white' : 'hover:bg-white/10 text-emerald-200'}`}
-                    >
-                        <BarChart2 size={16} /> Overview
-                    </button>
-                    <button
-                        onClick={() => setTab('users')}
-                        className={`px-4 py-2 rounded-lg text-sm font-bold flex items-center gap-2 transition-all ${tab === 'users' ? 'bg-emerald-600 text-white' : 'hover:bg-white/10 text-emerald-200'}`}
-                    >
-                        <Users size={16} /> Users
-                    </button>
-                    <button
-                        onClick={() => setTab('sessions')}
-                        className={`px-4 py-2 rounded-lg text-sm font-bold flex items-center gap-2 transition-all ${tab === 'sessions' ? 'bg-emerald-600 text-white' : 'hover:bg-white/10 text-emerald-200'}`}
-                    >
-                        <Video size={16} /> Live Sessions
-                    </button>
-                    {onNavigateToLive && (
-                        <button onClick={onNavigateToLive} className="px-4 py-2 rounded-lg text-sm font-bold flex items-center gap-2 bg-emerald-100/10 hover:bg-white/20 text-emerald-200 border border-emerald-500/30">
-                            <Radio size={16} /> Manage Classes
+                    {[
+                        { id: 'overview', icon: BarChart2, label: 'Overview' },
+                        { id: 'users', icon: Users, label: 'Users' },
+                        { id: 'batches', icon: Layers, label: 'Batches' },
+                        { id: 'sessions', icon: Video, label: 'Sessions' }
+                    ].map(t => (
+                        <button
+                            key={t.id}
+                            onClick={() => setTab(t.id as any)}
+                            className={`px-4 py-2 rounded-lg text-sm font-bold flex items-center gap-2 transition-all ${tab === t.id ? 'bg-emerald-600 text-white' : 'hover:bg-white/10 text-emerald-200'}`}
+                        >
+                            <t.icon size={16} /> {t.label}
                         </button>
-                    )}
+                    ))}
                 </div>
             </div>
 
             <div className="max-w-7xl mx-auto p-6 lg:p-10 space-y-8">
 
-                {/* KPI GRID */}
+                {/* 1. OVERVIEW TAB */}
                 {tab === 'overview' && stats && (
-                    <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4">
-                        {/* Growth Stats */}
-                        <div>
-                            <h2 className="text-slate-500 font-bold uppercase tracking-widest text-xs mb-4 flex items-center gap-2"><TrendingUp size={14} /> User Growth</h2>
-                            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-                                <StatCard label="Total Users" value={stats.growth.totalUsers} icon={<Users size={20} className="text-blue-500" />} trend={`+${stats.growth.newUsersLast7Days} this week`} />
-                                <StatCard label="Parents" value={stats.growth.totalParents} icon={<UserCheck size={20} className="text-indigo-500" />} />
-                                <StatCard label="Children" value={stats.growth.totalChildren} icon={<Users size={20} className="text-pink-500" />} />
-                                <StatCard label="Active Today (DAU)" value={stats.engagement.dau} icon={<Activity size={20} className="text-emerald-500" />} isLive />
-                            </div>
-                        </div>
+                    <div className="space-y-8 animate-in fade-in">
+                        {/* Platform Health */}
+                        <Section title="Platform Health" icon={<Activity size={18} />}>
+                            <StatCard label="Total Users" value={stats.health.totalUsers} trend={`+${stats.health.newUsersToday} today`} />
+                            <StatCard label="Daily Active (DAU)" value={stats.health.dau} />
+                            <StatCard label="Weekly Active (WAU)" value={stats.health.wau} />
+                        </Section>
 
-                        {/* Live Stats */}
-                        <div>
-                            <h2 className="text-slate-500 font-bold uppercase tracking-widest text-xs mb-4 flex items-center gap-2"><Server size={14} /> System Status</h2>
-                            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                                <StatCard label="Active Live Sessions" value={stats.live.active} icon={<Video size={20} className="text-red-500" />} isLive />
-                                <StatCard label="Total Lifetime Sessions" value={stats.live.total} icon={<Database size={20} className="text-slate-500" />} />
-                                <StatCard label="Lessons Completed" value={stats.engagement.totalLessonsCompleted} icon={<BookOpen size={20} className="text-amber-500" />} />
+                        {/* Learning Progress */}
+                        <Section title="Learning Progress" icon={<Database size={18} />}>
+                            <StatCard label="Lessons Today" value={stats.learning.lessonsToday} />
+                            <StatCard label="Avg Lessons/Child" value={stats.learning.avgLessonsPerChild} />
+                            <div className="bg-white p-5 rounded-xl border border-slate-200">
+                                <div className="text-xs font-bold text-slate-400 uppercase mb-2">XP Distribution</div>
+                                <div className="flex gap-1 h-20 items-end">
+                                    <div style={{ height: '30%' }} className="bg-slate-200 flex-1 rounded-t tooltip" title={`Low: ${stats.learning.xpDistribution.low}`}></div>
+                                    <div style={{ height: '60%' }} className="bg-emerald-300 flex-1 rounded-t tooltip" title={`Mid: ${stats.learning.xpDistribution.mid}`}></div>
+                                    <div style={{ height: '40%' }} className="bg-emerald-500 flex-1 rounded-t tooltip" title={`High: ${stats.learning.xpDistribution.high}`}></div>
+                                </div>
+                                <div className="flex justify-between text-[10px] text-slate-400 mt-1">
+                                    <span>Beginner</span><span>Intermediate</span><span>Adv</span>
+                                </div>
                             </div>
-                        </div>
+                        </Section>
+
+                        {/* Risk Alerts */}
+                        <Section title="Risk Alerts" icon={<AlertTriangle size={18} className="text-amber-500" />}>
+                            <StatCard label="Inactive > 7 Days" value={stats.risk.inactive7Days} trend="Needs Attention" icon={<UserCheck className="text-red-500" />} />
+                        </Section>
                     </div>
                 )}
 
-                {/* USERS MANAGER */}
+                {/* 2. USERS TAB (HIERARCHICAL) */}
                 {tab === 'users' && (
-                    <div className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden animate-in fade-in">
-                        <div className="p-6 border-b border-slate-100 flex justify-between items-center gap-4">
-                            <h2 className="font-bold text-lg text-slate-800 whitespace-nowrap">User Manager</h2>
-                            <div className="relative w-full max-w-md">
-                                <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={16} />
-                                <input
-                                    className="w-full pl-10 pr-4 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500"
-                                    placeholder="Search by name or email..."
-                                    value={searchQuery}
-                                    onChange={e => setSearchQuery(e.target.value)}
-                                />
-                            </div>
-                            <button onClick={fetchUsers} className="text-sm text-emerald-600 font-bold hover:underline flex items-center gap-1"><RefreshCw size={14} /> Refresh</button>
+                    <div className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
+                        <div className="p-6 border-b border-slate-100 flex justify-between">
+                            <h2 className="font-bold text-lg">User Directory</h2>
+                            <button onClick={fetchUsers} className="text-emerald-600 font-bold text-sm flex gap-1 items-center"><RefreshCw size={14} /> Refresh</button>
                         </div>
-                        <div className="overflow-x-auto">
-                            <table className="w-full text-sm text-left">
-                                <thead className="bg-slate-50 text-slate-500 font-bold uppercase text-xs">
-                                    <tr>
-                                        <th className="px-6 py-4">User</th>
-                                        <th className="px-6 py-4">Role</th>
-                                        <th className="px-6 py-4">Kids</th>
-                                        <th className="px-6 py-4">Joined</th>
-                                        <th className="px-6 py-4">Live Access</th>
-                                        <th className="px-6 py-4 text-right">Actions</th>
-                                    </tr>
-                                </thead>
-                                <tbody className="divide-y divide-slate-100">
-                                    {filteredUsers.map((u) => (
-                                        <tr key={u._id} className="hover:bg-slate-50 transition-colors">
-                                            <td className="px-6 py-4">
-                                                <div className="font-bold text-slate-800">{u.name || "Unnamed"}</div>
-                                                <div className="text-slate-500 text-xs">{u.email}</div>
-                                                <div className="text-slate-300 text-[10px] font-mono">{u._id}</div>
-                                            </td>
-                                            <td className="px-6 py-4">
-                                                <select
-                                                    value={u.role}
-                                                    onChange={(e) => updateUserRole(u._id, e.target.value)}
-                                                    className={`px-2 py-1 rounded text-xs font-bold uppercase border-none focus:ring-2 focus:ring-emerald-500 cursor-pointer ${u.role === 'scholar' ? 'bg-purple-100 text-purple-700' :
-                                                        u.role === 'admin' ? 'bg-red-100 text-red-700' :
-                                                            'bg-slate-100 text-slate-600'
-                                                        }`}
-                                                >
-                                                    <option value="parent">Parent</option>
-                                                    <option value="scholar">Scholar</option>
-                                                    <option value="student">Student</option>
-                                                    <option value="admin">Admin</option>
-                                                </select>
-                                            </td>
-                                            <td className="px-6 py-4 text-slate-600 font-bold">{u.childCount}</td>
-                                            <td className="px-6 py-4 text-slate-500 text-xs">{new Date(u.createdAt).toLocaleDateString()}</td>
-                                            <td className="px-6 py-4">
-                                                <button
-                                                    onClick={() => toggleLiveAccess(u._id, u.liveAccess)}
-                                                    className={`flex items-center gap-1.5 px-2 py-1 rounded text-xs font-bold transition-all ${u.liveAccess
-                                                        ? 'text-emerald-700 bg-emerald-100 hover:bg-emerald-200'
-                                                        : 'text-slate-500 bg-slate-100 hover:bg-slate-200'
-                                                        }`}
-                                                >
-                                                    {u.liveAccess ? <Shield size={12} fill="currentColor" /> : <Lock size={12} />}
-                                                    {u.liveAccess ? 'Enabled' : 'Disabled'}
-                                                </button>
-                                            </td>
-                                            <td className="px-6 py-4 text-right">
-                                                <div className="flex justify-end gap-2">
-                                                    <button
-                                                        onClick={() => resetProgress(u._id)}
-                                                        className="text-red-500 hover:text-red-700 hover:bg-red-50 p-2 rounded-lg transition-colors"
-                                                        title="Hard Reset Progress (Fix Bugs)"
-                                                    >
-                                                        <AlertTriangle size={16} />
-                                                    </button>
-                                                </div>
-                                            </td>
-                                        </tr>
-                                    ))}
-                                </tbody>
-                            </table>
-                        </div>
-                    </div>
-                )}
+                        <div className="divide-y divide-slate-100">
+                            {users.map(parent => (
+                                <div key={parent._id} className="group">
+                                    <div
+                                        className="p-4 hover:bg-slate-50 flex items-center justify-between cursor-pointer"
+                                        onClick={() => setExpandedUser(expandedUser === parent._id ? null : parent._id)}
+                                    >
+                                        <div className="flex items-center gap-4">
+                                            {expandedUser === parent._id ? <ChevronDown size={16} /> : <ChevronRight size={16} />}
+                                            <div>
+                                                <div className="font-bold text-slate-800">{parent.name}</div>
+                                                <div className="text-xs text-slate-500">{parent.email}</div>
+                                            </div>
+                                            <span className="text-[10px] bg-slate-100 px-2 py-1 rounded-full text-slate-500 font-bold uppercase">{parent.children?.length || 0} Children</span>
+                                        </div>
+                                        <div className="text-xs text-slate-400">Joined {new Date(parent.joinedAt).toLocaleDateString()}</div>
+                                    </div>
 
-                {/* SESSIONS TABLE */}
-                {tab === 'sessions' && (
-                    <div className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden animate-in fade-in">
-                        <div className="p-6 border-b border-slate-100 flex justify-between items-center">
-                            <h2 className="font-bold text-lg text-slate-800">Live Session Monitor</h2>
-                            <button onClick={fetchSessions} className="text-sm text-emerald-600 font-bold hover:underline flex items-center gap-1"><RefreshCw size={14} /> Refresh</button>
-                        </div>
-                        <div className="overflow-x-auto">
-                            <table className="w-full text-sm text-left">
-                                <thead className="bg-slate-50 text-slate-500 font-bold uppercase text-xs">
-                                    <tr>
-                                        <th className="px-6 py-4">Status</th>
-                                        <th className="px-6 py-4">Child ID</th>
-                                        <th className="px-6 py-4">Started At</th>
-                                        <th className="px-6 py-4">Duration</th>
-                                        <th className="px-6 py-4 text-right">Actions</th>
-                                    </tr>
-                                </thead>
-                                <tbody className="divide-y divide-slate-100">
-                                    {sessions.map((s) => (
-                                        <tr key={s._id} className="hover:bg-slate-50 transition-colors">
-                                            <td className="px-6 py-4">
-                                                <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-black uppercase tracking-wide border ${s.status === 'active' ? 'bg-red-50 text-red-600 border-red-100 animate-pulse' :
-                                                    s.status === 'ended' ? 'bg-slate-100 text-slate-500 border-slate-200' :
-                                                        'bg-amber-50 text-amber-600 border-amber-100'
-                                                    }`}>
-                                                    <span className={`w-1.5 h-1.5 rounded-full ${s.status === 'active' ? 'bg-red-500' : 'bg-slate-400'}`}></span>
-                                                    {s.status}
-                                                </span>
-                                            </td>
-                                            <td className="px-6 py-4 font-mono text-xs text-slate-600">{s.childId}</td>
-                                            <td className="px-6 py-4 text-slate-500">{s.startedAt ? new Date(s.startedAt).toLocaleString() : '-'}</td>
-                                            <td className="px-6 py-4 font-bold text-slate-700">{s.durationMinutes ? `${s.durationMinutes}m` : '-'}</td>
-                                            <td className="px-6 py-4 text-right">
-                                                {s.status === 'active' && (
-                                                    <button
-                                                        onClick={() => handleForceEnd(s._id)}
-                                                        className="text-white bg-red-500 hover:bg-red-600 px-3 py-1.5 rounded-md text-xs font-bold transition-colors inline-flex items-center gap-1"
-                                                    >
-                                                        <StopCircle size={12} /> Force End
-                                                    </button>
-                                                )}
-                                            </td>
-                                        </tr>
-                                    ))}
-                                    {sessions.length === 0 && (
-                                        <tr>
-                                            <td colSpan={5} className="px-6 py-12 text-center text-slate-400 italic">No sessions found</td>
-                                        </tr>
+                                    {/* Expanded Children View */}
+                                    {expandedUser === parent._id && (
+                                        <div className="bg-slate-50/50 p-4 pl-12 border-t border-slate-100 shadow-inner">
+                                            {parent.children && parent.children.length > 0 ? (
+                                                <table className="w-full text-sm">
+                                                    <thead className="text-xs text-slate-400 font-bold uppercase text-left">
+                                                        <tr>
+                                                            <th className="pb-2">Child Name</th>
+                                                            <th className="pb-2">Batch</th>
+                                                            <th className="pb-2">XP</th>
+                                                            <th className="pb-2">Completed</th>
+                                                            <th className="pb-2">Last Active</th>
+                                                        </tr>
+                                                    </thead>
+                                                    <tbody>
+                                                        {parent.children.map((child: any) => (
+                                                            <tr key={child._id} className="border-b border-slate-100 last:border-0">
+                                                                <td className="py-2 font-medium">{child.name}</td>
+                                                                <td className="py-2"><span className="bg-white border px-2 py-0.5 rounded textxs">{child.batchName}</span></td>
+                                                                <td className="py-2 text-emerald-600 font-bold">{child.xp}</td>
+                                                                <td className="py-2">{child.completed} lessons</td>
+                                                                <td className="py-2 text-slate-500">{child.lastActive ? new Date(child.lastActive).toLocaleDateString() : 'Never'}</td>
+                                                            </tr>
+                                                        ))}
+                                                    </tbody>
+                                                </table>
+                                            ) : (
+                                                <div className="text-slate-400 italic text-sm">No children profiles registered.</div>
+                                            )}
+                                        </div>
                                     )}
+                                </div>
+                            ))}
+                        </div>
+                    </div>
+                )}
+
+                {/* 3. BATCHES TAB */}
+                {tab === 'batches' && (
+                    <div className="space-y-6">
+                        <div className="flex justify-between items-center">
+                            <h2 className="font-bold text-xl text-slate-800">Learning Batches</h2>
+                            <button onClick={() => setShowBatchModal(true)} className="bg-emerald-600 text-white px-4 py-2 rounded-lg font-bold text-sm flex gap-2 items-center hover:bg-emerald-700">
+                                <Plus size={16} /> New Batch
+                            </button>
+                        </div>
+                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                            {batches.map(batch => (
+                                <div key={batch._id} className="bg-white p-6 rounded-xl border border-slate-200 shadow-sm hover:shadow-md transition-shadow">
+                                    <div className="flex justify-between items-start mb-4">
+                                        <h3 className="font-bold text-lg text-slate-800">{batch.name}</h3>
+                                        <span className={`px-2 py-1 rounded text-[10px] font-black uppercase ${batch.status === 'active' ? 'bg-green-50 text-green-600' : 'bg-slate-100 text-slate-500'}`}>{batch.status}</span>
+                                    </div>
+                                    <div className="space-y-2 text-sm text-slate-600">
+                                        <div className="flex items-center gap-2"><UserCheck size={14} className="text-emerald-500" /> Scholar: {batch.scholar?.name || "Unassigned"}</div>
+                                        <div className="flex items-center gap-2"><Users size={14} className="text-blue-500" /> {batch.students?.length || 0} Students</div>
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
+                    </div>
+                )}
+
+                {/* 4. SESSIONS TAB */}
+                {tab === 'sessions' && (
+                    <div className="space-y-6">
+                        <div className="flex justify-between items-center">
+                            <h2 className="font-bold text-xl text-slate-800">Class Sessions</h2>
+                            <button onClick={() => setShowSessionModal(true)} className="bg-emerald-600 text-white px-4 py-2 rounded-lg font-bold text-sm flex gap-2 items-center hover:bg-emerald-700">
+                                <Plus size={16} /> Schedule Session
+                            </button>
+                        </div>
+                        <div className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
+                            <table className="w-full text-sm text-left">
+                                <thead className="bg-slate-50 text-slate-500 font-bold uppercase text-xs">
+                                    <tr>
+                                        <th className="px-6 py-4">Title</th>
+                                        <th className="px-6 py-4">Batch</th>
+                                        <th className="px-6 py-4">Scheduled For</th>
+                                        <th className="px-6 py-4">Status</th>
+                                    </tr>
+                                </thead>
+                                <tbody className="divide-y divide-slate-100">
+                                    {sessions.map(s => (
+                                        <tr key={s._id}>
+                                            <td className="px-6 py-4 font-bold">{s.title || "Untitled Session"}</td>
+                                            <td className="px-6 py-4">{s.batchId?.name}</td>
+                                            <td className="px-6 py-4">{new Date(s.scheduledAt).toLocaleString()}</td>
+                                            <td className="px-6 py-4 uppercase text-xs font-bold">{s.status}</td>
+                                        </tr>
+                                    ))}
                                 </tbody>
                             </table>
                         </div>
                     </div>
                 )}
-
             </div>
+
+            {/* MODALS */}
+            {showBatchModal && (
+                <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-[100]">
+                    <div className="bg-white p-6 rounded-2xl w-full max-w-sm space-y-4">
+                        <h3 className="font-bold text-lg">Create New Batch</h3>
+                        <input className="w-full border p-2 rounded-lg" placeholder="Batch Name (e.g. Quran A)" value={newBatchName} onChange={e => setNewBatchName(e.target.value)} />
+                        <div className="flex gap-2 justify-end">
+                            <button onClick={() => setShowBatchModal(false)} className="text-slate-500 px-4 py-2">Cancel</button>
+                            <button onClick={createBatch} className="bg-emerald-600 text-white px-4 py-2 rounded-lg font-bold">Create</button>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {showSessionModal && (
+                <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-[100]">
+                    <div className="bg-white p-6 rounded-2xl w-full max-w-sm space-y-4">
+                        <h3 className="font-bold text-lg">Schedule Session</h3>
+                        <input className="w-full border p-2 rounded-lg" placeholder="Session Title" value={newSessionData.title} onChange={e => setNewSessionData({ ...newSessionData, title: e.target.value })} />
+                        <select className="w-full border p-2 rounded-lg" onChange={e => setNewSessionData({ ...newSessionData, batchId: e.target.value })}>
+                            <option value="">Select Batch</option>
+                            {batches.map(b => <option key={b._id} value={b._id}>{b.name}</option>)}
+                        </select>
+                        <input type="datetime-local" className="w-full border p-2 rounded-lg" onChange={e => setNewSessionData({ ...newSessionData, date: e.target.value })} />
+                        <div className="flex gap-2 justify-end">
+                            <button onClick={() => setShowSessionModal(false)} className="text-slate-500 px-4 py-2">Cancel</button>
+                            <button onClick={createSession} className="bg-emerald-600 text-white px-4 py-2 rounded-lg font-bold">Schedule</button>
+                        </div>
+                    </div>
+                </div>
+            )}
         </div>
     );
 };
 
-// Helper Components
-const StatCard = ({ label, value, icon, trend, isLive }: any) => (
-    <div className="bg-white p-5 rounded-xl border border-slate-200 shadow-sm relative overflow-hidden group hover:border-emerald-500/30 transition-all">
-        {isLive && <span className="absolute top-2 right-2 flex h-3 w-3"><span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span><span className="relative inline-flex rounded-full h-3 w-3 bg-emerald-500"></span></span>}
-        <div className="flex justify-between items-start mb-4">
-            <div className="p-2.5 bg-slate-50 rounded-lg group-hover:bg-emerald-50 transition-colors">{icon}</div>
+const Section = ({ title, icon, children }: any) => (
+    <div>
+        <h2 className="text-slate-500 font-bold uppercase tracking-widest text-xs mb-4 flex items-center gap-2">{icon} {title}</h2>
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+            {children}
         </div>
-        <div className="text-3xl font-bold text-slate-800 mb-1">{value}</div>
-        <div className="text-xs font-medium text-slate-500 uppercase tracking-wide">{label}</div>
-        {trend && <div className="text-xs font-bold text-emerald-600 mt-3 flex items-center gap-1 bg-emerald-50 w-fit px-2 py-1 rounded-md">{trend}</div>}
     </div>
 );
 
-// Icon component needed? Used lucide-react above.
-import { BookOpen } from 'lucide-react';
+const StatCard = ({ label, value, trend, icon }: any) => (
+    <div className="bg-white p-5 rounded-xl border border-slate-200 shadow-sm relative overflow-hidden">
+        <div className="text-3xl font-bold text-slate-800 mb-1">{value}</div>
+        <div className="text-xs font-medium text-slate-500 uppercase tracking-wide">{label}</div>
+        {trend && <div className="text-xs font-bold text-emerald-600 mt-2">{trend}</div>}
+        {icon && <div className="absolute top-4 right-4 opacity-10">{icon}</div>}
+    </div>
+);
 
 export default AdminDashboard;

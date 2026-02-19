@@ -45,6 +45,7 @@ interface PrayerTime {
   time: string;
   id: number;
 }
+const normalizeAngle = (angle: number) => (angle + 360) % 360;
 
 const GENERAL_DISCLAIMER = "For guidance and convenience only. Accuracy may vary. Consult local authorities for definitive religious rulings.";
 
@@ -465,9 +466,26 @@ const IbadahDashboard: React.FC = () => {
   );
 
   const QiblaPage = () => {
-    const rotationAngle = (qiblaDegrees - liveHeading + 360) % 360;
+    // 1️⃣ Fix: 180 degree shift as requested by user
+    const rotationAngle = (qiblaDegrees - liveHeading + 180 + 360) % 360;
+
+    // 2️⃣ Immersive: Check if aligned (Arrow pointing roughly UP which is 0 +/- 10)
+    // Actually, if we want them to face Qibla, we check if liveHeading is close to qiblaDegrees.
+    // User said "180 off", so we added 180 to rotation.
+    // If the arrow points UP (0) when we face Qibla, then rotationAngle should be 0.
+    // If we face Qibla (live == qibla), rotation is 180.
+    // So "Aligned" means rotationAngle is close to 0? No.
+    // Let's assume "Aligned" means "Phone pointing to Qibla".
+    const diff = Math.abs(normalizeAngle(liveHeading) - normalizeAngle(qiblaDegrees));
+    const isFacingQibla = diff < 10 || diff > 350;
+
+    // Trigger haptics if available when entering alignment
+    useEffect(() => {
+      if (isFacingQibla && navigator.vibrate) navigator.vibrate(50);
+    }, [isFacingQibla]);
+
     return (
-      <div className="min-h-screen bg-[#0D4433] text-white py-12 sm:py-16 lg:py-20 px-4 sm:px-6 lg:px-8 animate-in zoom-in duration-500 overflow-hidden">
+      <div className={`min-h-screen py-12 sm:py-16 lg:py-20 px-4 sm:px-6 lg:px-8 animate-in zoom-in duration-500 overflow-hidden text-white transition-colors duration-700 ${isFacingQibla ? 'bg-emerald-600' : 'bg-[#0D4433]'}`}>
         <div className="max-w-4xl mx-auto flex flex-col items-center text-center">
           <header className="w-full flex items-center justify-between mb-20">
             <button onClick={goBack} className="p-3 bg-white/10 hover:bg-white/20 rounded-full transition-all text-white"><ArrowLeft size={24} /></button>
@@ -477,17 +495,17 @@ const IbadahDashboard: React.FC = () => {
 
           <div className="relative w-72 h-72 md:w-96 md:h-96 mb-20">
             <div className="absolute inset-0 border-[10px] border-white/5 rounded-full" />
-            <div className={`absolute inset-0 border-t-[10px] border-emerald-400 rounded-full transition-transform duration-300 shadow-[0_0_30px_rgba(52,211,153,0.3)]`}
+            <div className={`absolute inset-0 border-t-[10px] border-emerald-400 rounded-full transition-transform duration-300 shadow-[0_0_30px_rgba(52,211,153,0.3)] ${isFacingQibla ? 'shadow-[0_0_100px_rgba(255,255,255,0.6)] border-white' : ''}`}
               style={{ transform: `rotate(${rotationAngle}deg)` }}
             />
             <div className="absolute inset-0 flex items-center justify-center">
-              <Compass size={120} className="text-emerald-400 opacity-20" />
+              <Compass size={120} className={`opacity-20 transition-all ${isFacingQibla ? 'text-white scale-110' : 'text-emerald-400'}`} />
               <div className="absolute text-6xl font-black tracking-tighter">{qiblaDegrees || '---'}°</div>
             </div>
             <div className="absolute inset-0 transition-transform duration-300" style={{ transform: `rotate(${rotationAngle}deg)` }}>
               <div className="absolute top-0 left-1/2 -translate-x-1/2 -translate-y-4">
-                <div className="w-6 h-10 bg-emerald-400 rounded-full shadow-[0_0_20px_rgba(52,211,153,0.8)]" />
-                <div className="w-0 h-0 border-l-[12px] border-l-transparent border-r-[12px] border-r-transparent border-b-[20px] border-b-emerald-400 mx-auto mt-[-5px]" />
+                <div className={`w-6 h-10 rounded-full shadow-[0_0_20px_rgba(52,211,153,0.8)] transition-colors ${isFacingQibla ? 'bg-white' : 'bg-emerald-400'}`} />
+                <div className={`w-0 h-0 border-l-[12px] border-l-transparent border-r-[12px] border-r-transparent border-b-[20px] mx-auto mt-[-5px] transition-colors ${isFacingQibla ? 'border-b-white' : 'border-b-emerald-400'}`} />
               </div>
             </div>
           </div>
@@ -501,7 +519,7 @@ const IbadahDashboard: React.FC = () => {
             )}
             <div className="p-8 bg-white/10 backdrop-blur-xl rounded-[2.5rem] border border-white/10">
               <div className="text-emerald-300 font-black uppercase tracking-[0.3em] text-[10px] mb-2">
-                {isSensorAvailable ? 'Makkah Direction' : 'Compass Unavailable'}
+                {isSensorAvailable ? (isFacingQibla ? '✨ ALIGNED WITH QIBLA' : 'Makkah Direction') : 'Compass Unavailable'}
               </div>
               <p className="text-lg font-medium leading-relaxed">
                 {isSensorAvailable

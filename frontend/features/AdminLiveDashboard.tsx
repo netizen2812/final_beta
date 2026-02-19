@@ -108,6 +108,24 @@ const BatchManager = ({ token }: { token: any }) => {
 
     // Form State
     const [newItem, setNewItem] = useState({ title: '', accessMode: 'restricted', scheduledStartTime: '', scheduledEndTime: '', scholarId: '' });
+    const [scholars, setScholars] = useState<any[]>([]);
+
+    const fetchScholars = async () => {
+        try {
+            const t = await token();
+            const res = await axios.get(`${API_BASE}/api/admin/users`, {
+                headers: { Authorization: `Bearer ${t}` }
+            });
+            const scholarList = res.data.filter((u: any) => u.role === 'scholar');
+            setScholars(scholarList);
+        } catch (err) {
+            console.error("Failed to load scholars");
+        }
+    };
+
+    useEffect(() => {
+        if (showCreate) fetchScholars();
+    }, [showCreate]);
 
     const fetchBatches = async () => {
         try {
@@ -170,8 +188,12 @@ const BatchManager = ({ token }: { token: any }) => {
                         <option value="restricted">Restricted (Assigned Only)</option>
                         <option value="open">Open (All Approved)</option>
                     </select>
-                    {/* Hardcoding Scholar ID input for now, ideally fetch list */}
-                    <input className="w-full border p-2 rounded" placeholder="Scholar User ID (MongoDB ID)" value={newItem.scholarId} onChange={e => setNewItem({ ...newItem, scholarId: e.target.value })} />
+                    <select className="w-full border p-2 rounded" value={newItem.scholarId} onChange={e => setNewItem({ ...newItem, scholarId: e.target.value })}>
+                        <option value="">Select Scholar</option>
+                        {scholars.map(s => (
+                            <option key={s._id} value={s._id}>{s.name} ({s.email})</option>
+                        ))}
+                    </select>
 
                     <button onClick={createBatch} className="bg-emerald-600 text-white px-6 py-2 rounded-lg font-bold">Save Batch</button>
                 </div>

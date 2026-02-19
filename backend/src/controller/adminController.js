@@ -153,10 +153,10 @@ export const getAllUsers = async (req, res) => {
     try {
         const users = await User.find().sort({ createdAt: -1 }).lean();
 
-        // Enhance with child count
+        // Enhance with detailed child info for hierarchy
         const enhanced = await Promise.all(users.map(async u => {
-            const childCount = await Child.countDocuments({ parent_id: u._id });
-            return { ...u, childCount };
+            const children = await Child.find({ parent_id: u._id }).lean();
+            return { ...u, children, childCount: children.length };
         }));
 
         res.json(enhanced);

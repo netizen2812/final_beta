@@ -99,11 +99,12 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onNavigateToLive }) => 
                     </div>
                 </div>
                 <div className="flex gap-2">
+                    <button onClick={onNavigateToLive} className="bg-emerald-600 hover:bg-emerald-500 text-white px-4 py-2 rounded-lg text-sm font-bold flex items-center gap-2 shadow-lg transition-all">
+                        <Video size={16} /> Live Admin
+                    </button>
                     {[
                         { id: 'overview', icon: BarChart2, label: 'Analytics' },
                         { id: 'users', icon: Users, label: 'User Roles' },
-                        { id: 'batches', icon: Layers, label: 'Batches' },
-                        { id: 'sessions', icon: Video, label: 'Sessions' }
                     ].map(t => (
                         <button key={t.id} onClick={() => setTab(t.id as any)} className={`px-4 py-2 rounded-lg text-sm font-bold flex items-center gap-2 transition-all ${tab === t.id ? 'bg-emerald-600' : 'hover:bg-white/10 text-emerald-200'}`}>
                             <t.icon size={16} /> {t.label}
@@ -161,25 +162,45 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onNavigateToLive }) => 
                             <thead className="bg-slate-50 text-slate-500 font-bold uppercase text-xs">
                                 <tr>
                                     <th className="px-6 py-4">User</th>
-                                    <th className="px-6 py-4">Children</th>
+                                    <th className="px-6 py-4">Children Branch</th>
                                     <th className="px-6 py-4">Role Control</th>
                                 </tr>
                             </thead>
                             <tbody className="divide-y divide-slate-100">
                                 {users.filter(u => u.email?.includes(searchQuery)).map(u => (
                                     <tr key={u._id} className="hover:bg-slate-50">
-                                        <td className="px-6 py-4">
-                                            <div className="font-bold">{u.name}</div>
+                                        <td className="px-6 py-4 align-top">
+                                            <div className="font-bold text-slate-800">{u.name}</div>
                                             <div className="text-xs text-slate-500">{u.email}</div>
-                                            <div className="text-[10px] font-mono text-slate-300">{u._id}</div>
+                                            <div className="text-[10px] font-mono text-slate-300 mt-1">{u._id}</div>
                                         </td>
-                                        <td className="px-6 py-4 font-bold text-slate-600">{u.childCount}</td>
-                                        <td className="px-6 py-4">
+                                        <td className="px-6 py-4 align-top">
+                                            {u.children && u.children.length > 0 ? (
+                                                <div className="space-y-2">
+                                                    {u.children.map((child: any) => (
+                                                        <div key={child._id} className="flex items-center gap-2 bg-emerald-50/50 p-2 rounded-lg border border-emerald-100/50">
+                                                            <div className="w-6 h-6 rounded-full bg-emerald-100 text-emerald-700 flex items-center justify-center text-xs font-bold">
+                                                                {child.name?.[0] || 'C'}
+                                                            </div>
+                                                            <div>
+                                                                <div className="text-xs font-bold text-slate-700">{child.name}</div>
+                                                                <div className="text-[10px] text-slate-400">
+                                                                    {child.age} yrs • {child.gender === 'male' ? 'Boy' : 'Girl'}
+                                                                </div>
+                                                            </div>
+                                                        </div>
+                                                    ))}
+                                                </div>
+                                            ) : (
+                                                <span className="text-xs text-slate-400 italic">No registered children</span>
+                                            )}
+                                        </td>
+                                        <td className="px-6 py-4 align-top">
                                             <select
                                                 value={u.role || 'parent'}
                                                 onChange={(e) => handleRoleUpdate(u._id, e.target.value)}
                                                 className={`px-3 py-1.5 rounded-lg text-xs font-bold uppercase cursor-pointer border-none ring-1 ring-slate-200 focus:ring-emerald-500 ${u.role === 'admin' ? 'bg-red-100 text-red-700' :
-                                                        u.role === 'scholar' ? 'bg-purple-100 text-purple-700' : 'bg-slate-100 text-slate-600'
+                                                    u.role === 'scholar' ? 'bg-purple-100 text-purple-700' : 'bg-slate-100 text-slate-600'
                                                     }`}
                                             >
                                                 <option value="parent">Parent</option>

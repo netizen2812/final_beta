@@ -185,7 +185,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onNavigateToLive }) => 
                                                             <div>
                                                                 <div className="text-xs font-bold text-slate-700">{child.name}</div>
                                                                 <div className="text-[10px] text-slate-400">
-                                                                    {child.age} yrs • {child.gender === 'male' ? 'Boy' : 'Girl'}
+                                                                    {child.age} yrs • {child.gender === 'Boy' ? 'Boy' : 'Girl'}
                                                                 </div>
                                                             </div>
                                                         </div>

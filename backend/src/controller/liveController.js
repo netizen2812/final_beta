@@ -158,27 +158,24 @@ export const getSession = async (req, res) => {
 // ADMIN: POST /api/live/admin/batch - Create new batch
 export const createBatch = async (req, res) => {
     try {
-        const { title, description, scheduledStartTime, scheduledEndTime, scholarId, accessMode, maxParticipants } = req.body;
+        const { name, schedule, scholar, level, status } = req.body;
 
         // Basic validation
-        if (!title || !scheduledStartTime || !scheduledEndTime || !scholarId) {
-            return res.status(400).json({ message: "Missing required fields" });
+        if (!name || !scholar) {
+            return res.status(400).json({ message: "Missing required fields (name, scholar)" });
         }
 
-        const session = await LiveSession.create({
-            title,
-            description,
-            scheduledStartTime,
-            scheduledEndTime,
-            scholarId,
-            accessMode: accessMode || 'restricted',
-            parentId: 'ADMIN_CREATED', // Placeholder
-            childId: 'BATCH_SESSION',  // Placeholder
-            maxParticipants: maxParticipants || 10,
-            status: 'scheduled'
+        const { default: Batch } = await import("../models/Batch.js");
+
+        const batch = await Batch.create({
+            name,
+            scholar,
+            schedule: schedule || {},
+            level: level || 'Beginner',
+            status: status || 'active'
         });
 
-        res.status(201).json(session);
+        res.status(201).json(batch);
     } catch (error) {
         console.error("Create batch error:", error);
         res.status(500).json({ message: "Server error" });
@@ -188,24 +185,26 @@ export const createBatch = async (req, res) => {
 // ADMIN: GET /api/live/admin/batches - List all batches
 export const getAdminBatches = async (req, res) => {
     try {
-        const sessions = await LiveSession.find({}).sort({ scheduledStartTime: -1 }).populate('scholarId', 'name email');
-        res.json(sessions);
+        const { default: Batch } = await import("../models/Batch.js");
+        const batches = await Batch.find({}).sort({ createdAt: -1 }).populate('scholar', 'name email');
+        res.json(batches);
     } catch (error) {
         console.error("Get admin batches error:", error);
         res.status(500).json({ message: "Server error" });
     }
 };
 
-// ADMIN: PATCH /api/live/admin/batch/:id - Update batch (including participants)
+// ADMIN: PATCH /api/live/admin/batch/:id - Update batch
 export const updateBatch = async (req, res) => {
     try {
         const { id } = req.params;
         const updates = req.body;
+        const { default: Batch } = await import("../models/Batch.js");
 
-        const session = await LiveSession.findByIdAndUpdate(id, { $set: updates }, { new: true });
-        if (!session) return res.status(404).json({ message: "Batch not found" });
+        const batch = await Batch.findByIdAndUpdate(id, { $set: updates }, { new: true });
+        if (!batch) return res.status(404).json({ message: "Batch not found" });
 
-        res.json(session);
+        res.json(batch);
     } catch (error) {
         console.error("Update batch error:", error);
         res.status(500).json({ message: "Server error" });
@@ -215,7 +214,8 @@ export const updateBatch = async (req, res) => {
 // ADMIN: DELETE /api/live/admin/batch/:id
 export const deleteBatch = async (req, res) => {
     try {
-        await LiveSession.findByIdAndDelete(req.params.id);
+        const { default: Batch } = await import("../models/Batch.js");
+        await Batch.findByIdAndDelete(req.params.id);
         res.json({ message: "Batch deleted" });
     } catch (error) {
         res.status(500).json({ message: "Server error" });

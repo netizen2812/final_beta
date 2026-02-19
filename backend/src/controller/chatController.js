@@ -71,6 +71,12 @@ export const chatWithImam = async (req, res) => {
         if (conversation) {
           conversation.messages.push({ role: "user", content: prompt, timestamp: new Date() });
           conversation.messages.push({ role: "model", content: reply, timestamp: new Date() });
+
+          // Auto-generate title from first message
+          if (conversation.messages.length <= 2) {
+            conversation.title = prompt.substring(0, 50) + (prompt.length > 50 ? "..." : "");
+          }
+
           await conversation.save();
         }
       } catch (dbErr) {

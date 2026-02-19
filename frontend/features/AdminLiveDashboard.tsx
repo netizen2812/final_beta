@@ -107,7 +107,13 @@ const BatchManager = ({ token }: { token: any }) => {
     const [showCreate, setShowCreate] = useState(false);
 
     // Form State
-    const [newItem, setNewItem] = useState({ title: '', accessMode: 'restricted', scheduledStartTime: '', scheduledEndTime: '', scholarId: '' });
+    const [newItem, setNewItem] = useState({
+        name: '',
+        scholar: '',
+        level: 'Beginner',
+        status: 'active',
+        schedule: { days: [], time: '', durationMinutes: 60 }
+    });
     const [scholars, setScholars] = useState<any[]>([]);
 
     const fetchScholars = async () => {
@@ -179,16 +185,27 @@ const BatchManager = ({ token }: { token: any }) => {
             {showCreate && (
                 <div className="bg-white p-6 rounded-2xl border border-emerald-100 shadow-sm space-y-4">
                     <h3 className="font-bold">New Batch Details</h3>
-                    <input className="w-full border p-2 rounded" placeholder="Batch Title (e.g. Weekend Basics)" value={newItem.title} onChange={e => setNewItem({ ...newItem, title: e.target.value })} />
+                    <input className="w-full border p-2 rounded" placeholder="Batch Name (e.g. Quran Beginners A)" value={newItem.name} onChange={e => setNewItem({ ...newItem, name: e.target.value })} />
+
                     <div className="grid grid-cols-2 gap-4">
-                        <input className="border p-2 rounded" type="datetime-local" value={newItem.scheduledStartTime} onChange={e => setNewItem({ ...newItem, scheduledStartTime: e.target.value })} />
-                        <input className="border p-2 rounded" type="datetime-local" value={newItem.scheduledEndTime} onChange={e => setNewItem({ ...newItem, scheduledEndTime: e.target.value })} />
+                        <input className="border p-2 rounded" type="text" placeholder="Time (e.g. 18:00 UTC)" value={newItem.schedule.time} onChange={e => setNewItem({ ...newItem, schedule: { ...newItem.schedule, time: e.target.value } })} />
+                        <input className="border p-2 rounded" type="number" placeholder="Duration (mins)" value={newItem.schedule.durationMinutes} onChange={e => setNewItem({ ...newItem, schedule: { ...newItem.schedule, durationMinutes: parseInt(e.target.value) } })} />
                     </div>
-                    <select className="w-full border p-2 rounded" value={newItem.accessMode} onChange={e => setNewItem({ ...newItem, accessMode: e.target.value as any })}>
-                        <option value="restricted">Restricted (Assigned Only)</option>
-                        <option value="open">Open (All Approved)</option>
-                    </select>
-                    <select className="w-full border p-2 rounded" value={newItem.scholarId} onChange={e => setNewItem({ ...newItem, scholarId: e.target.value })}>
+
+                    <div className="grid grid-cols-2 gap-4">
+                        <select className="w-full border p-2 rounded" value={newItem.level} onChange={e => setNewItem({ ...newItem, level: e.target.value })}>
+                            <option value="Beginner">Beginner</option>
+                            <option value="Intermediate">Intermediate</option>
+                            <option value="Advanced">Advanced</option>
+                        </select>
+                        <select className="w-full border p-2 rounded" value={newItem.status} onChange={e => setNewItem({ ...newItem, status: e.target.value })}>
+                            <option value="active">Active</option>
+                            <option value="upcoming">Upcoming</option>
+                            <option value="archived">Archived</option>
+                        </select>
+                    </div>
+
+                    <select className="w-full border p-2 rounded" value={newItem.scholar} onChange={e => setNewItem({ ...newItem, scholar: e.target.value })}>
                         <option value="">Select Scholar</option>
                         {scholars.map(s => (
                             <option key={s._id} value={s._id}>{s.name} ({s.email})</option>
@@ -204,13 +221,14 @@ const BatchManager = ({ token }: { token: any }) => {
                     <div key={b._id} className="bg-white p-6 rounded-2xl border border-slate-100 flex justify-between items-center">
                         <div>
                             <div className="flex items-center gap-2">
-                                <h3 className="font-bold text-lg">{b.title}</h3>
-                                <span className="bg-slate-100 text-xs px-2 py-0.5 rounded font-mono">{b.accessMode}</span>
+                                <h3 className="font-bold text-lg">{b.name}</h3>
+                                <span className={`text-xs px-2 py-0.5 rounded font-mono ${b.status === 'active' ? 'bg-emerald-100 text-emerald-700' : 'bg-slate-100'}`}>{b.status}</span>
+                                <span className="bg-slate-100 text-xs px-2 py-0.5 rounded font-mono">{b.level}</span>
                             </div>
                             <p className="text-sm text-slate-500">
-                                {new Date(b.scheduledStartTime).toLocaleString()} - {new Date(b.scheduledEndTime).toLocaleTimeString()}
+                                {b.schedule?.time} ({b.schedule?.durationMinutes} mins)
                             </p>
-                            <p className="text-xs text-slate-400 mt-1">Scholar: {b.scholarId?.name || b.scholarId}</p>
+                            <p className="text-xs text-slate-400 mt-1">Scholar: {b.scholar?.name || 'Unknown'}</p>
                         </div>
                         <button onClick={() => deleteBatch(b._id)} className="text-slate-400 hover:text-red-500 p-2"><Trash2 size={18} /></button>
                     </div>

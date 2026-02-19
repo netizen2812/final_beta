@@ -331,58 +331,61 @@ export const startBatch = async (req, res) => {
     }
 };
 
-// USER: POST /api/live/:id/join - Student joins a batch
+// USER: POST /api/live/:id/join - Student joins a batch (Presence Tracking)
 export const joinBatch = async (req, res) => {
-    console.log("🚀 joinBatch called for Batch ID:", req.params.id);
+    console.log("🚀 joinBatch (Presence) called for Batch ID:", req.params.id);
     console.log("Request Body:", req.body);
-    console.log("Auth User:", req.auth.userId);
 
     try {
         const { id } = req.params; // Batch ID
         const { childId } = req.body;
         const userId = req.auth.userId;
 
-        // 1. Input Validation
         if (!id || !childId) {
-            console.error("❌ Join batch error: Missing batchId or childId");
             return res.status(400).json({ success: false, message: "Missing required fields" });
         }
 
         const { default: Batch } = await import("../models/Batch.js");
         const { default: LiveSession } = await import("../models/LiveSession.js");
+        const { default: Child } = await import("../models/Child.js");
         const { default: LiveAttendance } = await import("../models/LiveAttendance.js");
 
-        // 2. Find Batch
         const batch = await Batch.findById(id);
-        if (!batch) {
-            console.error(`❌ Join batch error: Batch ${id} not found`);
-            console.error(`❌ Join batch error: Batch ${id} not found`);
-            return res.status(404).json({ success: false, message: "Batch not found" });
-        }
+        if (!batch) return res.status(404).json({ success: false, message: "Batch not found" });
 
-        console.log("Found Batch:", batch.name);
-
-        // 3. Verify Enrollment (Handle ObjectId vs String)
-        const isEnrolled = batch.students.some(s => s.toString() === childId.toString());
+        // Verify Enrollment
+        const isEnrolled = batch.students.map(s => s.toString()).includes(childId);
         if (!isEnrolled) {
-            console.error(`❌ Join batch error: Student ${childId} not enrolled in batch ${id}`);
             return res.status(403).json({ success: false, message: "Student not enrolled in this batch" });
         }
 
-        // 4. Get Scholar
-        if (!batch.scholar) {
-            console.error(`❌ Join batch error: Batch ${id} has no assigned scholar`);
-            return res.status(400).json({ success: false, message: "Batch has no assigned scholar" });
+        // --- PRESENCE TRACKING START ---
+        // 1. Get Child Details
+        const child = await Child.findById(childId);
+        const childName = child ? child.name : "Student";
+
+        // 2. Update Batch Active Participants
+        const participantIndex = batch.activeParticipants.findIndex(p => p.childId === childId);
+
+        if (participantIndex > -1) {
+            batch.activeParticipants[participantIndex].isActive = true;
+            batch.activeParticipants[participantIndex].lastSeen = new Date();
+        } else {
+            batch.activeParticipants.push({
+                childId,
+                childName,
+                currentSurah: 1,
+                currentAyah: 1,
+                lastSeen: new Date(),
+                isActive: true
+            });
         }
+        await batch.save();
+        // --- PRESENCE TRACKING END ---
 
-        // 5. Create/Activate Session
-        let session = await LiveSession.findOne({
-            childId,
-            status: 'active'
-        });
-
+        // Legacy Session Creation (Optional, for stats)
+        let session = await LiveSession.findOne({ childId, status: 'active' });
         if (!session) {
-            console.log("Creating new session for child:", childId);
             try {
                 session = await LiveSession.create({
                     title: batch.name,
@@ -398,33 +401,24 @@ export const joinBatch = async (req, res) => {
                     batchId: batch._id
                 });
             } catch (dbError) {
-                console.error("❌ DB Error creating session:", dbError);
-                throw dbError;
+                console.error("Session create error (non-fatal):", dbError.message);
             }
-        } else {
-            console.log("Resuming existing session:", session._id);
         }
 
-        // 6. Log Attendance
+        // Log Attendance
         await LiveAttendance.create({
-            sessionId: session._id,
+            sessionId: session ? session._id : null,
             userId,
             childId,
             role: 'student',
             joinTime: new Date()
         });
 
-        console.log("✅ Join successful. Session:", session._id);
         res.json({ success: true, session, message: "Joined successfully" });
 
     } catch (error) {
-        console.error("❌ CRITICAL JOIN BATCH ERROR:", error);
-        res.status(500).json({
-            success: false,
-            message: "Server error joining batch",
-            error: "JOIN_BATCH_FAILED",
-            reason: error.message
-        });
+        console.error("❌ Join Batch Error:", error);
+        res.status(500).json({ success: false, message: "Server error", error: error.message });
     }
 };
 
@@ -568,6 +562,92 @@ export const debugAllBatches = async (req, res) => {
         }));
 
         res.json(report);
+    } catch (error) {
+        res.status(500).json({ error: error.message });
+    }
+};
+
+// USER: POST /api/live/ping - Heartbeat
+export const batchPing = async (req, res) => {
+    try {
+        const { batchId, childId } = req.body;
+        const { default: Batch } = await import("../models/Batch.js");
+
+        await Batch.updateOne(
+            { _id: batchId, "activeParticipants.childId": childId },
+            { $set: { "activeParticipants.$.lastSeen": new Date(), "activeParticipants.$.isActive": true } }
+        );
+        res.json({ ok: true });
+    } catch (error) {
+        res.status(500).json({ error: error.message });
+    }
+};
+
+// USER: POST /api/live/update-progress - Sync Surah/Ayah
+export const updateBatchProgress = async (req, res) => {
+    try {
+        const { batchId, childId, surah, ayah } = req.body;
+        const { default: Batch } = await import("../models/Batch.js");
+
+        await Batch.updateOne(
+            { _id: batchId, "activeParticipants.childId": childId },
+            {
+                $set: {
+                    "activeParticipants.$.currentSurah": surah,
+                    "activeParticipants.$.currentAyah": ayah,
+                    "activeParticipants.$.lastSeen": new Date(),
+                    "activeParticipants.$.isActive": true
+                }
+            }
+        );
+        res.json({ ok: true });
+    } catch (error) {
+        res.status(500).json({ error: error.message });
+    }
+};
+
+// USER: POST /api/live/leave - Leave Batch
+export const leaveBatch = async (req, res) => {
+    try {
+        const { batchId, childId } = req.body;
+        const { default: Batch } = await import("../models/Batch.js");
+
+        await Batch.updateOne(
+            { _id: batchId, "activeParticipants.childId": childId },
+            { $set: { "activeParticipants.$.isActive": false } }
+        );
+        res.json({ ok: true });
+    } catch (error) {
+        res.status(500).json({ error: error.message });
+    }
+};
+
+// SCHOLAR: GET /api/live/batch/:id/participants - Get live students
+export const getBatchActiveParticipants = async (req, res) => {
+    try {
+        const { id } = req.params;
+        const { default: Batch } = await import("../models/Batch.js");
+        const batch = await Batch.findById(id);
+
+        if (!batch) return res.status(404).json({ message: "Batch not found" });
+
+        // Auto-cleanup: Mark inactive if lastSeen > 60s ago
+        const now = new Date();
+        const oneMinuteAgo = new Date(now.getTime() - 60000);
+
+        let dirty = false;
+        batch.activeParticipants.forEach(p => {
+            if (p.isActive && new Date(p.lastSeen) < oneMinuteAgo) {
+                p.isActive = false;
+                dirty = true;
+            }
+        });
+
+        if (dirty) await batch.save();
+
+        const liveParticipants = batch.activeParticipants.filter(p => p.isActive);
+        res.json(liveParticipants);
+
     } catch (error) {
         res.status(500).json({ error: error.message });
     }

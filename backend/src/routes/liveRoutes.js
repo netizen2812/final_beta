@@ -2,7 +2,8 @@ import express from "express";
 import {
     startSession, getScholarSessions, getSession, updateAyah, endSession, getScholarStatus,
     createBatch, getAdminBatches, updateBatch, deleteBatch, startBatch, joinBatch, getMySessions,
-    addStudentToBatch, removeStudentFromBatch, getBatchSessions, debugBatch, debugAllBatches
+    addStudentToBatch, removeStudentFromBatch, getBatchSessions, debugBatch, debugAllBatches,
+    batchPing, updateBatchProgress, leaveBatch, getBatchActiveParticipants
 } from "../controller/liveController.js";
 import { requireAuth, isAdmin } from "../middleware/authmiddleware.js";
 
@@ -19,6 +20,12 @@ router.post("/:id/join", requireAuth, joinBatch);
 
 // DEBUG: Check Batch Status
 router.get("/:id/debug", debugBatch);
+
+// LIVE PRESENCE
+router.post("/ping", requireAuth, batchPing);
+router.post("/update-progress", requireAuth, updateBatchProgress);
+router.post("/leave", requireAuth, leaveBatch);
+router.get("/batch/:id/participants", requireAuth, getBatchActiveParticipants);
 
 // ADMIN: Batch Management
 router.post("/admin/batch", requireAuth, isAdmin, createBatch);

@@ -29,7 +29,15 @@ const batchSchema = new mongoose.Schema({
         type: String,
         enum: ["active", "archived", "upcoming"],
         default: "active"
-    }
+    },
+    activeParticipants: [{
+        childId: String, // Storing as String for flexibility, or ObjectId if preferred
+        childName: String,
+        currentSurah: { type: Number, default: 1 },
+        currentAyah: { type: Number, default: 1 },
+        lastSeen: { type: Date, default: Date.now },
+        isActive: { type: Boolean, default: true }
+    }]
 }, { timestamps: true });
 
 const Batch = mongoose.model("Batch", batchSchema);

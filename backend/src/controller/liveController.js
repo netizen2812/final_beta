@@ -649,6 +649,7 @@ export const getBatchActiveParticipants = async (req, res) => {
         res.json(liveParticipants);
 
     } catch (error) {
+        console.error("GET PARTICIPANTS ERROR:", error);
         res.status(500).json({ error: error.message });
     }
 };

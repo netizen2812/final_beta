@@ -17,6 +17,7 @@ import axios from 'axios';
 import { useAuth, useUser } from '@clerk/clerk-react';
 
 // Types
+// Types
 interface LiveSession {
   _id: string;
   parentId: string;
@@ -27,6 +28,7 @@ interface LiveSession {
   status: 'active' | 'ended' | 'waiting';
   parentName?: string;
   studentName?: string;
+  batchId?: string; // Added for presence tracking
 }
 
 interface ScholarStatus {
@@ -67,6 +69,87 @@ const LiveClassRoom: React.FC = () => {
     }
   }, [user, getToken]);
 
+  // SCHOLAR: POLL ACTIVE PARTICIPANTS
+  useEffect(() => {
+    if (userRole !== 'scholar') return;
+
+    const fetchScholarData = async () => {
+      try {
+        const token = await getToken();
+        // 1. Get Scholar's Batches
+        const batchesRes = await axios.get(`${API_BASE}/api/live/my-sessions`, {
+          headers: { Authorization: `Bearer ${token}` }
+        });
+        const batches = batchesRes.data;
+
+        // 2. For each batch, get participants
+        let allActiveStudents: LiveSession[] = [];
+
+        for (const batch of batches) {
+          // Determine batchID (legacy my-sessions format vs new)
+          const batchId = batch._id || batch.id;
+
+          try {
+            const partsRes = await axios.get(`${API_BASE}/api/live/batch/${batchId}/participants`, {
+              headers: { Authorization: `Bearer ${token}` }
+            });
+
+            // Handle "Return Full Batch" Debug Mode or Array
+            const rawData = partsRes.data;
+            const participants = Array.isArray(rawData) ? rawData : (rawData.activeParticipants || []);
+
+            const active = participants.filter((p: any) => p.isActive).map((p: any) => ({
+              _id: p.childId + Date.now(), // Temp unique ID for UI key
+              parentId: "unknown",
+              childId: p.childId,
+              scholarId: "scholar",
+              currentSurah: p.currentSurah || 1,
+              currentAyah: p.currentAyah || 1,
+              status: 'active',
+              studentName: p.childName,
+              parentName: `Batch: ${batch.title || batch.name}`,
+              batchId: batchId
+            }));
+            allActiveStudents = [...allActiveStudents, ...active];
+          } catch (e) {
+            console.error(`Failed to fetch part. for batch ${batchId}`, e);
+          }
+        }
+
+        // Deduplicate? Or just set.
+        setActiveSessions(allActiveStudents);
+
+      } catch (err) {
+        console.error("Scholar polling error", err);
+      }
+    };
+
+    fetchScholarData();
+    const interval = setInterval(fetchScholarData, 5000); // Poll every 5s
+    return () => clearInterval(interval);
+  }, [userRole, getToken]);
+
+  // STUDENT: HEARTBEAT & SYNC
+  useEffect(() => {
+    if (!currentSession?.batchId || userRole === 'scholar') return;
+
+    const sendPing = async () => {
+      try {
+        const token = await getToken();
+        await axios.post(`${API_BASE}/api/live/ping`, {
+          batchId: currentSession.batchId,
+          childId: currentSession.childId
+        }, { headers: { Authorization: `Bearer ${token}` } });
+      } catch (e) { console.error("Ping failed", e); }
+    };
+
+    const interval = setInterval(sendPing, 10000); // 10s Heatbeat
+    // Initial ping
+    sendPing();
+
+    return () => clearInterval(interval);
+  }, [currentSession, userRole, getToken]);
+
   const checkAccess = async () => {
     try {
       const token = await getToken();
@@ -99,13 +182,12 @@ const LiveClassRoom: React.FC = () => {
     }
   };
 
-  // POLL: Scholar Status (for parent lobby)
+  // POLL: Scholar Status (for parent lobby) - Optional, leaving for now
   useEffect(() => {
     if (userRole === 'parent' && accessStatus?.hasAccess && !currentSession) {
-      // ... polling logic check only if hasAccess
-      // (For now keeping existing logic but wrapping conditionally)
+      // ... existing
     }
-  }, [userRole, currentSession, accessStatus]); // Add deps
+  }, [userRole, currentSession, accessStatus]);
 
   // RENDER: LOCKED STATE
   if (userRole === 'parent' && accessStatus && !accessStatus.hasAccess) {
@@ -168,9 +250,22 @@ const LiveClassRoom: React.FC = () => {
     setCurrentSession(session);
   };
 
-  const handleExitSession = () => {
+  const handleExitSession = async () => {
+    const sessionToExit = currentSession;
     setCurrentSession(null);
     if (userRole === 'scholar') setActiveSessions([]);
+
+    if (userRole !== 'scholar' && sessionToExit?.batchId) {
+      try {
+        const token = await getToken();
+        await axios.post(`${API_BASE}/api/live/leave`, {
+          batchId: sessionToExit.batchId,
+          childId: sessionToExit.childId
+        }, { headers: { Authorization: `Bearer ${token}` } });
+      } catch (e) {
+        console.error("Leave failed", e);
+      }
+    }
   };
 
   const handleAyahClick = async (surah: number, ayah: number) => {
@@ -181,11 +276,22 @@ const LiveClassRoom: React.FC = () => {
 
     try {
       const token = await getToken();
+      // Legacy Patch (Optional)
       await axios.patch(`${API_BASE}/api/live/${currentSession._id}`, {
         surah, ayah
       }, {
         headers: { Authorization: `Bearer ${token}` }
       });
+
+      // New Presence Sync
+      if (currentSession.batchId) {
+        await axios.post(`${API_BASE}/api/live/update-progress`, {
+          batchId: currentSession.batchId,
+          childId: currentSession.childId,
+          surah, ayah
+        }, { headers: { Authorization: `Bearer ${token}` } });
+      }
+
     } catch (err) {
       console.error("Failed to update ayah", err);
     }

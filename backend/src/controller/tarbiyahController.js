@@ -56,12 +56,12 @@ export const getParentDashboard = async (req, res) => {
 
         // 3. Get the actual User ID for the child from the Child document
         if (!childDoc.childUserId) {
-            // If legacy data, maybe we can't return full dashboard or need to handle migration
-            // For now return error or empty dashboard
+            console.error(`[Dashboard] Child ${childDocId} has no childUserId linked.`);
             return res.status(400).json({ message: "Child account setup incomplete (no user ID)" });
         }
 
         const realChildUserId = String(childDoc.childUserId);
+        console.log(`[Dashboard] Fetching stats for childUserId: ${realChildUserId}`);
 
         // 4. Fetch Stats using realChildUserId
         const settings = await TarbiyahUserStats.findOne({ childUserId: realChildUserId }) || {

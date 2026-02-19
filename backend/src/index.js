@@ -14,7 +14,6 @@ import zakatRoutes from "./routes/zakatRoutes.js";
 import parentRoutes from "./routes/parentRoutes.js";
 import childRoutes from "./routes/childRoutes.js";
 import tarbiyahRoutes from "./routes/tarbiyahRoutes.js";
-import tarbiyahRoutes from "./routes/tarbiyahRoutes.js";
 import conversationRoutes from "./routes/conversationRoutes.js";
 import adminRoutes from "./routes/adminRoutes.js";
 import accessRoutes from "./routes/accessRoutes.js";

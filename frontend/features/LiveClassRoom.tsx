@@ -26,6 +26,7 @@ interface LiveSession {
   currentAyah: number;
   status: 'active' | 'ended' | 'waiting';
   parentName?: string;
+  studentName?: string;
 }
 
 interface ScholarStatus {
@@ -200,8 +201,8 @@ const LiveClassRoom: React.FC = () => {
               <BookOpen size={20} />
               {userRole === 'scholar' ? 'Monitoring Session' : 'Live Quran Session'}
             </h2>
-            {userRole === 'scholar' && (
-              <p className="text-xs text-emerald-300">Student: {currentSession.childId}</p>
+            {userRole === 'scholar' && currentSession && (
+              <p className="text-xs text-emerald-300">Student: {currentSession.studentName || currentSession.childId}</p>
             )}
           </div>
           <button
@@ -271,7 +272,7 @@ const LiveClassRoom: React.FC = () => {
                 </div>
 
                 <h3 className="font-bold text-lg text-[#052e16] mb-1">
-                  Student: {session.childId}
+                  Student: {session.studentName || session.childId}
                 </h3>
                 <p className="text-xs text-slate-400 font-bold uppercase tracking-widest mb-6">
                   Parent: {session.parentName || 'Unknown'}
@@ -407,8 +408,8 @@ const UpcomingSessions = ({ token, activeChildId, onJoin }: { token: any, active
             onClick={() => handleJoin(s._id)}
             disabled={s.status === 'ended' || !activeChildId}
             className={`px-6 py-3 rounded-xl font-bold text-sm flex items-center gap-2 shrink-0 ${s.status === 'active'
-                ? 'bg-[#052e16] text-white hover:bg-emerald-900 shadow-lg hover:shadow-emerald-900/20'
-                : 'bg-slate-100 text-slate-400 cursor-not-allowed'
+              ? 'bg-[#052e16] text-white hover:bg-emerald-900 shadow-lg hover:shadow-emerald-900/20'
+              : 'bg-slate-100 text-slate-400 cursor-not-allowed'
               }`}
           >
             {s.status === 'active' ? 'Join Now' : 'Scheduled'}

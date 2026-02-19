@@ -133,6 +133,11 @@ const BatchManager = ({ token }: { token: any }) => {
         if (showCreate) fetchScholars();
     }, [showCreate]);
 
+    const [showManageStudents, setShowManageStudents] = useState<string | null>(null); // Batch ID
+    const [selectedBatch, setSelectedBatch] = useState<any>(null);
+    const [studentSearch, setStudentSearch] = useState('');
+    const [foundUsers, setFoundUsers] = useState<any[]>([]);
+
     const fetchBatches = async () => {
         try {
             const t = await token();
@@ -143,6 +148,58 @@ const BatchManager = ({ token }: { token: any }) => {
         } catch (err) {
             console.error(err);
         }
+    };
+
+    const searchParents = async () => {
+        // This endpoint might need to be created or use getAllUsers and client-side filter
+        // For now using client side filter of all users we might have? 
+        // Actually we should fetch users with search query.
+        // Let's reuse /api/admin/users
+        try {
+            const t = await token();
+            const res = await axios.get(`${API_BASE}/api/admin/users`, {
+                headers: { Authorization: `Bearer ${t}` }
+            });
+            const matches = res.data.filter((u: any) =>
+                u.email.includes(studentSearch) || u.name.toLowerCase().includes(studentSearch.toLowerCase())
+            );
+            setFoundUsers(matches);
+        } catch (err) { console.error(err); }
+    };
+
+    const addStudent = async (childId: string) => {
+        if (!selectedBatch) return;
+        try {
+            const t = await token();
+            await axios.post(`${API_BASE}/api/live/admin/batch/${selectedBatch._id}/add-student`, { childId }, {
+                headers: { Authorization: `Bearer ${t}` }
+            });
+            // Refresh batch
+            const res = await axios.get(`${API_BASE}/api/live/admin/batches`, { headers: { Authorization: `Bearer ${t}` } });
+            const updated = res.data.find((b: any) => b._id === selectedBatch._id);
+            setBatches(res.data);
+            setSelectedBatch(updated);
+        } catch (err) { alert("Failed to add student"); }
+    };
+
+    const removeStudent = async (childId: string) => {
+        if (!confirm("Remove student?")) return;
+        try {
+            const t = await token();
+            await axios.post(`${API_BASE}/api/live/admin/batch/${selectedBatch._id}/remove-student`, { childId }, {
+                headers: { Authorization: `Bearer ${t}` }
+            });
+            // Refresh
+            const res = await axios.get(`${API_BASE}/api/live/admin/batches`, { headers: { Authorization: `Bearer ${t}` } });
+            const updated = res.data.find((b: any) => b._id === selectedBatch._id);
+            setBatches(res.data);
+            setSelectedBatch(updated);
+        } catch (err) { alert("Failed to remove"); }
+    };
+
+    const openManage = (batch: any) => {
+        setSelectedBatch(batch);
+        setShowManageStudents(batch._id);
     };
 
     useEffect(() => { fetchBatches(); }, []);
@@ -230,10 +287,86 @@ const BatchManager = ({ token }: { token: any }) => {
                             </p>
                             <p className="text-xs text-slate-400 mt-1">Scholar: {b.scholar?.name || 'Unknown'}</p>
                         </div>
-                        <button onClick={() => deleteBatch(b._id)} className="text-slate-400 hover:text-red-500 p-2"><Trash2 size={18} /></button>
+                        <div className="flex gap-2">
+                            <button onClick={() => openManage(b)} className="text-slate-400 hover:text-blue-500 p-2"><Users size={18} /></button>
+                            <button onClick={() => deleteBatch(b._id)} className="text-slate-400 hover:text-red-500 p-2"><Trash2 size={18} /></button>
+                        </div>
                     </div>
                 ))}
             </div>
+
+            {/* MANAGE STUDENTS MODAL */}
+            {showManageStudents && selectedBatch && (
+                <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
+                    <div className="bg-white rounded-2xl w-full max-w-2xl max-h-[80vh] overflow-y-auto p-6 space-y-6">
+                        <div className="flex justify-between items-center">
+                            <h3 className="font-bold text-xl">Manage Students: {selectedBatch.name}</h3>
+                            <button onClick={() => setShowManageStudents(null)} className="p-2 hover:bg-slate-100 rounded-full"><X size={20} /></button>
+                        </div>
+
+                        <div className="grid md:grid-cols-2 gap-6">
+                            {/* ADD NEW */}
+                            <div className="space-y-4">
+                                <h4 className="font-bold text-sm text-slate-500 uppercase">Add Student</h4>
+                                <div className="flex gap-2">
+                                    <input className="border p-2 rounded w-full text-sm" placeholder="Search Parent Email/Name..." value={studentSearch} onChange={e => setStudentSearch(e.target.value)} />
+                                    <button onClick={searchParents} className="bg-blue-600 text-white px-3 rounded text-sm font-bold">Search</button>
+                                </div>
+                                <div className="space-y-2 max-h-60 overflow-y-auto">
+                                    {foundUsers.map(u => (
+                                        <div key={u._id} className="p-2 border rounded hover:bg-slate-50">
+                                            <div className="font-bold text-xs">{u.name}</div>
+                                            <div className="text-[10px] text-slate-400 mb-2">{u.email}</div>
+                                            <div className="space-y-1">
+                                                {u.children?.map((c: any) => (
+                                                    <button key={c._id}
+                                                        onClick={() => addStudent(c._id)}
+                                                        disabled={selectedBatch.students?.includes(c._id)}
+                                                        className={`w-full text-left text-xs p-1 rounded flex justify-between ${selectedBatch.students?.includes(c._id) ? 'bg-green-100 text-green-700' : 'bg-slate-100 hover:bg-slate-200 user-select-none cursor-pointer'}`}>
+                                                        <span>{c.name}</span>
+                                                        {selectedBatch.students?.includes(c._id) && <Check size={12} />}
+                                                    </button>
+                                                ))}
+                                                {(!u.children || u.children.length === 0) && <div className="text-[10px] italic text-slate-400">No children</div>}
+                                            </div>
+                                        </div>
+                                    ))}
+                                </div>
+                            </div>
+
+                            {/* CURRENT LIST */}
+                            <div className="space-y-4 border-l pl-6">
+                                <h4 className="font-bold text-sm text-slate-500 uppercase">Enrolled Students ({selectedBatch.students?.length || 0})</h4>
+                                <div className="space-y-2 max-h-80 overflow-y-auto">
+                                    {/* We need full student objects or just IDs? 
+                                          The Batch object returned by getAdminBatches probably populated 'students' but wait, 
+                                          in getAdminBatches we populated 'scholar'. We did NOT populate 'students'.
+                                          So here we likely only have IDs. 
+                                          Ideally we should populate users. 
+                                          Or for now just show Count, or trigger a fetch.
+                                          
+                                          Actually, if we only have IDs, we can't show names easily.
+                                          Let's update getAdminBatches to populate students or fetch details here.
+                                          For speed, let's update frontend to assume we might need to fetch details or just show IDs? No, showing IDs is bad.
+                                          
+                                          Let's rely on the fact that when we added them we saw them.
+                                          BUT when we reload, we only see IDs.
+                                          
+                                          Let's just show a simple list for now, or assume we will fix getAdminBatches to populate.
+                                          Let's trigger a populate on backend.
+                                       */}
+                                    {selectedBatch.students?.map((s: any) => (
+                                        <div key={s._id || s} className="flex justify-between items-center bg-slate-50 p-2 rounded">
+                                            <span className="text-xs font-bold">{typeof s === 'object' ? s.name : 'Student ID: ' + s}</span>
+                                            <button onClick={() => removeStudent(typeof s === 'object' ? s._id : s)} className="text-red-400 hover:text-red-600"><Trash2 size={14} /></button>
+                                        </div>
+                                    ))}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            )}
         </div>
     );
 };

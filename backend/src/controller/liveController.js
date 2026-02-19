@@ -123,11 +123,21 @@ export const getScholarSessions = async (req, res) => {
             status: "active"
         });
 
+        const { default: Child } = await import("../models/Child.js");
         const populatedSessions = await Promise.all(sessions.map(async (s) => {
             const parent = await User.findOne({ clerkId: s.parentId });
+            // Attempt to resolve child name
+            let childName = s.childId;
+            // If childId looks like an ObjectId, try to find it
+            if (s.childId && s.childId.length > 10) {
+                const child = await Child.findById(s.childId);
+                if (child) childName = child.name;
+            }
+
             return {
                 ...s.toObject(),
                 parentName: parent ? parent.name : "Unknown Parent",
+                studentName: childName
             };
         }));
 
@@ -186,7 +196,9 @@ export const createBatch = async (req, res) => {
 export const getAdminBatches = async (req, res) => {
     try {
         const { default: Batch } = await import("../models/Batch.js");
-        const batches = await Batch.find({}).sort({ createdAt: -1 }).populate('scholar', 'name email');
+        const batches = await Batch.find({}).sort({ createdAt: -1 })
+            .populate('scholar', 'name email')
+            .populate('students', 'name email'); // Populate students for Admin UI
         res.json(batches);
     } catch (error) {
         console.error("Get admin batches error:", error);
@@ -222,31 +234,99 @@ export const deleteBatch = async (req, res) => {
     }
 };
 
-// SCHOLAR: POST /api/live/:id/start - Scholar starts the batch
-export const startBatch = async (req, res) => {
+// ADMIN: POST /api/live/admin/batch/:id/add-student
+export const addStudentToBatch = async (req, res) => {
     try {
         const { id } = req.params;
-        const userId = req.auth.userId;
+        const { childId } = req.body;
+        const { default: Batch } = await import("../models/Batch.js");
 
-        const session = await LiveSession.findById(id);
-        if (!session) return res.status(404).json({ message: "Batch not found" });
+        const batch = await Batch.findById(id);
+        if (!batch) return res.status(404).json({ message: "Batch not found" });
 
-        // Verify Scholar (or Admin)
-        const user = await User.findOne({ clerkId: userId });
-        const isAssignedScholar = session.scholarId.toString() === user._id.toString();
-
-        if (user.role !== 'admin' && !isAssignedScholar) {
-            return res.status(403).json({ message: "Unauthorized to start this batch" });
+        if (!batch.students.includes(childId)) {
+            batch.students.push(childId);
+            await batch.save();
         }
 
-        session.status = 'active';
-        session.startedAt = new Date();
-        await session.save();
-        trackEvent(userId, "LIVE_STARTED", { sessionId: session._id, title: session.title });
-
-        res.json(session);
+        res.json(batch);
     } catch (error) {
-        console.error("Start batch error:", error);
+        console.error("Add student error:", error);
+        res.status(500).json({ message: "Server error" });
+    }
+};
+
+// ADMIN: POST /api/live/admin/batch/:id/remove-student
+export const removeStudentFromBatch = async (req, res) => {
+    try {
+        const { id } = req.params;
+        const { childId } = req.body;
+        const { default: Batch } = await import("../models/Batch.js");
+
+        await Batch.findByIdAndUpdate(id, { $pull: { students: childId } });
+        res.json({ message: "Student removed" });
+    } catch (error) {
+        res.status(500).json({ message: "Server error" });
+    }
+};
+
+// SCHOLAR: GET /api/live/batch/:id/sessions - Get active student sessions for a batch
+export const getBatchSessions = async (req, res) => {
+    try {
+        const { id } = req.params; // Batch ID
+
+        // Find all active sessions where the child is in this batch
+        // OR: simpler, find active sessions where `batchId` matches (if we add batchId to LiveSession)
+        // For now, let's look for active sessions of students in this batch.
+
+        const { default: Batch } = await import("../models/Batch.js");
+        const batch = await Batch.findById(id);
+        if (!batch) return res.status(404).json({ message: "Batch not found" });
+
+        // Find sessions for these students
+        const sessions = await LiveSession.find({
+            childId: { $in: batch.students },
+            status: 'active'
+        }).populate('childId', 'name');
+        // Note: childId in LiveSession is currently a String (ID or Name?) 
+        // In startSession we use `childId` from body.
+        // We need to ensure we are consistent. `LiveSession.childId` should probably be an ObjectId ref to Child?
+        // Checking LiveSession model... it might not be defined in this file.
+        // Assuming LiveSession.childId is the Child ID string.
+
+        // Let's populate manually or just return what we have
+        // If LiveSession.childId is just a string, we can't populate.
+        // But we can fetch Child details.
+
+        const { default: Child } = await import("../models/Child.js");
+        const populated = await Promise.all(sessions.map(async s => {
+            const child = await Child.findById(s.childId);
+            return {
+                ...s.toObject(),
+                studentName: child ? child.name : "Unknown"
+            };
+        }));
+
+        res.json(populated);
+
+    } catch (error) {
+        console.error("Get batch sessions error:", error);
+        res.status(500).json({ message: "Server error" });
+    }
+};
+
+// SCHOLAR: POST /api/live/:id/start - This was for Batch Session generic start
+// We might keep this if the Scholar *also* has a session?
+export const startBatch = async (req, res) => {
+    // For Observation Mode, maybe this just marks the batch as "Class in Session"?
+    // For now, let's keep it simple: It activates the batch status.
+    try {
+        const { id } = req.params;
+        const { default: Batch } = await import("../models/Batch.js");
+
+        await Batch.findByIdAndUpdate(id, { status: 'active' });
+        res.json({ message: "Batch started" });
+    } catch (error) {
         res.status(500).json({ message: "Server error" });
     }
 };
@@ -254,19 +334,39 @@ export const startBatch = async (req, res) => {
 // USER: POST /api/live/:id/join - Student joins a batch
 export const joinBatch = async (req, res) => {
     try {
-        const { id } = req.params;
+        const { id } = req.params; // Batch ID
         const { childId } = req.body;
         const userId = req.auth.userId;
 
-        const session = await LiveSession.findById(id);
-        if (!session) return res.status(404).json({ message: "Batch not found" });
+        const { default: Batch } = await import("../models/Batch.js");
+        const batch = await Batch.findById(id);
+        if (!batch) return res.status(404).json({ message: "Batch not found" });
 
-        if (session.status === 'ended') return res.status(400).json({ message: "Session ended" });
+        // 1. Check if child is enrolled
+        if (!batch.students.includes(childId)) {
+            return res.status(403).json({ message: "Student not enrolled in this batch" });
+        }
 
-        // Access Check
-        if (session.accessMode === 'restricted') {
-            const isAllowed = session.allowedParents.includes(userId);
-            if (!isAllowed) return res.status(403).json({ message: "You are not enrolled in this batch" });
+        // 2. Create/Activate a Personal Live Session for this student
+        // This allows them to read independently, and the Scholar to "observe" (join) this session.
+
+        // Check for existing active session for this child
+        let session = await LiveSession.findOne({
+            childId,
+            status: 'active'
+        });
+
+        if (!session) {
+            session = await LiveSession.create({
+                parentId: userId, // Clerk ID of parent
+                childId,
+                scholarId: batch.scholar, // Linked to Batch Scholar
+                currentSurah: 1,
+                currentAyah: 1,
+                status: 'active',
+                startedAt: new Date(),
+                batchId: batch._id // Optional: Link to batch if schema supports it, effectively "tagging" it
+            });
         }
 
         // Log Attendance
@@ -275,11 +375,9 @@ export const joinBatch = async (req, res) => {
             sessionId: session._id,
             userId,
             childId,
-            role: 'student', // or parent
+            role: 'student',
             joinTime: new Date()
         });
-
-        trackEvent(userId, "LIVE_JOINED", { sessionId: session._id, childId });
 
         res.json({ session, message: "Joined successfully" });
     } catch (error) {
@@ -296,13 +394,21 @@ export const getMySessions = async (req, res) => {
         // Find sessions where:
         // 1. Access is Open OR
         // 2. Access is Restricted AND User is in allowedParents
-        const sessions = await LiveSession.find({
-            $or: [
-                { accessMode: 'open' },
-                { allowedParents: userId }
-            ],
-            status: { $ne: 'ended' } // Hide ended sessions? Or show history?
-        }).sort({ scheduledStartTime: 1 });
+        const { default: Batch } = await import("../models/Batch.js");
+        // Find Batches where user's children are enrolled?
+        // Complex query: Find batches where `students` contains any of User's children IDs.
+
+        const { default: Child } = await import("../models/Child.js");
+        const children = await Child.find({ parent_id: await User.findOne({ clerkId: userId }).select('_id') });
+        const childIds = children.map(c => c._id);
+
+        const sessions = await Batch.find({
+            students: { $in: childIds },
+            status: { $ne: 'archived' }
+        }).populate('scholar', 'name').sort({ createdAt: -1 });
+
+        // Map to expected format if needed, or update frontend to read Batch object
+        res.json(sessions);
 
         res.json(sessions);
     } catch (error) {

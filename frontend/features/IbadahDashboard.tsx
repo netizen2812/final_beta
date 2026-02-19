@@ -466,70 +466,113 @@ const IbadahDashboard: React.FC = () => {
   );
 
   const QiblaPage = () => {
-    // 1️⃣ Fix: 180 degree shift as requested by user
-    const rotationAngle = (qiblaDegrees - liveHeading + 180 + 360) % 360;
+    // 1️⃣ Fix: Removed 180 degree shift so it points to "Top" of phone
+    const rotationAngle = (qiblaDegrees - liveHeading + 360) % 360;
 
     // 2️⃣ Immersive: Check if aligned (Arrow pointing roughly UP which is 0 +/- 10)
-    // Actually, if we want them to face Qibla, we check if liveHeading is close to qiblaDegrees.
-    // User said "180 off", so we added 180 to rotation.
-    // If the arrow points UP (0) when we face Qibla, then rotationAngle should be 0.
-    // If we face Qibla (live == qibla), rotation is 180.
-    // So "Aligned" means rotationAngle is close to 0? No.
-    // Let's assume "Aligned" means "Phone pointing to Qibla".
-    const diff = Math.abs(normalizeAngle(liveHeading) - normalizeAngle(qiblaDegrees));
-    const isFacingQibla = diff < 10 || diff > 350;
+    // "Aligned" means the Qibla is continuously "Up" (0 deg) relative to phone.
+    // If the Qibla is at 0 degrees relative to phone top, we are facing it.
+    // So we check if rotationAngle is close to 0 (or 360).
+    const isFacingQibla = rotationAngle < 10 || rotationAngle > 350;
 
     // Trigger haptics if available when entering alignment
     useEffect(() => {
-      if (isFacingQibla && navigator.vibrate) navigator.vibrate(50);
+      if (isFacingQibla && navigator.vibrate) navigator.vibrate([50, 50, 50]);
     }, [isFacingQibla]);
 
     return (
-      <div className={`min-h-screen py-12 sm:py-16 lg:py-20 px-4 sm:px-6 lg:px-8 animate-in zoom-in duration-500 overflow-hidden text-white transition-colors duration-700 ${isFacingQibla ? 'bg-emerald-600' : 'bg-[#0D4433]'}`}>
-        <div className="max-w-4xl mx-auto flex flex-col items-center text-center">
-          <header className="w-full flex items-center justify-between mb-20">
-            <button onClick={goBack} className="p-3 bg-white/10 hover:bg-white/20 rounded-full transition-all text-white"><ArrowLeft size={24} /></button>
-            <h2 className="text-2xl font-serif font-bold">Qibla Finder</h2>
+      <div className={`min-h-screen py-12 sm:py-16 lg:py-20 px-4 sm:px-6 lg:px-8 animate-in zoom-in duration-500 overflow-hidden text-white transition-all duration-1000 ${isFacingQibla ? 'bg-[conic-gradient(at_top,_var(--tw-gradient-stops))] from-amber-200 via-yellow-400 to-amber-700' : 'bg-gradient-to-br from-slate-900 via-[#0f172a] to-[#1e293b]'}`}>
+
+        {/* Dynamic Background Particles */}
+        <div className="absolute inset-0 overflow-hidden pointer-events-none">
+          {[...Array(20)].map((_, i) => (
+            <div key={i} className={`absolute rounded-full opacity-20 animate-pulse ${isFacingQibla ? 'bg-white' : 'bg-amber-500'}`}
+              style={{
+                top: `${Math.random() * 100}%`,
+                left: `${Math.random() * 100}%`,
+                width: `${Math.random() * 4 + 1}px`,
+                height: `${Math.random() * 4 + 1}px`,
+                animationDuration: `${Math.random() * 3 + 2}s`
+              }}
+            />
+          ))}
+          {isFacingQibla && <div className="absolute inset-0 bg-gradient-to-t from-transparent via-white/20 to-transparent animate-pulse duration-[3000ms]" />}
+        </div>
+
+        <div className="max-w-4xl mx-auto flex flex-col items-center text-center relative z-10">
+          <header className="w-full flex items-center justify-between mb-16">
+            <button onClick={goBack} className="p-3 bg-white/10 hover:bg-white/20 rounded-full transition-all text-white backdrop-blur-md"><ArrowLeft size={24} /></button>
+            <h2 className="text-2xl font-serif font-bold tracking-widest uppercase text-amber-100 drop-shadow-md">Qibla Finder</h2>
             <div className="w-12 h-12" />
           </header>
 
           <div className="relative w-72 h-72 md:w-96 md:h-96 mb-20">
-            <div className="absolute inset-0 border-[10px] border-white/5 rounded-full" />
-            <div className={`absolute inset-0 border-t-[10px] border-emerald-400 rounded-full transition-transform duration-300 shadow-[0_0_30px_rgba(52,211,153,0.3)] ${isFacingQibla ? 'shadow-[0_0_100px_rgba(255,255,255,0.6)] border-white' : ''}`}
-              style={{ transform: `rotate(${rotationAngle}deg)` }}
-            />
-            <div className="absolute inset-0 flex items-center justify-center">
-              <Compass size={120} className={`opacity-20 transition-all ${isFacingQibla ? 'text-white scale-110' : 'text-emerald-400'}`} />
-              <div className="absolute text-6xl font-black tracking-tighter">{qiblaDegrees || '---'}°</div>
+            {/* Outer Ring */}
+            <div className={`absolute inset-0 border-[2px] rounded-full transition-colors duration-500 ${isFacingQibla ? 'border-white/40' : 'border-white/10'}`} />
+
+            {/* Degree Ticks */}
+            {[...Array(12)].map((_, i) => (
+              <div key={i} className="absolute inset-0" style={{ transform: `rotate(${i * 30}deg)` }}>
+                <div className="w-0.5 h-3 bg-white/20 mx-auto mt-2" />
+              </div>
+            ))}
+
+            {/* Compass Dial */}
+            <div className="absolute inset-0 transition-transform duration-300 ease-out will-change-transform"
+              style={{ transform: `rotate(${-liveHeading}deg)` }}>
+              <div className="absolute top-4 left-1/2 -translate-x-1/2 text-xs font-black text-white/40">N</div>
+              <div className="absolute bottom-4 left-1/2 -translate-x-1/2 text-xs font-black text-white/40">S</div>
+              <div className="absolute right-4 top-1/2 -translate-y-1/2 text-xs font-black text-white/40">E</div>
+              <div className="absolute left-4 top-1/2 -translate-y-1/2 text-xs font-black text-white/40">W</div>
             </div>
-            <div className="absolute inset-0 transition-transform duration-300" style={{ transform: `rotate(${rotationAngle}deg)` }}>
-              <div className="absolute top-0 left-1/2 -translate-x-1/2 -translate-y-4">
-                <div className={`w-6 h-10 rounded-full shadow-[0_0_20px_rgba(52,211,153,0.8)] transition-colors ${isFacingQibla ? 'bg-white' : 'bg-emerald-400'}`} />
-                <div className={`w-0 h-0 border-l-[12px] border-l-transparent border-r-[12px] border-r-transparent border-b-[20px] mx-auto mt-[-5px] transition-colors ${isFacingQibla ? 'border-b-white' : 'border-b-emerald-400'}`} />
+
+            {/* THE GOLDEN POINTER (Needle) */}
+            {/* This rotates to point to Qibla relative to North? No, relative to Phone Top? */}
+            {/* Logic: 
+                - Qibla Degree is absolute (e.g., 90 deg East).
+                - We want the needle to point to Qibla.
+                - If we rotate the compass housing by `-liveHeading`, then 'North' is at current North.
+                - Then we place the needle at `qiblaDegrees`.
+            */}
+            <div className="absolute inset-0 transition-transform duration-500 ease-out" style={{ transform: `rotate(${qiblaDegrees - liveHeading}deg)` }}>
+              <div className="absolute top-0 left-1/2 -translate-x-1/2 -translate-y-6 w-12 h-44 origin-bottom flex flex-col items-center justify-end pb-10 filter drop-shadow-[0_0_15px_rgba(251,191,36,0.6)]">
+                {/* Needle Body */}
+                <div className={`w-1.5 h-full rounded-full bg-gradient-to-t from-amber-600 via-yellow-400 to-white ${isFacingQibla ? 'animate-pulse' : ''}`} />
+                {/* Diamond Tip */}
+                <div className="w-6 h-6 bg-yellow-300 rotate-45 -mb-3 shadow-[0_0_20px_rgba(253,224,71,0.8)] border-2 border-white" />
               </div>
             </div>
+
+            {/* Center Pivot */}
+            <div className="absolute inset-0 flex items-center justify-center">
+              <div className="w-24 h-24 bg-black/40 backdrop-blur-md rounded-full border border-white/10 flex items-center justify-center shadow-2xl">
+                <div className="text-3xl font-black text-white tracking-widest drop-shadow-lg">{Math.round(qiblaDegrees)}°</div>
+              </div>
+            </div>
+
           </div>
 
-          <div className="space-y-6 max-w-sm">
-            {/* DEV-only localhost notice */}
+          <div className="space-y-6 max-w-sm relative z-20">
             {import.meta.env.DEV && (
-              <div className="p-5 bg-amber-400/20 border border-amber-400/40 rounded-[2rem] text-amber-200 text-[11px] font-bold leading-relaxed text-center">
-                ⚠️ Dev Notice: Qibla accuracy cannot be verified on desktop or localhost. Test on a real mobile device with sensor support.
+              <div className="p-3 bg-black/40 backdrop-blur-sm rounded-xl text-white/50 text-[9px] font-mono border border-white/5">
+                DEBUG: Heading {liveHeading}° | Qibla {qiblaDegrees}° | Diff {Math.round(rotationAngle)}°
               </div>
             )}
-            <div className="p-8 bg-white/10 backdrop-blur-xl rounded-[2.5rem] border border-white/10">
-              <div className="text-emerald-300 font-black uppercase tracking-[0.3em] text-[10px] mb-2">
-                {isSensorAvailable ? (isFacingQibla ? '✨ ALIGNED WITH QIBLA' : 'Makkah Direction') : 'Compass Unavailable'}
+
+            <div className={`p-8 backdrop-blur-xl rounded-[2.5rem] border transition-all duration-500 ${isFacingQibla ? 'bg-white/20 border-white/40 shadow-[0_0_50px_rgba(255,255,255,0.3)]' : 'bg-white/5 border-white/10'}`}>
+              <div className={`font-black uppercase tracking-[0.3em] text-[10px] mb-3 ${isFacingQibla ? 'text-white animate-pulse' : 'text-amber-400'}`}>
+                {isSensorAvailable ? (isFacingQibla ? '✨ PERFECTLY ALIGNED' : 'Align Arrow to Top') : 'Compass Unavailable'}
               </div>
-              <p className="text-lg font-medium leading-relaxed">
+              <p className="text-lg font-medium leading-relaxed text-white/90">
                 {isSensorAvailable
-                  ? 'Rotate your device slowly until the green marker aligns with the top of your screen.'
-                  : 'Compass not available on this device. Please use a mobile phone for accurate Qibla direction.'}
+                  ? isFacingQibla ? "You are facing the Qibla." : "Rotate gently until the Golden Needle points straight up."
+                  : 'Compass not available on this device.'}
               </p>
             </div>
+
             <div className={`flex items-center gap-3 justify-center text-[10px] font-black uppercase tracking-widest transition-opacity ${isCalibrated ? 'opacity-40' : 'opacity-100'}`}>
               {isSensorAvailable ? <CheckCircle2 size={14} className="text-emerald-400" /> : <AlertCircle size={14} className="text-amber-400" />}
-              {isSensorAvailable ? 'Compass Connected' : 'Compass Not Available — Use Mobile'}
+              {isSensorAvailable ? 'Sensor Active' : 'Sensor Error'}
             </div>
           </div>
         </div>

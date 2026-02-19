@@ -284,6 +284,7 @@ export const startLesson = async (req, res) => {
         }
 
         await progressDoc.save();
+        trackEvent(childUserId, "LESSON_STARTED", { lessonId, lessonTitle });
         res.json({ success: true, message: "Lesson session started" });
 
     } catch (error) {
@@ -344,6 +345,8 @@ export const updateLessonProgress = async (req, res) => {
 
             if (scores) {
                 progressDoc.quizAttempts.push(scores);
+                trackEvent(childUserId, "QUIZ_ATTEMPTED", { lessonId, score: scores.score, total: scores.total });
+
                 // Cap quiz attempts to last 10 to prevent infinite growth exploit
                 if (progressDoc.quizAttempts.length > 10) {
                     progressDoc.quizAttempts = progressDoc.quizAttempts.slice(-10);

@@ -1,5 +1,5 @@
-import LiveSession from "../models/LiveSession.js";
 import User from "../models/User.js";
+import { trackEvent } from "../services/analyticsService.js";
 
 const SCHOLAR_EMAIL = "scholar1.imam@gmail.com";
 
@@ -89,6 +89,7 @@ export const startSession = async (req, res) => {
                 startedAt: new Date() // Track start time
             });
             await session.save();
+            trackEvent(parentId, "LIVE_STARTED", { sessionId: session._id, childId });
             console.log("New session created:", session._id);
         } else {
             if (session.status === 'waiting') {
@@ -241,6 +242,7 @@ export const startBatch = async (req, res) => {
         session.status = 'active';
         session.startedAt = new Date();
         await session.save();
+        trackEvent(userId, "LIVE_STARTED", { sessionId: session._id, title: session.title });
 
         res.json(session);
     } catch (error) {
@@ -276,6 +278,8 @@ export const joinBatch = async (req, res) => {
             role: 'student', // or parent
             joinTime: new Date()
         });
+
+        trackEvent(userId, "LIVE_JOINED", { sessionId: session._id, childId });
 
         res.json({ session, message: "Joined successfully" });
     } catch (error) {

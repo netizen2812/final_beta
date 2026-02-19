@@ -1,5 +1,6 @@
 import User from "../models/User.js";
 import { clerkClient } from "@clerk/clerk-sdk-node";
+import { trackEvent } from "../services/analyticsService.js";
 
 export const syncUser = async (req, res) => {
   try {
@@ -45,6 +46,9 @@ export const syncUser = async (req, res) => {
         });
       }
     }
+
+    // Track Login/Session Start
+    trackEvent(user.clerkId, "USER_LOGIN", { role: user.role });
 
     res.status(200).json({ message: "User synced", user });
   } catch (error) {

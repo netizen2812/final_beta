@@ -48,6 +48,9 @@ app.use((req, res, next) => {
   console.log(`📥 ${req.method} ${req.path}`);
   next();
 });
+app.get("/", (req, res) => {
+  res.status(200).send("API is running");
+});
 
 app.post("/api/chat", requireAuth, chatWithImam);
 app.use("/api/users", userRoutes);

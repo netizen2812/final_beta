@@ -39,7 +39,7 @@ const getDateRange = (daysAgo) => {
 export const getParentDashboard = async (req, res) => {
     try {
         const { childUserId: childDocId } = req.params; // receiving Child Document ID
-        const parentId = req.auth.sub; // Clerk ID of parent
+        const parentId = req.auth.userId; // Clerk ID of parent
 
         console.log(`[Dashboard] Request params - childDocId: ${childDocId}, parentId (Auth): ${parentId}`);
 
@@ -296,7 +296,7 @@ export const startLesson = async (req, res) => {
 export const updateLessonProgress = async (req, res) => {
     try {
         const { childUserId, lessonId, lessonTitle, xpEarned, scores, completed, exitSession } = req.body;
-        const parentId = req.auth.sub;
+        const parentId = req.auth.userId;
 
         // 1. Verify Parent (Optional but good for security if we had parentId in body, but here we trust the childUserId is valid for now or could verify parent relation if needed.
         // For simplicity and since we are using childUserId directly:

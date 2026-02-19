@@ -3,7 +3,7 @@ import Conversation from "../models/Conversation.js";
 // GET /api/conversations — list user's conversations (title + id only)
 export const listConversations = async (req, res) => {
     try {
-        const clerkId = req.auth?.sub;
+        const clerkId = req.auth?.userId;
         if (!clerkId) return res.status(401).json({ message: "Unauthorized" });
 
         const conversations = await Conversation.find(
@@ -21,7 +21,7 @@ export const listConversations = async (req, res) => {
 // POST /api/conversations — create new conversation
 export const createConversation = async (req, res) => {
     try {
-        const clerkId = req.auth?.sub;
+        const clerkId = req.auth?.userId;
         if (!clerkId) return res.status(401).json({ message: "Unauthorized" });
 
         const conversation = await Conversation.create({ clerkId, messages: [] });
@@ -35,7 +35,7 @@ export const createConversation = async (req, res) => {
 // GET /api/conversations/:id — load messages for a conversation
 export const getConversation = async (req, res) => {
     try {
-        const clerkId = req.auth?.sub;
+        const clerkId = req.auth?.userId;
         if (!clerkId) return res.status(401).json({ message: "Unauthorized" });
 
         const conversation = await Conversation.findOne({ _id: req.params.id, clerkId });
@@ -51,7 +51,7 @@ export const getConversation = async (req, res) => {
 // DELETE /api/conversations/:id — delete a conversation
 export const deleteConversation = async (req, res) => {
     try {
-        const clerkId = req.auth?.sub;
+        const clerkId = req.auth?.userId;
         if (!clerkId) return res.status(401).json({ message: "Unauthorized" });
 
         await Conversation.findOneAndDelete({ _id: req.params.id, clerkId });

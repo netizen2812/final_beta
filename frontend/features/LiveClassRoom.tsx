@@ -300,88 +300,121 @@ const LiveClassRoom: React.FC = () => {
     );
   }
 
-  // RENDER: PARENT LOBBY
+  // RENDER: PARENT LOBBY (My Sessions)
   return (
     <div className="max-w-4xl mx-auto space-y-10 animate-in fade-in duration-500">
       <div className="flex flex-col md:flex-row md:items-end justify-between gap-6">
         <div className="space-y-2">
           <div className="inline-flex items-center gap-2 px-3 py-1 bg-emerald-50 text-emerald-700 rounded-full text-[10px] font-black uppercase tracking-widest border border-emerald-100">
-            <Users size={12} /> Live 1-on-1
+            <Users size={12} /> Live Classes
           </div>
-          <h1 className="text-4xl font-serif font-bold text-[#052e16]">Live Quran Session</h1>
-          <p className="text-slate-500 font-medium">Start a synchronized reading session with your scholar.</p>
+          <h1 className="text-4xl font-serif font-bold text-[#052e16]">Live Quran Sessions</h1>
+          <p className="text-slate-500 font-medium">Join your scheduled classes or request access to new batches.</p>
         </div>
 
         {activeChild ? (
           <div className="bg-white px-5 py-3 rounded-2xl border border-emerald-50 shadow-sm flex items-center gap-4">
             <div className="w-10 h-10 bg-emerald-600 rounded-xl flex items-center justify-center text-white text-lg font-black">{activeChild.name[0]}</div>
-            <div><p className="text-[8px] font-black uppercase tracking-widest text-slate-400">Reading for</p><p className="text-sm font-bold text-[#052e16]">{activeChild.name}</p></div>
+            <div><p className="text-[8px] font-black uppercase tracking-widest text-slate-400">Student</p><p className="text-sm font-bold text-[#052e16]">{activeChild.name}</p></div>
           </div>
         ) : (
           <div className="bg-amber-50 px-5 py-3 rounded-2xl border border-amber-100 flex items-center gap-3">
             <ShieldCheck size={20} className="text-amber-600" />
-            <p className="text-xs font-bold text-amber-800">Select child profile to start.</p>
+            <p className="text-xs font-bold text-amber-800">Select child profile to view schedule.</p>
           </div>
         )}
       </div>
 
-      {/* Scholar Status Card */}
-      <div className={`flex items-center gap-4 px-6 py-4 rounded-2xl border font-medium text-sm transition-all ${statusLoading ? 'bg-slate-50 border-slate-100 text-slate-400' :
-        scholarStatus.online ? 'bg-emerald-50 border-emerald-100 text-emerald-800' :
-          'bg-red-50 border-red-100 text-red-700'
-        }`}>
-        {statusLoading ? (
-          <Loader2 size={18} className="animate-spin text-slate-400" />
-        ) : scholarStatus.online ? (
-          <Wifi size={18} className="text-emerald-600" />
-        ) : (
-          <WifiOff size={18} className="text-red-500" />
-        )}
-        <div>
-          <p className="font-bold">
-            {statusLoading ? 'Checking scholar availability...' :
-              scholarStatus.online ? `${scholarStatus.scholarName} is Online` :
-                `${scholarStatus.scholarName} is Currently Offline`}
-          </p>
-          {!statusLoading && !scholarStatus.online && (
-            <p className="text-xs opacity-70 mt-0.5">You can still start a session — the scholar will join when available.</p>
-          )}
-          {!statusLoading && scholarStatus.online && scholarStatus.activeSessions! > 0 && (
-            <p className="text-xs opacity-70 mt-0.5">{scholarStatus.activeSessions} active session(s) in progress</p>
-          )}
+      <UpcomingSessions
+        token={getToken}
+        activeChildId={activeChild?.id}
+        onJoin={setCurrentSession}
+      />
+
+    </div>
+  );
+};
+
+// Sub-Component: Upcoming Sessions List
+const UpcomingSessions = ({ token, activeChildId, onJoin }: { token: any, activeChildId?: string, onJoin: (s: LiveSession) => void }) => {
+  const [sessions, setSessions] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchSessions = async () => {
+      try {
+        const t = await token();
+        const res = await axios.get(`${API_BASE}/api/live/my-sessions`, {
+          headers: { Authorization: `Bearer ${t}` }
+        });
+        setSessions(res.data);
+      } catch (err) {
+        console.error("Failed to fetch sessions");
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchSessions();
+  }, [token]);
+
+  const handleJoin = async (sessionId: string) => {
+    if (!activeChildId) return alert("Select a child first");
+    try {
+      const t = await token();
+      const res = await axios.post(`${API_BASE}/api/live/${sessionId}/join`, {
+        childId: activeChildId
+      }, {
+        headers: { Authorization: `Bearer ${t}` }
+      });
+      onJoin(res.data.session);
+    } catch (err: any) {
+      alert(err.response?.data?.message || "Failed to join");
+    }
+  };
+
+  if (loading) return <div className="text-center py-10"><Loader2 className="animate-spin mx-auto text-emerald-600" /></div>;
+
+  if (sessions.length === 0) {
+    return (
+      <div className="bg-white rounded-3xl p-10 border border-slate-100 text-center shadow-sm">
+        <div className="w-16 h-16 bg-slate-50 rounded-full flex items-center justify-center mx-auto mb-4 text-slate-400">
+          <Clock size={24} />
         </div>
-        {!statusLoading && (
-          <div className={`ml-auto w-2.5 h-2.5 rounded-full ${scholarStatus.online ? 'bg-emerald-500 animate-pulse' : 'bg-red-400'}`} />
-        )}
+        <h3 className="font-bold text-slate-800 text-lg">No Scheduled Classes</h3>
+        <p className="text-slate-500 text-sm mt-1">You are not enrolled in any active batches.</p>
       </div>
+    );
+  }
 
-      <div className="bg-white rounded-[3rem] p-12 border border-emerald-50 shadow-sm text-center space-y-8 relative overflow-hidden">
-        <div className="absolute top-0 left-0 w-full h-2 bg-gradient-to-r from-emerald-400 via-[#0D4433] to-emerald-400" />
-
-        <div className="w-24 h-24 bg-emerald-50 rounded-full flex items-center justify-center mx-auto text-[#0D4433]">
-          <BookOpen size={48} />
+  return (
+    <div className="grid gap-4">
+      {sessions.map(s => (
+        <div key={s._id} className="bg-white p-6 rounded-2xl border border-slate-100 shadow-sm flex flex-col md:flex-row md:items-center justify-between gap-4">
+          <div>
+            <div className="flex items-center gap-3 mb-2">
+              <span className={`px-2 py-0.5 rounded text-[10px] font-black uppercase tracking-widest ${s.status === 'active' ? 'bg-green-100 text-green-700' : 'bg-slate-100 text-slate-500'}`}>
+                {s.status}
+              </span>
+              <span className="text-xs text-slate-400 font-medium">Batch: {s.title}</span>
+            </div>
+            <h3 className="font-bold text-[#052e16] text-lg">{s.description || s.title}</h3>
+            <p className="text-sm text-slate-500 mt-1 flex items-center gap-2">
+              <Clock size={14} />
+              {new Date(s.scheduledStartTime).toLocaleString()}
+            </p>
+          </div>
+          <button
+            onClick={() => handleJoin(s._id)}
+            disabled={s.status === 'ended' || !activeChildId}
+            className={`px-6 py-3 rounded-xl font-bold text-sm flex items-center gap-2 shrink-0 ${s.status === 'active'
+                ? 'bg-[#052e16] text-white hover:bg-emerald-900 shadow-lg hover:shadow-emerald-900/20'
+                : 'bg-slate-100 text-slate-400 cursor-not-allowed'
+              }`}
+          >
+            {s.status === 'active' ? 'Join Now' : 'Scheduled'}
+          </button>
         </div>
-
-        <div className="max-w-lg mx-auto">
-          <h2 className="text-2xl font-bold text-[#052e16] mb-4">Ready to Recite?</h2>
-          <p className="text-slate-500">
-            Start a live session. The scholar will be notified and can monitor your progress in real-time.
-            Click on any Ayah to sync your position.
-          </p>
-        </div>
-
-        <button
-          disabled={isLoading || !activeChild}
-          onClick={handleParentStartSession}
-          className={`mx-auto px-10 py-4 rounded-xl font-bold uppercase tracking-widest text-sm shadow-xl hover:shadow-2xl transition-all active:scale-95 flex items-center gap-3 ${!activeChild ? 'bg-slate-200 text-slate-400 cursor-not-allowed' : 'bg-[#052e16] text-white hover:bg-emerald-900'}`}
-        >
-          {isLoading ? <Loader2 className="animate-spin" /> : <><Users size={18} /> Start Live Session</>}
-        </button>
-
-        {!activeChild && (
-          <p className="text-xs text-red-500 mt-4 font-bold">Please select a child profile from the sidebar/header first.</p>
-        )}
-      </div>
+      ))}
     </div>
   );
 };

@@ -9,7 +9,8 @@ import LiveClassRoom from "./features/LiveClassRoom";
 import ProfilePage from "./features/ProfilePage";
 import WelcomeScreen from "./features/WelcomeScreen";
 import AdminDashboard from "./features/AdminDashboard";
-import { User, Settings } from "lucide-react";
+import AdminLiveDashboard from "./features/AdminLiveDashboard";
+import { User, Settings, Radio } from "lucide-react";
 
 import {
   SignedIn,
@@ -107,7 +108,9 @@ const App: React.FC = () => {
       case AppTab.LIVE:
         return <LiveClassRoom />;
       case AppTab.ADMIN:
-        return <AdminDashboard />;
+        return <AdminDashboard onNavigateToLive={() => setActiveTab(AppTab.ADMIN_LIVE)} />;
+      case AppTab.ADMIN_LIVE:
+        return <AdminLiveDashboard />;
       case AppTab.PROFILE:
         return <ProfilePage />;
       default:

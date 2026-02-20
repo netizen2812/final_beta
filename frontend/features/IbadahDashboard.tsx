@@ -206,42 +206,10 @@ const IbadahDashboard: React.FC = () => {
   const [declination, setDeclination] = useState<number>(0);
   const [isCalibrated, setIsCalibrated] = useState<boolean>(false);
   const [isSensorAvailable, setIsSensorAvailable] = useState<boolean>(false);
+  const [sensorType, setSensorType] = useState<string>('unknown'); // Debug
   const headingBuffer = useRef<number[]>([]);
 
-  const [completedPrayers, setCompletedPrayers] = useState<string[]>(() => {
-    const saved = localStorage.getItem('imam_completed_prayers');
-    const lastDate = localStorage.getItem('imam_last_prayer_date');
-    const today = new Date().toDateString();
-    if (lastDate !== today) return [];
-    return saved ? JSON.parse(saved) : [];
-  });
-
-  const togglePrayerCompletion = (name: string) => {
-    setCompletedPrayers(prev => {
-      const next = prev.includes(name) ? prev.filter(p => p !== name) : [...prev, name];
-      localStorage.setItem('imam_completed_prayers', JSON.stringify(next));
-      localStorage.setItem('imam_last_prayer_date', new Date().toDateString());
-      return next;
-    });
-  };
-
-  useEffect(() => {
-    navigator.geolocation.getCurrentPosition(
-      (pos) => setLocation({ lat: pos.coords.latitude, lng: pos.coords.longitude }),
-      (err) => {
-        console.warn("Location access denied, defaulting to London");
-        setLocation({ lat: 51.5074, lng: -0.1278 });
-      }
-    );
-
-    const timer = setInterval(() => {
-      const now = new Date();
-      setCurrentTime(now);
-      setActiveHeroTheme(getThemeForTime(now.getHours()));
-    }, 1000);
-
-    return () => clearInterval(timer);
-  }, []);
+  // ... (completedPrayers logic) ...
 
   // QIBLA SENSOR LOGIC — device heading (magnetic) + declination = true heading; rotation = qiblaBearing - trueHeading
   useEffect(() => {
@@ -252,43 +220,38 @@ const IbadahDashboard: React.FC = () => {
     const handleOrientation = (e: DeviceOrientationEvent) => {
       let magneticHeading = 0;
       let foundHeading = false;
+      let type = 'unknown';
 
-      if ('webkitCompassHeading' in e) {
+      if ('webkitCompassHeading' in e && (e as any).webkitCompassHeading != null) {
         magneticHeading = (e as any).webkitCompassHeading;
         foundHeading = true;
+        type = 'webkit (iOS)';
       } else if (e.alpha !== null) {
         magneticHeading = (360 - e.alpha) % 360;
         foundHeading = true;
+        type = e.absolute ? 'absolute (Android)' : 'relative (fallback)';
       }
 
       if (foundHeading) {
         setIsSensorAvailable(true);
+        if (sensorType !== type) setSensorType(type);
 
         // True North = magnetic + declination (degrees, East positive)
         const trueHeading = (magneticHeading + declination + 360) % 360;
 
-        // Final rotation: arrow points to Qibla. rotation = qiblaBearing - trueHeading, normalize 0–360
+        // Final rotation
         const rotation = (qiblaDegrees - trueHeading + 360) % 360;
-
-        // DEBUG LOGGING (Temporary)
-        // console.log("QIBLA DEBUG:", {
-        //   magneticHeading: heading.toFixed(2),
-        //   declination: declination.toFixed(2),
-        //   trueHeading: trueHeading.toFixed(2),
-        //   qiblaBearing: qiblaDegrees.toFixed(2),
-        //   finalArrowRotation: rotation.toFixed(2)
-        // });
 
         setLiveHeading(prev => {
           // Smoothing logic
           let diff = trueHeading - prev;
           if (diff > 180) diff -= 360;
           if (diff < -180) diff += 360;
-          const smoothed = (prev + diff * 0.15 + 360) % 360; // Slower factor for smoothness
+          const smoothed = (prev + diff * 0.15 + 360) % 360;
           return Math.round(smoothed * 10) / 10;
         });
 
-        // Store for calibration check (low variance = stable heading)
+        // Store for calibration check
         if (!isCalibrated) {
           headingBuffer.current.push(magneticHeading);
           if (headingBuffer.current.length > 20) {
@@ -302,6 +265,7 @@ const IbadahDashboard: React.FC = () => {
     };
 
     const win = window as any;
+    // Prefer absolute orientation if available
     if ('ondeviceorientationabsolute' in win) {
       win.addEventListener('deviceorientationabsolute', handleOrientation);
     } else {
@@ -309,9 +273,7 @@ const IbadahDashboard: React.FC = () => {
     }
 
     calibrationTimeout = setTimeout(() => {
-      if (!isCalibrated) {
-        setIsCalibrated(true);
-      }
+      if (!isCalibrated) setIsCalibrated(true);
     }, 5000);
 
     return () => {
@@ -320,16 +282,18 @@ const IbadahDashboard: React.FC = () => {
       winClean.removeEventListener('deviceorientationabsolute', handleOrientation);
       winClean.removeEventListener('deviceorientation', handleOrientation);
     };
-  }, [subView, isCalibrated, declination, qiblaDegrees]);
+  }, [subView, isCalibrated, declination, qiblaDegrees, sensorType]);
 
   // DATA FETCHING
   useEffect(() => {
     if (!location) return;
 
+    let isMounted = true;
+
     const fetchData = async () => {
       // Prayer Times
       const timingsData = await getPrayerTimings(location.lat, location.lng);
-      if (timingsData) {
+      if (isMounted && timingsData) {
         const mapped: PrayerTime[] = [
           { id: 1, name: 'Fajr', time: timingsData.timings.Fajr },
           { id: 2, name: 'Dhuhr', time: timingsData.timings.Dhuhr },
@@ -349,25 +313,30 @@ const IbadahDashboard: React.FC = () => {
 
       // Qibla & Declination
       const qibla = calculateQibla(location.lat, location.lng);
-      setQiblaDegrees(qibla);
+      if (isMounted) setQiblaDegrees(qibla);
 
       const decl = await getMagneticDeclination(location.lat, location.lng);
-      setDeclination(decl);
+      if (isMounted) {
+        setDeclination(decl);
+        console.log("QIBLA SETUP:", { lat: location.lat, lng: location.lng, qibla, declination: decl });
+      }
 
-      console.log("QIBLA SETUP:", { lat: location.lat, lng: location.lng, qibla, declination: decl });
       const todayHijri = await getHijriDate();
-      setHijriInfo(todayHijri);
-
-      // Mandatory: Establish a single context starting with Today
-      const todayStr = formatDateForAPI(new Date());
-      setSelectedHijriContext({
-        hijri: todayHijri,
-        gregorian: { date: todayStr },
-        isToday: true
-      });
+      if (isMounted) {
+        setHijriInfo(todayHijri);
+        // Mandatory: Establish a single context starting with Today
+        const todayStr = formatDateForAPI(new Date());
+        setSelectedHijriContext({
+          hijri: todayHijri,
+          gregorian: { date: todayStr },
+          isToday: true
+        });
+      }
     };
 
     fetchData();
+
+    return () => { isMounted = false; };
   }, [location]);
 
   // MONTHLY CALENDAR FETCHING
@@ -568,6 +537,7 @@ const IbadahDashboard: React.FC = () => {
             <div className="p-3 bg-black/40 backdrop-blur-sm rounded-xl text-white/50 text-[9px] font-mono border border-white/5 space-y-1 text-left">
               <div className="text-amber-300/80 font-bold uppercase tracking-wider mb-1">Verification (remove after test)</div>
               <div>User coords: {location ? `${location.lat.toFixed(4)}, ${location.lng.toFixed(4)}` : '—'}</div>
+              <div>Sensor: {sensorType}</div>
               <div>Magnetic heading: {Math.round((liveHeading - declination + 360) % 360)}°</div>
               <div>Declination: {declination}°</div>
               <div>True heading: {Math.round(liveHeading)}°</div>

@@ -385,7 +385,18 @@ export const joinBatch = async (req, res) => {
 
         // Legacy Session Creation (Optional, for stats). No default surah/ayah — student is source of truth.
         let session = await LiveSession.findOne({ childId, status: 'active' });
-        if (!session) {
+
+        if (session) {
+            // Fix: Ensure reused session points to THIS batch
+            if (!session.batchId || session.batchId.toString() !== batch._id.toString()) {
+                session.batchId = batch._id;
+                session.scholarId = batch.scholar;
+                session.title = batch.name;
+                session.updatedAt = new Date();
+                await session.save();
+                console.log("Updated existing session with new batchId:", batch._id);
+            }
+        } else {
             try {
                 session = await LiveSession.create({
                     title: batch.name,

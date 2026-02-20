@@ -71,36 +71,46 @@ const LiveClassRoom: React.FC = () => {
     }
   }, [user, getToken]);
 
-  // SCHOLAR: POLL ACTIVE PARTICIPANTS
+  // SCHOLAR DASHBOARD STATE
+  const [scholarBatches, setScholarBatches] = useState<any[]>([]);
+
+  // 1. Fetch Scholar's Batches (Once on mount)
   useEffect(() => {
     if (userRole !== 'scholar') return;
-
-    const fetchScholarData = async () => {
+    const fetchBatches = async () => {
       try {
         const token = await getToken();
-        // 1. Get Scholar's Batches
-        const batchesRes = await axios.get(`${API_BASE}/api/live/my-sessions`, {
+        const res = await axios.get(`${API_BASE}/api/live/my-sessions`, {
           headers: { Authorization: `Bearer ${token}` }
         });
-        const batches = batchesRes.data;
+        setScholarBatches(res.data);
+      } catch (err) {
+        console.error("Failed to fetch scholar batches", err);
+      }
+    };
+    fetchBatches();
+  }, [userRole, getToken]);
 
-        // 2. For each batch, get participants
+  // 2. Poll Active Participants (Every 2s) - Only if we have batches
+  useEffect(() => {
+    if (userRole !== 'scholar' || scholarBatches.length === 0) return;
+
+    const fetchParticipants = async () => {
+      try {
+        const token = await getToken();
         let allActiveStudents: LiveSession[] = [];
 
-        for (const batch of batches) {
-          // Determine batchID (legacy my-sessions format vs new)
+        // Parallelize for better performance
+        const promises = scholarBatches.map(async (batch) => {
           const batchId = batch._id || batch.id;
-
           try {
-            const partsRes = await axios.get(`${API_BASE}/api/live/batch/${batchId}/participants`, {
+            const res = await axios.get(`${API_BASE}/api/live/batch/${batchId}/participants`, {
               headers: { Authorization: `Bearer ${token}` }
             });
-
-            // Handle "Return Full Batch" Debug Mode or Array
-            const rawData = partsRes.data;
+            const rawData = res.data;
             const participants = Array.isArray(rawData) ? rawData : (rawData.activeParticipants || []);
 
-            const active = participants.filter((p: any) => p.isActive).map((p: any) => ({
+            return participants.filter((p: any) => p.isActive).map((p: any) => ({
               _id: `${p.childId}-${batchId}`,
               parentId: "unknown",
               childId: p.childId,
@@ -113,24 +123,28 @@ const LiveClassRoom: React.FC = () => {
               parentName: `Batch: ${batch.title || batch.name}`,
               batchId: batchId
             }));
-            allActiveStudents = [...allActiveStudents, ...active];
           } catch (e) {
             console.error(`Failed to fetch part. for batch ${batchId}`, e);
+            return [];
           }
-        }
+        });
 
-        // Deduplicate? Or just set.
+        const results = await Promise.all(promises);
+        allActiveStudents = results.flat();
+
+        // Compare with previous to avoid unnecessary re-renders if deep equal?
+        // For now, React state setter is fine.
         setActiveSessions(allActiveStudents);
 
       } catch (err) {
-        console.error("Scholar polling error", err);
+        console.error("Scholar participants polling error", err);
       }
     };
 
-        fetchScholarData();
-    const interval = setInterval(fetchScholarData, 2000); // Poll every 2s — scholar receives updates
+    fetchParticipants();
+    const interval = setInterval(fetchParticipants, 2000);
     return () => clearInterval(interval);
-  }, [userRole, getToken]);
+  }, [userRole, getToken, scholarBatches]);
 
   // Scholar viewing a session: merge latest participant position so Quran auto-scrolls
   useEffect(() => {

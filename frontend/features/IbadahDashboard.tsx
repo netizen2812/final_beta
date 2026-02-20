@@ -34,6 +34,7 @@ import {
   ArrowRight
 } from 'lucide-react';
 import QuranPage from './QuranPage';
+import QiblaPage from './qibla/QiblaPage';
 import { getPrayerTimings, getHijriDate, getCalendarMonth, formatDateForAPI, calculateQibla, getMagneticDeclination } from '../services/aladhan';
 
 // --- TYPES & CONSTANTS ---
@@ -200,14 +201,14 @@ const IbadahDashboard: React.FC = () => {
   const [prayerTimes, setPrayerTimes] = useState<PrayerTime[]>([]);
   const [nextPrayer, setNextPrayer] = useState<string>('');
 
-  // Qibla Finder States
-  const [qiblaDegrees, setQiblaDegrees] = useState<number>(0);
-  const [liveHeading, setLiveHeading] = useState<number>(0);
-  const [declination, setDeclination] = useState<number>(0);
-  const [isCalibrated, setIsCalibrated] = useState<boolean>(false);
-  const [isSensorAvailable, setIsSensorAvailable] = useState<boolean>(false);
-  const [sensorType, setSensorType] = useState<string>('unknown'); // Debug
-  const headingBuffer = useRef<number[]>([]);
+  useEffect(() => {
+    if (navigator.geolocation) {
+      navigator.geolocation.getCurrentPosition(
+        (pos) => setLocation({ lat: pos.coords.latitude, lng: pos.coords.longitude }),
+        (err) => console.warn('Geolocation blocked/failed', err)
+      );
+    }
+  }, []);
 
   // ... (completedPrayers logic) ...
   const [completedPrayers, setCompletedPrayers] = useState<string[]>(() => {
@@ -227,78 +228,7 @@ const IbadahDashboard: React.FC = () => {
     });
   };
 
-  // QIBLA SENSOR LOGIC — device heading (magnetic) + declination = true heading; rotation = qiblaBearing - trueHeading
-  useEffect(() => {
-    if (subView !== 'qibla') return;
-
-    let calibrationTimeout: any;
-
-    const handleOrientation = (e: DeviceOrientationEvent) => {
-      let magneticHeading = 0;
-      let foundHeading = false;
-      let type = 'unknown';
-
-      if ('webkitCompassHeading' in e && (e as any).webkitCompassHeading != null) {
-        magneticHeading = (e as any).webkitCompassHeading;
-        foundHeading = true;
-        type = 'webkit (iOS)';
-      } else if (e.alpha !== null) {
-        magneticHeading = (360 - e.alpha) % 360;
-        foundHeading = true;
-        type = e.absolute ? 'absolute (Android)' : 'relative (fallback)';
-      }
-
-      if (foundHeading) {
-        setIsSensorAvailable(true);
-        if (sensorType !== type) setSensorType(type);
-
-        // True North = magnetic + declination (degrees, East positive)
-        const trueHeading = (magneticHeading + declination + 360) % 360;
-
-        // Final rotation
-        const rotation = (qiblaDegrees - trueHeading + 360) % 360;
-
-        setLiveHeading(prev => {
-          // Smoothing logic
-          let diff = trueHeading - prev;
-          if (diff > 180) diff -= 360;
-          if (diff < -180) diff += 360;
-          const smoothed = (prev + diff * 0.15 + 360) % 360;
-          return Math.round(smoothed * 10) / 10;
-        });
-
-        // Store for calibration check
-        if (!isCalibrated) {
-          headingBuffer.current.push(magneticHeading);
-          if (headingBuffer.current.length > 20) {
-            headingBuffer.current.shift();
-            const mean = headingBuffer.current.reduce((a, b) => a + b, 0) / 20;
-            const variance = headingBuffer.current.reduce((a, b) => a + Math.pow(b - mean, 2), 0) / 20;
-            if (variance < 5) setIsCalibrated(true);
-          }
-        }
-      }
-    };
-
-    const win = window as any;
-    // Prefer absolute orientation if available
-    if ('ondeviceorientationabsolute' in win) {
-      win.addEventListener('deviceorientationabsolute', handleOrientation);
-    } else {
-      win.addEventListener('deviceorientation', handleOrientation);
-    }
-
-    calibrationTimeout = setTimeout(() => {
-      if (!isCalibrated) setIsCalibrated(true);
-    }, 5000);
-
-    return () => {
-      if (calibrationTimeout) clearTimeout(calibrationTimeout);
-      const winClean = window as any;
-      winClean.removeEventListener('deviceorientationabsolute', handleOrientation);
-      winClean.removeEventListener('deviceorientation', handleOrientation);
-    };
-  }, [subView, isCalibrated, declination, qiblaDegrees, sensorType]);
+  // QIBLA SENSOR LOGIC HAS BEEN MOVED TO QiblaPage component
 
   // DATA FETCHING
   useEffect(() => {
@@ -325,16 +255,6 @@ const IbadahDashboard: React.FC = () => {
           return (h * 60 + m) > nowMinutes;
         });
         setNextPrayer(found ? found.name : 'Fajr');
-      }
-
-      // Qibla & Declination
-      const qibla = calculateQibla(location.lat, location.lng);
-      if (isMounted) setQiblaDegrees(qibla);
-
-      const decl = await getMagneticDeclination(location.lat, location.lng);
-      if (isMounted) {
-        setDeclination(decl);
-        console.log("QIBLA SETUP:", { lat: location.lat, lng: location.lng, qibla, declination: decl });
       }
 
       const todayHijri = await getHijriDate();
@@ -464,126 +384,7 @@ const IbadahDashboard: React.FC = () => {
     </div>
   );
 
-  const QiblaPage = () => {
-    // 1️⃣ Fix: Removed 180 degree shift so it points to "Top" of phone
-    const rotationAngle = (qiblaDegrees - liveHeading + 360) % 360;
-
-    // 2️⃣ Immersive: Check if aligned (Arrow pointing roughly UP which is 0 +/- 10)
-    const isFacingQibla = rotationAngle < 10 || rotationAngle > 350;
-
-    // Trigger haptics if available when entering alignment
-    useEffect(() => {
-      if (isFacingQibla && navigator.vibrate) navigator.vibrate([50, 50, 50]);
-    }, [isFacingQibla]);
-
-    return (
-      <div className="min-h-screen py-12 sm:py-16 lg:py-20 px-4 sm:px-6 lg:px-8 animate-in zoom-in duration-500 overflow-hidden text-white transition-all duration-1000 bg-gradient-to-br from-emerald-600 via-emerald-500 to-amber-500">
-
-        {/* Dynamic Background Particles */}
-        <div className="absolute inset-0 overflow-hidden pointer-events-none">
-          {[...Array(20)].map((_, i) => (
-            <div key={i} className={`absolute rounded-full opacity-20 animate-pulse ${isFacingQibla ? 'bg-white' : 'bg-emerald-500'}`}
-              style={{
-                top: `${Math.random() * 100}%`,
-                left: `${Math.random() * 100}%`,
-                width: `${Math.random() * 4 + 1}px`,
-                height: `${Math.random() * 4 + 1}px`,
-                animationDuration: `${Math.random() * 3 + 2}s`
-              }}
-            />
-          ))}
-          {isFacingQibla && <div className="absolute inset-0 bg-gradient-to-t from-transparent via-white/20 to-transparent animate-pulse duration-[3000ms]" />}
-        </div>
-
-        <div className="max-w-4xl mx-auto flex flex-col items-center text-center relative z-10">
-          <header className="w-full flex items-center justify-between mb-16">
-            <button onClick={goBack} className="p-3 bg-white/10 hover:bg-white/20 rounded-full transition-all text-white backdrop-blur-md"><ArrowLeft size={24} /></button>
-            <h2 className="text-2xl font-serif font-bold tracking-widest uppercase text-amber-100 drop-shadow-md">Qibla Finder</h2>
-            <div className="w-12 h-12" />
-          </header>
-
-          <div className="relative w-72 h-72 md:w-96 md:h-96 mb-20">
-            {/* Outer Ring */}
-            <div className={`absolute inset-0 border-[2px] rounded-full transition-colors duration-500 ${isFacingQibla ? 'border-white/40' : 'border-white/10'}`} />
-
-            {/* Degree Ticks */}
-            {[...Array(12)].map((_, i) => (
-              <div key={i} className="absolute inset-0" style={{ transform: `rotate(${i * 30}deg)` }}>
-                <div className="w-0.5 h-3 bg-white/20 mx-auto mt-2" />
-              </div>
-            ))}
-
-            {/* Compass Dial */}
-            <div className="absolute inset-0 transition-transform duration-300 ease-out will-change-transform"
-              style={{ transform: `rotate(${-liveHeading}deg)` }}>
-              <div className="absolute top-4 left-1/2 -translate-x-1/2 text-xs font-black text-white/40">N</div>
-              <div className="absolute bottom-4 left-1/2 -translate-x-1/2 text-xs font-black text-white/40">S</div>
-              <div className="absolute right-4 top-1/2 -translate-y-1/2 text-xs font-black text-white/40">E</div>
-              <div className="absolute left-4 top-1/2 -translate-y-1/2 text-xs font-black text-white/40">W</div>
-            </div>
-
-            {/* THE GOLDEN POINTER (Needle) */}
-            {/* This rotates to point to Qibla relative to North? No, relative to Phone Top? */}
-            {/* Logic: 
-                - Qibla Degree is absolute (e.g., 90 deg East).
-                - We want the needle to point to Qibla.
-                - If we rotate the compass housing by `-liveHeading`, then 'North' is at current North.
-                - Then we place the needle at `qiblaDegrees`.
-            */}
-            <div className="absolute inset-0 transition-transform duration-500 ease-out" style={{ transform: `rotate(${qiblaDegrees - liveHeading}deg)` }}>
-              <div className="absolute top-0 left-1/2 -translate-x-1/2 -translate-y-6 w-12 h-44 origin-bottom flex flex-col items-center justify-end pb-10 filter drop-shadow-[0_0_15px_rgba(251,191,36,0.6)]">
-                {/* Needle Body */}
-                <div className={`w-1.5 h-full rounded-full bg-gradient-to-t from-emerald-600 via-emerald-400 to-white ${isFacingQibla ? 'animate-pulse' : ''}`} />
-                {/* Diamond Tip */}
-                <div className="w-6 h-6 bg-yellow-300 rotate-45 -mb-3 shadow-[0_0_20px_rgba(253,224,71,0.8)] border-2 border-white" />
-              </div>
-            </div>
-
-            {/* Center Pivot */}
-            <div className="absolute inset-0 flex items-center justify-center">
-              <div className="w-24 h-24 bg-black/40 backdrop-blur-md rounded-full border border-white/10 flex items-center justify-center shadow-2xl">
-                <div className="text-3xl font-black text-white tracking-widest drop-shadow-lg">{Math.round(qiblaDegrees)}°</div>
-              </div>
-            </div>
-
-          </div>
-
-          <div className="space-y-6 max-w-sm relative z-20">
-            {/* Verification mode — remove after test */}
-            <div className="p-3 bg-black/40 backdrop-blur-sm rounded-xl text-white/50 text-[9px] font-mono border border-white/5 space-y-1 text-left">
-              <div className="text-amber-300/80 font-bold uppercase tracking-wider mb-1">Verification (remove after test)</div>
-              <div>User coords: {location ? `${location.lat.toFixed(4)}, ${location.lng.toFixed(4)}` : '—'}</div>
-              <div>Sensor: {sensorType}</div>
-              <div>Magnetic heading: {Math.round((liveHeading - declination + 360) % 360)}°</div>
-              <div>Declination: {declination}°</div>
-              <div>True heading: {Math.round(liveHeading)}°</div>
-              <div>Qibla bearing: {Math.round(qiblaDegrees)}°</div>
-              <div>Arrow rotation: {Math.round(rotationAngle)}°</div>
-            </div>
-
-            <div className={`p-8 backdrop-blur-xl rounded-[2.5rem] border transition-all duration-500 ${isFacingQibla ? 'bg-white/20 border-white/40 shadow-[0_0_20px_rgba(16,185,129,0.4)]' : 'bg-white/5 border-white/10'}`}>
-              <div className={`font-black uppercase tracking-[0.3em] text-[10px] mb-3 ${isFacingQibla ? 'text-white animate-pulse' : 'text-amber-400'}`}>
-                {isSensorAvailable ? (isFacingQibla ? '✨ PERFECTLY ALIGNED' : 'Align Arrow to Top') : 'Compass Unavailable'}
-              </div>
-              <p className="text-lg font-medium leading-relaxed text-white/90">
-                {isSensorAvailable
-                  ? isFacingQibla ? "You are facing the Qibla." : "Rotate gently until the Golden Needle points straight up."
-                  : 'Compass not available on this device.'}
-              </p>
-            </div>
-
-            {isSensorAvailable && !isCalibrated && (
-              <p className="text-amber-100 text-sm font-medium">Move your device in a figure-8 to calibrate the compass.</p>
-            )}
-            <div className={`flex items-center gap-3 justify-center text-[10px] font-black uppercase tracking-widest transition-opacity ${isCalibrated ? 'opacity-40' : 'opacity-100'}`}>
-              {isSensorAvailable ? <CheckCircle2 size={14} className="text-white" /> : <AlertCircle size={14} className="text-amber-200" />}
-              {isSensorAvailable ? (isCalibrated ? 'Sensor Active' : 'Calibrating...') : 'Compass Unavailable'}
-            </div>
-          </div>
-        </div>
-      </div>
-    );
-  };
+  // QiblaPage inline component removed (Moved to external file)
 
   const CalendarDetailPage = () => {
     if (!selectedHijriContext) return null;
@@ -788,7 +589,7 @@ const IbadahDashboard: React.FC = () => {
   // --- RENDER LOGIC ---
 
   if (subView === 'prayer-guide') return <PrayerGuidePage />;
-  if (subView === 'qibla') return <QiblaPage />;
+  if (subView === 'qibla') return <QiblaPage onBack={() => setSubView('landing')} />;
   if (subView === 'dua') return <DuaPage />;
   if (subView === 'calendar') return <CalendarPage />;
   if (subView === 'calendar-detail') return <CalendarDetailPage />;

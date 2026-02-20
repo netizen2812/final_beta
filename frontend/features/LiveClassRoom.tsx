@@ -120,8 +120,8 @@ const LiveClassRoom: React.FC = () => {
               parentId: "unknown",
               childId: p.childId,
               scholarId: "scholar",
-              currentSurah: p.currentSurah || 1, // Default to 1 to prevent crash
-              currentAyah: p.currentAyah || 1,     // Default to 1
+              currentSurah: p.currentSurah || null, // Allow null so it says "Selecting..."
+              currentAyah: p.currentAyah || null,     // Allow null
               lastSeen: p.lastSeen,
               status: 'active',
               studentName: p.childName || 'Unknown Student',
@@ -556,6 +556,7 @@ const UpcomingSessions = ({ token, activeChildId, onJoin }: { token: any, active
         // Do NOT default to surah 1 ayah 1 — student is source of truth
         onJoin({
           ...s,
+          batchId: batchId || s.batchId,
           currentSurah: s.currentSurah ?? undefined,
           currentAyah: s.currentAyah ?? undefined
         });

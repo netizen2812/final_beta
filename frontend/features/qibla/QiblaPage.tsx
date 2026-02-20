@@ -35,9 +35,12 @@ const QiblaPage: React.FC<QiblaPageProps> = ({ onBack }) => {
     const requestLocation = () => {
         setHasRequestedLocation(true);
         if (!navigator.geolocation) {
-            setLocationError("Geolocation not supported by this browser.");
+            setLocationError("Geolocation not supported by this browser. Switching to manual mode.");
+            setFallbackMode('manual');
             return;
         }
+
+        setLocationError(null);
 
         navigator.geolocation.getCurrentPosition(
             async (pos) => {
@@ -58,7 +61,17 @@ const QiblaPage: React.FC<QiblaPageProps> = ({ onBack }) => {
                 setMagneticDeclination(decl);
                 setLocationError(null);
             },
-            (err) => setLocationError("Please enable location services to find the Qibla.")
+            (err) => {
+                // If the user's browser denies permission (either manually or due to lack of HTTPS on mobile)
+                setLocationError(err.code === 1
+                    ? "Permission denied. Please enable location or use manual mode."
+                    : "Unable to retrieve location. Switching to manual mode.");
+
+                // We default to Makkah's bearing from a generic central location (e.g. London) or just switch to manual mode.
+                // It's safer to just set fallbackMode to 'manual' if we don't know where they are.
+                setFallbackMode('manual');
+            },
+            { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
         );
     };
 
@@ -131,7 +144,7 @@ const QiblaPage: React.FC<QiblaPageProps> = ({ onBack }) => {
 
 
     return (
-        <div className="absolute inset-0 bg-slate-900 text-white flex flex-col overflow-hidden animate-in fade-in duration-500">
+        <div className="fixed inset-0 z-[120] bg-slate-900 text-white flex flex-col overflow-hidden animate-in fade-in duration-500 w-full h-full">
             {/* Background Decor */}
             <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,_#10b981_0%,_transparent_60%)] opacity-10 pointer-events-none" />
 
@@ -158,94 +171,131 @@ const QiblaPage: React.FC<QiblaPageProps> = ({ onBack }) => {
                 )}
 
                 {/* Initial Setup State (needs location) */}
-                {!hasRequestedLocation && !qiblaBearing && (
+                {!hasRequestedLocation && fallbackMode === 'sensor' && qiblaBearing === null && (
                     <div className="text-center space-y-6 flex-1 flex flex-col items-center justify-center">
                         <div className="w-24 h-24 bg-emerald-500/20 rounded-full flex items-center justify-center border border-emerald-500/50">
                             <MapIcon size={40} className="text-emerald-400" />
                         </div>
                         <h2 className="text-2xl font-serif font-bold">Location Required</h2>
                         <p className="text-slate-400 mb-4 px-6">We need your current location to precisely calculate the direction to the Kaaba.</p>
-                        <button onClick={requestLocation} className="px-8 py-4 bg-gradient-to-r from-[#10b981] to-[#f59e0b] rounded-full text-white font-bold tracking-widest uppercase shadow-[0_0_30px_rgba(245,158,11,0.3)] hover:scale-105 transition-transform">
-                            Enable Location
-                        </button>
+                        <div className="flex flex-col gap-4">
+                            <button onClick={requestLocation} className="px-8 py-4 bg-gradient-to-r from-[#10b981] to-[#f59e0b] rounded-full text-white font-bold tracking-widest uppercase shadow-[0_0_30px_rgba(245,158,11,0.3)] hover:scale-105 transition-transform">
+                                Enable Location
+                            </button>
+                            <button onClick={() => setFallbackMode('manual')} className="px-8 py-4 bg-white/5 border border-white/10 rounded-full text-slate-300 font-bold tracking-widest uppercase hover:bg-white/10 transition-colors">
+                                Use Manual Mode
+                            </button>
+                        </div>
                     </div>
                 )}
 
                 {/* Start Button if compass permissions needed (iOS 13+) */}
-                {fallbackMode === 'sensor' && orientation.eventCount === 0 && hasRequestedLocation && !locationError && !sensorError && (
+                {fallbackMode === 'sensor' && orientation.eventCount === 0 && hasRequestedLocation && !locationError && !sensorError && qiblaBearing !== null && (
                     <button onClick={requestAccess} className="mb-12 px-8 py-4 bg-gradient-to-r from-[#10b981] to-[#f59e0b] rounded-full text-white font-bold tracking-widest uppercase shadow-[0_0_30px_rgba(245,158,11,0.3)] hover:scale-105 transition-transform">
                         Calibrate Compass
                     </button>
                 )}
 
-                {/* Compass Visualiser (Sensor Mode) */}
-                {qiblaBearing !== null && hasRequestedLocation && (
+                {/* Compass Visualiser (Sensor Mode) or Manual Mode */}
+                {(qiblaBearing !== null || fallbackMode === 'manual') && (hasRequestedLocation || fallbackMode === 'manual') && (
                     <div className="flex flex-col items-center justify-center w-full flex-1">
-                        {fallbackMode === 'sensor' ? (
-                            <div className={`relative w-72 h-72 sm:w-80 sm:h-80 flex items-center justify-center transition-all duration-1000 ${isFacingQibla ? 'scale-105 filter drop-shadow-[0_0_40px_rgba(245,158,11,0.5)]' : ''}`}>
+                        {fallbackMode === 'sensor' && qiblaBearing !== null ? (
+                            <div className={`relative w-64 h-64 sm:w-80 sm:h-80 flex items-center justify-center transition-all duration-1000 ${isFacingQibla ? 'scale-105 filter drop-shadow-[0_0_40px_rgba(245,158,11,0.5)]' : ''}`}>
                                 {/* Outer Ring */}
-                                <div className="absolute inset-0 border-4 border-white/10 rounded-full"></div>
+                                <div className="absolute inset-0 border-[6px] border-white/10 rounded-full shadow-[inset_0_0_30px_rgba(0,0,0,0.5)]"></div>
+                                <div className="absolute inset-4 border-2 border-emerald-500/20 rounded-full border-dashed"></div>
 
-                                {/* Degrees Ring (Rotated based on device heading vs true north if we wanted a traditional compass layout. But here we rotate the needle towards qibla) */}
-                                <div className="relative w-full h-full rounded-full flex items-center justify-center transition-transform duration-[400ms]" style={{ transform: `rotate(${smoothenedRotation}deg)` }}>
+                                {/* Degrees Ring */}
+                                <div className="relative w-full h-full rounded-full flex items-center justify-center transition-transform duration-[400ms] shadow-2xl" style={{ transform: `rotate(${smoothenedRotation}deg)` }}>
                                     {/* Theme: Emerald green -> gold gradient */}
-                                    <div className={`w-3 h-full rounded-full transition-all duration-300 ${isFacingQibla ? 'bg-gradient-to-t from-[#f59e0b] to-[#10b981] animate-pulse shadow-[0_0_20px_#f59e0b]' : 'bg-gradient-to-t from-white/10 via-[#10b981] to-[#f59e0b]'}`}></div>
+                                    <div className={`w-4 h-[90%] rounded-full transition-all duration-300 relative flex flex-col items-center ${isFacingQibla ? 'bg-gradient-to-t from-[#f59e0b] to-[#10b981] animate-pulse shadow-[0_0_30px_#f59e0b]' : 'bg-gradient-to-t from-white/10 via-[#10b981] to-[#f59e0b] shadow-lg'}`}>
+                                        {/* Indicator Triangle at top of needle */}
+                                        <div className={`absolute top-[-16px] w-0 h-0 border-l-[14px] border-l-transparent border-r-[14px] border-r-transparent border-b-[24px] transition-colors duration-300 ${isFacingQibla ? 'border-b-[#10b981] filter drop-shadow-[0_0_15px_#10b981]' : 'border-b-[#f59e0b] filter drop-shadow-[0_0_10px_#f59e0b]'}`}></div>
 
-                                    {/* Indicator Triangle at top of needle */}
-                                    <div className="absolute top-[-10px] w-0 h-0 border-l-[12px] border-l-transparent border-r-[12px] border-r-transparent border-b-[20px] transition-colors duration-300 border-b-[#f59e0b] shadow-[0_0_10px_#f59e0b]"></div>
+                                        {/* Reference dot at bottom of needle */}
+                                        <div className="absolute bottom-4 w-2 h-2 rounded-full bg-white/50"></div>
+                                    </div>
                                 </div>
 
                                 {/* Center Hub */}
-                                <div className="absolute w-12 h-12 bg-slate-900 border-4 border-[#10b981] rounded-full z-10 flex items-center justify-center">
-                                    <div className="w-2 h-2 bg-[#f59e0b] rounded-full"></div>
+                                <div className="absolute w-16 h-16 bg-slate-900 border-4 border-[#10b981] rounded-full z-10 flex items-center justify-center shadow-[0_0_20px_rgba(16,185,129,0.4)]">
+                                    <div className="w-3 h-3 bg-[#f59e0b] rounded-full shadow-[0_0_10px_#f59e0b]"></div>
                                 </div>
                             </div>
                         ) : (
                             /* Fallback Mode (Manual / Numeric) */
-                            <div className="bg-white/5 border border-white/10 rounded-3xl p-10 text-center w-full max-w-sm backdrop-blur-md">
-                                <MapIcon size={48} className="mx-auto text-[#f59e0b] mb-6" />
-                                <h2 className="text-xl font-bold mb-2">Manual Direction</h2>
-                                <p className="text-slate-400 text-sm mb-6">Use any standard compass app on your phone and point it towards the below degree.</p>
-                                <div className="text-6xl font-black text-transparent bg-clip-text bg-gradient-to-br from-[#10b981] to-[#f59e0b]">
-                                    {qiblaBearing ? Math.round(qiblaBearing) : '--'}°
+                            <div className="bg-white/5 border border-white/10 rounded-[2.5rem] p-10 text-center w-full max-w-sm backdrop-blur-xl shadow-2xl">
+                                <div className="w-20 h-20 bg-amber-500/20 rounded-full flex items-center justify-center mx-auto mb-6 border border-amber-500/30">
+                                    <MapIcon size={36} className="text-[#f59e0b]" />
                                 </div>
+                                <h2 className="text-2xl font-serif font-bold mb-3 text-white">Manual Mode</h2>
+                                <p className="text-slate-400 text-sm mb-8 leading-relaxed">
+                                    {qiblaBearing !== null
+                                        ? "Use any standard compass app on your phone and point it towards the degree below."
+                                        : "Location unavailable. Please check your system settings, or face approximately South/East if you are in North America/Europe."}
+                                </p>
+
+                                {qiblaBearing !== null && (
+                                    <div className="bg-slate-900/50 rounded-3xl py-8 px-4 border border-white/5 shadow-inner">
+                                        <div className="text-[10px] uppercase font-black tracking-[0.3em] text-emerald-500 mb-2">Target Bearing</div>
+                                        <div className="text-7xl font-black text-transparent bg-clip-text bg-gradient-to-br from-[#10b981] to-[#f59e0b] drop-shadow-sm">
+                                            {Math.round(qiblaBearing)}°
+                                        </div>
+                                    </div>
+                                )}
                             </div>
                         )}
 
                         {/* Status Text Area */}
-                        <div className="mt-16 text-center space-y-4 max-w-sm w-full">
+                        <div className="mt-12 text-center space-y-6 max-w-sm w-full">
                             {isFacingQibla && fallbackMode === 'sensor' && (
-                                <div className="bg-[#f59e0b]/20 border border-[#f59e0b] text-[#f59e0b] px-4 py-2 rounded-full font-bold uppercase tracking-widest text-xs inline-block animate-bounce shadow-[0_0_15px_rgba(245,158,11,0.5)]">
-                                    Directly Aligned ✨
+                                <div className="bg-[#10b981]/20 border border-[#10b981] text-[#10b981] px-6 py-3 rounded-full font-black uppercase tracking-[0.2em] text-[10px] inline-block shadow-[0_0_20px_rgba(16,185,129,0.4)] animate-in slide-in-from-bottom-2">
+                                    You are facing the Qibla ✨
                                 </div>
                             )}
 
                             {needsCalibration && !isFacingQibla && fallbackMode === 'sensor' && (
-                                <div className="flex flex-col items-center bg-white/5 border border-white/10 p-4 rounded-2xl gap-3">
-                                    <RefreshCcw size={20} className="text-amber-500 animate-spin-slow" />
-                                    <p className="text-xs font-semibold text-slate-300">Magnetic Interference Detected</p>
-                                    <p className="text-[10px] text-slate-400">Move your phone in a figure-8 motion to recalibrate the compass.</p>
+                                <div className="flex flex-col items-center bg-amber-500/10 border border-amber-500/20 p-5 rounded-[2rem] gap-3 backdrop-blur-md">
+                                    <RefreshCcw size={24} className="text-amber-500 animate-spin-slow" />
+                                    <div>
+                                        <p className="text-xs font-bold text-amber-500 uppercase tracking-wider mb-1">Compass Interference</p>
+                                        <p className="text-[10px] text-amber-200/70 font-medium">Move your phone in a figure-8 motion to recalibrate.</p>
+                                    </div>
                                 </div>
                             )}
 
-                            <div className="grid grid-cols-2 gap-4">
-                                <div className="bg-white/5 border border-white/10 p-4 rounded-2xl backdrop-blur-sm">
-                                    <div className="text-[10px] uppercase tracking-widest text-slate-400 mb-1">Target Bearing</div>
-                                    <div className="text-xl font-bold text-white">{qiblaBearing !== null ? `${Math.round(qiblaBearing)}°` : '--'}</div>
+                            {qiblaBearing !== null && (
+                                <div className="grid grid-cols-2 gap-4">
+                                    <div className="bg-white/5 border border-white/10 p-5 rounded-3xl backdrop-blur-md hover:bg-white/10 transition-colors">
+                                        <div className="flex justify-center items-center gap-2 mb-2">
+                                            <Navigation size={14} className="text-emerald-400" />
+                                            <div className="text-[9px] font-black uppercase tracking-[0.2em] text-slate-400">Bearing</div>
+                                        </div>
+                                        <div className="text-2xl font-serif font-bold text-white">{Math.round(qiblaBearing)}°</div>
+                                    </div>
+                                    <div className="bg-white/5 border border-white/10 p-5 rounded-3xl backdrop-blur-md hover:bg-white/10 transition-colors">
+                                        <div className="flex justify-center items-center gap-2 mb-2">
+                                            <MapIcon size={14} className="text-[#f59e0b]" />
+                                            <div className="text-[9px] font-black uppercase tracking-[0.2em] text-slate-400">Distance</div>
+                                        </div>
+                                        <div className="text-2xl font-serif font-bold text-white">{distance !== null ? `${Math.round(distance).toLocaleString()}` : '--'} <span className="text-sm text-slate-400">km</span></div>
+                                    </div>
                                 </div>
-                                <div className="bg-white/5 border border-white/10 p-4 rounded-2xl backdrop-blur-sm">
-                                    <div className="text-[10px] uppercase tracking-widest text-slate-400 mb-1">Distance</div>
-                                    <div className="text-xl font-bold text-white">{distance !== null ? `${Math.round(distance)} km` : '--'}</div>
-                                </div>
-                            </div>
+                            )}
                         </div>
 
                         {/* Debug Box (Temporary) */}
                         {debugMode && (
-                            <div className="fixed bottom-0 left-0 w-full bg-black/80 font-mono text-[9px] p-2 text-green-400 overflow-x-auto z-50 pointer-events-none">
-                                qibla: {qiblaBearing?.toFixed(1)} | magH: {orientation.magneticHeading?.toFixed(1)} | decl: {magneticDeclination?.toFixed(1)} |
-                                trueH: {orientation.trueHeading?.toFixed(1)} | smthRot: {smoothenedRotation.toFixed(1)} | ev: {orientation.eventCount} |
-                                acc: {orientation.accuracy}
+                            <div className="fixed bottom-0 left-0 w-full bg-black/90 font-mono text-[10px] p-3 text-emerald-400 overflow-x-auto z-50 pointer-events-none border-t border-emerald-900">
+                                <div className="flex gap-4">
+                                    <span>Qibla: {qiblaBearing?.toFixed(1)}</span>
+                                    <span>MagH: {orientation.magneticHeading?.toFixed(1)}</span>
+                                    <span>Decl: {magneticDeclination?.toFixed(1)}</span>
+                                    <span>TrueH: {orientation.trueHeading?.toFixed(1)}</span>
+                                    <span>Smth: {smoothenedRotation.toFixed(1)}</span>
+                                    <span>Ev: {orientation.eventCount}</span>
+                                    <span>Acc: {orientation.accuracy}</span>
+                                </div>
                             </div>
                         )}
                     </div>

@@ -320,7 +320,7 @@ const IbadahDashboard: React.FC = () => {
       winClean.removeEventListener('deviceorientationabsolute', handleOrientation);
       winClean.removeEventListener('deviceorientation', handleOrientation);
     };
-  }, [subView, isCalibrated]);
+  }, [subView, isCalibrated, declination, qiblaDegrees]);
 
   // DATA FETCHING
   useEffect(() => {
@@ -564,13 +564,16 @@ const IbadahDashboard: React.FC = () => {
           </div>
 
           <div className="space-y-6 max-w-sm relative z-20">
-            {import.meta.env.DEV && (
-              <div className="p-3 bg-black/40 backdrop-blur-sm rounded-xl text-white/50 text-[9px] font-mono border border-white/5 space-y-1 text-left">
-                <div>MAG: {Math.round(liveHeading - declination)}° | DECL: {declination}°</div>
-                <div>TRUE: {Math.round(liveHeading)}° | QIBLA: {Math.round(qiblaDegrees)}°</div>
-                <div>ROT: {Math.round(rotationAngle)}°</div>
-              </div>
-            )}
+            {/* Verification mode — remove after test */}
+            <div className="p-3 bg-black/40 backdrop-blur-sm rounded-xl text-white/50 text-[9px] font-mono border border-white/5 space-y-1 text-left">
+              <div className="text-amber-300/80 font-bold uppercase tracking-wider mb-1">Verification (remove after test)</div>
+              <div>User coords: {location ? `${location.lat.toFixed(4)}, ${location.lng.toFixed(4)}` : '—'}</div>
+              <div>Magnetic heading: {Math.round((liveHeading - declination + 360) % 360)}°</div>
+              <div>Declination: {declination}°</div>
+              <div>True heading: {Math.round(liveHeading)}°</div>
+              <div>Qibla bearing: {Math.round(qiblaDegrees)}°</div>
+              <div>Arrow rotation: {Math.round(rotationAngle)}°</div>
+            </div>
 
             <div className={`p-8 backdrop-blur-xl rounded-[2.5rem] border transition-all duration-500 ${isFacingQibla ? 'bg-white/20 border-white/40 shadow-[0_0_20px_rgba(16,185,129,0.4)]' : 'bg-white/5 border-white/10'}`}>
               <div className={`font-black uppercase tracking-[0.3em] text-[10px] mb-3 ${isFacingQibla ? 'text-white animate-pulse' : 'text-amber-400'}`}>

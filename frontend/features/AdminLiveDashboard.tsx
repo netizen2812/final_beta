@@ -17,7 +17,7 @@ const API_BASE = import.meta.env.VITE_API_URL || "http://localhost:5000";
 
 const AdminLiveDashboard = () => {
     const { getToken } = useAuth();
-    const [activeTab, setActiveTab] = useState<'requests' | 'batches'>('requests');
+    const [activeTab, setActiveTab] = useState<'requests' | 'batches' | 'debug'>('requests');
 
     return (
         <div className="max-w-6xl mx-auto p-8 space-y-8 animate-in fade-in">
@@ -39,10 +39,92 @@ const AdminLiveDashboard = () => {
                     >
                         Manage Batches
                     </button>
+                    <button
+                        onClick={() => setActiveTab('debug')}
+                        className={`px-4 py-2 rounded-lg text-sm font-bold transition-all ${activeTab === 'debug' ? 'bg-white shadow text-[#052e16]' : 'text-slate-500 hover:text-slate-700'}`}
+                    >
+                        Debug (temp)
+                    </button>
                 </div>
             </div>
 
-            {activeTab === 'requests' ? <AccessRequests token={getToken} /> : <BatchManager token={getToken} />}
+            {activeTab === 'requests' && <AccessRequests token={getToken} />}
+            {activeTab === 'batches' && <BatchManager token={getToken} />}
+            {activeTab === 'debug' && <DebugPanel token={getToken} />}
+        </div>
+    );
+};
+
+/** Temporary admin debug: Session (active participants, last position, last update) — remove after test */
+const DebugPanel = ({ token }: { token: any }) => {
+    const [batches, setBatches] = useState<any[]>([]);
+    const [participantsByBatch, setParticipantsByBatch] = useState<Record<string, any[]>>({});
+    const [loading, setLoading] = useState(true);
+
+    const fetchAll = async () => {
+        try {
+            const t = await token();
+            const res = await axios.get(`${API_BASE}/api/live/admin/batches`, { headers: { Authorization: `Bearer ${t}` } });
+            const list = res.data || [];
+            setBatches(list);
+            const byBatch: Record<string, any[]> = {};
+            for (const b of list) {
+                try {
+                    const pRes = await axios.get(`${API_BASE}/api/live/batch/${b._id}/participants`, { headers: { Authorization: `Bearer ${t}` } });
+                    byBatch[b._id] = Array.isArray(pRes.data) ? pRes.data : [];
+                } catch {
+                    byBatch[b._id] = [];
+                }
+            }
+            setParticipantsByBatch(byBatch);
+        } catch (e) {
+            console.error('Debug fetch failed', e);
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    useEffect(() => {
+        fetchAll();
+        const interval = setInterval(fetchAll, 4000);
+        return () => clearInterval(interval);
+    }, []);
+
+    if (loading) return <Loader2 className="animate-spin mx-auto" />;
+
+    return (
+        <div className="space-y-6">
+            <p className="text-xs text-amber-600 font-bold uppercase">Verification mode — remove after test</p>
+            <h3 className="font-bold text-lg text-[#052e16]">Session</h3>
+            <div className="bg-slate-50 rounded-xl border border-slate-200 overflow-hidden">
+                <table className="w-full text-sm">
+                    <thead>
+                        <tr className="bg-slate-100 border-b border-slate-200">
+                            <th className="text-left p-3 font-bold">Batch</th>
+                            <th className="text-left p-3 font-bold">Active participants</th>
+                            <th className="text-left p-3 font-bold">Last position</th>
+                            <th className="text-left p-3 font-bold">Last update time</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {batches.map(b => (
+                            (participantsByBatch[b._id]?.length ? participantsByBatch[b._id] : [{ childName: '—', isActive: false }]).map((p: any, i: number) => (
+                                <tr key={`${b._id}-${p.childId || i}`} className="border-b border-slate-100">
+                                    <td className="p-3">{i === 0 ? b.name : ''}</td>
+                                    <td className="p-3">{p.childName || p.childId || '—'}</td>
+                                    <td className="p-3">{p.currentSurah != null ? `Surah ${p.currentSurah}, Ayah ${p.currentAyah}` : '—'}</td>
+                                    <td className="p-3">{p.lastSeen ? new Date(p.lastSeen).toLocaleString() : '—'}</td>
+                                </tr>
+                            ))
+                        ))}
+                        {batches.length === 0 && (
+                            <tr><td colSpan={4} className="p-6 text-center text-slate-500">No batches</td></tr>
+                        )}
+                    </tbody>
+                </table>
+            </div>
+            <h3 className="font-bold text-lg text-[#052e16] mt-8">Qibla</h3>
+            <p className="text-sm text-slate-500">Open Ibadah → Qibla Finder to see user coords, magnetic heading, declination, true heading, and qibla bearing in the debug block at the bottom of the page.</p>
         </div>
     );
 };

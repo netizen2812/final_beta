@@ -243,34 +243,31 @@ const IbadahDashboard: React.FC = () => {
     return () => clearInterval(timer);
   }, []);
 
-  // QIBLA SENSOR LOGIC
+  // QIBLA SENSOR LOGIC — device heading (magnetic) + declination = true heading; rotation = qiblaBearing - trueHeading
   useEffect(() => {
     if (subView !== 'qibla') return;
 
     let calibrationTimeout: any;
 
     const handleOrientation = (e: DeviceOrientationEvent) => {
-      let heading = 0;
+      let magneticHeading = 0;
       let foundHeading = false;
 
       if ('webkitCompassHeading' in e) {
-        heading = (e as any).webkitCompassHeading;
+        magneticHeading = (e as any).webkitCompassHeading;
         foundHeading = true;
       } else if (e.alpha !== null) {
-        heading = (360 - e.alpha) % 360;
+        magneticHeading = (360 - e.alpha) % 360;
         foundHeading = true;
       }
 
       if (foundHeading) {
         setIsSensorAvailable(true);
 
-        // Calculate True Heading
-        const trueHeading = (heading + declination + 360) % 360;
+        // True North = magnetic + declination (degrees, East positive)
+        const trueHeading = (magneticHeading + declination + 360) % 360;
 
-        // Final Rotation for Arrow (point to Qibla)
-        // We want the arrow to point to Qibla relative to the phone's top (True North).
-        // If phone points North (0°), Qibla is at `qiblaDegrees`.
-        // If phone rotates `trueHeading`, arrow must rotate opposite.
+        // Final rotation: arrow points to Qibla. rotation = qiblaBearing - trueHeading, normalize 0–360
         const rotation = (qiblaDegrees - trueHeading + 360) % 360;
 
         // DEBUG LOGGING (Temporary)
@@ -291,12 +288,11 @@ const IbadahDashboard: React.FC = () => {
           return Math.round(smoothed * 10) / 10;
         });
 
-        // Store for calibration check
+        // Store for calibration check (low variance = stable heading)
         if (!isCalibrated) {
-          headingBuffer.current.push(heading);
+          headingBuffer.current.push(magneticHeading);
           if (headingBuffer.current.length > 20) {
             headingBuffer.current.shift();
-            // Simple variance check logic preserved
             const mean = headingBuffer.current.reduce((a, b) => a + b, 0) / 20;
             const variance = headingBuffer.current.reduce((a, b) => a + Math.pow(b - mean, 2), 0) / 20;
             if (variance < 5) setIsCalibrated(true);
@@ -496,7 +492,7 @@ const IbadahDashboard: React.FC = () => {
     }, [isFacingQibla]);
 
     return (
-      <div className={`min-h-screen py-12 sm:py-16 lg:py-20 px-4 sm:px-6 lg:px-8 animate-in zoom-in duration-500 overflow-hidden text-white transition-all duration-1000 ${isFacingQibla ? 'bg-gradient-to-br from-[#10b981] to-[#f59e0b]' : 'bg-gradient-to-br from-slate-900 via-[#0f172a] to-[#1e293b]'}`}>
+      <div className="min-h-screen py-12 sm:py-16 lg:py-20 px-4 sm:px-6 lg:px-8 animate-in zoom-in duration-500 overflow-hidden text-white transition-all duration-1000 bg-gradient-to-br from-emerald-600 via-emerald-500 to-amber-500">
 
         {/* Dynamic Background Particles */}
         <div className="absolute inset-0 overflow-hidden pointer-events-none">
@@ -587,9 +583,12 @@ const IbadahDashboard: React.FC = () => {
               </p>
             </div>
 
+            {isSensorAvailable && !isCalibrated && (
+              <p className="text-amber-100 text-sm font-medium">Move your device in a figure-8 to calibrate the compass.</p>
+            )}
             <div className={`flex items-center gap-3 justify-center text-[10px] font-black uppercase tracking-widest transition-opacity ${isCalibrated ? 'opacity-40' : 'opacity-100'}`}>
-              {isSensorAvailable ? <CheckCircle2 size={14} className="text-emerald-400" /> : <AlertCircle size={14} className="text-amber-400" />}
-              {isSensorAvailable ? 'Sensor Active' : 'Sensor Error'}
+              {isSensorAvailable ? <CheckCircle2 size={14} className="text-white" /> : <AlertCircle size={14} className="text-amber-200" />}
+              {isSensorAvailable ? (isCalibrated ? 'Sensor Active' : 'Calibrating...') : 'Compass Unavailable'}
             </div>
           </div>
         </div>

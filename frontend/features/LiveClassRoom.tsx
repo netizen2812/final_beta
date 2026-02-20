@@ -83,9 +83,11 @@ const LiveClassRoom: React.FC = () => {
         const res = await axios.get(`${API_BASE}/api/live/my-sessions`, {
           headers: { Authorization: `Bearer ${token}` }
         });
-        setScholarBatches(res.data);
+        // Safety check
+        setScholarBatches(Array.isArray(res.data) ? res.data : []);
       } catch (err) {
         console.error("Failed to fetch scholar batches", err);
+        setScholarBatches([]);
       }
     };
     fetchBatches();
@@ -93,7 +95,7 @@ const LiveClassRoom: React.FC = () => {
 
   // 2. Poll Active Participants (Every 2s) - Only if we have batches
   useEffect(() => {
-    if (userRole !== 'scholar' || scholarBatches.length === 0) return;
+    if (userRole !== 'scholar' || !Array.isArray(scholarBatches) || scholarBatches.length === 0) return;
 
     const fetchParticipants = async () => {
       try {
@@ -102,7 +104,10 @@ const LiveClassRoom: React.FC = () => {
 
         // Parallelize for better performance
         const promises = scholarBatches.map(async (batch) => {
+          if (!batch) return [];
           const batchId = batch._id || batch.id;
+          if (!batchId) return [];
+
           try {
             const res = await axios.get(`${API_BASE}/api/live/batch/${batchId}/participants`, {
               headers: { Authorization: `Bearer ${token}` }
@@ -110,16 +115,16 @@ const LiveClassRoom: React.FC = () => {
             const rawData = res.data;
             const participants = Array.isArray(rawData) ? rawData : (rawData.activeParticipants || []);
 
-            return participants.filter((p: any) => p.isActive).map((p: any) => ({
+            return participants.filter((p: any) => p && p.isActive).map((p: any) => ({
               _id: `${p.childId}-${batchId}`,
               parentId: "unknown",
               childId: p.childId,
               scholarId: "scholar",
-              currentSurah: p.currentSurah,
-              currentAyah: p.currentAyah,
+              currentSurah: p.currentSurah || 1, // Default to 1 to prevent crash
+              currentAyah: p.currentAyah || 1,     // Default to 1
               lastSeen: p.lastSeen,
               status: 'active',
-              studentName: p.childName,
+              studentName: p.childName || 'Unknown Student',
               parentName: `Batch: ${batch.title || batch.name}`,
               batchId: batchId
             }));

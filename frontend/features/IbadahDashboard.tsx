@@ -210,6 +210,22 @@ const IbadahDashboard: React.FC = () => {
   const headingBuffer = useRef<number[]>([]);
 
   // ... (completedPrayers logic) ...
+  const [completedPrayers, setCompletedPrayers] = useState<string[]>(() => {
+    const saved = localStorage.getItem('imam_completed_prayers');
+    const lastDate = localStorage.getItem('imam_last_prayer_date');
+    const today = new Date().toDateString();
+    if (lastDate !== today) return [];
+    return saved ? JSON.parse(saved) : [];
+  });
+
+  const togglePrayerCompletion = (name: string) => {
+    setCompletedPrayers(prev => {
+      const next = prev.includes(name) ? prev.filter(p => p !== name) : [...prev, name];
+      localStorage.setItem('imam_completed_prayers', JSON.stringify(next));
+      localStorage.setItem('imam_last_prayer_date', new Date().toDateString());
+      return next;
+    });
+  };
 
   // QIBLA SENSOR LOGIC — device heading (magnetic) + declination = true heading; rotation = qiblaBearing - trueHeading
   useEffect(() => {

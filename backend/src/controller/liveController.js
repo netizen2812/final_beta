@@ -1,4 +1,5 @@
 import User from "../models/User.js";
+import LiveSession from "../models/LiveSession.js";
 import { trackEvent } from "../services/analyticsService.js";
 
 const SCHOLAR_EMAIL = "scholar1.imam@gmail.com";
@@ -382,7 +383,7 @@ export const joinBatch = async (req, res) => {
         await batch.save();
         // --- PRESENCE TRACKING END ---
 
-        // Legacy Session Creation (Optional, for stats)
+        // Legacy Session Creation (Optional, for stats). No default surah/ayah — student is source of truth.
         let session = await LiveSession.findOne({ childId, status: 'active' });
         if (!session) {
             try {
@@ -391,8 +392,7 @@ export const joinBatch = async (req, res) => {
                     parentId: userId,
                     childId,
                     scholarId: batch.scholar,
-                    currentSurah: 1,
-                    currentAyah: 1,
+                    // Do NOT set currentSurah/currentAyah — remain null until first student movement
                     status: 'active',
                     startedAt: new Date(),
                     scheduledStartTime: new Date(),
@@ -582,20 +582,15 @@ export const batchPing = async (req, res) => {
     }
 };
 
-// USER: POST /api/live/update-progress - Sync Surah/Ayah
+// USER: POST /api/live/update-progress - Sync Surah/Ayah (STAGE: BACKEND STORE)
 export const updateBatchProgress = async (req, res) => {
     try {
         const { batchId, childId, surah, ayah } = req.body;
-        console.log("AYAH UPDATED", {
-            childId,
-            surah,
-            ayah,
-            timestamp: new Date().toISOString()
-        }); // DEBUG LOG
+        console.log("[BACKEND STORE] update-progress", { childId, surah, ayah, ts: new Date().toISOString() });
 
         const { default: Batch } = await import("../models/Batch.js");
 
-        await Batch.updateOne(
+        const result = await Batch.updateOne(
             { _id: batchId, "activeParticipants.childId": childId },
             {
                 $set: {
@@ -606,9 +601,55 @@ export const updateBatchProgress = async (req, res) => {
                 }
             }
         );
+        if (result.modifiedCount === 0) {
+            console.warn("[BACKEND STORE] No participant matched — check batchId/childId");
+        }
+        console.log("[BACKEND BROADCAST] Position stored; scholar will receive on next poll (≤2s)");
         res.json({ ok: true });
     } catch (error) {
         res.status(500).json({ error: error.message });
+    }
+};
+
+// USER: POST /api/live/update-position - Student position (surah/ayah) — same store as update-progress, with userId + timestamp
+export const updatePosition = async (req, res) => {
+    try {
+        const { userId, batchId, childId, surahNumber, ayahNumber, timestamp } = req.body;
+        const id = childId || userId;
+        if (!batchId || !id) {
+            return res.status(400).json({ success: false, message: "batchId and childId (or userId) required" });
+        }
+        const surah = surahNumber != null ? Number(surahNumber) : null;
+        const ayah = ayahNumber != null ? Number(ayahNumber) : null;
+        if (surah == null || ayah == null) {
+            return res.status(400).json({ success: false, message: "surahNumber and ayahNumber required" });
+        }
+
+        console.log("[BACKEND STORE] update-position", { userId, childId: id, surah, ayah, ts: timestamp || new Date().toISOString() });
+
+        const { default: Batch } = await import("../models/Batch.js");
+
+        const result = await Batch.updateOne(
+            { _id: batchId, "activeParticipants.childId": id },
+            {
+                $set: {
+                    "activeParticipants.$.currentSurah": surah,
+                    "activeParticipants.$.currentAyah": ayah,
+                    "activeParticipants.$.lastSeen": new Date(),
+                    "activeParticipants.$.isActive": true
+                }
+            }
+        );
+
+        if (result.matchedCount === 0) {
+            console.warn("[BACKEND STORE] No participant matched for batchId/childId — student may not have joined");
+            return res.status(404).json({ success: false, message: "Participant not found in batch" });
+        }
+        console.log("[BACKEND BROADCAST] Position stored; scholar will receive on next poll (≤2s)");
+        res.json({ ok: true });
+    } catch (error) {
+        console.error("[BACKEND STORE] Error:", error.message);
+        res.status(500).json({ success: false, error: error.message });
     }
 };
 
@@ -628,7 +669,9 @@ export const leaveBatch = async (req, res) => {
     }
 };
 
-// SCHOLAR: GET /api/live/batch/:id/participants - Get live students
+// SCHOLAR: GET /api/live/batch/:id/participants - Get live students (STAGE: SCHOLAR RECEIVE)
+const PARTICIPANT_ACTIVE_MS = 60 * 1000; // 60 seconds — no timezone, use UTC millis
+
 export const getBatchActiveParticipants = async (req, res) => {
     try {
         const { id } = req.params;
@@ -637,13 +680,12 @@ export const getBatchActiveParticipants = async (req, res) => {
 
         if (!batch) return res.status(404).json({ message: "Batch not found" });
 
-        // Auto-cleanup: Mark inactive if lastSeen > 60s ago
-        const now = new Date();
-        const oneMinuteAgo = new Date(now.getTime() - 60000);
+        const nowMs = Date.now();
 
         let dirty = false;
         batch.activeParticipants.forEach(p => {
-            if (p.isActive && new Date(p.lastSeen) < oneMinuteAgo) {
+            const lastSeenMs = p.lastSeen ? new Date(p.lastSeen).getTime() : 0;
+            if (p.isActive && (nowMs - lastSeenMs > PARTICIPANT_ACTIVE_MS)) {
                 p.isActive = false;
                 dirty = true;
             }
@@ -653,21 +695,12 @@ export const getBatchActiveParticipants = async (req, res) => {
 
         const liveParticipants = batch.activeParticipants.filter(p => p.isActive);
 
-        // DEBUG LOG
-        liveParticipants.forEach(p => {
-            console.log("FETCH PARTICIPANTS", {
-                childId: p.childId,
-                surah: p.currentSurah,
-                ayah: p.currentAyah,
-                isActive: p.isActive,
-                lastSeen: p.lastSeen
-            });
-        });
+        console.log("[SCHOLAR RECEIVE]", { batchId: id, count: liveParticipants.length, participants: liveParticipants.map(p => ({ childId: p.childId, surah: p.currentSurah, ayah: p.currentAyah, lastSeen: p.lastSeen })) });
 
         res.json(liveParticipants);
 
     } catch (error) {
-        console.error("GET PARTICIPANTS ERROR:", error);
+        console.error("[SCHOLAR RECEIVE] Error:", error);
         res.status(500).json({ error: error.message });
     }
 };

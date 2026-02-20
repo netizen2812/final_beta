@@ -67,6 +67,8 @@ interface QuranPageProps {
   sessionCurrentSurah?: number;
   sessionCurrentAyah?: number;
   onAyahClick?: (surah: number, ayah: number) => void;
+  /** Called when student changes surah/ayah (ayah click, surah switch, scroll). Throttled by parent. */
+  onPositionChange?: (surah: number, ayah: number) => void;
   readOnly?: boolean;
 }
 
@@ -75,6 +77,7 @@ const QuranPage: React.FC<QuranPageProps> = ({
   sessionCurrentSurah,
   sessionCurrentAyah,
   onAyahClick,
+  onPositionChange,
   readOnly
 }) => {
   const [surahs, setSurahs] = useState<Surah[]>([]);
@@ -86,6 +89,8 @@ const QuranPage: React.FC<QuranPageProps> = ({
   const [surahContent, setSurahContent] = useState<Ayah[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
+  const readingContainerRef = useRef<HTMLDivElement>(null);
+  const scrollThrottleRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // Audio State
   const [isPlaying, setIsPlaying] = useState(false);
@@ -93,12 +98,10 @@ const QuranPage: React.FC<QuranPageProps> = ({
   const [playbackSpeed, setPlaybackSpeed] = useState(1);
   const audioRef = useRef<HTMLAudioElement | null>(null);
 
-  // Sync with prop updates (for Live Session)
+  // Sync with prop updates (for Live Session) — scholar view: autoscroll to student position
   useEffect(() => {
     if (sessionCurrentSurah && sessionCurrentAyah) {
-      // If we are already viewing the correct surah, just scroll/highlight
       if (selectedSurah?.number === sessionCurrentSurah) {
-        // Find index of ayah
         const ayahIndex = surahContent.findIndex(a => a.numberInSurah === sessionCurrentAyah);
         if (ayahIndex !== -1) {
           setCurrentAyahIndex(ayahIndex);
@@ -106,19 +109,63 @@ const QuranPage: React.FC<QuranPageProps> = ({
           el?.scrollIntoView({ behavior: 'smooth', block: 'center' });
         }
       } else {
-        // Load the new Surah
-        // We need to find the surah object first to set selectedSurah properly
         const surahObj = surahs.find(s => s.number === sessionCurrentSurah);
         if (surahObj) {
           setSelectedSurah(surahObj);
           fetchSurahContent(sessionCurrentSurah, sessionCurrentAyah);
         } else if (surahs.length > 0) {
-          // Fallback if surahs loaded but we need to fetch content immediately
           fetchSurahContent(sessionCurrentSurah, sessionCurrentAyah);
         }
       }
     }
   }, [sessionCurrentSurah, sessionCurrentAyah, surahs]);
+
+  // Student: report position when surah/ayah changes (ayah click, next/prev, surah switch). Parent throttles.
+  useEffect(() => {
+    if (!onPositionChange || readOnly || !selectedSurah || !surahContent.length) return;
+    const ayah = surahContent[currentAyahIndex];
+    if (ayah) onPositionChange(selectedSurah.number, ayah.numberInSurah);
+  }, [onPositionChange, readOnly, selectedSurah, currentAyahIndex, surahContent]);
+
+  // Student: on scroll stop (throttle 500ms), find visible ayah and report position
+  useEffect(() => {
+    if (!onPositionChange || readOnly || !selectedSurah || !surahContent.length) return;
+    const container = readingContainerRef.current;
+    if (!container) return;
+    let scrollParent: HTMLElement | null = container.parentElement;
+    while (scrollParent && !['auto', 'scroll', 'overlay'].includes(getComputedStyle(scrollParent).overflowY)) {
+      scrollParent = scrollParent.parentElement;
+    }
+    if (!scrollParent) return;
+    const onScroll = () => {
+      if (scrollThrottleRef.current) return;
+      scrollThrottleRef.current = setTimeout(() => {
+        scrollThrottleRef.current = null;
+        const parentRect = scrollParent!.getBoundingClientRect();
+        const viewportCenterY = parentRect.top + parentRect.height / 2;
+        let bestIdx = 0;
+        let bestDist = Infinity;
+        surahContent.forEach((_, idx) => {
+          const el = document.getElementById(`ayah-${idx}`);
+          if (!el) return;
+          const rect = el.getBoundingClientRect();
+          const elCenterY = rect.top + rect.height / 2;
+          const dist = Math.abs(elCenterY - viewportCenterY);
+          if (dist < bestDist) {
+            bestDist = dist;
+            bestIdx = idx;
+          }
+        });
+        const ayah = surahContent[bestIdx];
+        if (ayah) onPositionChange(selectedSurah.number, ayah.numberInSurah);
+      }, 500);
+    };
+    scrollParent.addEventListener('scroll', onScroll, { passive: true });
+    return () => {
+      scrollParent!.removeEventListener('scroll', onScroll);
+      if (scrollThrottleRef.current) clearTimeout(scrollThrottleRef.current);
+    };
+  }, [onPositionChange, readOnly, selectedSurah, surahContent]);
 
   useEffect(() => {
     fetchSurahs();
@@ -158,13 +205,15 @@ const QuranPage: React.FC<QuranPageProps> = ({
       setSurahContent(combined);
       setView('reading');
 
-      // If target ayah is provided (from live sync), set index to it
       if (targetAyahNumber) {
         const idx = combined.findIndex(a => a.numberInSurah === targetAyahNumber);
         setCurrentAyahIndex(idx !== -1 ? idx : 0);
       } else {
         setCurrentAyahIndex(0);
       }
+
+      // Student live sync: report position after surah load (parent throttles)
+      if (onPositionChange) onPositionChange(number, targetAyahNumber || 1);
 
       setIsPlaying(false);
     } catch (error) {
@@ -509,7 +558,7 @@ const QuranPage: React.FC<QuranPageProps> = ({
           )}
         </div>
       ) : (
-        <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-10 lg:py-12 space-y-8 sm:space-y-12 pb-32 sm:pb-40">
+        <div ref={readingContainerRef} className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-10 lg:py-12 space-y-8 sm:space-y-12 pb-32 sm:pb-40">
           <div className="flex items-center gap-4 overflow-x-auto pb-6 scrollbar-hide snap-x border-b border-emerald-50">
             {surahContent.map((ayah, idx) => (
               <button
@@ -545,6 +594,7 @@ const QuranPage: React.FC<QuranPageProps> = ({
                     onClick={() => {
                       if (onAyahClick) {
                         onAyahClick(selectedSurah?.number || 1, ayah.numberInSurah);
+                        onPositionChange?.(selectedSurah?.number ?? 1, ayah.numberInSurah);
                       } else {
                         setCurrentAyahIndex(idx);
                       }

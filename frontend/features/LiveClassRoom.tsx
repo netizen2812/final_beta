@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import {
   Users,
   Clock,
@@ -15,6 +15,8 @@ import { useChildContext } from '../contexts/ChildContext';
 import QuranPage from './QuranPage';
 import axios from 'axios';
 import { useAuth, useUser } from '@clerk/clerk-react';
+
+const POSITION_THROTTLE_MS = 500;
 
 // Types
 // Types
@@ -99,12 +101,13 @@ const LiveClassRoom: React.FC = () => {
             const participants = Array.isArray(rawData) ? rawData : (rawData.activeParticipants || []);
 
             const active = participants.filter((p: any) => p.isActive).map((p: any) => ({
-              _id: p.childId + Date.now(), // Temp unique ID for UI key
+              _id: `${p.childId}-${batchId}`,
               parentId: "unknown",
               childId: p.childId,
               scholarId: "scholar",
-              currentSurah: p.currentSurah, // Allow null/undefined
+              currentSurah: p.currentSurah,
               currentAyah: p.currentAyah,
+              lastSeen: p.lastSeen,
               status: 'active',
               studentName: p.childName,
               parentName: `Batch: ${batch.title || batch.name}`,
@@ -124,10 +127,21 @@ const LiveClassRoom: React.FC = () => {
       }
     };
 
-    fetchScholarData();
-    const interval = setInterval(fetchScholarData, 2000); // Poll every 2s (Real-time)
+        fetchScholarData();
+    const interval = setInterval(fetchScholarData, 2000); // Poll every 2s — scholar receives updates
     return () => clearInterval(interval);
   }, [userRole, getToken]);
+
+  // Scholar viewing a session: merge latest participant position so Quran auto-scrolls
+  useEffect(() => {
+    if (userRole !== 'scholar' || !currentSession?.childId) return;
+    // activeSessions is updated by polling; find this session's participant and sync position
+    const match = activeSessions.find((s: LiveSession) => s.childId === currentSession.childId && s.batchId === currentSession.batchId);
+    if (match && (match.currentSurah !== currentSession.currentSurah || match.currentAyah !== currentSession.currentAyah)) {
+      setCurrentSession(prev => prev ? { ...prev, currentSurah: match.currentSurah, currentAyah: match.currentAyah } : null);
+      console.log("[SCHOLAR RENDER] position updated", { surah: match.currentSurah, ayah: match.currentAyah });
+    }
+  }, [userRole, currentSession?.childId, currentSession?.batchId, activeSessions]);
 
   // STUDENT: HEARTBEAT & SYNC
   useEffect(() => {
@@ -268,30 +282,57 @@ const LiveClassRoom: React.FC = () => {
     }
   };
 
+  // Throttled position emit (student → backend → scholar). Max 500ms.
+  const positionThrottleRef = useRef<{ timer: ReturnType<typeof setTimeout> | null; lastSurah: number; lastAyah: number }>({ timer: null, lastSurah: 0, lastAyah: 0 });
+
+  const emitPosition = useCallback(async (surah: number, ayah: number) => {
+    if (!currentSession?.batchId || !currentSession?.childId || userRole === 'scholar') return;
+    const { lastSurah, lastAyah } = positionThrottleRef.current;
+    if (lastSurah === surah && lastAyah === ayah) return;
+
+    positionThrottleRef.current.lastSurah = surah;
+    positionThrottleRef.current.lastAyah = ayah;
+
+    if (positionThrottleRef.current.timer) clearTimeout(positionThrottleRef.current.timer);
+    positionThrottleRef.current.timer = setTimeout(async () => {
+      positionThrottleRef.current.timer = null;
+      try {
+        const token = await getToken();
+        console.log("[STUDENT EMIT] position", { surah, ayah, batchId: currentSession.batchId, childId: currentSession.childId });
+        await axios.post(`${API_BASE}/api/live/update-position`, {
+          userId: user?.id,
+          batchId: currentSession.batchId,
+          childId: currentSession.childId,
+          surahNumber: surah,
+          ayahNumber: ayah,
+          timestamp: new Date().toISOString()
+        }, { headers: { Authorization: `Bearer ${token}` } });
+        await axios.post(`${API_BASE}/api/live/update-progress`, {
+          batchId: currentSession.batchId,
+          childId: currentSession.childId,
+          surah,
+          ayah
+        }, { headers: { Authorization: `Bearer ${token}` } });
+      } catch (err) {
+        console.error("[STUDENT EMIT] Failed:", err);
+      }
+    }, POSITION_THROTTLE_MS);
+  }, [currentSession, userRole, getToken, user?.id]);
+
   const handleAyahClick = async (surah: number, ayah: number) => {
     if (!currentSession) return;
     if (userRole === 'scholar') return;
 
     setCurrentSession(prev => prev ? { ...prev, currentSurah: surah, currentAyah: ayah } : null);
+    emitPosition(surah, ayah);
 
     try {
       const token = await getToken();
-      // Legacy Patch (Optional)
-      await axios.patch(`${API_BASE}/api/live/${currentSession._id}`, {
-        surah, ayah
-      }, {
-        headers: { Authorization: `Bearer ${token}` }
-      });
-
-      // New Presence Sync
-      if (currentSession.batchId) {
-        await axios.post(`${API_BASE}/api/live/update-progress`, {
-          batchId: currentSession.batchId,
-          childId: currentSession.childId,
+      if (currentSession._id) {
+        await axios.patch(`${API_BASE}/api/live/${currentSession._id}`, {
           surah, ayah
         }, { headers: { Authorization: `Bearer ${token}` } });
       }
-
     } catch (err) {
       console.error("Failed to update ayah", err);
     }
@@ -338,6 +379,7 @@ const LiveClassRoom: React.FC = () => {
               sessionCurrentSurah={currentSession.currentSurah}
               sessionCurrentAyah={currentSession.currentAyah}
               onAyahClick={handleAyahClick}
+              onPositionChange={userRole === 'scholar' ? undefined : emitPosition}
               readOnly={userRole === 'scholar'}
             />
           )}
@@ -491,7 +533,13 @@ const UpcomingSessions = ({ token, activeChildId, onJoin }: { token: any, active
       // The backend 'join' endpoint should return the session object
       // If it returns a session, we're good.
       if (res.data.session) {
-        onJoin(res.data.session);
+        const s = res.data.session;
+        // Do NOT default to surah 1 ayah 1 — student is source of truth
+        onJoin({
+          ...s,
+          currentSurah: s.currentSurah ?? undefined,
+          currentAyah: s.currentAyah ?? undefined
+        });
       } else {
         // Fallback if structure is different
         alert("Joined batch. Please refresh/wait for session.");

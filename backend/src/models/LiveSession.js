@@ -63,14 +63,14 @@ const liveSessionSchema = new mongoose.Schema(
             default: 10
         },
 
-        // Quran Progress (Shared)
+        // Quran Progress (Shared) — student is source of truth; no default on join
         currentSurah: {
             type: Number,
-            default: 1, // Al-Fatiha
+            default: null,
         },
         currentAyah: {
             type: Number,
-            default: 1,
+            default: null,
         },
         status: {
             type: String,

@@ -3,7 +3,7 @@ import {
     startSession, getScholarSessions, getSession, updateAyah, endSession, getScholarStatus,
     createBatch, getAdminBatches, updateBatch, deleteBatch, startBatch, joinBatch, getMySessions,
     addStudentToBatch, removeStudentFromBatch, getBatchSessions, debugBatch, debugAllBatches,
-    batchPing, updateBatchProgress, leaveBatch, getBatchActiveParticipants
+    batchPing, updateBatchProgress, updatePosition, leaveBatch, getBatchActiveParticipants
 } from "../controller/liveController.js";
 import { requireAuth, isAdmin } from "../middleware/authmiddleware.js";
 
@@ -24,6 +24,7 @@ router.get("/:id/debug", debugBatch);
 // LIVE PRESENCE
 router.post("/ping", requireAuth, batchPing);
 router.post("/update-progress", requireAuth, updateBatchProgress);
+router.post("/update-position", requireAuth, updatePosition);
 router.post("/leave", requireAuth, leaveBatch);
 router.get("/batch/:id/participants", requireAuth, getBatchActiveParticipants);
 

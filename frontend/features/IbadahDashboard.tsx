@@ -34,7 +34,7 @@ import {
   ArrowRight
 } from 'lucide-react';
 import QuranPage from './QuranPage';
-import { getPrayerTimings, getHijriDate, getCalendarMonth, formatDateForAPI, calculateQibla } from '../services/aladhan';
+import { getPrayerTimings, getHijriDate, getCalendarMonth, formatDateForAPI, calculateQibla, getMagneticDeclination } from '../services/aladhan';
 
 // --- TYPES & CONSTANTS ---
 
@@ -203,6 +203,7 @@ const IbadahDashboard: React.FC = () => {
   // Qibla Finder States
   const [qiblaDegrees, setQiblaDegrees] = useState<number>(0);
   const [liveHeading, setLiveHeading] = useState<number>(0);
+  const [declination, setDeclination] = useState<number>(0);
   const [isCalibrated, setIsCalibrated] = useState<boolean>(false);
   const [isSensorAvailable, setIsSensorAvailable] = useState<boolean>(false);
   const headingBuffer = useRef<number[]>([]);
@@ -262,24 +263,43 @@ const IbadahDashboard: React.FC = () => {
 
       if (foundHeading) {
         setIsSensorAvailable(true);
+
+        // Calculate True Heading
+        const trueHeading = (heading + declination + 360) % 360;
+
+        // Final Rotation for Arrow (point to Qibla)
+        // We want the arrow to point to Qibla relative to the phone's top (True North).
+        // If phone points North (0°), Qibla is at `qiblaDegrees`.
+        // If phone rotates `trueHeading`, arrow must rotate opposite.
+        const rotation = (qiblaDegrees - trueHeading + 360) % 360;
+
+        // DEBUG LOGGING (Temporary)
+        // console.log("QIBLA DEBUG:", {
+        //   magneticHeading: heading.toFixed(2),
+        //   declination: declination.toFixed(2),
+        //   trueHeading: trueHeading.toFixed(2),
+        //   qiblaBearing: qiblaDegrees.toFixed(2),
+        //   finalArrowRotation: rotation.toFixed(2)
+        // });
+
         setLiveHeading(prev => {
-          let diff = heading - prev;
+          // Smoothing logic
+          let diff = trueHeading - prev;
           if (diff > 180) diff -= 360;
           if (diff < -180) diff += 360;
-          const smoothed = (prev + diff * 0.2 + 360) % 360;
-          return Math.round(smoothed);
+          const smoothed = (prev + diff * 0.15 + 360) % 360; // Slower factor for smoothness
+          return Math.round(smoothed * 10) / 10;
         });
 
+        // Store for calibration check
         if (!isCalibrated) {
           headingBuffer.current.push(heading);
           if (headingBuffer.current.length > 20) {
             headingBuffer.current.shift();
+            // Simple variance check logic preserved
             const mean = headingBuffer.current.reduce((a, b) => a + b, 0) / 20;
             const variance = headingBuffer.current.reduce((a, b) => a + Math.pow(b - mean, 2), 0) / 20;
-            if (variance < 3) {
-              setIsCalibrated(true);
-              if (calibrationTimeout) clearTimeout(calibrationTimeout);
-            }
+            if (variance < 5) setIsCalibrated(true);
           }
         }
       }
@@ -331,11 +351,14 @@ const IbadahDashboard: React.FC = () => {
         setNextPrayer(found ? found.name : 'Fajr');
       }
 
-      // Qibla
+      // Qibla & Declination
       const qibla = calculateQibla(location.lat, location.lng);
-      setQiblaDegrees(Math.round(qibla));
+      setQiblaDegrees(qibla);
 
-      // Today's Hijri
+      const decl = await getMagneticDeclination(location.lat, location.lng);
+      setDeclination(decl);
+
+      console.log("QIBLA SETUP:", { lat: location.lat, lng: location.lng, qibla, declination: decl });
       const todayHijri = await getHijriDate();
       setHijriInfo(todayHijri);
 
@@ -465,9 +488,6 @@ const IbadahDashboard: React.FC = () => {
     const rotationAngle = (qiblaDegrees - liveHeading + 360) % 360;
 
     // 2️⃣ Immersive: Check if aligned (Arrow pointing roughly UP which is 0 +/- 10)
-    // "Aligned" means the Qibla is continuously "Up" (0 deg) relative to phone.
-    // If the Qibla is at 0 degrees relative to phone top, we are facing it.
-    // So we check if rotationAngle is close to 0 (or 360).
     const isFacingQibla = rotationAngle < 10 || rotationAngle > 350;
 
     // Trigger haptics if available when entering alignment
@@ -476,12 +496,12 @@ const IbadahDashboard: React.FC = () => {
     }, [isFacingQibla]);
 
     return (
-      <div className={`min-h-screen py-12 sm:py-16 lg:py-20 px-4 sm:px-6 lg:px-8 animate-in zoom-in duration-500 overflow-hidden text-white transition-all duration-1000 ${isFacingQibla ? 'bg-[conic-gradient(at_top,_var(--tw-gradient-stops))] from-amber-200 via-yellow-400 to-amber-700' : 'bg-gradient-to-br from-slate-900 via-[#0f172a] to-[#1e293b]'}`}>
+      <div className={`min-h-screen py-12 sm:py-16 lg:py-20 px-4 sm:px-6 lg:px-8 animate-in zoom-in duration-500 overflow-hidden text-white transition-all duration-1000 ${isFacingQibla ? 'bg-gradient-to-br from-[#10b981] to-[#f59e0b]' : 'bg-gradient-to-br from-slate-900 via-[#0f172a] to-[#1e293b]'}`}>
 
         {/* Dynamic Background Particles */}
         <div className="absolute inset-0 overflow-hidden pointer-events-none">
           {[...Array(20)].map((_, i) => (
-            <div key={i} className={`absolute rounded-full opacity-20 animate-pulse ${isFacingQibla ? 'bg-white' : 'bg-amber-500'}`}
+            <div key={i} className={`absolute rounded-full opacity-20 animate-pulse ${isFacingQibla ? 'bg-white' : 'bg-emerald-500'}`}
               style={{
                 top: `${Math.random() * 100}%`,
                 left: `${Math.random() * 100}%`,
@@ -532,7 +552,7 @@ const IbadahDashboard: React.FC = () => {
             <div className="absolute inset-0 transition-transform duration-500 ease-out" style={{ transform: `rotate(${qiblaDegrees - liveHeading}deg)` }}>
               <div className="absolute top-0 left-1/2 -translate-x-1/2 -translate-y-6 w-12 h-44 origin-bottom flex flex-col items-center justify-end pb-10 filter drop-shadow-[0_0_15px_rgba(251,191,36,0.6)]">
                 {/* Needle Body */}
-                <div className={`w-1.5 h-full rounded-full bg-gradient-to-t from-amber-600 via-yellow-400 to-white ${isFacingQibla ? 'animate-pulse' : ''}`} />
+                <div className={`w-1.5 h-full rounded-full bg-gradient-to-t from-emerald-600 via-emerald-400 to-white ${isFacingQibla ? 'animate-pulse' : ''}`} />
                 {/* Diamond Tip */}
                 <div className="w-6 h-6 bg-yellow-300 rotate-45 -mb-3 shadow-[0_0_20px_rgba(253,224,71,0.8)] border-2 border-white" />
               </div>
@@ -549,12 +569,14 @@ const IbadahDashboard: React.FC = () => {
 
           <div className="space-y-6 max-w-sm relative z-20">
             {import.meta.env.DEV && (
-              <div className="p-3 bg-black/40 backdrop-blur-sm rounded-xl text-white/50 text-[9px] font-mono border border-white/5">
-                DEBUG: Heading {liveHeading}° | Qibla {qiblaDegrees}° | Diff {Math.round(rotationAngle)}°
+              <div className="p-3 bg-black/40 backdrop-blur-sm rounded-xl text-white/50 text-[9px] font-mono border border-white/5 space-y-1 text-left">
+                <div>MAG: {Math.round(liveHeading - declination)}° | DECL: {declination}°</div>
+                <div>TRUE: {Math.round(liveHeading)}° | QIBLA: {Math.round(qiblaDegrees)}°</div>
+                <div>ROT: {Math.round(rotationAngle)}°</div>
               </div>
             )}
 
-            <div className={`p-8 backdrop-blur-xl rounded-[2.5rem] border transition-all duration-500 ${isFacingQibla ? 'bg-white/20 border-white/40 shadow-[0_0_50px_rgba(255,255,255,0.3)]' : 'bg-white/5 border-white/10'}`}>
+            <div className={`p-8 backdrop-blur-xl rounded-[2.5rem] border transition-all duration-500 ${isFacingQibla ? 'bg-white/20 border-white/40 shadow-[0_0_20px_rgba(16,185,129,0.4)]' : 'bg-white/5 border-white/10'}`}>
               <div className={`font-black uppercase tracking-[0.3em] text-[10px] mb-3 ${isFacingQibla ? 'text-white animate-pulse' : 'text-amber-400'}`}>
                 {isSensorAvailable ? (isFacingQibla ? '✨ PERFECTLY ALIGNED' : 'Align Arrow to Top') : 'Compass Unavailable'}
               </div>

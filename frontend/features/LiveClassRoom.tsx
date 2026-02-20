@@ -125,7 +125,7 @@ const LiveClassRoom: React.FC = () => {
     };
 
     fetchScholarData();
-    const interval = setInterval(fetchScholarData, 3000); // Poll every 3s (Real-time)
+    const interval = setInterval(fetchScholarData, 2000); // Poll every 2s (Real-time)
     return () => clearInterval(interval);
   }, [userRole, getToken]);
 
@@ -335,8 +335,8 @@ const LiveClassRoom: React.FC = () => {
           ) : (
             <QuranPage
               onBack={handleExitSession}
-              sessionCurrentSurah={currentSession.currentSurah || 1}
-              sessionCurrentAyah={currentSession.currentAyah || 1}
+              sessionCurrentSurah={currentSession.currentSurah}
+              sessionCurrentAyah={currentSession.currentAyah}
               onAyahClick={handleAyahClick}
               readOnly={userRole === 'scholar'}
             />

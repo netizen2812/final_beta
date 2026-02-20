@@ -586,7 +586,12 @@ export const batchPing = async (req, res) => {
 export const updateBatchProgress = async (req, res) => {
     try {
         const { batchId, childId, surah, ayah } = req.body;
-        console.log("UPDATED AYAH", { childId, surah, ayah }); // DEBUG LOG
+        console.log("AYAH UPDATED", {
+            childId,
+            surah,
+            ayah,
+            timestamp: new Date().toISOString()
+        }); // DEBUG LOG
 
         const { default: Batch } = await import("../models/Batch.js");
 
@@ -653,7 +658,9 @@ export const getBatchActiveParticipants = async (req, res) => {
             console.log("FETCH PARTICIPANTS", {
                 childId: p.childId,
                 surah: p.currentSurah,
-                ayah: p.currentAyah
+                ayah: p.currentAyah,
+                isActive: p.isActive,
+                lastSeen: p.lastSeen
             });
         });
 

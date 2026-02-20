@@ -33,8 +33,8 @@ const batchSchema = new mongoose.Schema({
     activeParticipants: [{
         childId: String,
         childName: String,
-        currentSurah: { type: Number }, // No default, can be null/undefined
-        currentAyah: { type: Number },
+        currentSurah: Number, // Enforce Number
+        currentAyah: Number,  // Enforce Number
         lastSeen: { type: Date, default: Date.now },
         isActive: { type: Boolean, default: true }
     }]

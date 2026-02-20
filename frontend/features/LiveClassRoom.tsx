@@ -215,6 +215,43 @@ const LiveClassRoom: React.FC = () => {
     }
   };
 
+  // Throttled position emit (student → backend → scholar). Max 500ms.
+  const positionThrottleRef = useRef<{ timer: ReturnType<typeof setTimeout> | null; lastSurah: number; lastAyah: number }>({ timer: null, lastSurah: 0, lastAyah: 0 });
+
+  const emitPosition = useCallback(async (surah: number, ayah: number) => {
+    if (!currentSession?.batchId || !currentSession?.childId || userRole === 'scholar') return;
+    const { lastSurah, lastAyah } = positionThrottleRef.current;
+    if (lastSurah === surah && lastAyah === ayah) return;
+
+    positionThrottleRef.current.lastSurah = surah;
+    positionThrottleRef.current.lastAyah = ayah;
+
+    if (positionThrottleRef.current.timer) clearTimeout(positionThrottleRef.current.timer);
+    positionThrottleRef.current.timer = setTimeout(async () => {
+      positionThrottleRef.current.timer = null;
+      try {
+        const token = await getToken();
+        console.log("[STUDENT EMIT] position", { surah, ayah, batchId: currentSession.batchId, childId: currentSession.childId });
+        await axios.post(`${API_BASE}/api/live/update-position`, {
+          userId: user?.id,
+          batchId: currentSession.batchId,
+          childId: currentSession.childId,
+          surahNumber: surah,
+          ayahNumber: ayah,
+          timestamp: new Date().toISOString()
+        }, { headers: { Authorization: `Bearer ${token}` } });
+        await axios.post(`${API_BASE}/api/live/update-progress`, {
+          batchId: currentSession.batchId,
+          childId: currentSession.childId,
+          surah,
+          ayah
+        }, { headers: { Authorization: `Bearer ${token}` } });
+      } catch (err) {
+        console.error("[STUDENT EMIT] Failed:", err);
+      }
+    }, POSITION_THROTTLE_MS);
+  }, [currentSession, userRole, getToken, user?.id]);
+
   // POLL: Scholar Status (for parent lobby) - Optional, leaving for now
   useEffect(() => {
     if (userRole === 'parent' && accessStatus?.hasAccess && !currentSession) {
@@ -301,42 +338,6 @@ const LiveClassRoom: React.FC = () => {
     }
   };
 
-  // Throttled position emit (student → backend → scholar). Max 500ms.
-  const positionThrottleRef = useRef<{ timer: ReturnType<typeof setTimeout> | null; lastSurah: number; lastAyah: number }>({ timer: null, lastSurah: 0, lastAyah: 0 });
-
-  const emitPosition = useCallback(async (surah: number, ayah: number) => {
-    if (!currentSession?.batchId || !currentSession?.childId || userRole === 'scholar') return;
-    const { lastSurah, lastAyah } = positionThrottleRef.current;
-    if (lastSurah === surah && lastAyah === ayah) return;
-
-    positionThrottleRef.current.lastSurah = surah;
-    positionThrottleRef.current.lastAyah = ayah;
-
-    if (positionThrottleRef.current.timer) clearTimeout(positionThrottleRef.current.timer);
-    positionThrottleRef.current.timer = setTimeout(async () => {
-      positionThrottleRef.current.timer = null;
-      try {
-        const token = await getToken();
-        console.log("[STUDENT EMIT] position", { surah, ayah, batchId: currentSession.batchId, childId: currentSession.childId });
-        await axios.post(`${API_BASE}/api/live/update-position`, {
-          userId: user?.id,
-          batchId: currentSession.batchId,
-          childId: currentSession.childId,
-          surahNumber: surah,
-          ayahNumber: ayah,
-          timestamp: new Date().toISOString()
-        }, { headers: { Authorization: `Bearer ${token}` } });
-        await axios.post(`${API_BASE}/api/live/update-progress`, {
-          batchId: currentSession.batchId,
-          childId: currentSession.childId,
-          surah,
-          ayah
-        }, { headers: { Authorization: `Bearer ${token}` } });
-      } catch (err) {
-        console.error("[STUDENT EMIT] Failed:", err);
-      }
-    }, POSITION_THROTTLE_MS);
-  }, [currentSession, userRole, getToken, user?.id]);
 
   const handleAyahClick = async (surah: number, ayah: number) => {
     if (!currentSession) return;

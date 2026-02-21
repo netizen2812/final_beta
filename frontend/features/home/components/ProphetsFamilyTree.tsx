@@ -4,8 +4,8 @@ import { X, ZoomIn, ZoomOut, Maximize } from 'lucide-react';
 
 const ProphetsFamilyTree: React.FC = () => {
     const [selectedProphet, setSelectedProphet] = useState<ProphetNode | null>(null);
-    const [scale, setScale] = useState(0.8);
-    const [offset, setOffset] = useState({ x: 0, y: 0 });
+    const [scale, setScale] = useState(0.6);
+    const [offset, setOffset] = useState({ x: 0, y: 150 });
     const [isDragging, setIsDragging] = useState(false);
     const containerRef = useRef<HTMLDivElement>(null);
 
@@ -29,8 +29,8 @@ const ProphetsFamilyTree: React.FC = () => {
     };
 
     const resetView = () => {
-        setScale(0.8);
-        setOffset({ x: 0, y: 0 });
+        setScale(0.6);
+        setOffset({ x: 0, y: 150 });
     };
 
     useEffect(() => {
@@ -79,7 +79,7 @@ const ProphetsFamilyTree: React.FC = () => {
                     }}
                 >
                     {/* Centering Wrapper */}
-                    <div className="relative w-[1000px] h-[1000px]">
+                    <div className="relative w-[1000px] h-[2100px]">
                         <svg className="absolute inset-0 w-full h-full pointer-events-none overflow-visible">
                             <defs>
                                 <linearGradient id="lineGrad" x1="0%" y1="0%" x2="100%" y2="0%">

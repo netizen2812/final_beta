@@ -98,8 +98,8 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onNavigateToLive }) => 
     };
 
     // --- RENDER ---
-    if (loading) return <div className="min-h-screen flex items-center justify-center font-bold text-emerald-800">Loading Analytics...</div>;
-    if (error) return <div className="min-h-screen flex items-center justify-center text-red-600 font-bold">{error}</div>;
+    if (loading && !stats && !analytics) return <div className="min-h-screen flex items-center justify-center font-bold text-emerald-800">Loading Dashboard...</div>;
+    if (error && !users.length) return <div className="min-h-screen flex items-center justify-center text-red-600 font-bold">{error}</div>;
 
     return (
         <div className="min-h-screen bg-slate-50 font-sans pb-20">
@@ -130,42 +130,57 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onNavigateToLive }) => 
             <div className="max-w-7xl mx-auto p-6 lg:p-10 space-y-8">
 
                 {/* 🥇 TIER 1 — CORE PLATFORM HEALTH */}
-                {tab === 'overview' && stats && (
+                {tab === 'overview' && (
                     <>
                         <Section title="Platform Health (Real-time)" icon={<Activity size={18} />}>
-                            <StatCard label="DAU (Last 24h)" value={analytics?.health?.dau || 0} trend="Active Users" />
-                            <StatCard label="WAU (Last 7d)" value={analytics?.health?.wau || 0} />
-                            <StatCard label="Engagement Rate" value={`${(analytics?.health?.engagementRate || 0).toFixed(1)}%`} trend="Total Platform" />
-                            <StatCard label="Avg Session Depth" value={(analytics?.engagement?.avgSessionDepth || 0).toFixed(2)} trend="Features / Session" />
+                            {analytics ? (
+                                <>
+                                    <StatCard label="DAU (Last 24h)" value={analytics?.health?.dau || 0} trend="Active Users" />
+                                    <StatCard label="WAU (Last 7d)" value={analytics?.health?.wau || 0} />
+                                    <StatCard label="Engagement Rate" value={`${(analytics?.health?.engagementRate || 0).toFixed(1)}%`} trend="Total Platform" />
+                                    <StatCard label="Avg Session Depth" value={(analytics?.engagement?.avgSessionDepth || 0).toFixed(2)} trend="Features / Session" />
+                                </>
+                            ) : (
+                                <div className="col-span-4 p-6 bg-white rounded-xl border border-slate-200 animate-pulse text-slate-400 text-center">Loading Real-time Metrics...</div>
+                            )}
                         </Section>
 
                         <Section title="Feature Engagement Distribution" icon={<Server size={18} />}>
-                            {analytics?.engagement?.featureDistribution?.map((f: any) => (
-                                <StatCard key={f._id} label={f._id.toUpperCase()} value={f.count} icon={<Layers className="text-emerald-500" />} />
-                            ))}
-                            {(!analytics?.engagement?.featureDistribution || analytics.engagement.featureDistribution.length === 0) && (
+                            {analytics?.engagement?.featureDistribution?.length > 0 ? (
+                                analytics.engagement.featureDistribution.map((f: any) => (
+                                    <StatCard key={f._id} label={f._id.toUpperCase()} value={f.count} icon={<Layers className="text-emerald-500" />} />
+                                ))
+                            ) : analytics ? (
                                 <div className="col-span-4 py-10 text-center text-slate-400 font-medium bg-slate-100/50 rounded-xl border border-dashed border-slate-200">
                                     No engagement data for the past 7 days.
                                 </div>
+                            ) : (
+                                <div className="col-span-4 p-6 bg-white rounded-xl border border-slate-200 animate-pulse text-slate-400 text-center">Analysing Features...</div>
                             )}
                         </Section>
 
                         <Section title="Attention Distribution (Total Time)" icon={<Clock size={18} />}>
-                            {analytics?.engagement?.timeSpentDistribution?.map((f: any) => (
-                                <StatCard key={f._id} label={f._id.toUpperCase()} value={`${Math.round(f.totalTimeMs / 60000)}m`} trend="Total Focus Time" />
-                            ))}
-                            {(!analytics?.engagement?.timeSpentDistribution || analytics.engagement.timeSpentDistribution.length === 0) && (
+                            {analytics?.engagement?.timeSpentDistribution?.length > 0 ? (
+                                analytics.engagement.timeSpentDistribution.map((f: any) => (
+                                    <StatCard key={f._id} label={f._id.toUpperCase()} value={`${Math.round(f.totalTimeMs / 60000)}m`} trend="Total Focus Time" />
+                                ))
+                            ) : analytics ? (
                                 <div className="col-span-4 py-10 text-center text-slate-400 font-medium bg-slate-100/50 rounded-xl border border-dashed border-slate-200">
                                     No attention metrics recorded.
                                 </div>
+                            ) : (
+                                <div className="col-span-4 p-6 bg-white rounded-xl border border-slate-200 animate-pulse text-slate-400 text-center">Calculating Attention...</div>
                             )}
                         </Section>
 
-                        <Section title="Old Stats Summary" icon={<Database size={18} />}>
-                            <StatCard label="D1 Retention" value={`${stats.startup.retention.d1}%`} />
-                            <StatCard label="Messages / Week" value={stats.depth.msgsPerWeek} />
-                            <StatCard label="Avg Lessons / Child" value={stats.learning.avgLessonsPerChild} />
-                        </Section>
+                        {stats && (
+                            <Section title="Historical Context" icon={<Database size={18} />}>
+                                <StatCard label="D1 Retention" value={`${stats.startup.retention.d1}%`} />
+                                <StatCard label="Messages / Week" value={stats.depth.msgsPerWeek} />
+                                <StatCard label="Avg Lessons / Child" value={stats.learning.avgLessonsPerChild} />
+                                <StatCard label="Parent DB Views" value={stats.learning.parentViews} />
+                            </Section>
+                        )}
                     </>
                 )}
 

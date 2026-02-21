@@ -9,6 +9,7 @@ import { getImamResponse } from '../geminiService';
 import { useAuth } from "@clerk/clerk-react";
 import LeftContextPanel from '../components/LeftContextPanel';
 import GuidanceControlPanel from '../components/RightUtilityPanel';
+import { Analytics } from '../utils/analytics';
 
 const API_URL = import.meta.env.VITE_API_URL || "http://localhost:5000";
 
@@ -185,6 +186,10 @@ const CoreChat: React.FC<CoreChatProps> = ({ madhab, setMadhab, tone: mood, setT
     return () => window.removeEventListener('resize', handleResize);
   }, []);
 
+  useEffect(() => {
+    Analytics.trackEvent('ai_imam_open', { conversationId: activeConversationId }, 'ai_imam');
+  }, []); // Run once on mount
+
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth', block: 'end' });
   };
@@ -320,6 +325,13 @@ const CoreChat: React.FC<CoreChatProps> = ({ madhab, setMadhab, tone: mood, setT
     try {
       const token = await getToken();
       const apiHistory = messages.map(m => ({ role: m.role, text: m.text }));
+
+      Analytics.trackEvent('ai_imam_message_sent', {
+        conversationId: convId,
+        length: input.length,
+        message: input.substring(0, 50) // Capture snippet for context
+      }, 'ai_imam');
+
       const aiResponse = await getImamResponse(input, madhab, mood, apiHistory, token, convId ?? undefined);
 
       const assistantMessage: ChatMessage = {

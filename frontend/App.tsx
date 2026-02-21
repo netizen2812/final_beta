@@ -25,6 +25,7 @@ import {
 import axios from "axios";
 
 import { useHeartbeat } from "./hooks/useHeartbeat";
+import { Analytics } from "./utils/analytics";
 
 const App: React.FC = () => {
   const [activeTab, setActiveTab] = useState<AppTab>(AppTab.HOME);
@@ -76,6 +77,9 @@ const App: React.FC = () => {
           }
         );
 
+        // Initialize Analytics
+        Analytics.init(user.id, (user.publicMetadata?.role as string) || 'parent', getToken);
+
         console.log("User synced with backend ✅");
       } catch (error) {
         console.error("User sync failed ❌", error);
@@ -90,6 +94,11 @@ const App: React.FC = () => {
     window.addEventListener("resize", handleResize);
     return () => window.removeEventListener("resize", handleResize);
   }, []);
+
+  // 📊 Track Tab Changes
+  useEffect(() => {
+    Analytics.trackPageView(activeTab);
+  }, [activeTab]);
 
   const renderContent = () => {
     switch (activeTab) {
@@ -129,7 +138,9 @@ const App: React.FC = () => {
     { id: AppTab.LIVE, label: "Live", icon: <Icons.Live /> },
   ];
 
-  if (user?.primaryEmailAddress?.emailAddress?.toLowerCase() === "sarthakjuneja1999@gmail.com") {
+  const isAdmin = user?.publicMetadata?.role === 'admin' || user?.primaryEmailAddress?.emailAddress?.toLowerCase() === "sarthakjuneja1999@gmail.com";
+
+  if (isAdmin) {
     navItems.push({ id: AppTab.ADMIN, label: "Admin", icon: <Settings /> });
   }
 

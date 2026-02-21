@@ -7,10 +7,25 @@ const analyticsEventSchema = new mongoose.Schema(
             required: true,
             index: true,
         },
+        role: {
+            type: String,
+            enum: ["child", "parent", "individual", "admin", "scholar", "student"],
+            required: true,
+        },
         eventType: {
             type: String,
             required: true,
             index: true, // e.g., 'LESSON_COMPLETE', 'CHAT_SENT', 'CHILD_CREATED'
+        },
+        feature: {
+            type: String,
+            default: null,
+            index: true,
+        },
+        sessionId: {
+            type: String,
+            required: true,
+            index: true,
         },
         metadata: {
             type: mongoose.Schema.Types.Mixed,
@@ -21,6 +36,10 @@ const analyticsEventSchema = new mongoose.Schema(
             default: Date.now,
             index: true,
         },
+        durationMs: {
+            type: Number,
+            default: null,
+        }
     },
     { timestamps: true } // Adds createdAt/updatedAt automatically
 );

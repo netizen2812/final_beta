@@ -5,6 +5,7 @@ import Session from "../models/Session.js";
 import TarbiyahProgress from "../models/TarbiyahProgress.js";
 import AnalyticsEvent from "../models/AnalyticsEvent.js";
 import mongoose from "mongoose";
+import { clerkClient } from "@clerk/clerk-sdk-node";
 
 // --- PART 1: REPLACE ADMIN KPIs (TIER-BASED STRUCTURE) ---
 
@@ -189,6 +190,21 @@ export const updateUser = async (req, res) => {
         }
 
         await user.save();
+
+        // Sync with Clerk if role changed
+        if (role && user.clerkId) {
+            try {
+                await clerkClient.users.updateUserMetadata(user.clerkId, {
+                    publicMetadata: {
+                        role: user.role
+                    }
+                });
+                console.log(`Updated Clerk metadata for user ${user.clerkId} to role ${user.role}`);
+            } catch (clerkError) {
+                console.error("Failed to update Clerk metadata:", clerkError);
+                // We don't fail the whole request if Clerk sync fails, but we log it
+            }
+        }
 
         // Track role change
         // AnalyticsEvent.create(...) // Optional

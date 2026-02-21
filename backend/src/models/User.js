@@ -21,7 +21,7 @@ const userSchema = new mongoose.Schema(
 
     role: {
       type: String,
-      enum: ["scholar", "parent", "student"],
+      enum: ["scholar", "parent", "student", "admin"],
       default: "parent",
       set: v => v ? v.toLowerCase() : v // Normalize to lowercase
     },

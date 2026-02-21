@@ -28,6 +28,7 @@ import {
   ChevronDown as ChevronDownIcon
 } from 'lucide-react';
 import { PieChart, Pie, Cell, ResponsiveContainer } from 'recharts';
+import { Analytics } from '../utils/analytics';
 
 interface Surah {
   number: number;
@@ -223,6 +224,16 @@ const QuranPage: React.FC<QuranPageProps> = ({
       setIsLoading(false);
     }
   };
+
+  useEffect(() => {
+    if (view === 'reading' && (selectedSurah || selectedJuz)) {
+      Analytics.trackEvent('quran_reader_open', {
+        surahNumber: selectedSurah?.number,
+        surahName: selectedSurah?.englishName,
+        juz: selectedJuz
+      }, 'quran');
+    }
+  }, [view, selectedSurah, selectedJuz]);
 
   const fetchJuzContent = async (juzNumber: number) => {
     setIsLoading(true);

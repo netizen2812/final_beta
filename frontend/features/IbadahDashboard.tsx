@@ -35,6 +35,7 @@ import {
   ArrowRight
 } from 'lucide-react';
 import QuranPage from './QuranPage';
+import { Analytics } from '../utils/analytics';
 import { getPrayerTimings, getHijriDate, getCalendarMonth, formatDateForAPI } from '../services/aladhan';
 import { notificationService } from '../services/NotificationService';
 
@@ -96,7 +97,13 @@ const TasbihPage = ({ onBack }: { onBack: () => void }) => {
   const [goal, setGoal] = useState(33);
 
   const increment = () => {
-    setCount(prev => (prev + 1));
+    setCount(prev => {
+      const next = prev + 1;
+      if (next % 33 === 0) {
+        Analytics.trackEvent('tasbih_increment', { count: next }, 'ibadah');
+      }
+      return next;
+    });
     if (window.navigator.vibrate) window.navigator.vibrate(50);
   };
 
@@ -312,6 +319,13 @@ const ZakatCalcPage = ({ onResult, onBack }: { onResult: (result: any) => void; 
       });
       const result = await response.json();
       setLoading(false);
+
+      Analytics.trackEvent('zakat_calculated', {
+        netAssets: result.netAssets,
+        zakatDue: result.zakatDue,
+        isObligatory: result.netAssets >= result.nisabThreshold
+      }, 'ibadah');
+
       onResult(result);
     } catch (error) {
       console.error('Zakat Calculation Error', error);

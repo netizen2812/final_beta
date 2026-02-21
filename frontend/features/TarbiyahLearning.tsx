@@ -13,6 +13,7 @@ import { calculateRank, RankCalculationResult } from '../utils/tarbiyahUtils';
 import { useChildContext } from '../contexts/ChildContext';
 import { tarbiyahService, ParentDashboardData } from '../services/tarbiyahService';
 import { useAuth } from '@clerk/clerk-react';
+import { Analytics } from '../utils/analytics';
 
 // Icon Mapping Helper
 const getIconComponent = (iconName: string) => {
@@ -158,6 +159,13 @@ const TarbiyahLearning: React.FC<{ onNavigateToProfile?: () => void }> = ({ onNa
       } catch (e) {
         console.error("Failed to save lesson progress history", e);
       }
+
+      Analytics.trackEvent('tarbiyah_lesson_complete', {
+        lessonId: stage.id,
+        lessonTitle: stage.title,
+        xpEarned: finalXP,
+        childId: activeChild.id
+      }, 'tarbiyah');
     }
     navigateTo('completion', { ...stage, earnedXP: finalXP });
   };
@@ -439,6 +447,13 @@ const KidsMain: React.FC<{
                               lessonId: stage.id,
                               lessonTitle: stage.title
                             }, getToken);
+
+                            Analytics.trackEvent('tarbiyah_lesson_start', {
+                              lessonId: stage.id,
+                              lessonTitle: stage.title,
+                              childId: activeChild.id
+                            }, 'tarbiyah');
+
                             onNavigate('lesson-detail', stage);
                           } catch (e: any) {
                             alert(e.message || "Cannot start lesson");
@@ -730,6 +745,11 @@ const ParentsView: React.FC<{ onNavigate: (v: SubView, i?: any) => void, activeC
           // Always use the Child Document ID (activeChild.id) for the dashboard endpoint
           const data = await tarbiyahService.getParentDashboard(activeChild.id, getToken);
           setDashboardData(data);
+
+          Analytics.trackEvent('parent_dashboard_open', {
+            childId: activeChild.id
+          }, 'parent');
+
         } catch (error) {
           console.error("Failed to fetch dashboard data", error);
         } finally {

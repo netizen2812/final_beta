@@ -1,5 +1,16 @@
 import axios from 'axios';
-import { v4 as uuidv4 } from 'uuid';
+
+// Native UUID generator fallback
+const generateUUID = () => {
+    if (typeof crypto !== 'undefined' && crypto.randomUUID) {
+        return crypto.randomUUID();
+    }
+    return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, (c) => {
+        const r = (Math.random() * 16) | 0;
+        const v = c === 'x' ? r : (r & 0x3) | 0x8;
+        return v.toString(16);
+    });
+};
 
 const API_BASE = (import.meta.env.VITE_API_URL || "http://localhost:5000") + "/api/analytics";
 const SESSION_TIMEOUT = 30 * 60 * 1000; // 30 minutes
@@ -25,7 +36,7 @@ class AnalyticsService {
             if (this.sessionId) {
                 this.trackEvent('session_end', { reason: 'timeout' });
             }
-            this.sessionId = uuidv4();
+            this.sessionId = generateUUID();
         }
         this.lastActivity = now;
         localStorage.setItem('imam_session_id', this.sessionId);

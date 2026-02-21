@@ -22,10 +22,7 @@ const FeatureCard: React.FC<FeatureCardProps> = ({ title, desc, benefit, icon: I
     return (
         <div
             onClick={onClick}
-            className={`group relative p-12 rounded-[4rem] border transition-all duration-700 cursor-pointer overflow-hidden flex flex-col h-[500px] reveal-on-scroll ${variant === 'dark'
-                ? 'bg-[#0D4433] border-white/10 shadow-3xl'
-                : 'bg-white border-emerald-50 shadow-[0_30px_100px_-20px_rgba(0,0,0,0.08)]'
-                }`}
+            className={`group relative p-12 rounded-[4rem] border transition-all duration-700 cursor-pointer overflow-hidden flex flex-col h-[500px] reveal-on-scroll bg-[#0D4433] border-white/10 shadow-3xl`}
         >
             {/* Background Image Layer */}
             <div
@@ -34,7 +31,7 @@ const FeatureCard: React.FC<FeatureCardProps> = ({ title, desc, benefit, icon: I
                     backgroundImage: `url(${image})`,
                     backgroundSize: 'cover',
                     backgroundPosition: 'center',
-                    opacity: variant === 'dark' ? 0.3 : 0.05
+                    opacity: 0.3
                 }}
             />
 
@@ -117,20 +114,20 @@ const FeatureCardsGrid: React.FC<FeatureCardsGridProps> = ({ onNavigate }) => {
     }, []);
 
     return (
-        <section id="feature-grid" className="space-y-16 py-20">
+        <section id="feature-grid" className="space-y-16 py-20 min-h-[600px]">
             <div className="flex flex-col items-center text-center space-y-4 reveal-on-scroll">
                 <div className="w-12 h-1 bg-emerald-100 rounded-full" />
                 <h2 className="text-3xl md:text-5xl font-serif text-emerald-950">Primary Exploration</h2>
                 <p className="text-xs font-black uppercase tracking-[0.4em] text-emerald-900/40">Choose your destination</p>
             </div>
 
-            {/* Scrollable Container for Mobile, Grid for Desktop */}
-            <div className="flex overflow-x-auto pb-10 gap-6 snap-x lg:grid lg:grid-cols-3 lg:gap-8 lg:overflow-visible lg:pb-0 scrollbar-hide">
+            {/* Grid Container */}
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 pb-10">
                 {features.map((feature, i) => (
                     <div
                         key={i}
-                        style={{ transitionDelay: `${i * 100}ms` }}
-                        className="flex-shrink-0 w-[85%] sm:w-[60%] snap-center h-full lg:w-full"
+                        className="reveal-on-scroll"
+                        style={{ transitionDelay: `${i * 150}ms` }}
                     >
                         <FeatureCard
                             {...feature}

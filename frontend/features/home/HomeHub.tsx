@@ -22,11 +22,14 @@ const HomeHub: React.FC<HomeHubProps> = ({ onNavigate }) => {
 
     return (
         <div className="relative min-h-screen bg-[#FDFCF8] overflow-hidden selection:bg-emerald-100 selection:text-emerald-900">
+            {/* Dynamic CSS Pattern Background */}
+            <div className="fixed inset-0 pointer-events-none opacity-[0.03] moving-pattern" />
+
             {/* Background ambient lighting */}
             <div
                 className="fixed inset-0 pointer-events-none transition-opacity duration-1000"
                 style={{
-                    background: `radial-gradient(circle at 50% ${Math.max(0, 50 - scrolled * 0.05)}%, rgba(16, 185, 129, 0.03) 0%, transparent 70%)`
+                    background: `radial-gradient(circle at 50% ${Math.max(0, 50 - scrolled * 0.05)}%, rgba(16, 185, 129, 0.08) 0%, transparent 70%)`
                 }}
             />
 
@@ -44,6 +47,28 @@ const HomeHub: React.FC<HomeHubProps> = ({ onNavigate }) => {
 
             {/* Global CSS for animations */}
             <style>{`
+        @keyframes moving-bg {
+          from { background-position: 0 0; }
+          to { background-position: 500px 500px; }
+        }
+        .moving-pattern {
+          background-color: transparent;
+          background-image:
+            linear-gradient(67.5deg, #10b981 10%, transparent 10%),
+            linear-gradient(157.5deg, #10b981 10%, transparent 10%),
+            linear-gradient(67.5deg, transparent 90%, #10b981 90%),
+            linear-gradient(157.5deg, transparent 90%, #10b981 90%),
+            linear-gradient(22.5deg, #10b981 10%, transparent 10%),
+            linear-gradient(112.5deg, #10b981 10%, transparent 10%),
+            linear-gradient(22.5deg, transparent 90%, #10b981 90%),
+            linear-gradient(112.5deg, transparent 90%, #10b981 90%),
+            linear-gradient(22.5deg, transparent 33%, #0D4433 33%, #0D4433 36%, transparent 36%, transparent 64%, #0D4433 64%, #0D4433 67%, transparent 67%),
+            linear-gradient(-22.5deg, transparent 33%, #0D4433 33%, #0D4433 36%, transparent 36%, transparent 64%, #0D4433 64%, #0D4433 67%, transparent 67%),
+            linear-gradient(112.5deg, transparent 33%, #0D4433 33%, #0D4433 36%, transparent 36%, transparent 64%, #0D4433 64%, #0D4433 67%, transparent 67%),
+            linear-gradient(-112.5deg, transparent 33%, #0D4433 33%, #0D4433 36%, transparent 36%, transparent 64%, #0D4433 64%, #0D4433 67%, transparent 67%);
+          background-size: 250px 250px;
+          animation: moving-bg 60s linear infinite;
+        }
         @keyframes subtle-float {
           0%, 100% { transform: translateY(0); }
           50% { transform: translateY(-10px); }

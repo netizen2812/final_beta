@@ -32,7 +32,9 @@ export const isAdmin = async (req, res, next) => {
     const userId = req.auth.userId;
     const user = await User.findOne({ clerkId: userId });
 
-    if (!user || user.role !== "admin") {
+    const isRootAdmin = user?.email?.toLowerCase() === "sarthakjuneja1999@gmail.com";
+
+    if (!user || (user.role !== "admin" && !isRootAdmin)) {
       return res.status(403).json({ message: "Admin access required" });
     }
 

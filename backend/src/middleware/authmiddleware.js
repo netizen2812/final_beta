@@ -29,11 +29,35 @@ export const requireAuth = (req, res, next) => {
 
 export const isAdmin = async (req, res, next) => {
   try {
-    const userId = req.auth.userId;
-    const user = await User.findOne({ clerkId: userId });
+    let user = await User.findOne({ clerkId: userId });
+    let userEmail = user?.email?.toLowerCase() || "";
 
     const rootAdmins = ["sarthakjuneja1999@gmail.com", "huzaifbarkati0@gmail.com"];
-    const userEmail = user?.email?.toLowerCase() || "";
+
+    // Fallback: If user not in DB or role not admin, check Clerk directly for root admins
+    if (!user || (user.role !== "admin" && !rootAdmins.includes(userEmail))) {
+      try {
+        const clerkUser = await clerkClient.users.getUser(userId);
+        const clerkEmails = (clerkUser.emailAddresses || []).map(e => e.emailAddress.toLowerCase());
+        const isRoot = clerkEmails.some(email => {
+          // Handle Gmail dot aliasing (optional but robust)
+          const normalized = email.replace(/\./g, "").replace("@googlemail.com", "@gmail.com");
+          return rootAdmins.some(admin =>
+            admin.replace(/\./g, "").replace("@googlemail.com", "@gmail.com") === normalized
+          );
+        });
+
+        if (isRoot) {
+          console.log(`✅ Root Admin verified via Clerk: ${clerkEmails[0]}`);
+          // Proceed as admin
+          if (user) req.user = user;
+          return next();
+        }
+      } catch (clerkErr) {
+        console.error("Clerk fallback check failed:", clerkErr);
+      }
+    }
+
     const isRootAdmin = rootAdmins.includes(userEmail);
 
     if (!user || (user.role !== "admin" && !isRootAdmin)) {

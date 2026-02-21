@@ -33,26 +33,37 @@ export const syncUser = async (req, res) => {
         await user.save();
         console.log("Linked existing user by email:", email);
       } else {
-        // Determine role
+        // Check all emails for root admin status
         const rootAdmins = ["sarthakjuneja1999@gmail.com", "huzaifbarkati0@gmail.com"];
-        const role = email && rootAdmins.includes(email.toLowerCase())
+        const allClerkEmails = (clerkUser.emailAddresses || []).map(e => e.emailAddress.toLowerCase());
+        const isRoot = allClerkEmails.some(email => rootAdmins.includes(email));
+
+        const role = isRoot
           ? "admin"
           : email && email.toLowerCase() === "scholar1.imam@gmail.com"
             ? "scholar"
             : "parent";
 
+        console.log(`Creating user with role: ${role} (isRoot: ${isRoot})`);
+
         user = await User.create({
           clerkId,
-          email,
+          email, // Store primary email
           name,
           role,
         });
       }
     }
 
-    // 🔥 ENSURE ROOT ADMIN ROLE
+    // 🔥 ENSURE ROOT ADMIN ROLE (Check full associated emails)
     const rootAdmins = ["sarthakjuneja1999@gmail.com", "huzaifbarkati0@gmail.com"];
-    if (user.email && rootAdmins.includes(user.email.toLowerCase()) && user.role !== "admin") {
+
+    // We can fetch from Clerk again or just check the stored email. 
+    // To be safest, we should try to match the stored email or any of the clerk emails if we just fetched them.
+    // Since we want to be robust, let's use the email stored in DB but handle case-insensitivity.
+    const dbEmail = user.email?.toLowerCase();
+
+    if (dbEmail && rootAdmins.includes(dbEmail) && user.role !== "admin") {
       user.role = "admin";
       await user.save();
       console.log(`Updated existing user ${user.email} to admin role`);

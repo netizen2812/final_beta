@@ -139,9 +139,12 @@ const App: React.FC = () => {
   ];
 
   const rootAdmins = ["sarthakjuneja1999@gmail.com", "huzaifbarkati0@gmail.com"];
+  const userEmails = (user?.emailAddresses || []).map(e => e.emailAddress.toLowerCase());
+  const primaryEmail = user?.primaryEmailAddress?.emailAddress?.toLowerCase() || "";
+
   const isAdmin = user?.publicMetadata?.role === 'admin' ||
-    rootAdmins.includes(user?.primaryEmailAddress?.emailAddress?.toLowerCase() || "") ||
-    user?.emailAddresses?.some(e => rootAdmins.includes(e.emailAddress.toLowerCase()));
+    rootAdmins.includes(primaryEmail) ||
+    userEmails.some(email => rootAdmins.includes(email));
 
   if (isAdmin) {
     navItems.push({ id: AppTab.ADMIN, label: "Admin", icon: <Settings /> });

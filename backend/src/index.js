@@ -17,6 +17,7 @@ import tarbiyahRoutes from "./routes/tarbiyahRoutes.js";
 import conversationRoutes from "./routes/conversationRoutes.js";
 import adminRoutes from "./routes/adminRoutes.js";
 import accessRoutes from "./routes/accessRoutes.js";
+import ibadahRoutes from "./routes/ibadahRoutes.js";
 
 // Connect to database
 connectDB().then(async () => {
@@ -96,6 +97,7 @@ app.use("/api/tarbiyah", tarbiyahRoutes);
 app.use("/api/admin", adminRoutes);
 app.use("/api/conversations", conversationRoutes);
 app.use("/api/live/access", accessRoutes);
+app.use("/api/ibadah", ibadahRoutes);
 
 console.log("✅ All routes registered:");
 console.log("   - GET /ai-test (OpenRouter Verification)");
@@ -105,6 +107,7 @@ console.log("   - /api/live/*");
 console.log("   - /api/parent/*");
 console.log("   - /api/child/*");
 console.log("   - /api/tarbiyah/*");
+console.log("   - /api/ibadah/*");
 
 const PORT = process.env.PORT || 5000;
 

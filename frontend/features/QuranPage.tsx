@@ -176,7 +176,8 @@ const QuranPage: React.FC<QuranPageProps> = ({
 
   const fetchSurahs = async () => {
     try {
-      const response = await fetch('https://api.alquran.cloud/v1/surah');
+      const API_URL = (import.meta as any).env.VITE_API_URL || "http://localhost:5000";
+      const response = await fetch(`${API_URL}/api/ibadah/quran/surahs`);
       const data = await response.json();
       setSurahs(data.data);
     } catch (error) {
@@ -188,21 +189,18 @@ const QuranPage: React.FC<QuranPageProps> = ({
     setIsLoading(true);
     setSelectedJuz(null);
     try {
-      const [textRes, transRes, audioRes] = await Promise.all([
-        fetch(`https://api.alquran.cloud/v1/surah/${number}/quran-uthmani`),
-        fetch(`https://api.alquran.cloud/v1/surah/${number}/en.asad`),
-        fetch(`https://api.alquran.cloud/v1/surah/${number}/ar.alafasy`)
-      ]);
-      const textData = await textRes.json();
-      const transData = await transRes.json();
-      const audioData = await audioRes.json();
+      const API_URL = (import.meta as any).env.VITE_API_URL || "http://localhost:5000";
+      const res = await fetch(`${API_URL}/api/ibadah/quran/surah/${number}`);
+      const data = await res.json();
 
-      const combined: Ayah[] = textData.data.ayahs.map((ayah: any, idx: number) => ({
+      const { text, trans, audio } = data;
+
+      const combined: Ayah[] = text.data.ayahs.map((ayah: any, idx: number) => ({
         number: ayah.number,
         numberInSurah: ayah.numberInSurah,
         text: ayah.text,
-        translation: transData.data.ayahs[idx].text,
-        audio: audioData.data.ayahs[idx].audio
+        translation: trans.data.ayahs[idx].text,
+        audio: audio.data.ayahs[idx].audio
       }));
 
       setSurahContent(combined);
@@ -231,21 +229,18 @@ const QuranPage: React.FC<QuranPageProps> = ({
     setSelectedSurah(null);
     setSelectedJuz(juzNumber);
     try {
-      const [textRes, transRes, audioRes] = await Promise.all([
-        fetch(`https://api.alquran.cloud/v1/juz/${juzNumber}/quran-uthmani`),
-        fetch(`https://api.alquran.cloud/v1/juz/${juzNumber}/en.asad`),
-        fetch(`https://api.alquran.cloud/v1/juz/${juzNumber}/ar.alafasy`)
-      ]);
-      const textData = await textRes.json();
-      const transData = await transRes.json();
-      const audioData = await audioRes.json();
+      const API_URL = (import.meta as any).env.VITE_API_URL || "http://localhost:5000";
+      const res = await fetch(`${API_URL}/api/ibadah/quran/juz/${juzNumber}`);
+      const data = await res.json();
 
-      const combined: Ayah[] = textData.data.ayahs.map((ayah: any, idx: number) => ({
+      const { text, trans, audio } = data;
+
+      const combined: Ayah[] = text.data.ayahs.map((ayah: any, idx: number) => ({
         number: ayah.number,
         numberInSurah: ayah.numberInSurah,
         text: ayah.text,
-        translation: transData.data.ayahs[idx].text,
-        audio: audioData.data.ayahs[idx].audio,
+        translation: trans.data.ayahs[idx].text,
+        audio: audio.data.ayahs[idx].audio,
         surah: {
           number: ayah.surah.number,
           englishName: ayah.surah.englishName

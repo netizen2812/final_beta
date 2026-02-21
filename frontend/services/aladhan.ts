@@ -1,7 +1,8 @@
+const API_URL = import.meta.env.VITE_API_URL || "http://localhost:5000";
 
 export const getPrayerTimings = async (lat: number, lng: number) => {
   try {
-    const res = await fetch(`https://api.aladhan.com/v1/timings?latitude=${lat}&longitude=${lng}&method=2`);
+    const res = await fetch(`${API_URL}/api/ibadah/timings?lat=${lat}&lng=${lng}`);
     const data = await res.json();
     return data.data;
   } catch (e) {
@@ -12,10 +13,9 @@ export const getPrayerTimings = async (lat: number, lng: number) => {
 
 export const getHijriDate = async () => {
   try {
-    const today = new Date();
-    const res = await fetch(`https://api.aladhan.com/v1/gToH/${today.getDate()}-${today.getMonth() + 1}-${today.getFullYear()}`);
+    const res = await fetch(`${API_URL}/api/ibadah/hijri`);
     const data = await res.json();
-    return data.data.hijri;
+    return data.data;
   } catch (e) {
     console.error("Hijri Date API error", e);
     return null;
@@ -24,7 +24,7 @@ export const getHijriDate = async () => {
 
 export const getCalendarMonth = async (lat: number, lng: number, month: number, year: number) => {
   try {
-    const res = await fetch(`https://api.aladhan.com/v1/calendar?latitude=${lat}&longitude=${lng}&month=${month}&year=${year}&method=2`);
+    const res = await fetch(`${API_URL}/api/ibadah/calendar?lat=${lat}&lng=${lng}&month=${month}&year=${year}`);
     const data = await res.json();
     return data.data;
   } catch (e) {
@@ -69,29 +69,17 @@ export const calculateQibla = (lat: number, lng: number): number => {
 
 /**
  * Magnetic declination (degrees) at (lat, lng). East positive, West negative.
- * trueHeading = magneticHeading + declination (then normalize 0–360).
- * Tries NOAA geomag API; fallback 0 if unavailable.
+ * Proxy route through backend cache for extremely fast resolution.
  */
 export const getMagneticDeclination = async (lat: number, lng: number): Promise<number> => {
   try {
-    const year = new Date().getFullYear();
-    const url = `https://www.ngdc.noaa.gov/geomag-web/calculators/calculateDeclination?lat=${lat}&lon=${lng}&model=WMM&startYear=${year}&resultFormat=json`;
+    const url = `${API_URL}/api/ibadah/declination?lat=${lat}&lng=${lng}`;
     const res = await fetch(url, { mode: 'cors' });
     if (!res.ok) return 0;
     const data = await res.json();
-    const decl = data.declination?.value ?? data.result?.[0]?.declination ?? 0;
-    return Number(decl);
-  } catch {
-    try {
-      const proxyUrl = `https://api.allorigins.win/raw?url=${encodeURIComponent(`https://www.ngdc.noaa.gov/geomag-web/calculators/calculateDeclination?lat=${lat}&lon=${lng}&model=WMM&startYear=${new Date().getFullYear()}&resultFormat=json`)}`;
-      const res = await fetch(proxyUrl);
-      if (!res.ok) return 0;
-      const text = await res.text();
-      const data = JSON.parse(text);
-      const decl = data.declination?.value ?? data.result?.[0]?.declination ?? 0;
-      return Number(decl);
-    } catch {
-      return 0;
-    }
+    return Number(data.declination);
+  } catch (e) {
+    console.error("Declination Proxy API Error", e);
+    return 0;
   }
 };

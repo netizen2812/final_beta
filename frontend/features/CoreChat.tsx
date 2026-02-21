@@ -444,7 +444,7 @@ const CoreChat: React.FC<CoreChatProps> = ({ madhab, setMadhab, tone: mood, setT
               {/* Inner ambient glow */}
               <div className="absolute inset-0 bg-gradient-to-b from-white/40 to-transparent pointer-events-none" />
 
-              <div className="flex-1 overflow-y-auto p-6 md:p-10 space-y-6 no-scrollbar scroll-smooth relative z-10">
+              <div className="flex-1 overflow-y-auto p-6 md:p-10 space-y-6 no-scrollbar scroll-smooth relative z-10 flex flex-col">
 
                 {messages.length === 0 && !isLoading && (
                   <EmptyState onPrompt={(q) => setInput(q)} />
@@ -482,94 +482,96 @@ const CoreChat: React.FC<CoreChatProps> = ({ madhab, setMadhab, tone: mood, setT
                 <div ref={messagesEndRef} />
               </div>
 
-              {/* Input Area */}
-              <div className="p-5 md:p-7 bg-white/40 backdrop-blur-sm border-t border-slate-100/60">
-                <div className="flex items-center gap-3 bg-white/90 backdrop-blur-sm p-3 rounded-full border-2 border-slate-200/80 shadow-lg shadow-[#052e16]/5 focus-within:border-[#052e16]/25 focus-within:ring-4 focus-within:ring-[#052e16]/8 transition-all duration-200">
-                  <input
-                    type="text"
-                    placeholder="Seek guidance or ask a question…"
-                    value={input}
-                    onChange={(e) => setInput(e.target.value)}
-                    onKeyDown={(e) => e.key === 'Enter' && handleSend()}
-                    className="flex-1 bg-transparent border-none focus:outline-none text-[15px] px-3 font-medium text-slate-700 placeholder:text-slate-400"
-                  />
-                  <button
-                    onClick={handleSend}
-                    disabled={isLoading || !input.trim()}
-                    className="w-11 h-11 flex items-center justify-center bg-[#052e16] text-white rounded-full hover:scale-105 disabled:opacity-20 disabled:hover:scale-100 transition-all duration-200 shadow-lg active:scale-95 shadow-[#052e16]/25"
-                  >
-                    <Send size={18} />
-                  </button>
-                </div>
-                <p className="text-[9px] text-center mt-2.5 font-black uppercase tracking-[0.2em] text-slate-400/60">Seek knowledge with humility</p>
+            </div>
+
+            {/* Input Area - Now part of the flex container strictly at the bottom */}
+            <div className="p-4 md:p-6 bg-white/60 backdrop-blur-md border-t border-slate-100/60 shrink-0">
+              <div className="flex items-center gap-3 bg-white p-2.5 rounded-full border border-slate-200 shadow-md focus-within:border-emerald-400 focus-within:ring-2 focus-within:ring-emerald-400/20 transition-all max-w-3xl mx-auto">
+                <input
+                  type="text"
+                  placeholder="Seek guidance or ask a question…"
+                  value={input}
+                  onChange={(e) => setInput(e.target.value)}
+                  onKeyDown={(e) => e.key === 'Enter' && handleSend()}
+                  className="flex-1 bg-transparent border-none focus:outline-none text-sm px-4 font-medium text-slate-700"
+                />
+                <button
+                  onClick={handleSend}
+                  disabled={isLoading || !input.trim()}
+                  className="w-10 h-10 flex items-center justify-center bg-[#052e16] text-white rounded-full hover:scale-105 disabled:opacity-20 transition-all shadow-lg active:scale-95"
+                >
+                  <Send size={16} />
+                </button>
               </div>
+              <p className="text-[8px] text-center mt-2 font-black uppercase tracking-[0.2em] text-slate-400/60">Seek knowledge with humility</p>
             </div>
           </div>
         </div>
+      </div>
 
-        {/* Right Panel — Guidance Control (large desktop only) */}
-        {isLargeDesktop && showRightPanel && (
-          <GuidanceControlPanel
-            madhab={madhab}
-            setMadhab={setMadhab}
-            tone={mood}
-            setTone={setMood}
-          />
-        )}
+      {/* Right Panel — Guidance Control (large desktop only) */}
+      {isLargeDesktop && showRightPanel && (
+        <GuidanceControlPanel
+          madhab={madhab}
+          setMadhab={setMadhab}
+          tone={mood}
+          setTone={setMood}
+        />
+      )}
 
-        {/* Preferences Modal (mobile/tablet) */}
-        {showPreferences && (
-          <div className="fixed inset-0 z-[200] flex items-end md:items-center justify-center p-4">
-            <div className="absolute inset-0 bg-[#052e16]/30 backdrop-blur-md" onClick={() => setShowPreferences(false)} />
-            <div className="relative w-full max-w-md bg-white rounded-[2.5rem] shadow-2xl border border-emerald-100 p-7 md:p-9 space-y-7 animate-in slide-in-from-bottom duration-300">
-              <div className="flex justify-between items-center">
-                <div>
-                  <h3 className="text-sm font-black uppercase tracking-widest text-[#052e16]">Session Settings</h3>
-                  <p className="text-[10px] text-slate-400 font-bold uppercase tracking-wider mt-0.5">Customize your experience</p>
-                </div>
-                <button onClick={() => setShowPreferences(false)} className="p-2 hover:bg-emerald-50 rounded-full text-slate-300 transition-colors">
-                  <X size={22} />
-                </button>
+      {/* Preferences Modal (mobile/tablet) */}
+      {showPreferences && (
+        <div className="fixed inset-0 z-[200] flex items-end md:items-center justify-center p-4">
+          <div className="absolute inset-0 bg-[#052e16]/30 backdrop-blur-md" onClick={() => setShowPreferences(false)} />
+          <div className="relative w-full max-w-md bg-white rounded-[2.5rem] shadow-2xl border border-emerald-100 p-7 md:p-9 space-y-7 animate-in slide-in-from-bottom duration-300">
+            <div className="flex justify-between items-center">
+              <div>
+                <h3 className="text-sm font-black uppercase tracking-widest text-[#052e16]">Session Settings</h3>
+                <p className="text-[10px] text-slate-400 font-bold uppercase tracking-wider mt-0.5">Customize your experience</p>
               </div>
-
-              <div className="space-y-3">
-                <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-1">Current Mood</label>
-                <div className="grid grid-cols-2 gap-2.5">
-                  {moodOptions.map((m, idx) => (
-                    <button
-                      key={idx}
-                      onClick={() => setMood(m.label)}
-                      className={`flex items-center gap-3 px-4 py-3.5 rounded-2xl transition-all border ${mood === m.label ? 'bg-[#052e16] text-white border-[#052e16] shadow-lg' : 'bg-slate-50 border-emerald-50 text-slate-400 hover:border-emerald-100'} `}
-                    >
-                      <div className={mood === m.label ? 'text-white' : m.color}>{m.icon}</div>
-                      <span className="text-[10px] font-black uppercase tracking-widest">{m.label}</span>
-                    </button>
-                  ))}
-                </div>
-              </div>
-
-              <div className="space-y-3">
-                <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-1">School of Thought (Madhhab)</label>
-                <div className="grid grid-cols-2 gap-2">
-                  {Object.values(Madhab).map(m => (
-                    <button
-                      key={m}
-                      onClick={() => setMadhab(m)}
-                      className={`py-3.5 rounded-xl text-[10px] font-bold border transition-all ${madhab === m ? 'bg-emerald-50 border-[#052e16] text-[#052e16]' : 'bg-slate-50 border-emerald-50 text-slate-500'} `}
-                    >
-                      {m}
-                    </button>
-                  ))}
-                </div>
-              </div>
-
-              <button onClick={() => setShowPreferences(false)} className="w-full py-4.5 bg-[#052e16] text-white rounded-2xl text-[10px] font-black uppercase tracking-widest shadow-xl hover:scale-[1.02] active:scale-95 transition-all">
-                Apply Changes
+              <button onClick={() => setShowPreferences(false)} className="p-2 hover:bg-emerald-50 rounded-full text-slate-300 transition-colors">
+                <X size={22} />
               </button>
             </div>
+
+            <div className="space-y-3">
+              <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-1">Current Mood</label>
+              <div className="grid grid-cols-2 gap-2.5">
+                {moodOptions.map((m, idx) => (
+                  <button
+                    key={idx}
+                    onClick={() => setMood(m.label)}
+                    className={`flex items-center gap-3 px-4 py-3.5 rounded-2xl transition-all border ${mood === m.label ? 'bg-[#052e16] text-white border-[#052e16] shadow-lg' : 'bg-slate-50 border-emerald-50 text-slate-400 hover:border-emerald-100'} `}
+                  >
+                    <div className={mood === m.label ? 'text-white' : m.color}>{m.icon}</div>
+                    <span className="text-[10px] font-black uppercase tracking-widest">{m.label}</span>
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            <div className="space-y-3">
+              <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-1">School of Thought (Madhhab)</label>
+              <div className="grid grid-cols-2 gap-2">
+                {Object.values(Madhab).map(m => (
+                  <button
+                    key={m}
+                    onClick={() => setMadhab(m)}
+                    className={`py-3.5 rounded-xl text-[10px] font-bold border transition-all ${madhab === m ? 'bg-emerald-50 border-[#052e16] text-[#052e16]' : 'bg-slate-50 border-emerald-50 text-slate-500'} `}
+                  >
+                    {m}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            <button onClick={() => setShowPreferences(false)} className="w-full py-4.5 bg-[#052e16] text-white rounded-2xl text-[10px] font-black uppercase tracking-widest shadow-xl hover:scale-[1.02] active:scale-95 transition-all">
+              Apply Changes
+            </button>
           </div>
-        )}
-      </div>
+        </div>
+      )}
+    </div >
     </>
   );
 };

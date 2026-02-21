@@ -126,12 +126,12 @@ const FeatureCardsGrid: React.FC<FeatureCardsGridProps> = ({ onNavigate }) => {
                 <p className="text-xs font-black uppercase tracking-[0.4em] text-emerald-900/40">Choose your destination</p>
             </div>
 
-            {/* Grid Container */}
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 pb-10">
+            {/* Desktop Grid / Mobile Scroll */}
+            <div className="md:grid md:grid-cols-2 lg:grid-cols-3 gap-8 pb-10 flex overflow-x-auto md:overflow-visible no-scrollbar snap-x snap-mandatory px-4 -mx-4 scroll-px-4">
                 {features.map((feature, i) => (
                     <div
                         key={i}
-                        className="reveal-on-scroll"
+                        className="reveal-on-scroll min-w-[85vw] md:min-w-0 snap-center"
                         style={{ transitionDelay: `${i * 150}ms` }}
                     >
                         <FeatureCard

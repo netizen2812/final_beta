@@ -14,9 +14,9 @@ const ProphetsFamilyTree: React.FC = () => {
                 <p className="text-[10px] font-black uppercase tracking-[0.4em] text-emerald-900/30">A chronological spiritual journey</p>
             </div>
 
-            {/* The Map Canvas - Now full height and natural scroll */}
-            <div className="w-full relative flex justify-center">
-                <div className="relative w-full max-w-[1000px] h-[2100px]">
+            {/* The Map Canvas - Now full height and natural scroll with horizontal overflow on mobile */}
+            <div className="w-full relative overflow-x-auto no-scrollbar scroll-smooth">
+                <div className="relative w-[1000px] md:w-full max-w-[1000px] h-[2100px] mx-auto">
                     <svg className="absolute inset-0 w-full h-full pointer-events-none overflow-visible">
                         <defs>
                             <linearGradient id="lineGrad" x1="0%" y1="0%" x2="100%" y2="0%">

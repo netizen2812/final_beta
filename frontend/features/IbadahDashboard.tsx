@@ -35,7 +35,7 @@ import {
 } from 'lucide-react';
 import QuranPage from './QuranPage';
 import QiblaPage from './qibla/QiblaPage';
-import { getPrayerTimings, getHijriDate, getCalendarMonth, formatDateForAPI, calculateQibla, getMagneticDeclination } from '../services/aladhan';
+import { getPrayerTimings, getHijriDate, getCalendarMonth, formatDateForAPI } from '../services/aladhan';
 
 // --- TYPES & CONSTANTS ---
 
@@ -50,7 +50,7 @@ const normalizeAngle = (angle: number) => (angle + 360) % 360;
 
 const GENERAL_DISCLAIMER = "For guidance and convenience only. Accuracy may vary. Consult local authorities for definitive religious rulings.";
 
-type SubView = 'landing' | 'prayer-guide' | 'qibla' | 'dua' | 'calendar' | 'calendar-detail' | 'zakat-calc' | 'zakat-result' | 'quran';
+type SubView = 'landing' | 'prayer-guide' | 'dua' | 'calendar' | 'calendar-detail' | 'zakat-calc' | 'zakat-result' | 'quran' | 'tasbih' | 'hadith';
 
 // --- THEME LOGIC (HERO ONLY) ---
 
@@ -90,8 +90,7 @@ const HERO_THEMES = {
   }
 };
 
-// --- TASBIH COMPONENT ---
-const TasbihWidget = () => {
+const TasbihPage = ({ onBack }: { onBack: () => void }) => {
   const [count, setCount] = useState(0);
   const [goal, setGoal] = useState(33);
 
@@ -103,78 +102,164 @@ const TasbihWidget = () => {
   const reset = () => setCount(0);
 
   return (
-    <div className="bg-white rounded-[3rem] p-8 border border-emerald-100 shadow-xl flex flex-col items-center justify-center space-y-6 group hover:border-emerald-300 transition-all">
-      <div className="flex justify-between w-full items-center mb-2">
-        <span className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Tasbih Counter</span>
-        <button onClick={reset} className="text-[9px] font-black text-emerald-600 uppercase tracking-widest hover:text-emerald-800">Reset</button>
-      </div>
-      <div
-        onClick={increment}
-        className="w-40 h-40 rounded-full bg-emerald-50 border-8 border-white shadow-inner flex flex-col items-center justify-center cursor-pointer active:scale-95 transition-all group-hover:bg-emerald-100"
-      >
-        <span className="text-5xl font-black text-[#0D4433]">{count}</span>
-        <span className="text-[10px] font-bold text-emerald-600/50 mt-1">TAP TO COUNT</span>
-      </div>
-      <div className="flex gap-2">
-        {[33, 99, 100].map(g => (
-          <button
-            key={g}
-            onClick={() => setGoal(g)}
-            className={`px-4 py-2 rounded-xl text-[10px] font-black transition-all ${goal === g ? 'bg-[#0D4433] text-white' : 'bg-gray-50 text-gray-400'}`}
-          >
-            {g}
+    <div className="min-h-screen bg-[#FDFCF8] py-12 px-4 sm:px-6 animate-in fade-in duration-500 flex flex-col items-center">
+      <div className="max-w-xl w-full">
+        <div className="flex items-center gap-4 mb-10">
+          <button onClick={onBack} className="p-3 bg-white hover:bg-emerald-50 rounded-full transition-all text-[#0D4433] shadow-sm border border-emerald-100">
+            <ArrowLeft size={20} />
           </button>
-        ))}
-      </div>
-      <div className="w-full bg-gray-100 h-1.5 rounded-full overflow-hidden">
-        <div
-          className="bg-emerald-500 h-full transition-all duration-500"
-          style={{ width: `${Math.min((count / goal) * 100, 100)}%` }}
-        />
+          <h2 className="text-3xl font-serif font-bold text-[#0D4433]">Digital Tasbih</h2>
+        </div>
+
+        <div className="bg-white p-12 rounded-[4rem] border border-emerald-50 shadow-2xl flex flex-col items-center space-y-10">
+          <div
+            onClick={increment}
+            className="w-64 h-64 rounded-full bg-emerald-50 border-[12px] border-white shadow-inner flex flex-col items-center justify-center cursor-pointer active:scale-95 transition-all hover:bg-emerald-100 select-none"
+          >
+            <span className="text-7xl font-black text-[#0D4433]">{count}</span>
+            <span className="text-xs font-black text-emerald-600/40 mt-2 tracking-[0.2em]">TAP TO COUNT</span>
+          </div>
+
+          <div className="flex gap-4">
+            {[33, 99, 100, 1000].map(g => (
+              <button
+                key={g}
+                onClick={() => setGoal(g)}
+                className={`px-6 py-3 rounded-2xl text-xs font-black transition-all ${goal === g ? 'bg-[#0D4433] text-white shadow-lg' : 'bg-gray-50 text-gray-400 border border-gray-100'}`}
+              >
+                {g}
+              </button>
+            ))}
+          </div>
+
+          <div className="w-full space-y-2">
+            <div className="flex justify-between text-[10px] font-black text-gray-300 uppercase tracking-widest px-2">
+              <span>Progress</span>
+              <span>Goal: {goal}</span>
+            </div>
+            <div className="w-full bg-gray-50 h-3 rounded-full overflow-hidden border border-gray-100">
+              <div
+                className="bg-emerald-500 h-full transition-all duration-500 shadow-[0_0_10px_rgba(16,185,129,0.3)]"
+                style={{ width: `${Math.min((count / goal) * 100, 100)}%` }}
+              />
+            </div>
+          </div>
+
+          <button
+            onClick={reset}
+            className="w-full py-5 bg-gray-50 text-gray-400 rounded-3xl font-black uppercase tracking-[0.2em] text-[10px] hover:bg-rose-50 hover:text-rose-400 transition-all border border-gray-100"
+          >
+            Reset Counter
+          </button>
+        </div>
       </div>
     </div>
   );
 };
 
-// --- HADITH COMPONENT ---
-const HadithWidget = () => {
+const HadithPage = ({ onBack }: { onBack: () => void }) => {
   const [hadith, setHadith] = useState<any>(null);
   const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
-    const fetchHadith = async () => {
-      try {
-        const API_URL = import.meta.env.VITE_API_URL || "http://localhost:5000";
-        const res = await fetch(`${API_URL}/api/ibadah/hadith/daily`);
-        const data = await res.json();
-        setHadith(data);
-      } catch (e) {
-        console.error("Hadith fetch failed", e);
-      } finally {
-        setLoading(false);
-      }
-    };
-    fetchHadith();
-  }, []);
+  const fetchHadith = async () => {
+    setLoading(true);
+    try {
+      const API_URL = import.meta.env.VITE_API_URL || "http://localhost:5000";
+      const res = await fetch(`${API_URL}/api/ibadah/hadith/daily`);
+      const data = await res.json();
+      setHadith(data);
+    } catch (e) {
+      console.error("Hadith fetch failed", e);
+    } finally {
+      setLoading(false);
+    }
+  };
 
-  if (loading) return <div className="bg-white rounded-[3rem] p-10 border border-emerald-50 shadow-sm animate-pulse h-48" />;
+  useEffect(() => { fetchHadith(); }, []);
 
   return (
-    <div className="bg-[#0D4433] rounded-[3.5rem] p-10 text-white shadow-2xl relative overflow-hidden group">
-      <div className="absolute top-0 right-0 p-10 opacity-5 group-hover:scale-110 transition-transform"><Sparkles size={120} /></div>
-      <div className="relative z-10 space-y-6">
-        <div className="inline-flex items-center gap-2 px-4 py-1.5 bg-white/10 rounded-full border border-white/10 text-[9px] font-black uppercase tracking-widest text-emerald-300">
-          Hadith of the Day
+    <div className="min-h-screen bg-[#FDFCF8] py-12 px-4 sm:px-6 animate-in fade-in duration-500">
+      <div className="max-w-3xl mx-auto">
+        <div className="flex items-center gap-4 mb-10">
+          <button onClick={onBack} className="p-3 bg-white hover:bg-emerald-50 rounded-full transition-all text-[#0D4433] shadow-sm border border-emerald-100">
+            <ArrowLeft size={20} />
+          </button>
+          <h2 className="text-3xl font-serif font-bold text-[#0D4433]">Hadith of the Day</h2>
         </div>
-        <p className="text-xl font-serif text-right leading-loose" dir="rtl">{hadith?.arab}</p>
-        <p className="text-emerald-100/80 text-sm font-medium leading-relaxed italic border-l-2 border-emerald-500/30 pl-6">
-          "{hadith?.id || hadith?.text}"
-        </p>
-        <div className="text-[9px] font-black uppercase tracking-[0.2em] opacity-40">Sahih Bukhari • Reference {hadith?.number}</div>
+
+        {loading ? (
+          <div className="bg-white rounded-[4rem] p-20 border border-emerald-50 shadow-sm animate-pulse flex flex-col items-center space-y-6">
+            <div className="w-16 h-16 bg-emerald-50 rounded-full" />
+            <div className="w-full h-8 bg-gray-50 rounded-xl" />
+            <div className="w-2/3 h-8 bg-gray-50 rounded-xl" />
+          </div>
+        ) : (
+          <div className="space-y-8">
+            <div className="bg-[#0D4433] rounded-[4rem] p-10 md:p-16 text-white shadow-2xl relative overflow-hidden group">
+              <div className="absolute top-0 right-0 p-12 opacity-5"><Sparkles size={150} /></div>
+              <div className="relative z-10 space-y-10">
+                <p className="text-3xl md:text-5xl font-serif text-right leading-[1.8]" dir="rtl">{hadith?.arab}</p>
+                <div className="h-px bg-white/10 w-24" />
+                <p className="text-xl md:text-2xl text-emerald-100/90 font-medium leading-relaxed italic">
+                  "{hadith?.id || hadith?.text}"
+                </p>
+                <div className="flex justify-between items-center pt-6 border-t border-white/5">
+                  <div className="text-xs font-black uppercase tracking-[0.3em] text-emerald-400/60">Sahih Bukhari • No. {hadith?.number}</div>
+                  <button onClick={fetchHadith} className="p-4 bg-white/5 hover:bg-white/10 rounded-2xl transition-all border border-white/10">
+                    <Sparkles size={20} className="text-emerald-300" />
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );
 };
+
+const FeatureCard = ({
+  title,
+  desc,
+  icon: Icon,
+  onClick,
+  variant = 'light',
+  badge
+}: {
+  title: string;
+  desc: string;
+  icon: any;
+  onClick: () => void;
+  variant?: 'light' | 'dark';
+  badge?: string;
+}) => (
+  <div
+    onClick={onClick}
+    className={`group relative rounded-[2.5rem] p-8 md:p-10 border transition-all cursor-pointer overflow-hidden flex flex-col h-full min-h-[140px] md:min-h-[220px] ${variant === 'dark'
+      ? 'bg-[#0D4433] border-white/10 shadow-2xl hover:-translate-y-2'
+      : 'bg-white border-emerald-100 shadow-[0_15px_40px_-15px_rgba(0,0,0,0.05)] hover:border-emerald-300 hover:-translate-y-2'
+      }`}
+  >
+    <div className={`absolute -bottom-6 -right-6 opacity-[0.05] transition-transform duration-1000 group-hover:scale-125 group-hover:rotate-12 ${variant === 'dark' ? 'text-white' : 'text-[#0D4433]'}`}>
+      <Icon size={120} />
+    </div>
+
+    <div className={`w-12 h-12 md:w-16 md:h-16 rounded-2xl flex items-center justify-center mb-4 md:mb-6 border transition-all shadow-sm ${variant === 'dark'
+      ? 'bg-white/10 border-white/20 text-white group-hover:bg-emerald-500'
+      : 'bg-[#FDFCF8] border-emerald-50 text-[#0D4433] group-hover:bg-[#0D4433] group-hover:text-white'
+      }`}>
+      <Icon className="w-6 h-6 md:w-8 md:h-8" />
+    </div>
+
+    <div className="mt-auto relative z-10 space-y-1">
+      <div className="flex items-center gap-2">
+        <h3 className={`text-lg md:text-xl font-black ${variant === 'dark' ? 'text-white' : 'text-[#1c2833]'}`}>{title}</h3>
+        {badge && <span className="px-2 py-0.5 bg-emerald-500 text-white text-[8px] font-black uppercase tracking-widest rounded-md animate-pulse">{badge}</span>}
+      </div>
+      <p className={`text-[10px] md:text-xs font-medium leading-relaxed ${variant === 'dark' ? 'text-emerald-100/60' : 'text-gray-400'}`}>{desc}</p>
+    </div>
+  </div>
+);
 
 // --- ZAKAT CALCULATOR (top-level to prevent remount on parent re-render) ---
 const ZakatCalcPage = ({ onResult, onBack }: { onResult: (result: any) => void; onBack: () => void }) => {
@@ -413,17 +498,6 @@ const IbadahDashboard: React.FC = () => {
   const theme = HERO_THEMES[activeHeroTheme];
 
   const navigateTo = async (view: SubView, data?: any) => {
-    if (view === 'qibla') {
-      if (typeof (DeviceOrientationEvent as any).requestPermission === 'function') {
-        try {
-          const response = await (DeviceOrientationEvent as any).requestPermission();
-          if (response === 'granted') console.log('Compass permission granted');
-        } catch (e) {
-          console.warn('Compass permission rejected:', e);
-        }
-      }
-    }
-
     if (view === 'prayer-guide') setSelectedPrayer(data);
     if (view === 'zakat-result') setZakatResult(data);
     if (view === 'calendar-detail') setSelectedHijriContext(data);
@@ -696,16 +770,17 @@ const IbadahDashboard: React.FC = () => {
   // --- RENDER LOGIC ---
 
   if (subView === 'prayer-guide') return <PrayerGuidePage />;
-  if (subView === 'qibla') return <QiblaPage onBack={() => setSubView('landing')} />;
   if (subView === 'dua') return <DuaPage />;
   if (subView === 'calendar') return <CalendarPage />;
   if (subView === 'calendar-detail') return <CalendarDetailPage />;
   if (subView === 'zakat-calc') return <ZakatCalcPage onResult={(r) => navigateTo('zakat-result', r)} onBack={goBack} />;
   if (subView === 'zakat-result') return <ZakatResultPage />;
   if (subView === 'quran') return <QuranPage onBack={() => setSubView('landing')} />;
+  if (subView === 'tasbih') return <TasbihPage onBack={goBack} />;
+  if (subView === 'hadith') return <HadithPage onBack={goBack} />;
 
   const TrackerSection = () => (
-    <section className={`relative min-h-[60vh] md:min-h-[85vh] lg:min-h-[55vh] flex flex-col items-center justify-center px-6 pb-[10rem] md:pb-[18rem] lg:pb-[8rem] overflow-visible transition-all duration-[2000ms] ${theme.bg}`}>
+    <section className={`relative min-h-[60vh] md:min-h-[80vh] lg:min-h-[60vh] flex flex-col items-center justify-center px-6 pb-[10rem] md:pb-[18rem] lg:pb-[12rem] overflow-visible transition-all duration-[2000ms] ${theme.bg}`}>
       <div className="absolute inset-0 opacity-20 pointer-events-none">
         {activeHeroTheme === 'isha' && (
           <div className="absolute inset-0">
@@ -758,96 +833,100 @@ const IbadahDashboard: React.FC = () => {
     <div className="min-h-screen bg-[#FDFCF8] text-[#2D2D2D] pb-32 overflow-x-hidden">
       <TrackerSection />
 
-      {/* MOBILE/TABLET LANDING FEATURE GRID */}
-      <section className="lg:hidden max-w-7xl mx-auto px-4 sm:px-6 mt-24 space-y-4">
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-4">
-          {/* Quran */}
-          <div onClick={() => navigateTo('quran')} className="bg-[#0D4433] rounded-[2rem] p-5 border border-white/10 shadow-lg group active:scale-95 transition-all overflow-hidden relative">
-            <div className="absolute -bottom-4 -right-4 opacity-10 text-white"><BookOpen size={80} /></div>
-            <div className="w-10 h-10 bg-white/10 rounded-xl flex items-center justify-center mb-4 border border-white/20"><BookOpen className="w-5 h-5 text-white" /></div>
-            <h3 className="text-lg font-black text-white">Quran</h3>
-            <p className="text-emerald-100/60 text-[10px] font-medium truncate">Read & Listen</p>
-          </div>
-          {/* Qibla */}
-          <div onClick={() => navigateTo('qibla')} className="bg-white rounded-[2rem] p-5 border border-emerald-100 shadow-sm group active:scale-95 transition-all overflow-hidden relative">
-            <div className="absolute -bottom-4 -right-4 opacity-[0.05] text-[#0D4433]"><Compass size={80} /></div>
-            <div className="w-10 h-10 bg-[#FDFCF8] rounded-xl flex items-center justify-center mb-4 border border-emerald-50"><Compass className="w-5 h-5 text-[#0D4433]" /></div>
-            <h3 className="text-lg font-black text-[#1c2833]">Qibla</h3>
-            <p className="text-gray-400 text-[10px] font-medium truncate">Find Direction</p>
-          </div>
-          {/* Hijri */}
-          <div onClick={() => navigateTo('calendar')} className="bg-white rounded-[2rem] p-5 border border-emerald-100 shadow-sm group active:scale-95 transition-all overflow-hidden relative">
-            <div className="absolute -bottom-4 -right-4 opacity-[0.05] text-[#0D4433]"><CalendarIcon size={80} /></div>
-            <div className="w-10 h-10 bg-[#FDFCF8] rounded-xl flex items-center justify-center mb-4 border border-emerald-50"><CalendarIcon className="w-5 h-5 text-[#0D4433]" /></div>
-            <h3 className="text-lg font-black text-[#1c2833]">Calendar</h3>
-            <p className="text-gray-400 text-[10px] font-medium truncate">Hijri Dates</p>
-          </div>
-          {/* Zakat */}
-          <div onClick={() => navigateTo('zakat-calc')} className="bg-white rounded-[2rem] p-5 border border-emerald-100 shadow-sm group active:scale-95 transition-all overflow-hidden relative">
-            <div className="absolute -bottom-4 -right-4 opacity-[0.05] text-[#0D4433]"><Calculator size={80} /></div>
-            <div className="w-10 h-10 bg-[#FDFCF8] rounded-xl flex items-center justify-center mb-4 border border-emerald-50"><Calculator className="w-5 h-5 text-[#0D4433]" /></div>
-            <h3 className="text-lg font-black text-[#1c2833]">Zakat</h3>
-            <p className="text-gray-400 text-[10px] font-medium truncate">Calculator</p>
-          </div>
-        </div>
-
-        {/* New Mobile Widgets */}
-        <HadithWidget />
-        <TasbihWidget />
-      </section>
-
-      {/* DESKTOP LANDING LAYOUT (FULL SECTIONS) */}
-      <section className="hidden lg:block max-w-7xl mx-auto px-6 xl:px-8 mt-64 space-y-16">
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 xl:gap-12">
-          <div className="lg:col-span-8 space-y-12">
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-              <div onClick={() => navigateTo('quran')} className="bg-[#0D4433] rounded-[3.5rem] p-10 border border-white/10 shadow-2xl group hover:-translate-y-3 transition-all cursor-pointer overflow-hidden relative">
-                <div className="absolute -bottom-10 -right-10 opacity-10 text-white group-hover:scale-125 transition-transform duration-1000"><BookOpen size={200} /></div>
-                <div className="w-16 h-16 bg-white/10 rounded-[1.5rem] flex items-center justify-center mb-8 border border-white/20 group-hover:bg-emerald-500 transition-all shadow-md"><BookOpen className="w-8 h-8 text-white" /></div>
-                <h3 className="text-2xl font-black text-white mb-2">Read Quran</h3>
-                <p className="text-emerald-100/60 text-sm leading-relaxed mb-8 font-medium">Recite and listen with English translations and full audio support.</p>
-                <div className="flex items-center gap-2 text-emerald-400 font-black text-[10px] uppercase tracking-widest">Resume Reading <ChevronRight size={14} /></div>
-              </div>
-              <div onClick={() => navigateTo('qibla')} className="bg-white rounded-[3.5rem] p-10 border border-emerald-100 shadow-[0_20px_50px_-15px_rgba(0,0,0,0.05)] group hover:-translate-y-3 transition-all cursor-pointer overflow-hidden relative">
-                <div className="absolute -top-10 -right-10 opacity-[0.05] text-[#0D4433] group-hover:rotate-45 transition-transform duration-1000"><Compass size={200} /></div>
-                <div className="w-16 h-16 bg-[#FDFCF8] rounded-[1.5rem] flex items-center justify-center mb-8 border border-emerald-50 group-hover:bg-[#0D4433] group-hover:text-white transition-all shadow-md"><Compass className="w-8 h-8" /></div>
-                <h3 className="text-2xl font-black text-[#1c2833] mb-2">Qibla Finder</h3>
-                <p className="text-gray-500 text-sm leading-relaxed mb-8 font-medium">Precision orientation with global interactive compass support.</p>
-                <div className="flex items-center gap-2 text-[#0D4433] font-black text-[10px] uppercase tracking-widest">Open Compass <ChevronRight size={14} /></div>
-              </div>
-              <div onClick={() => navigateTo('calendar')} className="bg-white rounded-[3.5rem] p-10 border border-emerald-100 shadow-[0_20px_50px_-15px_rgba(0,0,0,0.05)] group hover:-translate-y-3 transition-all cursor-pointer overflow-hidden relative">
-                <div className="absolute -bottom-10 -right-10 opacity-[0.05] text-[#0D4433] group-hover:-rotate-12 transition-transform duration-1000"><CalendarIcon size={200} /></div>
-                <div className="w-16 h-16 bg-[#FDFCF8] rounded-[1.5rem] flex items-center justify-center mb-8 border border-emerald-50 group-hover:bg-[#0D4433] group-hover:text-white transition-all shadow-md"><CalendarIcon className="w-8 h-8" /></div>
-                <h3 className="text-2xl font-black text-[#1c2833] mb-2">Hijri Calendar</h3>
-                <p className="text-gray-500 text-sm leading-relaxed mb-8 font-medium">Lunar cycles, moon sightings, and sacred months tracking.</p>
-                <div className="flex items-center gap-2 text-[#0D4433] font-black text-[10px] uppercase tracking-widest">View Events <ChevronRight size={14} /></div>
-              </div>
-            </div>
-
-            {/* New Desktop Widgets */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-              <HadithWidget />
-              <TasbihWidget />
-            </div>
-          </div>
-          <div className="lg:col-span-4 space-y-12">
-
-            <div className="bg-white rounded-[5rem] border border-emerald-100 shadow-[0_30px_60px_-15px_rgba(0,0,0,0.05)] p-14 group hover:border-emerald-300 transition-all cursor-pointer">
-              <div className="flex justify-between items-start mb-14">
-                <div className="w-20 h-20 bg-[#FDFCF8] rounded-[2rem] flex items-center justify-center border border-emerald-100 group-hover:bg-[#0D4433] group-hover:text-white transition-all shadow-md"><Calculator className="w-10 h-10" /></div>
-                <div className="text-right"><span className="block text-[11px] font-black text-gray-400 uppercase tracking-widest mb-2">Nisab (INR)</span><span className="font-black text-[#0D4433] text-3xl">₹52,051</span></div>
-              </div>
-              <h3 className="text-3xl font-black text-[#1c2833] mb-4">Zakat Manager</h3>
-              <p className="text-gray-500 text-base leading-relaxed mb-12 font-medium">Precision calculation in Indian Rupees (₹) based on current gold and silver market rates.</p>
-              <button onClick={() => navigateTo('zakat-calc')} className="w-full py-6 bg-emerald-50 text-[#0D4433] border border-emerald-100 rounded-[2rem] font-black uppercase tracking-[0.2em] text-[11px] hover:bg-[#0D4433] hover:text-white transition-all shadow-sm">Open Calculator</button>
-            </div>
-            <div className="bg-[#FDFCF8] rounded-[3rem] p-10 flex flex-col gap-6 items-center text-center border border-emerald-100/50 shadow-inner">
-              <div className="p-4 bg-white rounded-3xl shadow-md border border-emerald-50"><ShieldCheck className="w-8 h-8 text-emerald-600" /></div>
-              <p className="text-[12px] text-emerald-900/50 font-black italic leading-relaxed uppercase tracking-[0.1em]">{GENERAL_DISCLAIMER}</p>
-            </div>
-          </div>
+      {/* MOBILE FEATURE GRID */}
+      <section className="lg:hidden max-w-7xl mx-auto px-4 sm:px-6 mt-32 md:mt-48 space-y-6">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <FeatureCard
+            title="Noble Quran"
+            desc="Listen & Read"
+            icon={BookOpen}
+            onClick={() => navigateTo('quran')}
+            variant="dark"
+          />
+          <FeatureCard
+            title="Hijri Dates"
+            desc="Sacred Calendar"
+            icon={CalendarIcon}
+            onClick={() => navigateTo('calendar')}
+          />
+          <FeatureCard
+            title="Hadith"
+            desc="Daily Wisdom"
+            icon={Sparkles}
+            onClick={() => navigateTo('hadith')}
+          />
+          <FeatureCard
+            title="Zakat"
+            desc="Calculator"
+            icon={Calculator}
+            onClick={() => navigateTo('zakat-calc')}
+            badge="Live"
+          />
+          <FeatureCard
+            title="Tasbih"
+            desc="Dhikr Counter"
+            icon={Target}
+            onClick={() => navigateTo('tasbih')}
+          />
+          <FeatureCard
+            title="Duas"
+            desc="Daily Prayers"
+            icon={Heart}
+            onClick={() => navigateTo('dua')}
+          />
         </div>
       </section>
+
+      {/* DESKTOP FEATURE GRID */}
+      <section className="hidden lg:block max-w-7xl mx-auto px-6 xl:px-8 mt-48">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 xl:gap-10">
+          <FeatureCard
+            title="Noble Quran"
+            desc="Immerse yourself in the sacred words with recitation and English translation support."
+            icon={BookOpen}
+            onClick={() => navigateTo('quran')}
+            variant="dark"
+          />
+          <FeatureCard
+            title="Hijri Calendar"
+            desc="Track sacred months and lunar cycles with our specialized traditionally-aligned view."
+            icon={CalendarIcon}
+            onClick={() => navigateTo('calendar')}
+          />
+          <FeatureCard
+            title="Hadith of the Day"
+            desc="Daily guidance from Sahih Bukhari and Muslim, curated for your morning reflection."
+            icon={Sparkles}
+            onClick={() => navigateTo('hadith')}
+          />
+          <FeatureCard
+            title="Zakat Manager"
+            desc="Precision calculation in INR based on real-time gold and silver market market rates."
+            icon={Calculator}
+            onClick={() => navigateTo('zakat-calc')}
+            badge="Live"
+          />
+          <FeatureCard
+            title="Digital Tasbih"
+            desc="Focus on your remembrance with haptic feedback and custom goals for daily dhikr."
+            icon={Target}
+            onClick={() => navigateTo('tasbih')}
+          />
+          <FeatureCard
+            title="Daily Duas"
+            desc="A collection of essential prayers for morning, evening, and various occasions."
+            icon={Heart}
+            onClick={() => navigateTo('dua')}
+          />
+        </div>
+      </section>
+
+      <div className="max-w-7xl mx-auto px-6 mt-16 md:mt-24 lg:mt-32">
+        <div className="bg-[#FDFCF8] rounded-[3rem] p-10 flex flex-col md:flex-row gap-6 items-center text-center md:text-left border border-emerald-100/50 shadow-inner">
+          <div className="p-4 bg-white rounded-3xl shadow-md border border-emerald-50"><ShieldCheck className="w-8 h-8 text-emerald-600" /></div>
+          <p className="text-[11px] text-emerald-900/40 font-black italic leading-relaxed uppercase tracking-[0.2em]">{GENERAL_DISCLAIMER}</p>
+        </div>
+      </div>
 
       <style>{`
         .scrollbar-hide::-webkit-scrollbar { display: none; }

@@ -17,7 +17,31 @@ const HomeHub: React.FC<HomeHubProps> = ({ onNavigate }) => {
             setScrolled(window.scrollY);
         };
         window.addEventListener('scroll', handleScroll, { passive: true });
-        return () => window.removeEventListener('scroll', handleScroll);
+
+        // Scroll Reveal Observer
+        const observer = new IntersectionObserver((entries) => {
+            entries.forEach(entry => {
+                if (entry.isIntersecting) {
+                    entry.target.classList.add('visible');
+                }
+            });
+        }, { threshold: 0.1 });
+
+        const observeElements = () => {
+            document.querySelectorAll('.reveal-on-scroll').forEach(el => observer.observe(el));
+        };
+
+        observeElements();
+
+        // Optional: Observe for dynamic content changes
+        const mutationObserver = new MutationObserver(observeElements);
+        mutationObserver.observe(document.body, { childList: true, subtree: true });
+
+        return () => {
+            window.removeEventListener('scroll', handleScroll);
+            observer.disconnect();
+            mutationObserver.disconnect();
+        };
     }, []);
 
     return (

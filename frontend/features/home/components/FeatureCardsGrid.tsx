@@ -100,18 +100,7 @@ const FeatureCardsGrid: React.FC<FeatureCardsGridProps> = ({ onNavigate }) => {
 
     /* REMOVED LIVE AND SCHOLAR CARDS */
 
-    React.useEffect(() => {
-        const observer = new IntersectionObserver((entries) => {
-            entries.forEach(entry => {
-                if (entry.isIntersecting) {
-                    entry.target.classList.add('visible');
-                }
-            });
-        }, { threshold: 0.1 });
 
-        document.querySelectorAll('.reveal-on-scroll').forEach(el => observer.observe(el));
-        return () => observer.disconnect();
-    }, []);
 
     return (
         <section id="feature-grid" className="space-y-16 py-20 min-h-[600px]">

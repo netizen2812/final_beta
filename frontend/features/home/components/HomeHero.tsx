@@ -10,7 +10,7 @@ const HomeHero: React.FC = () => {
     }, []);
 
     return (
-        <section className="relative w-full min-h-[90vh] flex flex-col items-center justify-center overflow-hidden pt-20 px-6">
+        <section className="relative w-full min-h-[80vh] flex flex-col items-center justify-center overflow-hidden pt-12 px-6">
             {/* Animated Geometric Background */}
             <div className="absolute inset-0 z-0">
                 <div

@@ -22,7 +22,7 @@ const FeatureCard: React.FC<FeatureCardProps> = ({ title, desc, benefit, icon: I
     return (
         <div
             onClick={onClick}
-            className={`group relative p-12 rounded-[4rem] border transition-all duration-700 cursor-pointer overflow-hidden flex flex-col h-[500px] reveal-on-scroll bg-[#0D4433] border-white/10 shadow-3xl`}
+            className={`group relative p-12 rounded-[4rem] border transition-all duration-700 cursor-pointer overflow-hidden flex flex-col items-center text-center h-[500px] reveal-on-scroll bg-[#0D4433] border-white/10 shadow-3xl`}
         >
             {/* Background Image Layer */}
             <div
@@ -38,28 +38,39 @@ const FeatureCard: React.FC<FeatureCardProps> = ({ title, desc, benefit, icon: I
             {/* Content Reveal Overlay */}
             <div className="absolute inset-0 bg-gradient-to-t from-emerald-950/80 via-emerald-950/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-700" />
 
-            {/* Icon */}
-            <div className="mt-auto space-y-6 relative z-20">
-                <div className="space-y-2 transform transition-all duration-700 translate-y-8 group-hover:translate-y-0">
-                    <h3 className={`text-3xl font-black transition-colors ${variant === 'dark' || true ? 'text-white' : 'text-emerald-950'}`}>
+            {/* Icon & Content Container */}
+            <div className="mt-auto space-y-6 relative z-20 w-full flex flex-col items-center">
+                <div className="space-y-3 transform transition-all duration-700 translate-y-8 group-hover:translate-y-0 h-32 flex flex-col justify-end">
+                    <h3 className="text-3xl font-black text-white px-2">
                         {title}
                     </h3>
-                    <p className={`text-sm font-medium leading-relaxed max-w-[280px] opacity-0 group-hover:opacity-100 transition-all duration-700 delay-100 ${variant === 'dark' || true ? 'text-emerald-100/70' : 'text-gray-500'}`}>
+                    <p className="text-sm font-medium leading-relaxed max-w-[280px] opacity-0 group-hover:opacity-100 transition-all duration-700 delay-100 text-emerald-100/70">
                         {desc}
                     </p>
                 </div>
 
                 <div className="flex items-center gap-4 opacity-0 group-hover:opacity-100 transition-all duration-700 delay-200 transform translate-y-4 group-hover:translate-y-0">
-                    <div className="h-[1px] w-12 bg-emerald-400" />
+                    <div className="h-[1px] w-8 bg-emerald-400/50" />
                     <span className="text-[10px] font-black uppercase tracking-[0.3em] text-emerald-400">
                         {benefit}
                     </span>
+                    <div className="h-[1px] w-8 bg-emerald-400/50" />
                 </div>
             </div>
 
-            {/* Icon Overlay */}
-            <div className="absolute top-12 left-12 p-6 rounded-3xl bg-white/5 backdrop-blur-sm border border-white/10 text-white transform transition-all duration-700 group-hover:scale-110 group-hover:-rotate-12">
-                <Icon size={32} />
+            {/* Creative Organic Icon Overlay */}
+            <div className="absolute top-12 left-1/2 -translate-x-1/2 flex items-center justify-center">
+                <div className="relative">
+                    {/* Glowing Auras */}
+                    <div className="absolute inset-0 bg-emerald-400 blur-3xl opacity-20 group-hover:opacity-40 transition-opacity animate-pulse" />
+                    <div className="absolute inset-[-20%] border border-emerald-400/20 rounded-full group-hover:scale-150 transition-transform duration-1000" />
+                    <div className="absolute inset-[-40%] border border-emerald-400/10 rounded-full group-hover:scale-125 transition-transform duration-1000 delay-75" />
+
+                    {/* The Icon */}
+                    <div className="relative p-6 rounded-full bg-white/5 backdrop-blur-md border border-white/20 text-white transform transition-all duration-700 group-hover:scale-110 group-hover:shadow-[0_0_50px_-10px_rgba(52,211,153,0.5)]">
+                        <Icon size={32} />
+                    </div>
+                </div>
             </div>
         </div>
     );
@@ -93,7 +104,7 @@ const FeatureCardsGrid: React.FC<FeatureCardsGridProps> = ({ onNavigate }) => {
             desc: "Every tool you need for your daily worship, from Quran to Zakat calculations.",
             benefit: "worship support",
             icon: Target,
-            image: "/images/ibadah.png",
+            image: "/images/ibadah_new.png",
             tab: AppTab.IBADAH
         }
     ];

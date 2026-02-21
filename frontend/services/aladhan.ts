@@ -1,10 +1,11 @@
 const API_URL = import.meta.env.VITE_API_URL || "http://localhost:5000";
 
-export const getPrayerTimings = async (lat: number, lng: number) => {
+export const getPrayerTimings = async (lat?: number, lng?: number) => {
   try {
-    const res = await fetch(`${API_URL}/api/ibadah/timings?lat=${lat}&lng=${lng}`);
+    const query = lat && lng ? `?lat=${lat}&lng=${lng}` : '';
+    const res = await fetch(`${API_URL}/api/ibadah/timings${query}`);
     const data = await res.json();
-    return data.data;
+    return data; // Return full object to get metadata (method)
   } catch (e) {
     console.error("Prayer Timings API error", e);
     return null;
@@ -22,9 +23,10 @@ export const getHijriDate = async () => {
   }
 };
 
-export const getCalendarMonth = async (lat: number, lng: number, month: number, year: number) => {
+export const getCalendarMonth = async (lat: number | null, lng: number | null, month: number, year: number) => {
   try {
-    const res = await fetch(`${API_URL}/api/ibadah/calendar?lat=${lat}&lng=${lng}&month=${month}&year=${year}`);
+    const locQuery = lat && lng ? `&lat=${lat}&lng=${lng}` : '';
+    const res = await fetch(`${API_URL}/api/ibadah/calendar?month=${month}&year=${year}${locQuery}`);
     const data = await res.json();
     return data.data;
   } catch (e) {

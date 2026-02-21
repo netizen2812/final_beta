@@ -21,10 +21,49 @@ const CACHE_TTL = {
 
 const isExpired = (timestamp, ttl) => Date.now() - timestamp > ttl;
 
+const getLocationFromIP = async (ip) => {
+    try {
+        // Clean up IP (remove IPv6 prefix if present)
+        const cleanIP = ip.replace(/^.*:/, '');
+        if (cleanIP === '127.0.0.1' || cleanIP === '1') {
+            // Default to Delhi for localhost testing if no real IP
+            return { lat: 28.6139, lng: 77.2090, city: "Delhi (Local)" };
+        }
+
+        const response = await fetch(`https://ipapi.co/${cleanIP}/json/`);
+        if (!response.ok) return null;
+        const data = await response.json();
+
+        if (data.latitude && data.longitude) {
+            return {
+                lat: data.latitude,
+                lng: data.longitude,
+                city: data.city || "Unknown"
+            };
+        }
+        return null;
+    } catch (e) {
+        console.error("IP Location Error:", e);
+        return null;
+    }
+};
+
 export const getTimings = async (req, res) => {
     try {
-        const { lat, lng } = req.query;
-        if (!lat || !lng) return res.status(400).json({ error: "Missing lat/lng" });
+        let { lat, lng } = req.query;
+        let detectionMethod = "GPS";
+
+        if (!lat || !lng) {
+            const ip = req.headers['x-forwarded-for'] || req.socket.remoteAddress;
+            const loc = await getLocationFromIP(ip);
+            if (loc) {
+                lat = loc.lat;
+                lng = loc.lng;
+                detectionMethod = `IP (${loc.city})`;
+            } else {
+                return res.status(400).json({ error: "Location required. Please enable GPS or check internet connection." });
+            }
+        }
 
         // Round the coordinates slightly to increase cache hit rate for nearby users
         const roundedLat = parseFloat(lat).toFixed(2);
@@ -41,7 +80,7 @@ export const getTimings = async (req, res) => {
         const data = await response.json();
 
         cache.timings.set(cacheKey, { data: data.data, timestamp: Date.now() });
-        res.json({ data: data.data });
+        res.json({ data: data.data, meta: { method: detectionMethod, lat, lng } });
     } catch (error) {
         console.error("Timings API error:", error);
         res.status(500).json({ error: "Internal Server Error" });
@@ -73,8 +112,19 @@ export const getHijriDate = async (req, res) => {
 
 export const getCalendarMonth = async (req, res) => {
     try {
-        const { lat, lng, month, year } = req.query;
-        if (!lat || !lng || !month || !year) return res.status(400).json({ error: "Missing params" });
+        let { lat, lng, month, year } = req.query;
+        if (!month || !year) return res.status(400).json({ error: "Missing month/year" });
+
+        if (!lat || !lng) {
+            const ip = req.headers['x-forwarded-for'] || req.socket.remoteAddress;
+            const loc = await getLocationFromIP(ip);
+            if (loc) {
+                lat = loc.lat;
+                lng = loc.lng;
+            } else {
+                return res.status(400).json({ error: "Location required" });
+            }
+        }
 
         const roundedLat = parseFloat(lat).toFixed(2);
         const roundedLng = parseFloat(lng).toFixed(2);

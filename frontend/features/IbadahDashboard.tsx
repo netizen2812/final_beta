@@ -27,6 +27,7 @@ import {
   CalendarDays,
   Target,
   AlertCircle,
+  VolumeX,
   Maximize,
   Heart,
   BookOpen,
@@ -34,8 +35,8 @@ import {
   ArrowRight
 } from 'lucide-react';
 import QuranPage from './QuranPage';
-import QiblaPage from './qibla/QiblaPage';
 import { getPrayerTimings, getHijriDate, getCalendarMonth, formatDateForAPI } from '../services/aladhan';
+import { notificationService } from '../services/NotificationService';
 
 // --- TYPES & CONSTANTS ---
 
@@ -380,6 +381,9 @@ const IbadahDashboard: React.FC = () => {
   const [subView, setSubView] = useState<SubView>('landing');
   const [selectedPrayer, setSelectedPrayer] = useState<PrayerTime | null>(null);
   const [zakatResult, setZakatResult] = useState<any>(null);
+  const [notificationsEnabled, setNotificationsEnabled] = useState(() => {
+    return localStorage.getItem('imam_notifications_enabled') === 'true';
+  });
 
   // Hijri States
   const [viewDate, setViewDate] = useState(new Date());
@@ -390,6 +394,7 @@ const IbadahDashboard: React.FC = () => {
 
   // --- BACKEND STATE ---
   const [location, setLocation] = useState<{ lat: number, lng: number } | null>(null);
+  const [locationMethod, setLocationMethod] = useState<string>('Detecting...');
   const [prayerTimes, setPrayerTimes] = useState<PrayerTime[]>([]);
   const [nextPrayer, setNextPrayer] = useState<string>('');
 
@@ -424,14 +429,16 @@ const IbadahDashboard: React.FC = () => {
 
   // DATA FETCHING
   useEffect(() => {
-    if (!location) return;
-
     let isMounted = true;
 
     const fetchData = async () => {
       // Prayer Times
-      const timingsData = await getPrayerTimings(location.lat, location.lng);
-      if (isMounted && timingsData) {
+      const res = await getPrayerTimings(location?.lat, location?.lng);
+
+      if (isMounted && res && res.data) {
+        const timingsData = res.data;
+        if (res.meta?.method) setLocationMethod(res.meta.method);
+
         const mapped: PrayerTime[] = [
           { id: 1, name: 'Fajr', time: timingsData.timings.Fajr },
           { id: 2, name: 'Dhuhr', time: timingsData.timings.Dhuhr },
@@ -447,6 +454,12 @@ const IbadahDashboard: React.FC = () => {
           return (h * 60 + m) > nowMinutes;
         });
         setNextPrayer(found ? found.name : 'Fajr');
+
+        // Schedule notifications if enabled
+        if (notificationsEnabled) {
+          notificationService.schedulePrayerReminders(timingsData.timings);
+          notificationService.scheduleDailyNudges();
+        }
       }
 
       const todayHijri = await getHijriDate();
@@ -465,17 +478,36 @@ const IbadahDashboard: React.FC = () => {
     fetchData();
 
     return () => { isMounted = false; };
-  }, [location]);
+  }, [location, notificationsEnabled]);
+
+  const toggleNotifications = async () => {
+    if (!notificationsEnabled) {
+      const granted = await notificationService.requestPermission();
+      if (granted) {
+        setNotificationsEnabled(true);
+        localStorage.setItem('imam_notifications_enabled', 'true');
+        // Initial schedule
+        if (prayerTimes.length > 0) {
+          const rawTimings = prayerTimes.reduce((acc, p) => ({ ...acc, [p.name]: p.time }), {});
+          notificationService.schedulePrayerReminders(rawTimings);
+          notificationService.scheduleDailyNudges();
+        }
+      } else {
+        alert("Please enable notification permissions in your browser settings to receive alerts.");
+      }
+    } else {
+      setNotificationsEnabled(false);
+      localStorage.setItem('imam_notifications_enabled', 'false');
+    }
+  };
 
   // MONTHLY CALENDAR FETCHING
   useEffect(() => {
-    if (!location) return;
-
     const fetchMonth = async () => {
       setIsCalendarLoading(true);
       const m = viewDate.getMonth() + 1;
       const y = viewDate.getFullYear();
-      const calendarMonthRaw = await getCalendarMonth(location.lat, location.lng, m, y);
+      const calendarMonthRaw = await getCalendarMonth(location?.lat || null, location?.lng || null, m, y);
       const todayStr = formatDateForAPI(new Date());
 
       const transformedCalendar = (calendarMonthRaw || []).map((day: any) => ({
@@ -776,8 +808,29 @@ const IbadahDashboard: React.FC = () => {
         <h1 className="text-6xl md:text-[10rem] lg:text-8xl font-light tracking-tighter mb-6 md:mb-10 lg:mb-6 drop-shadow-md">
           {currentTime.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
         </h1>
-        <div className="inline-flex items-center gap-3 md:gap-4 px-6 md:px-10 py-3 md:py-4 bg-[#0D4433]/40 backdrop-blur-2xl rounded-full border border-white/30 text-[9px] md:text-[11px] font-black uppercase tracking-[0.3em] shadow-2xl">
-          Next: <span className="text-emerald-400">{nextPrayer || 'Prayer'}</span> <span className="opacity-40">•</span> <span className="text-white">Guidance</span>
+        <div className="inline-flex flex-col items-center gap-2">
+          <div className="inline-flex items-center gap-3 md:gap-4 px-6 md:px-10 py-3 md:py-4 bg-[#0D4433]/40 backdrop-blur-2xl rounded-full border border-white/30 text-[9px] md:text-[11px] font-black uppercase tracking-[0.3em] shadow-2xl">
+            Next: <span className="text-emerald-400">{nextPrayer || 'Prayer'}</span> <span className="opacity-40">•</span> <span className="text-white">Guidance</span>
+          </div>
+          <div className="text-[8px] font-black uppercase tracking-[0.3em] opacity-40 mt-2 flex items-center gap-1.5">
+            <MapPin size={10} /> Location: {locationMethod}
+          </div>
+        </div>
+
+        {/* Notification Toggle inside Hero */}
+        <div className="mt-8">
+          <button
+            onClick={toggleNotifications}
+            className={`flex items-center gap-3 px-8 py-4 rounded-full border transition-all shadow-xl hover:scale-105 active:scale-95 ${notificationsEnabled
+              ? 'bg-emerald-500/20 text-emerald-400 border-emerald-500/50 backdrop-blur-xl'
+              : 'bg-white/10 text-white/60 border-white/20 backdrop-blur-md'
+              }`}
+          >
+            {notificationsEnabled ? <Volume2 size={16} /> : <VolumeX size={16} />}
+            <span className="text-[10px] font-black uppercase tracking-[0.2em]">
+              {notificationsEnabled ? 'Notifications Active' : 'Enable Prayer Alerts'}
+            </span>
+          </button>
         </div>
       </div>
       <div className="absolute bottom-0 left-0 w-full px-4 sm:px-6 lg:px-8 z-20">

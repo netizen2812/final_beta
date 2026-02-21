@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from 'react';
-import HomeHero from './components/HomeHero';
-import FeatureCardsGrid from './components/FeatureCardsGrid';
-import ProphetsFamilyTree from './components/ProphetsFamilyTree';
-import HomeFooter from './components/HomeFooter';
+import HomeHero from './components/HomeHero.tsx';
+import FeatureCardsGrid from './components/FeatureCardsGrid.tsx';
+import ProphetsFamilyTree from './components/ProphetsFamilyTree.tsx';
+import HomeFooter from './components/HomeFooter.tsx';
 import { AppTab } from '../../types';
 
 interface HomeHubProps {

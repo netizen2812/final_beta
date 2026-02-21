@@ -6,7 +6,7 @@ const API_BASE = import.meta.env.VITE_API_URL || "http://localhost:5000";
 
 export const useHeartbeat = () => {
     const { getToken, isSignedIn } = useAuth();
-    const intervalRef = useRef<NodeJS.Timeout | null>(null);
+    const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
     useEffect(() => {
         const sendHeartbeat = async () => {

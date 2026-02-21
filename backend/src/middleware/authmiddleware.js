@@ -33,9 +33,11 @@ export const isAdmin = async (req, res, next) => {
     const user = await User.findOne({ clerkId: userId });
 
     const rootAdmins = ["sarthakjuneja1999@gmail.com", "huzaifbarkati0@gmail.com"];
-    const isRootAdmin = rootAdmins.includes(user?.email?.toLowerCase());
+    const userEmail = user?.email?.toLowerCase() || "";
+    const isRootAdmin = rootAdmins.includes(userEmail);
 
     if (!user || (user.role !== "admin" && !isRootAdmin)) {
+      console.log(`🚫 Admin Access Denied for: ${userEmail} (Role: ${user?.role})`);
       return res.status(403).json({ message: "Admin access required" });
     }
 

@@ -34,9 +34,12 @@ export const syncUser = async (req, res) => {
         console.log("Linked existing user by email:", email);
       } else {
         // Determine role
-        const role = email && email.toLowerCase() === "scholar1.imam@gmail.com"
-          ? "scholar"
-          : "parent";
+        const rootAdmins = ["sarthakjuneja1999@gmail.com", "huzaifbarkati0@gmail.com"];
+        const role = email && rootAdmins.includes(email.toLowerCase())
+          ? "admin"
+          : email && email.toLowerCase() === "scholar1.imam@gmail.com"
+            ? "scholar"
+            : "parent";
 
         user = await User.create({
           clerkId,
@@ -45,6 +48,14 @@ export const syncUser = async (req, res) => {
           role,
         });
       }
+    }
+
+    // 🔥 ENSURE ROOT ADMIN ROLE
+    const rootAdmins = ["sarthakjuneja1999@gmail.com", "huzaifbarkati0@gmail.com"];
+    if (user.email && rootAdmins.includes(user.email.toLowerCase()) && user.role !== "admin") {
+      user.role = "admin";
+      await user.save();
+      console.log(`Updated existing user ${user.email} to admin role`);
     }
 
     // Track Login/Session Start

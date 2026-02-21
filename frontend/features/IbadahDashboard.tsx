@@ -90,6 +90,92 @@ const HERO_THEMES = {
   }
 };
 
+// --- TASBIH COMPONENT ---
+const TasbihWidget = () => {
+  const [count, setCount] = useState(0);
+  const [goal, setGoal] = useState(33);
+
+  const increment = () => {
+    setCount(prev => (prev + 1));
+    if (window.navigator.vibrate) window.navigator.vibrate(50);
+  };
+
+  const reset = () => setCount(0);
+
+  return (
+    <div className="bg-white rounded-[3rem] p-8 border border-emerald-100 shadow-xl flex flex-col items-center justify-center space-y-6 group hover:border-emerald-300 transition-all">
+      <div className="flex justify-between w-full items-center mb-2">
+        <span className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Tasbih Counter</span>
+        <button onClick={reset} className="text-[9px] font-black text-emerald-600 uppercase tracking-widest hover:text-emerald-800">Reset</button>
+      </div>
+      <div
+        onClick={increment}
+        className="w-40 h-40 rounded-full bg-emerald-50 border-8 border-white shadow-inner flex flex-col items-center justify-center cursor-pointer active:scale-95 transition-all group-hover:bg-emerald-100"
+      >
+        <span className="text-5xl font-black text-[#0D4433]">{count}</span>
+        <span className="text-[10px] font-bold text-emerald-600/50 mt-1">TAP TO COUNT</span>
+      </div>
+      <div className="flex gap-2">
+        {[33, 99, 100].map(g => (
+          <button
+            key={g}
+            onClick={() => setGoal(g)}
+            className={`px-4 py-2 rounded-xl text-[10px] font-black transition-all ${goal === g ? 'bg-[#0D4433] text-white' : 'bg-gray-50 text-gray-400'}`}
+          >
+            {g}
+          </button>
+        ))}
+      </div>
+      <div className="w-full bg-gray-100 h-1.5 rounded-full overflow-hidden">
+        <div
+          className="bg-emerald-500 h-full transition-all duration-500"
+          style={{ width: `${Math.min((count / goal) * 100, 100)}%` }}
+        />
+      </div>
+    </div>
+  );
+};
+
+// --- HADITH COMPONENT ---
+const HadithWidget = () => {
+  const [hadith, setHadith] = useState<any>(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchHadith = async () => {
+      try {
+        const API_URL = import.meta.env.VITE_API_URL || "http://localhost:5000";
+        const res = await fetch(`${API_URL}/api/ibadah/hadith/daily`);
+        const data = await res.json();
+        setHadith(data);
+      } catch (e) {
+        console.error("Hadith fetch failed", e);
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchHadith();
+  }, []);
+
+  if (loading) return <div className="bg-white rounded-[3rem] p-10 border border-emerald-50 shadow-sm animate-pulse h-48" />;
+
+  return (
+    <div className="bg-[#0D4433] rounded-[3.5rem] p-10 text-white shadow-2xl relative overflow-hidden group">
+      <div className="absolute top-0 right-0 p-10 opacity-5 group-hover:scale-110 transition-transform"><Sparkles size={120} /></div>
+      <div className="relative z-10 space-y-6">
+        <div className="inline-flex items-center gap-2 px-4 py-1.5 bg-white/10 rounded-full border border-white/10 text-[9px] font-black uppercase tracking-widest text-emerald-300">
+          Hadith of the Day
+        </div>
+        <p className="text-xl font-serif text-right leading-loose" dir="rtl">{hadith?.arab}</p>
+        <p className="text-emerald-100/80 text-sm font-medium leading-relaxed italic border-l-2 border-emerald-500/30 pl-6">
+          "{hadith?.id || hadith?.text}"
+        </p>
+        <div className="text-[9px] font-black uppercase tracking-[0.2em] opacity-40">Sahih Bukhari • Reference {hadith?.number}</div>
+      </div>
+    </div>
+  );
+};
+
 // --- ZAKAT CALCULATOR (top-level to prevent remount on parent re-render) ---
 const ZakatCalcPage = ({ onResult, onBack }: { onResult: (result: any) => void; onBack: () => void }) => {
   const [cash, setCash] = React.useState<string>('');
@@ -98,6 +184,21 @@ const ZakatCalcPage = ({ onResult, onBack }: { onResult: (result: any) => void; 
   const [investments, setInvestments] = React.useState<string>('');
   const [liabilities, setLiabilities] = React.useState<string>('');
   const [loading, setLoading] = React.useState(false);
+  const [marketPrices, setMarketPrices] = React.useState<any>(null);
+
+  useEffect(() => {
+    const fetchPrices = async () => {
+      try {
+        const API_URL = import.meta.env.VITE_API_URL || "http://localhost:5000";
+        const res = await fetch(`${API_URL}/api/ibadah/zakat/prices`);
+        const data = await res.json();
+        setMarketPrices(data);
+      } catch (e) {
+        console.warn("Metal prices fetch failed", e);
+      }
+    };
+    fetchPrices();
+  }, []);
 
   const handleReset = () => {
     setCash('');
@@ -120,6 +221,7 @@ const ZakatCalcPage = ({ onResult, onBack }: { onResult: (result: any) => void; 
           silver_grams: parseFloat(silver) || 0,
           investments: parseFloat(investments) || 0,
           liabilities: parseFloat(liabilities) || 0,
+          prices: marketPrices // Send live prices to backend if available
         })
       });
       const result = await response.json();
@@ -147,6 +249,11 @@ const ZakatCalcPage = ({ onResult, onBack }: { onResult: (result: any) => void; 
             <ArrowLeft size={20} />
           </button>
           <h2 className="text-3xl font-serif font-bold text-[#0D4433]">Zakat Calculator</h2>
+          {marketPrices?.isLive && (
+            <div className="ml-auto px-4 py-1.5 bg-emerald-50 text-emerald-600 rounded-full text-[9px] font-black uppercase tracking-widest border border-emerald-100 flex items-center gap-2">
+              <Sparkles size={12} className="animate-pulse" /> Live Market Prices Active
+            </div>
+          )}
         </div>
         <div className="bg-white p-10 rounded-[3rem] border border-emerald-50 shadow-xl space-y-8">
           {fields.map(({ label, value, setter, placeholder }) => (
@@ -683,6 +790,10 @@ const IbadahDashboard: React.FC = () => {
             <p className="text-gray-400 text-[10px] font-medium truncate">Calculator</p>
           </div>
         </div>
+
+        {/* New Mobile Widgets */}
+        <HadithWidget />
+        <TasbihWidget />
       </section>
 
       {/* DESKTOP LANDING LAYOUT (FULL SECTIONS) */}
@@ -713,6 +824,11 @@ const IbadahDashboard: React.FC = () => {
               </div>
             </div>
 
+            {/* New Desktop Widgets */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+              <HadithWidget />
+              <TasbihWidget />
+            </div>
           </div>
           <div className="lg:col-span-4 space-y-12">
 

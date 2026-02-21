@@ -204,3 +204,76 @@ export const getJuzDetail = async (req, res) => {
         res.status(500).json({ error: "Failed to fetch juz content" });
     }
 };
+
+export const getHadithOfTheDay = async (req, res) => {
+    try {
+        if (cache.hadith && !isExpired(cache.hadith.timestamp, CACHE_TTL.hadith)) {
+            return res.json(cache.hadith.data);
+        }
+
+        // Using a reliable public Hadith API (Indonesian/English)
+        // Selecting a random hadith from Bukhari (range 1-300)
+        const randomNum = Math.floor(Math.random() * 300) + 1;
+        const response = await fetch(`https://api.hadith.gading.dev/books/bukhari/${randomNum}`);
+        const data = await response.json();
+
+        if (data.code === 200) {
+            cache.hadith = { data: data.data.contents, timestamp: Date.now() };
+            return res.json(data.data.contents);
+        }
+        throw new Error("Invalid response from Hadith API");
+    } catch (error) {
+        console.error("Hadith API error:", error);
+        // Fallback static Hadith
+        const fallback = {
+            number: 1,
+            arab: "إِنَّمَا الأَعْمَالُ بِالنِّيَّاتِ",
+            id: "Sesungguhnya setiap perbuatan tergantung niatnya."
+        };
+        res.json(fallback);
+    }
+};
+
+export const getMetalPrices = async (req, res) => {
+    try {
+        if (cache.metalPrices && !isExpired(cache.metalPrices.timestamp, CACHE_TTL.metalPrices)) {
+            return res.json(cache.metalPrices.data);
+        }
+
+        // Fallback/Default prices in INR
+        let prices = { gold: 7200, silver: 85, isLive: false };
+
+        try {
+            // Attempt to fetch live rates from a public spot price API
+            // Note: Metals.live returns USD. We'll need a conversion.
+            const [metalRes, convRes] = await Promise.all([
+                fetch("https://api.metals.live/v1/spot"),
+                fetch("https://api.exchangerate-api.com/v4/latest/USD")
+            ]);
+
+            if (metalRes.ok && convRes.ok) {
+                const metalData = await metalRes.json();
+                const convData = await convRes.json();
+                const inrRate = convData.rates.INR;
+
+                const goldUSD = metalData.find(m => m.gold)?.gold || 2000;
+                const silverUSD = metalData.find(m => m.silver)?.silver || 23;
+
+                // Price per gram = (Price per ounce / 31.1035)
+                prices = {
+                    gold: (goldUSD / 31.1035) * inrRate,
+                    silver: (silverUSD / 31.1035) * inrRate,
+                    isLive: true
+                };
+            }
+        } catch (e) {
+            console.error("Metal Price Fetch Failed, using hardcoded fallback", e);
+        }
+
+        cache.metalPrices = { data: prices, timestamp: Date.now() };
+        res.json(prices);
+    } catch (error) {
+        console.error("Metal Prices API error:", error);
+        res.json({ gold: 7200, silver: 85, isLive: false });
+    }
+};

@@ -1,12 +1,16 @@
 
 export const calculateZakat = async (req, res) => {
     try {
-        const { cash, gold_grams, silver_grams, investments, liabilities } = req.body;
+        const { cash, gold_grams, silver_grams, investments, liabilities, prices } = req.body;
 
-        // Prices in Indian Rupees (INR) — approximate market rates
-        // Gold: ~₹7,200 per gram (24K), Silver: ~₹85 per gram
-        const PRICE_GOLD_PER_GRAM = 7200.0;  // INR
-        const PRICE_SILVER_PER_GRAM = 85.0;  // INR
+        // Prices in Indian Rupees (INR) — default approximate market rates
+        let PRICE_GOLD_PER_GRAM = 7200.0;  // INR
+        let PRICE_SILVER_PER_GRAM = 85.0;  // INR
+
+        if (prices && prices.gold && prices.silver) {
+            PRICE_GOLD_PER_GRAM = prices.gold;
+            PRICE_SILVER_PER_GRAM = prices.silver;
+        }
 
         // Nisab Thresholds (weight in grams)
         const NISAB_GOLD_GRAMS = 87.48;

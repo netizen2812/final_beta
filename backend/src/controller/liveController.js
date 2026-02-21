@@ -21,22 +21,21 @@ const getOrCreateScholar = async () => {
     );
 };
 
-// GET /api/live/scholar/status - Check if scholar is available
+// GET /api/live/scholar/status - Check if ANY scholar is available (or specific for lobby)
 export const getScholarStatus = async (req, res) => {
     try {
-        // Find the scholar user
-        const scholar = await User.findOne({ email: "scholar1.imam@gmail.com" });
         const activeSessions = await LiveSession.countDocuments({ status: "active" });
 
-        let isOnline = false;
-        if (scholar && scholar.lastHeartbeat) {
-            const twoMinutesAgo = new Date(Date.now() - 2 * 60 * 1000);
-            isOnline = scholar.lastHeartbeat > twoMinutesAgo;
-        }
+        // Check if any user with role 'scholar' or 'admin' has a recent heartbeat
+        const twoMinutesAgo = new Date(Date.now() - 2 * 60 * 1000);
+        const onlineScholar = await User.findOne({
+            role: { $in: ['scholar', 'admin'] },
+            lastHeartbeat: { $gt: twoMinutesAgo }
+        });
 
         res.json({
-            online: isOnline,
-            scholarName: scholar ? scholar.name : "Scholar",
+            online: !!onlineScholar,
+            scholarName: onlineScholar ? onlineScholar.name : "Scholar",
             activeSessions
         });
     } catch (error) {

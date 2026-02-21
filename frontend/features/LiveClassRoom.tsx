@@ -61,12 +61,16 @@ const LiveClassRoom: React.FC = () => {
 
   // Determine Role & Check Access
   useEffect(() => {
-    const email = user?.primaryEmailAddress?.emailAddress;
-    if (email && email.toLowerCase() === "scholar1.imam@gmail.com".toLowerCase()) {
+    const role = user?.publicMetadata?.role;
+    const email = user?.primaryEmailAddress?.emailAddress?.toLowerCase();
+
+    // Dynamic Role Check (Dashboard assigned) OR Hardcoded Fallback
+    const isScholar = role === 'scholar' || role === 'admin' || email === "scholar1.imam@gmail.com";
+
+    if (isScholar) {
       setUserRole('scholar');
     } else {
       setUserRole('parent');
-      // Check Access Status
       checkAccess();
     }
   }, [user, getToken]);

@@ -1,4 +1,4 @@
-import { ClerkExpressRequireAuth } from '@clerk/clerk-sdk-node';
+import { ClerkExpressRequireAuth, clerkClient } from '@clerk/clerk-sdk-node';
 import User from "../models/User.js";
 
 export const requireAuth = (req, res, next) => {
@@ -29,6 +29,7 @@ export const requireAuth = (req, res, next) => {
 
 export const isAdmin = async (req, res, next) => {
   try {
+    const userId = req.auth.userId;
     let user = await User.findOne({ clerkId: userId });
     let userEmail = user?.email?.toLowerCase() || "";
 
@@ -69,6 +70,27 @@ export const isAdmin = async (req, res, next) => {
     next();
   } catch (error) {
     console.error("Admin auth error:", error);
+    res.status(500).json({ message: "Server error" });
+  }
+};
+
+export const isScholar = async (req, res, next) => {
+  try {
+    const userId = req.auth.userId;
+    let user = await User.findOne({ clerkId: userId });
+
+    // Scholar access: Must be admin OR scholar role
+    const isScholarRole = user?.role === 'scholar' || user?.role === 'admin';
+
+    if (!isScholarRole) {
+      console.log(`🚫 Scholar Access Denied for: ${user?.email}`);
+      return res.status(403).json({ message: "Scholar access required" });
+    }
+
+    req.user = user;
+    next();
+  } catch (error) {
+    console.error("Scholar auth error:", error);
     res.status(500).json({ message: "Server error" });
   }
 };

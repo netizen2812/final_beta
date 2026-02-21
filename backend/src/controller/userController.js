@@ -33,6 +33,9 @@ export const syncUser = async (req, res) => {
         await user.save();
         console.log("Linked existing user by email:", email);
       } else {
+        // Check for role in Clerk metadata first (dynamic)
+        const clerkRole = clerkUser.publicMetadata?.role;
+
         // Check all emails for root admin status
         const rootAdmins = ["sarthakjuneja1999@gmail.com", "huzaifbarkati0@gmail.com"];
         const allClerkEmails = (clerkUser.emailAddresses || []).map(e => e.emailAddress.toLowerCase());
@@ -40,9 +43,11 @@ export const syncUser = async (req, res) => {
 
         const role = isRoot
           ? "admin"
-          : email && email.toLowerCase() === "scholar1.imam@gmail.com"
-            ? "scholar"
-            : "parent";
+          : clerkRole
+            ? clerkRole
+            : email && email.toLowerCase() === "scholar1.imam@gmail.com"
+              ? "scholar"
+              : "parent";
 
         console.log(`Creating user with role: ${role} (isRoot: ${isRoot})`);
 
@@ -57,16 +62,20 @@ export const syncUser = async (req, res) => {
 
     // 🔥 ENSURE ROOT ADMIN ROLE (Check full associated emails)
     const rootAdmins = ["sarthakjuneja1999@gmail.com", "huzaifbarkati0@gmail.com"];
-
-    // We can fetch from Clerk again or just check the stored email. 
-    // To be safest, we should try to match the stored email or any of the clerk emails if we just fetched them.
-    // Since we want to be robust, let's use the email stored in DB but handle case-insensitivity.
     const dbEmail = user.email?.toLowerCase();
+
+    // Check Clerk Metadata for role updates that happened elsewhere
+    const currentClerkRole = (req.auth?.sessionClaims?.publicMetadata?.role);
 
     if (dbEmail && rootAdmins.includes(dbEmail) && user.role !== "admin") {
       user.role = "admin";
       await user.save();
       console.log(`Updated existing user ${user.email} to admin role`);
+    } else if (currentClerkRole && currentClerkRole !== user.role) {
+      // Sync role from Clerk metadata if it was changed via Dashboard
+      user.role = currentClerkRole;
+      await user.save();
+      console.log(`Synced user ${user.email} role from Clerk: ${currentClerkRole}`);
     }
 
     // Track Login/Session Start

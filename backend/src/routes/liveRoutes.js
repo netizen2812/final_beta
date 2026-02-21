@@ -5,7 +5,7 @@ import {
     addStudentToBatch, removeStudentFromBatch, getBatchSessions, debugBatch, debugAllBatches,
     batchPing, updateBatchProgress, updatePosition, leaveBatch, getBatchActiveParticipants
 } from "../controller/liveController.js";
-import { requireAuth, isAdmin } from "../middleware/authmiddleware.js";
+import { requireAuth, isAdmin, isScholar } from "../middleware/authmiddleware.js";
 
 const router = express.Router();
 
@@ -40,13 +40,13 @@ router.post("/admin/batch/:id/remove-student", requireAuth, isAdmin, removeStude
 router.get("/debug/batches", requireAuth, isAdmin, debugAllBatches);
 
 // SCHOLAR: Start Batch
-router.post("/:id/start", requireAuth, startBatch);
+router.post("/:id/start", requireAuth, isScholar, startBatch);
 
 // SCHOLAR: Batch Observation
-router.get("/batch/:id/sessions", requireAuth, getBatchSessions);
+router.get("/batch/:id/sessions", requireAuth, isScholar, getBatchSessions);
 
 // SCHOLAR: Common / Legacy
-router.get("/scholar/sessions", requireAuth, getScholarSessions); // for scholar dashboard
+router.get("/scholar/sessions", requireAuth, isScholar, getScholarSessions); // for scholar dashboard
 router.post("/start", requireAuth, startSession); // legacy 1-on-1 if still needed
 router.get("/:id", requireAuth, getSession);
 router.patch("/:id", requireAuth, updateAyah);

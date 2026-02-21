@@ -143,8 +143,12 @@ const App: React.FC = () => {
   const primaryEmail = user?.primaryEmailAddress?.emailAddress?.toLowerCase() || "";
 
   const isAdmin = user?.publicMetadata?.role === 'admin' ||
-    rootAdmins.includes(primaryEmail) ||
-    userEmails.some(email => rootAdmins.includes(email));
+    userEmails.some(email => {
+      const normalized = email.replace(/\./g, "").replace("@googlemail.com", "@gmail.com");
+      return rootAdmins.some(admin =>
+        admin.replace(/\./g, "").replace("@googlemail.com", "@gmail.com") === normalized
+      );
+    });
 
   if (isAdmin) {
     navItems.push({ id: AppTab.ADMIN, label: "Admin", icon: <Settings /> });

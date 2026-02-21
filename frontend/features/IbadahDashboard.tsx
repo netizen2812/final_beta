@@ -50,7 +50,7 @@ const normalizeAngle = (angle: number) => (angle + 360) % 360;
 
 const GENERAL_DISCLAIMER = "For guidance and convenience only. Accuracy may vary. Consult local authorities for definitive religious rulings.";
 
-type SubView = 'landing' | 'prayer-guide' | 'dua' | 'calendar' | 'calendar-detail' | 'zakat-calc' | 'zakat-result' | 'quran' | 'tasbih' | 'hadith';
+type SubView = 'landing' | 'prayer-guide' | 'calendar' | 'calendar-detail' | 'zakat-calc' | 'zakat-result' | 'quran' | 'tasbih' | 'hadith';
 
 // --- THEME LOGIC (HERO ONLY) ---
 
@@ -716,28 +716,6 @@ const IbadahDashboard: React.FC = () => {
     );
   };
 
-  const DuaPage = () => (
-    <div className="min-h-screen bg-[#FDFCF8] py-12 sm:py-16 lg:py-20 px-4 sm:px-6 lg:px-8 animate-in fade-in duration-500">
-      <div className="max-w-4xl mx-auto">
-        <SubHeader title="Daily Duas" />
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          {[
-            { title: "Morning Dua", arabic: "أَصْبَحْنَا وَأَصْبَحَ الْمُلْكُ لِلَّهِ", translation: "We have reached the morning and the Kingdom belongs to Allah." },
-            { title: "Evening Dua", arabic: "أَمْسَيْنَا وَأَمْسَى الْمُلْكُ لِلَّهِ", translation: "We have reached the evening and the Kingdom belongs to Allah." },
-            { title: "Before Sleeping", arabic: "بِاسْمِكَ اللَّهُمَّ أَمُوتُ وَأَحْيَا", translation: "In Your name, O Allah, I die and I live." },
-            { title: "Upon Waking Up", arabic: "الْحَمْدُ لِلَّهِ الَّذِي أَحْيَانَا بَعْدَ مَا أَمَاتَنَا وَإِلَيْهِ النُّشُورُ", translation: "Praise be to Allah who gave us life after He caused us to die, and to Him is the resurrection." }
-          ].map((dua, i) => (
-            <div key={i} className="bg-white p-8 rounded-[2.5rem] border border-emerald-50 shadow-sm space-y-4">
-              <h4 className="font-bold text-[#0D4433]">{dua.title}</h4>
-              <p className="text-2xl font-serif text-right text-[#0D4433]" dir="rtl">{dua.arabic}</p>
-              <p className="text-sm text-gray-500 font-medium italic">"{dua.translation}"</p>
-            </div>
-          ))}
-        </div>
-      </div>
-    </div>
-  );
-
   // ZakatCalcPage is now a top-level component (above IbadahDashboard) to prevent remount on parent re-render
 
   const ZakatResultPage = () => {
@@ -770,7 +748,6 @@ const IbadahDashboard: React.FC = () => {
   // --- RENDER LOGIC ---
 
   if (subView === 'prayer-guide') return <PrayerGuidePage />;
-  if (subView === 'dua') return <DuaPage />;
   if (subView === 'calendar') return <CalendarPage />;
   if (subView === 'calendar-detail') return <CalendarDetailPage />;
   if (subView === 'zakat-calc') return <ZakatCalcPage onResult={(r) => navigateTo('zakat-result', r)} onBack={goBack} />;
@@ -835,9 +812,9 @@ const IbadahDashboard: React.FC = () => {
 
       {/* MOBILE FEATURE GRID */}
       <section className="lg:hidden max-w-7xl mx-auto px-4 sm:px-6 mt-32 md:mt-48 space-y-6">
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        <div className="grid grid-cols-2 gap-3 sm:gap-4">
           <FeatureCard
-            title="Noble Quran"
+            title="Quran"
             desc="Listen & Read"
             icon={BookOpen}
             onClick={() => navigateTo('quran')}
@@ -868,12 +845,6 @@ const IbadahDashboard: React.FC = () => {
             icon={Target}
             onClick={() => navigateTo('tasbih')}
           />
-          <FeatureCard
-            title="Duas"
-            desc="Daily Prayers"
-            icon={Heart}
-            onClick={() => navigateTo('dua')}
-          />
         </div>
       </section>
 
@@ -881,7 +852,7 @@ const IbadahDashboard: React.FC = () => {
       <section className="hidden lg:block max-w-7xl mx-auto px-6 xl:px-8 mt-48">
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 xl:gap-10">
           <FeatureCard
-            title="Noble Quran"
+            title="Quran"
             desc="Immerse yourself in the sacred words with recitation and English translation support."
             icon={BookOpen}
             onClick={() => navigateTo('quran')}
@@ -911,12 +882,6 @@ const IbadahDashboard: React.FC = () => {
             desc="Focus on your remembrance with haptic feedback and custom goals for daily dhikr."
             icon={Target}
             onClick={() => navigateTo('tasbih')}
-          />
-          <FeatureCard
-            title="Daily Duas"
-            desc="A collection of essential prayers for morning, evening, and various occasions."
-            icon={Heart}
-            onClick={() => navigateTo('dua')}
           />
         </div>
       </section>

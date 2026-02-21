@@ -2,10 +2,10 @@ import React from 'react';
 import { AppTab } from '../../../types';
 import {
     MessageSquare,
-    Target,
-    BarChart3,
+    Compass,
+    Feather,
     Sparkle,
-    Radio
+    Target
 } from 'lucide-react';
 
 interface FeatureCardProps {
@@ -68,7 +68,12 @@ const FeatureCard: React.FC<FeatureCardProps> = ({ title, desc, benefit, icon: I
 
                     {/* The Icon */}
                     <div className="relative p-6 rounded-full bg-white/5 backdrop-blur-md border border-white/20 text-white transform transition-all duration-700 group-hover:scale-110 group-hover:shadow-[0_0_50px_-10px_rgba(52,211,153,0.5)]">
-                        <Icon size={32} />
+                        <Icon
+                            size={32}
+                            className={`transition-transform duration-1000 ${title === "Ibadah Tools" ? 'group-hover:rotate-[360deg]' :
+                                title === "Tarbiyah Learning" ? 'group-hover:-rotate-12 group-hover:translate-x-1' : ''
+                                }`}
+                        />
                     </div>
                 </div>
             </div>
@@ -95,7 +100,7 @@ const FeatureCardsGrid: React.FC<FeatureCardsGridProps> = ({ onNavigate }) => {
             title: "Tarbiyah Learning",
             desc: "Structured paths for children and adults to grow foundationally in faith.",
             benefit: "structured growth",
-            icon: Sparkle,
+            icon: Feather,
             image: "/images/tarbiyah.png",
             tab: AppTab.TARBIYAH
         },
@@ -103,7 +108,7 @@ const FeatureCardsGrid: React.FC<FeatureCardsGridProps> = ({ onNavigate }) => {
             title: "Ibadah Tools",
             desc: "Every tool you need for your daily worship, from Quran to Zakat calculations.",
             benefit: "worship support",
-            icon: Target,
+            icon: Compass,
             image: "/images/ibadah_new.png",
             tab: AppTab.IBADAH
         }

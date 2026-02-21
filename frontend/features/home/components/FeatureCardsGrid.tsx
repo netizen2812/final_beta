@@ -22,7 +22,7 @@ const FeatureCard: React.FC<FeatureCardProps> = ({ title, desc, benefit, icon: I
     return (
         <div
             onClick={onClick}
-            className={`group relative p-12 rounded-[4rem] border transition-all duration-700 cursor-pointer overflow-hidden flex flex-col items-center text-center h-[500px] reveal-on-scroll bg-[#0D4433] border-white/10 shadow-3xl`}
+            className={`group relative p-12 rounded-[4rem] border transition-all duration-700 cursor-pointer overflow-hidden flex flex-col items-center text-center h-[420px] md:h-[500px] reveal-on-scroll bg-[#0D4433] border-white/10 shadow-3xl`}
         >
             {/* Background Image Layer */}
             <div
@@ -142,7 +142,7 @@ const FeatureCardsGrid: React.FC<FeatureCardsGridProps> = ({ onNavigate }) => {
                 {features.map((feature, i) => (
                     <div
                         key={i}
-                        className="reveal-on-scroll min-w-[85vw] md:min-w-0 snap-center"
+                        className="reveal-on-scroll min-w-[75vw] md:min-w-0 snap-center"
                         style={{ transitionDelay: `${i * 150}ms` }}
                     >
                         <FeatureCard

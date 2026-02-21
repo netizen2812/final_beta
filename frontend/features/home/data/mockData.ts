@@ -99,9 +99,9 @@ export const PROPHETS_DATA: ProphetNode[] = [
 ];
 
 export const DAILY_REFLECTION = {
-    ayah: "And We have not sent you, [O Muhammad], except as a mercy to the worlds.",
-    reference: "Surah Al-Anbiya 21:107",
-    calligraphy: "وَمَا أَرْسَلْنَاكَ إِلَّا رَحْمَةً لِلْعَالَمِينَ"
+    ayah: "In the name of Allah, the Entirely Merciful, the Especially Merciful.",
+    reference: "Surah Al-Fatihah 1:1",
+    calligraphy: "بِسْمِ اللَّهِ الرَّحْمَٰنِ الرَّحِيمِ"
 };
 
 export const DISCOVERY_CARDS = [

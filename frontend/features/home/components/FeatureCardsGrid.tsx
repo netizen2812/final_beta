@@ -97,22 +97,10 @@ const FeatureCardsGrid: React.FC<FeatureCardsGridProps> = ({ onNavigate }) => {
             benefit: "worship support",
             icon: Target,
             tab: AppTab.IBADAH
-        },
-        {
-            title: "Live Learning",
-            desc: "Join live sessions with certified scholars for real-time educational immersion.",
-            benefit: "live engagement",
-            icon: Radio,
-            tab: AppTab.LIVE
-        },
-        {
-            title: "Scholar Sync",
-            desc: "Review your child's progress and coordinate with educators effortlessly.",
-            benefit: "cohesive oversight",
-            icon: BarChart3,
-            tab: AppTab.PROFILE
         }
     ];
+
+    /* REMOVED LIVE AND SCHOLAR CARDS */
 
     React.useEffect(() => {
         const observer = new IntersectionObserver((entries) => {
@@ -128,7 +116,7 @@ const FeatureCardsGrid: React.FC<FeatureCardsGridProps> = ({ onNavigate }) => {
     }, []);
 
     return (
-        <section className="space-y-16">
+        <section id="feature-grid" className="space-y-16 py-20">
             <div className="flex flex-col items-center text-center space-y-4 reveal-on-scroll">
                 <div className="w-12 h-1 bg-emerald-100 rounded-full" />
                 <h2 className="text-3xl md:text-5xl font-serif text-emerald-950">Primary Exploration</h2>

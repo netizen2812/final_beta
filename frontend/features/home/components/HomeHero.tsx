@@ -44,6 +44,12 @@ const HomeHero: React.FC = () => {
             </div>
 
             <div className={`relative z-10 max-w-4xl w-full text-center space-y-12 transition-all duration-1000 ${isVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-10'}`}>
+                {/* Subtle Branding */}
+                <div className="flex flex-col items-center gap-2 mb-8 opacity-20 hover:opacity-100 transition-opacity cursor-default">
+                    <img src="/imam_logo.png" alt="IMAM" className="h-10 w-auto grayscale brightness-0" />
+                    <span className="text-[10px] font-black tracking-[0.5em] text-[#0D4433]">IMAM</span>
+                </div>
+
                 {/* Calligraphy-style Heading */}
                 <div className="space-y-4">
                     <div className="text-emerald-900/40 text-4xl md:text-6xl font-serif mb-4 select-none drop-shadow-sm">
@@ -79,7 +85,13 @@ const HomeHero: React.FC = () => {
                 </div>
 
                 {/* CTA Button */}
-                <button className="group relative px-12 py-5 bg-[#0D4433] text-white rounded-full font-black uppercase tracking-[0.3em] text-xs shadow-2xl hover:shadow-emerald-900/20 hover:-translate-y-1 transition-all">
+                <button
+                    onClick={() => {
+                        const el = document.getElementById('feature-grid');
+                        el?.scrollIntoView({ behavior: 'smooth' });
+                    }}
+                    className="group relative px-12 py-5 bg-[#0D4433] text-white rounded-full font-black uppercase tracking-[0.3em] text-xs shadow-2xl hover:shadow-emerald-900/20 hover:-translate-y-1 transition-all"
+                >
                     <span className="relative z-10">Begin today's journey</span>
                     <div className="absolute inset-0 rounded-full bg-emerald-400 opacity-0 group-hover:opacity-10 transition-opacity" />
                 </button>

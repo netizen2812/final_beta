@@ -2,7 +2,6 @@ import React, { useState, useEffect } from 'react';
 import HomeHero from './components/HomeHero';
 import FeatureCardsGrid from './components/FeatureCardsGrid';
 import ProphetsFamilyTree from './components/ProphetsFamilyTree';
-import DiscoverySection from './components/DiscoverySection';
 import HomeFooter from './components/HomeFooter';
 import { AppTab } from '../../types';
 
@@ -38,8 +37,6 @@ const HomeHub: React.FC<HomeHubProps> = ({ onNavigate }) => {
                     <FeatureCardsGrid onNavigate={onNavigate} />
 
                     <ProphetsFamilyTree />
-
-                    <DiscoverySection />
                 </div>
 
                 <HomeFooter />

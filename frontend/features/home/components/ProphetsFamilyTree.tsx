@@ -12,16 +12,16 @@ const ProphetsFamilyTree: React.FC = () => {
     // Pan logic
     const handleMouseDown = (e: React.MouseEvent) => {
         setIsDragging(true);
+        // Logic for smooth panning based on movement
     };
 
     const handleMouseMove = (e: React.MouseEvent) => {
         if (!isDragging) return;
         setOffset(prev => ({
-            x: prev.x + e.movementX / scale,
-            y: prev.y + e.movementY / scale
+            x: prev.x + e.movementX,
+            y: prev.y + e.movementY
         }));
     };
-
     const handleMouseUp = () => setIsDragging(false);
 
     const handleZoom = (delta: number) => {
@@ -69,64 +69,73 @@ const ProphetsFamilyTree: React.FC = () => {
                 onMouseMove={handleMouseMove}
                 onMouseUp={handleMouseUp}
                 onMouseLeave={handleMouseUp}
-                className={`w-full h-full cursor-grab active:cursor-grabbing transition-colors ${isDragging ? 'bg-emerald-50/10' : ''}`}
+                className={`w-full h-full cursor-grab active:cursor-grabbing transition-colors overflow-hidden ${isDragging ? 'bg-emerald-50/10' : ''}`}
             >
                 <div
-                    className="w-full h-full p-40 transition-transform duration-200 ease-out"
-                    style={{ transform: `scale(${scale}) translate(${offset.x}px, ${offset.y}px)`, transformOrigin: 'center' }}
+                    className="w-full h-full relative transition-transform duration-200 ease-out flex items-center justify-center"
+                    style={{
+                        transform: `scale(${scale}) translate(${offset.x}px, ${offset.y}px)`,
+                        transformOrigin: 'center'
+                    }}
                 >
-                    <svg className="absolute inset-0 w-[2000px] h-[2000px] pointer-events-none overflow-visible">
-                        <defs>
-                            <linearGradient id="lineGrad" x1="0%" y1="0%" x2="100%" y2="0%">
-                                <stop offset="0%" stopColor="rgba(16, 185, 129, 0.2)" />
-                                <stop offset="100%" stopColor="rgba(16, 185, 129, 0.05)" />
-                            </linearGradient>
-                        </defs>
+                    {/* Centering Wrapper */}
+                    <div className="relative w-[1000px] h-[1000px]">
+                        <svg className="absolute inset-0 w-full h-full pointer-events-none overflow-visible">
+                            <defs>
+                                <linearGradient id="lineGrad" x1="0%" y1="0%" x2="100%" y2="0%">
+                                    <stop offset="0%" stopColor="rgba(16, 185, 129, 0.2)" />
+                                    <stop offset="100%" stopColor="rgba(16, 185, 129, 0.05)" />
+                                </linearGradient>
+                            </defs>
+                            {PROPHETS_DATA.map(prophet => (
+                                prophet.connections.map(connId => {
+                                    const target = PROPHETS_DATA.find(p => p.id === connId);
+                                    if (!target) return null;
+                                    // Cubic Bezier for flowing lines
+                                    const midX = (prophet.x + target.x) / 2;
+                                    return (
+                                        <path
+                                            key={`${prophet.id}-${connId}`}
+                                            d={`M ${prophet.x} ${prophet.y} C ${midX} ${prophet.y}, ${midX} ${target.y}, ${target.x} ${target.y}`}
+                                            stroke="url(#lineGrad)"
+                                            strokeWidth="2"
+                                            fill="none"
+                                            className="animate-[dash_10s_linear_infinite]"
+                                            style={{ strokeDasharray: '10, 5' }}
+                                        />
+                                    );
+                                })
+                            ))}
+                        </svg>
+
                         {PROPHETS_DATA.map(prophet => (
-                            prophet.connections.map(connId => {
-                                const target = PROPHETS_DATA.find(p => p.id === connId);
-                                if (!target) return null;
-                                // Cubic Bezier for flowing lines
-                                const midX = (prophet.x + target.x) / 2;
-                                return (
-                                    <path
-                                        key={`${prophet.id}-${connId}`}
-                                        d={`M ${prophet.x} ${prophet.y} C ${midX} ${prophet.y}, ${midX} ${target.y}, ${target.x} ${target.y}`}
-                                        stroke="url(#lineGrad)"
-                                        strokeWidth="2"
-                                        fill="none"
-                                        className="animate-[dash_10s_linear_infinite]"
-                                        style={{ strokeDasharray: '10, 5' }}
-                                    />
-                                );
-                            })
-                        ))}
-                    </svg>
+                            <div
+                                key={prophet.id}
+                                onClick={(e) => {
+                                    e.stopPropagation();
+                                    setSelectedProphet(prophet);
+                                }}
+                                className={`absolute -translate-x-1/2 -translate-y-1/2 group/node cursor-pointer transition-all duration-500`}
+                                style={{ left: prophet.x, top: prophet.y }}
+                            >
+                                {/* Outer Glow */}
+                                <div className={`absolute inset-0 rounded-full bg-emerald-400 blur-2xl opacity-0 group-hover:opacity-20 transition-opacity animate-pulse`} />
 
-                    {PROPHETS_DATA.map(prophet => (
-                        <div
-                            key={prophet.id}
-                            onClick={() => setSelectedProphet(prophet)}
-                            className={`absolute -translate-x-1/2 -translate-y-1/2 group/node cursor-pointer transition-all duration-500`}
-                            style={{ left: prophet.x, top: prophet.y }}
-                        >
-                            {/* Outer Glow */}
-                            <div className={`absolute inset-0 rounded-full bg-emerald-400 blur-2xl opacity-0 group-hover:opacity-20 transition-opacity animate-pulse`} />
+                                {/* Node Circle */}
+                                <div className={`w-24 h-24 rounded-full bg-white border-2 border-emerald-100 flex items-center justify-center shadow-xl group-hover:scale-110 group-hover:border-emerald-500 transition-all duration-500`}>
+                                    <div className="text-center px-2">
+                                        <div className="text-[8px] font-black tracking-widest text-emerald-900/40 uppercase mb-1">Prophet</div>
+                                        <div className="text-[10px] font-serif font-bold text-emerald-950 truncate w-20">{prophet.name}</div>
+                                    </div>
+                                </div>
 
-                            {/* Node Circle */}
-                            <div className={`w-24 h-24 rounded-full bg-white border-2 border-emerald-100 flex items-center justify-center shadow-xl group-hover:scale-110 group-hover:border-emerald-500 transition-all duration-500`}>
-                                <div className="text-center px-2">
-                                    <div className="text-[8px] font-black tracking-widest text-emerald-900/40 uppercase mb-1">Prophet</div>
-                                    <div className="text-[10px] font-serif font-bold text-emerald-950 truncate w-20">{prophet.name}</div>
+                                {/* Label */}
+                                <div className={`absolute top-full mt-4 left-1/2 -translate-x-1/2 whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity`}>
+                                    <span className="bg-emerald-950 text-white text-[8px] font-black px-3 py-1 rounded-full uppercase tracking-widest">Explore Life</span>
                                 </div>
                             </div>
-
-                            {/* Label */}
-                            <div className={`absolute top-full mt-4 left-1/2 -translate-x-1/2 whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity`}>
-                                <span className="bg-emerald-950 text-white text-[8px] font-black px-3 py-1 rounded-full uppercase tracking-widest">Explore Life</span>
-                            </div>
-                        </div>
-                    ))}
+                        ))}
+                    </div>
                 </div>
             </div>
 

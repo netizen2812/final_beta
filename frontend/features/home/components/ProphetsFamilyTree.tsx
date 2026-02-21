@@ -4,6 +4,15 @@ import { X } from 'lucide-react';
 
 const ProphetsFamilyTree: React.FC = () => {
     const [selectedProphet, setSelectedProphet] = useState<ProphetNode | null>(null);
+    const scrollContainerRef = React.useRef<HTMLDivElement>(null);
+
+    React.useEffect(() => {
+        // Auto-center on Adam (AS) for mobile on mount
+        if (window.innerWidth < 768 && scrollContainerRef.current) {
+            const container = scrollContainerRef.current;
+            container.scrollLeft = (1000 - container.clientWidth) / 2;
+        }
+    }, []);
 
     return (
         <section className="relative w-full bg-white/5 backdrop-blur-sm rounded-[4rem] border border-emerald-50/10 py-32 px-4 shadow-2xl reveal-on-scroll">
@@ -15,7 +24,10 @@ const ProphetsFamilyTree: React.FC = () => {
             </div>
 
             {/* The Map Canvas - Now full height and natural scroll with horizontal overflow on mobile */}
-            <div className="w-full relative overflow-x-auto no-scrollbar scroll-smooth">
+            <div
+                ref={scrollContainerRef}
+                className="w-full relative overflow-x-auto no-scrollbar scroll-smooth"
+            >
                 <div className="relative w-[1000px] md:w-full max-w-[1000px] h-[2100px] mx-auto">
                     <svg className="absolute inset-0 w-full h-full pointer-events-none overflow-visible">
                         <defs>

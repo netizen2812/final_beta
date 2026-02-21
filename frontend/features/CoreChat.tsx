@@ -439,10 +439,17 @@ const CoreChat: React.FC<CoreChatProps> = ({ madhab, setMadhab, tone: mood, setT
               </div>
             </header>
 
-            {/* Chat Container - Enhanced Atmosphere */}
-            <div className="flex-1 bg-white/40 backdrop-blur-xl rounded-[2.5rem] border border-white/60 shadow-[0_8px_40px_-10px_rgba(0,0,0,0.03),0_0_30px_rgba(255,255,255,0.6)_inset] overflow-hidden flex flex-col mb-2 relative group transition-all duration-500 hover:shadow-[0_15px_50px_-10px_rgba(5,46,22,0.06),0_0_30px_rgba(255,255,255,0.6)_inset]">
+            {/* Chat Container - Locked height, no outer scroll */}
+            <div className="flex-1 max-h-[700px] bg-white/40 backdrop-blur-xl rounded-[2.5rem] border border-white/60 shadow-[0_8px_40px_-10px_rgba(0,0,0,0.03),0_0_30px_rgba(255,255,255,0.6)_inset] overflow-hidden flex flex-col mb-2 relative group transition-all duration-500 hover:shadow-[0_15px_50px_-10px_rgba(5,46,22,0.06),0_0_30px_rgba(255,255,255,0.6)_inset]">
+              {/* Sacred Geometric Background Pattern */}
+              <div className="absolute inset-0 opacity-[0.03] pointer-events-none"
+                style={{
+                  backgroundImage: `url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M30 0l15 30-15 30-15-30z' fill='%23052e16' fill-opacity='1' fill-rule='evenodd'/%3E%3C/svg%3E")`,
+                  backgroundSize: '30px 30px'
+                }}
+              />
               {/* Inner ambient glow */}
-              <div className="absolute inset-0 bg-gradient-to-b from-white/40 to-transparent pointer-events-none" />
+              <div className="absolute inset-0 bg-gradient-to-b from-white/60 via-transparent to-white/40 pointer-events-none" />
 
               <div className="flex-1 overflow-y-auto p-6 md:p-10 space-y-6 no-scrollbar scroll-smooth relative z-10 flex flex-col">
 

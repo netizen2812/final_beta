@@ -127,7 +127,18 @@ const FeatureCardsGrid: React.FC<FeatureCardsGridProps> = ({ onNavigate }) => {
             </div>
 
             {/* Desktop Grid / Mobile Scroll */}
-            <div className="md:grid md:grid-cols-2 lg:grid-cols-3 gap-8 pb-10 flex overflow-x-auto md:overflow-visible no-scrollbar snap-x snap-mandatory px-4 -mx-4 scroll-px-4">
+            <div
+                className="md:grid md:grid-cols-2 lg:grid-cols-3 gap-8 pb-10 flex overflow-x-auto md:overflow-visible no-scrollbar snap-x snap-mandatory px-4 -mx-4 scroll-px-4"
+                onScroll={(e) => {
+                    const el = e.currentTarget;
+                    const index = Math.round(el.scrollLeft / (window.innerWidth * 0.85));
+                    const dots = document.querySelectorAll('.scroll-dot');
+                    dots.forEach((dot, i) => {
+                        (dot as HTMLElement).style.opacity = i === index ? '1' : '0.3';
+                        (dot as HTMLElement).style.width = i === index ? '24px' : '8px';
+                    });
+                }}
+            >
                 {features.map((feature, i) => (
                     <div
                         key={i}
@@ -139,6 +150,16 @@ const FeatureCardsGrid: React.FC<FeatureCardsGridProps> = ({ onNavigate }) => {
                             onClick={() => onNavigate(feature.tab)}
                         />
                     </div>
+                ))}
+            </div>
+
+            {/* Mobile Scroll Indicator Dots */}
+            <div className="flex md:hidden justify-center items-center gap-2 mt-4">
+                {features.map((_, i) => (
+                    <div
+                        key={i}
+                        className={`scroll-dot h-1.5 rounded-full bg-emerald-950 transition-all duration-300 ${i === 0 ? 'w-6 opacity-100' : 'w-2 opacity-30'}`}
+                    />
                 ))}
             </div>
         </section>

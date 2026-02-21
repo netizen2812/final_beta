@@ -10,7 +10,8 @@ import ProfilePage from "./features/ProfilePage";
 import WelcomeScreen from "./features/WelcomeScreen";
 import AdminDashboard from "./features/AdminDashboard";
 import AdminLiveDashboard from "./features/AdminLiveDashboard";
-import { User, Settings, Radio } from "lucide-react";
+import HomeHub from "./features/home/HomeHub";
+import { User, Settings, Radio, Home } from "lucide-react";
 
 import {
   SignedIn,
@@ -26,7 +27,7 @@ import axios from "axios";
 import { useHeartbeat } from "./hooks/useHeartbeat";
 
 const App: React.FC = () => {
-  const [activeTab, setActiveTab] = useState<AppTab>(AppTab.CORE);
+  const [activeTab, setActiveTab] = useState<AppTab>(AppTab.HOME);
   const [madhab, setMadhab] = useState<Madhab>(Madhab.GENERAL);
   const [tone, setTone] = useState<Tone>(Tone.CALM);
   const [isDesktop, setIsDesktop] = useState(window.innerWidth >= 1024);
@@ -92,6 +93,8 @@ const App: React.FC = () => {
 
   const renderContent = () => {
     switch (activeTab) {
+      case AppTab.HOME:
+        return <HomeHub onNavigate={(tab) => setActiveTab(tab)} />;
       case AppTab.CORE:
         return (
           <CoreChat
@@ -114,18 +117,12 @@ const App: React.FC = () => {
       case AppTab.PROFILE:
         return <ProfilePage />;
       default:
-        return (
-          <CoreChat
-            madhab={madhab}
-            setMadhab={setMadhab}
-            tone={tone}
-            setTone={setTone}
-          />
-        );
+        return <HomeHub onNavigate={(tab) => setActiveTab(tab)} />;
     }
   };
 
   const navItems = [
+    { id: AppTab.HOME, label: "Home", icon: <Home /> },
     { id: AppTab.CORE, label: "Chat", icon: <Icons.Chat /> },
     { id: AppTab.IBADAH, label: "Ibadah", icon: <Icons.Prayer /> },
     { id: AppTab.TARBIYAH, label: "Tarbiyah", icon: <Icons.Book /> },

@@ -1,5 +1,6 @@
 
 export enum AppTab {
+  HOME = 'home',
   CORE = 'core',
   IBADAH = 'ibadah',
   TARBIYAH = 'tarbiyah',

@@ -87,7 +87,7 @@ const QuranPage: React.FC<QuranPageProps> = ({
 }) => {
   const { t, i18n } = useTranslation();
   const surahDisplayName = (s: Surah | { number: number; englishName: string; name?: string }) =>
-    i18n.language === 'en' ? s.englishName : ((s as any).name || s.englishName);
+    t(`quran.surahNames.${s.number}`, { defaultValue: s.englishName });
   const [surahs, setSurahs] = useState<Surah[]>([]);
   const [activeTab, setActiveTab] = useState<'read' | 'learn' | 'progress'>('read');
   const [viewMode, setViewMode] = useState<'surah' | 'juz'>('surah');
@@ -351,7 +351,7 @@ const QuranPage: React.FC<QuranPageProps> = ({
             </h1>
             {view === 'reading' && (
               <span className="text-[10px] font-black uppercase text-emerald-600 tracking-widest">
-                {selectedSurah ? `Surah ${selectedSurah.number} • ${selectedSurah.revelationType}` : `${t('quran.section')} ${selectedJuz}`}
+                {selectedSurah ? `${t('quran.surah')} ${selectedSurah.number} • ${selectedSurah.revelationType === 'Meccan' ? t('quran.meccan') : t('quran.medinan')}` : `${t('quran.section')} ${selectedJuz}`}
               </span>
             )}
           </div>
@@ -415,7 +415,7 @@ const QuranPage: React.FC<QuranPageProps> = ({
                     [surahs[0], surahs[17], surahs[35]].filter(Boolean).map((s, i) => (
                       <div key={i} onClick={() => { setSelectedSurah(s); fetchSurahContent(s.number); }} className="flex-shrink-0 w-64 bg-[#0D4433] rounded-[2.5rem] p-8 text-white shadow-xl relative overflow-hidden group cursor-pointer snap-center">
                         <div className="absolute top-0 right-0 p-8 opacity-10 group-hover:scale-110 transition-transform"><BookOpen size={64} /></div>
-                        <div className="text-[10px] font-black uppercase opacity-40 mb-2">Surah {s.number}</div>
+                        <div className="text-[10px] font-black uppercase opacity-40 mb-2">{t('quran.surah')} {s.number}</div>
                         <h4 className="text-xl font-serif font-bold mb-4">{surahDisplayName(s)}</h4>
                         <div className="flex justify-between items-end">
                           <div className="text-[10px] font-bold text-emerald-400">Ayah 1</div>
@@ -460,7 +460,7 @@ const QuranPage: React.FC<QuranPageProps> = ({
                           </div>
                           <div>
                             <h4 className="font-bold text-gray-900">{surahDisplayName(s)}</h4>
-                            <p className="text-[10px] text-gray-400 font-bold uppercase tracking-widest">{s.revelationType} • {s.numberOfAyahs} {t('quran.ayahs')}</p>
+                            <p className="text-[10px] text-gray-400 font-bold uppercase tracking-widest">{s.revelationType === 'Meccan' ? t('quran.meccan') : t('quran.medinan')} • {s.numberOfAyahs} {t('quran.ayahs')}</p>
                           </div>
                         </div>
                         <div className="text-right">

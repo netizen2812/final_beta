@@ -33,7 +33,7 @@ const FeatureCard: React.FC<FeatureCardProps> = ({ title, desc, benefit, icon: I
                 className={`relative w-full h-full transition-transform duration-[400ms] ease-in-out [transform-style:preserve-3d] ${isFlipped ? '[transform:rotateY(180deg)]' : ''}`}
             >
                 {/* FRONT SIDE */}
-                <div className="absolute inset-0 [backface-visibility:hidden] [-webkit-backface-visibility:hidden] bg-[#0D4433] rounded-[4rem] border border-white/10 shadow-3xl overflow-hidden flex flex-col items-center text-center p-12">
+                <div className={`absolute inset-0 [backface-visibility:hidden] [-webkit-backface-visibility:hidden] [transform:rotateY(0deg)_translateZ(1px)] bg-[#0D4433] rounded-[4rem] border border-white/10 shadow-3xl overflow-hidden flex flex-col items-center text-center p-12 transition-opacity duration-300 ${isFlipped ? 'opacity-0 delay-100' : 'opacity-100 delay-100'}`}>
                     {/* Background Image Layer */}
                     <div
                         className="absolute inset-0"
@@ -71,7 +71,7 @@ const FeatureCard: React.FC<FeatureCardProps> = ({ title, desc, benefit, icon: I
                 </div>
 
                 {/* BACK SIDE */}
-                <div className="absolute inset-0 [backface-visibility:hidden] [-webkit-backface-visibility:hidden] [transform:rotateY(180deg)] bg-[#0D4433] rounded-[4rem] border border-white/10 shadow-3xl overflow-hidden flex flex-col items-center justify-center text-center p-8">
+                <div className={`absolute inset-0 [backface-visibility:hidden] [-webkit-backface-visibility:hidden] [transform:rotateY(180deg)_translateZ(1px)] bg-[#0D4433] rounded-[4rem] border border-white/10 shadow-3xl overflow-hidden flex flex-col items-center justify-center text-center p-8 transition-opacity duration-300 ${!isFlipped ? 'opacity-0 delay-100' : 'opacity-100 delay-100'}`}>
                     <div className="absolute inset-0 bg-gradient-to-t from-emerald-950/90 via-emerald-950/80 to-emerald-900/50" />
 
                     <div className="relative z-20 space-y-6 w-full flex flex-col items-center">

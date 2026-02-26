@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { AppTab } from '../../../types';
 import {
     MessageSquare,
@@ -16,65 +16,89 @@ interface FeatureCardProps {
     icon: any;
     image: string;
     onClick: () => void;
+    isFlipped: boolean;
+    onFlip: (e: React.MouseEvent) => void;
     variant?: 'light' | 'dark';
 }
 
-const FeatureCard: React.FC<FeatureCardProps> = ({ title, desc, benefit, icon: Icon, image, onClick, variant = 'light' }) => {
+const FeatureCard: React.FC<FeatureCardProps> = ({ title, desc, benefit, icon: Icon, image, onClick, isFlipped, onFlip }) => {
+    const { t } = useTranslation();
+
     return (
         <div
-            onClick={onClick}
-            className={`group relative p-12 rounded-[4rem] border transition-all duration-700 cursor-pointer overflow-hidden flex flex-col items-center text-center h-[420px] md:h-[500px] reveal-on-scroll bg-[#0D4433] border-white/10 shadow-3xl`}
+            onClick={onFlip}
+            className="relative cursor-pointer h-[420px] md:h-[500px] w-full [perspective:1000px] reveal-on-scroll"
         >
-            {/* Background Image Layer */}
             <div
-                className="absolute inset-0 transition-transform duration-1000 group-hover:scale-110"
-                style={{
-                    backgroundImage: `url(${image})`,
-                    backgroundSize: 'cover',
-                    backgroundPosition: 'center',
-                    opacity: 0.3
-                }}
-            />
+                className={`relative w-full h-full transition-transform duration-[400ms] ease-in-out [transform-style:preserve-3d] ${isFlipped ? '[transform:rotateY(180deg)]' : ''}`}
+            >
+                {/* FRONT SIDE */}
+                <div className="absolute inset-0 [backface-visibility:hidden] [-webkit-backface-visibility:hidden] bg-[#0D4433] rounded-[4rem] border border-white/10 shadow-3xl overflow-hidden flex flex-col items-center text-center p-12">
+                    {/* Background Image Layer */}
+                    <div
+                        className="absolute inset-0"
+                        style={{
+                            backgroundImage: `url(${image})`,
+                            backgroundSize: 'cover',
+                            backgroundPosition: 'center',
+                            opacity: 0.3
+                        }}
+                    />
 
-            {/* Content Reveal Overlay */}
-            <div className="absolute inset-0 bg-gradient-to-t from-emerald-950/80 via-emerald-950/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-700" />
+                    {/* Creative Organic Icon Overlay */}
+                    <div className="absolute top-12 left-1/2 -translate-x-1/2 flex items-center justify-center">
+                        <div className="relative">
+                            {/* Glowing Auras */}
+                            <div className="absolute inset-0 bg-emerald-400 blur-3xl opacity-20" />
+                            <div className="absolute inset-[-20%] border border-emerald-400/20 rounded-full" />
+                            <div className="absolute inset-[-40%] border border-emerald-400/10 rounded-full" />
 
-            {/* Icon & Content Container */}
-            <div className="mt-auto space-y-6 relative z-20 w-full flex flex-col items-center">
-                <div className="space-y-3 transform transition-all duration-700 translate-y-8 group-hover:translate-y-0 h-32 flex flex-col justify-end">
-                    <h3 className="text-3xl font-black text-white px-2">
-                        {title}
-                    </h3>
-                    <p className="text-sm font-medium leading-relaxed max-w-[280px] opacity-0 group-hover:opacity-100 transition-all duration-700 delay-100 text-emerald-100/70">
-                        {desc}
-                    </p>
+                            {/* The Icon */}
+                            <div className="relative p-6 rounded-full bg-white/5 backdrop-blur-md border border-white/20 text-white shadow-lg">
+                                <Icon size={32} />
+                            </div>
+                        </div>
+                    </div>
+
+                    {/* Title Container */}
+                    <div className="mt-auto relative z-20 w-full flex flex-col items-center">
+                        <div className="h-32 flex flex-col justify-end pb-8">
+                            <h3 className="text-3xl font-black text-white px-2">
+                                {title}
+                            </h3>
+                        </div>
+                    </div>
                 </div>
 
-                <div className="flex items-center gap-4 opacity-0 group-hover:opacity-100 transition-all duration-700 delay-200 transform translate-y-4 group-hover:translate-y-0">
-                    <div className="h-[1px] w-8 bg-emerald-400/50" />
-                    <span className="text-[10px] font-black uppercase tracking-[0.3em] text-emerald-400">
-                        {benefit}
-                    </span>
-                    <div className="h-[1px] w-8 bg-emerald-400/50" />
-                </div>
-            </div>
+                {/* BACK SIDE */}
+                <div className="absolute inset-0 [backface-visibility:hidden] [-webkit-backface-visibility:hidden] [transform:rotateY(180deg)] bg-[#0D4433] rounded-[4rem] border border-white/10 shadow-3xl overflow-hidden flex flex-col items-center justify-center text-center p-8">
+                    <div className="absolute inset-0 bg-gradient-to-t from-emerald-950/90 via-emerald-950/80 to-emerald-900/50" />
 
-            {/* Creative Organic Icon Overlay */}
-            <div className="absolute top-12 left-1/2 -translate-x-1/2 flex items-center justify-center">
-                <div className="relative">
-                    {/* Glowing Auras */}
-                    <div className="absolute inset-0 bg-emerald-400 blur-3xl opacity-20 group-hover:opacity-40 transition-opacity animate-pulse" />
-                    <div className="absolute inset-[-20%] border border-emerald-400/20 rounded-full group-hover:scale-150 transition-transform duration-1000" />
-                    <div className="absolute inset-[-40%] border border-emerald-400/10 rounded-full group-hover:scale-125 transition-transform duration-1000 delay-75" />
+                    <div className="relative z-20 space-y-6 w-full flex flex-col items-center">
+                        <h3 className="text-2xl font-black text-white px-2">
+                            {title}
+                        </h3>
+                        <p className="text-sm font-medium leading-relaxed max-w-[280px] text-emerald-100/80">
+                            {desc}
+                        </p>
 
-                    {/* The Icon */}
-                    <div className="relative p-6 rounded-full bg-white/5 backdrop-blur-md border border-white/20 text-white transform transition-all duration-700 group-hover:scale-110 group-hover:shadow-[0_0_50px_-10px_rgba(52,211,153,0.5)]">
-                        <Icon
-                            size={32}
-                            className={`transition-transform duration-1000 ${title === "Ibadah Tools" ? 'group-hover:rotate-[360deg]' :
-                                title === "Tarbiyah Learning" ? 'group-hover:-rotate-12 group-hover:translate-x-1' : ''
-                                }`}
-                        />
+                        <div className="flex items-center gap-4 py-2">
+                            <div className="h-[1px] w-8 bg-emerald-400/50" />
+                            <span className="text-[10px] font-black uppercase tracking-[0.3em] text-emerald-400">
+                                {benefit}
+                            </span>
+                            <div className="h-[1px] w-8 bg-emerald-400/50" />
+                        </div>
+
+                        <button
+                            onClick={(e) => {
+                                e.stopPropagation();
+                                onClick();
+                            }}
+                            className="mt-6 px-10 py-3.5 bg-emerald-400 hover:bg-emerald-300 text-emerald-950 rounded-full font-black uppercase tracking-widest text-xs transition-colors shadow-lg active:scale-95 touch-manipulation"
+                        >
+                            {t('common.open', { defaultValue: 'Open' })}
+                        </button>
                     </div>
                 </div>
             </div>
@@ -88,6 +112,14 @@ interface FeatureCardsGridProps {
 
 const FeatureCardsGrid: React.FC<FeatureCardsGridProps> = ({ onNavigate }) => {
     const { t } = useTranslation();
+    const [flippedIndex, setFlippedIndex] = useState<number | null>(null);
+
+    useEffect(() => {
+        const handleClickOutside = () => setFlippedIndex(null);
+        document.addEventListener('click', handleClickOutside);
+        return () => document.removeEventListener('click', handleClickOutside);
+    }, []);
+
     const features = [
         {
             title: t('home.aiImamGuidance'),
@@ -115,10 +147,6 @@ const FeatureCardsGrid: React.FC<FeatureCardsGridProps> = ({ onNavigate }) => {
             tab: AppTab.IBADAH
         }
     ];
-
-    /* REMOVED LIVE AND SCHOLAR CARDS */
-
-
 
     return (
         <section id="feature-grid" className="space-y-16 py-20 min-h-[600px]">
@@ -149,6 +177,11 @@ const FeatureCardsGrid: React.FC<FeatureCardsGridProps> = ({ onNavigate }) => {
                     >
                         <FeatureCard
                             {...feature}
+                            isFlipped={flippedIndex === i}
+                            onFlip={(e) => {
+                                e.stopPropagation();
+                                setFlippedIndex(flippedIndex === i ? null : i);
+                            }}
                             onClick={() => onNavigate(feature.tab)}
                         />
                     </div>

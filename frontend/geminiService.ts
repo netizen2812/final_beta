@@ -1,6 +1,7 @@
 import axios from "axios";
 import { Madhab } from "./types";
 import { useAuth } from "@clerk/clerk-react";
+import i18n from "./src/i18n";
 
 const API_BASE = import.meta.env.VITE_API_URL || "http://localhost:5000";
 console.log("🔌 API_BASE:", API_BASE);
@@ -51,6 +52,7 @@ export const getImamResponse = async (
         mood,
         history,
         conversationId,
+        language: i18n.language || 'en',
       },
       {
         headers: {
@@ -62,7 +64,7 @@ export const getImamResponse = async (
     // PART 7: FRONTEND RESILIENCE
     // Handle "Hard Fail" 200 responses
     if (response.data.success === false) {
-      return response.data.message || "I am currently meditating. Please try again in a moment.";
+      return response.data.message || i18n.t('chat.errorMeditating');
     }
 
     return response.data.reply || response.data.response;
@@ -75,6 +77,6 @@ export const getImamResponse = async (
     }
 
     // Fallback for network errors
-    return "I am unable to connect to the server at the moment. Please check your connection.";
+    return i18n.t('chat.errorConnection');
   }
 };

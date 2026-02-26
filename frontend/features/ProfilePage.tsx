@@ -14,6 +14,7 @@ import { useAuth } from "../hooks/useAuth";
 import { useChildContext } from "../contexts/ChildContext";
 import { Child } from "../types";
 import { useUser } from "@clerk/clerk-react";
+import { useTranslation } from "react-i18next";
 
 type ProfileSubView =
   | "overview"
@@ -24,6 +25,7 @@ type ProfileSubView =
 
 const ProfilePage: React.FC = () => {
   const { user } = useUser();
+  const { t } = useTranslation();
 
   const [subView, setSubView] = useState<ProfileSubView>("overview");
   const [editingChild, setEditingChild] = useState<Child | null>(null);
@@ -50,7 +52,7 @@ const ProfilePage: React.FC = () => {
       <div className="min-h-[60vh] flex flex-col items-center justify-center space-y-4">
         <Loader2 className="animate-spin text-islamic-green" size={40} />
         <p className="text-slate-400 font-bold uppercase tracking-widest text-[10px]">
-          Syncing Profiles...
+          {t('profile.syncingProfiles')}
         </p>
       </div>
     );
@@ -74,13 +76,13 @@ const ProfilePage: React.FC = () => {
         </div>
         <div className="text-center md:text-left flex-1 space-y-1">
           <h1 className="text-2xl font-serif font-bold text-[#052e16]">
-            {user?.fullName || currentUser?.name || "Parent"}
+            {user?.fullName || currentUser?.name || t('profile.parent')}
           </h1>
 
           <p className="text-slate-400 font-medium text-sm">
             {user?.primaryEmailAddress?.emailAddress ||
               currentUser?.email ||
-              "Clerk Account"}
+              t('profile.clerkAccount')}
           </p>
         </div>
       </div>
@@ -94,9 +96,9 @@ const ProfilePage: React.FC = () => {
               <Users size={20} />
             </div>
             <div>
-              <h3 className="font-bold">Family Management</h3>
+              <h3 className="font-bold">{t('profile.familyManagement')}</h3>
               <p className="text-xs text-gray-400">
-                {children.length} profile(s)
+                {children.length} {t('profile.profiles')}
               </p>
             </div>
           </div>
@@ -111,8 +113,8 @@ const ProfilePage: React.FC = () => {
               <Settings size={20} />
             </div>
             <div>
-              <h3 className="font-bold">Settings</h3>
-              <p className="text-xs text-gray-400">Parent info</p>
+              <h3 className="font-bold">{t('profile.settings')}</h3>
+              <p className="text-xs text-gray-400">{t('profile.parentInfo')}</p>
             </div>
           </div>
           <ChevronRight className="text-gray-300" size={20} />
@@ -131,7 +133,7 @@ const ProfilePage: React.FC = () => {
           <ArrowLeft size={20} />
         </button>
         <h2 className="text-2xl font-serif font-bold text-[#052e16]">
-          Child Profiles
+          {t('profile.childProfiles')}
         </h2>
       </div>
       <div className="grid grid-cols-1 gap-4">
@@ -149,7 +151,7 @@ const ProfilePage: React.FC = () => {
                 <div>
                   <h4 className="font-bold text-[#052e16]">{child.name}</h4>
                   <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest">
-                    Lvl {child.child_progress?.[0].level || 1}
+                    {t('profile.lvl')} {child.child_progress?.[0].level || 1}
                   </p>
                 </div>
               </div>
@@ -168,7 +170,7 @@ const ProfilePage: React.FC = () => {
                     onClick={() => setActiveChild(child.id)}
                     className="px-5 py-3 bg-[#052e16] text-white rounded-xl text-[10px] font-black uppercase tracking-widest"
                   >
-                    Select
+                    {t('profile.select')}
                   </button>
                 )}
                 {isActive && (
@@ -188,7 +190,7 @@ const ProfilePage: React.FC = () => {
             <Plus size={24} />
           </div>
           <span className="font-black uppercase tracking-widest text-[10px]">
-            Add New Profile
+            {t('profile.addNewProfile')}
           </span>
         </button>
       </div>
@@ -217,7 +219,7 @@ const ProfilePage: React.FC = () => {
       <div className="space-y-6 animate-in slide-in-from-right-4 bg-white p-8 rounded-[2.5rem] border border-emerald-50 shadow-sm">
         <section className="space-y-2">
           <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-2">
-            Name
+            {t('profile.name')}
           </label>
           <input
             type="text"
@@ -229,7 +231,7 @@ const ProfilePage: React.FC = () => {
         <div className="grid grid-cols-2 gap-4">
           <section className="space-y-2">
             <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-2">
-              Age
+              {t('profile.age')}
             </label>
             <input
               type="number"
@@ -240,20 +242,20 @@ const ProfilePage: React.FC = () => {
           </section>
           <section className="space-y-2">
             <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-2">
-              Gender
+              {t('profile.gender')}
             </label>
             <div className="flex bg-slate-50 p-1 rounded-2xl">
               <button
                 onClick={() => setGender("Boy")}
                 className={`flex-1 py-3 rounded-xl text-xs font-bold ${gender === "Boy" ? "bg-white shadow-sm" : ""}`}
               >
-                Boy
+                {t('profile.boy')}
               </button>
               <button
                 onClick={() => setGender("Girl")}
                 className={`flex-1 py-3 rounded-xl text-xs font-bold ${gender === "Girl" ? "bg-white shadow-sm" : ""}`}
               >
-                Girl
+                {t('profile.girl')}
               </button>
             </div>
           </section>
@@ -265,9 +267,9 @@ const ProfilePage: React.FC = () => {
           {saving ? (
             <Loader2 className="animate-spin" size={20} />
           ) : initialData ? (
-            "Save Changes"
+            t('profile.saveChanges')
           ) : (
-            "Create Profile"
+            t('profile.createProfile')
           )}
         </button>
         {initialData && (
@@ -278,7 +280,7 @@ const ProfilePage: React.FC = () => {
             }}
             className="w-full py-5 text-rose-500 font-black uppercase tracking-widest text-[10px] flex items-center justify-center gap-2 hover:bg-rose-50 rounded-2xl transition-all"
           >
-            <Trash2 size={16} /> Delete
+            <Trash2 size={16} /> {t('profile.delete')}
           </button>
         )}
       </div>
@@ -297,12 +299,12 @@ const ProfilePage: React.FC = () => {
             <ArrowLeft size={20} />
           </button>
           <h2 className="text-2xl font-serif font-bold text-[#052e16]">
-            Settings
+            {t('profile.settings')}
           </h2>
         </div>
         <section className="space-y-2">
           <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-2">
-            Parent Name
+            {t('profile.parentName')}
           </label>
           <input
             type="text"
@@ -318,7 +320,7 @@ const ProfilePage: React.FC = () => {
           }}
           className="w-full py-5 bg-[#052e16] text-white rounded-2xl font-black uppercase tracking-widest text-[10px] shadow-lg"
         >
-          Save Settings
+          {t('profile.saveSettings')}
         </button>
       </div>
     );

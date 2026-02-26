@@ -1,4 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
+import { useTranslation } from 'react-i18next';
 
 interface WelcomeScreenProps {
     onComplete: () => void;
@@ -9,6 +10,7 @@ const WelcomeScreen: React.FC<WelcomeScreenProps> = ({ onComplete }) => {
     const [showText, setShowText] = useState(false);
     const [isVideoLoaded, setIsVideoLoaded] = useState(false);
     const [hasError, setHasError] = useState(false);
+    const { t } = useTranslation();
 
     useEffect(() => {
         const video = videoRef.current;
@@ -105,7 +107,7 @@ const WelcomeScreen: React.FC<WelcomeScreenProps> = ({ onComplete }) => {
                         textShadow: '0 4px 12px rgba(0,0,0,0.5)'
                     }}
                 >
-                    Welcome to IMAM
+                    {t('welcome.welcomeToImam')}
                 </h1>
             </div>
 
@@ -114,7 +116,7 @@ const WelcomeScreen: React.FC<WelcomeScreenProps> = ({ onComplete }) => {
                 onClick={onComplete}
                 className="absolute bottom-10 right-10 text-white/40 hover:text-white border border-white/10 hover:border-white/30 px-6 py-2 rounded-full text-xs uppercase tracking-widest backdrop-blur-md transition-all z-20"
             >
-                {hasError ? "Enter App" : "Skip"}
+                {hasError ? t('welcome.enterApp') : t('welcome.skip')}
             </button>
 
             {/* Loading Fallback */}

@@ -101,3 +101,30 @@ export const heartbeat = async (req, res) => {
     res.status(500).json({ message: "Server error" });
   }
 };
+
+export const updateLanguage = async (req, res) => {
+  try {
+    const { userId } = req.auth;
+    const { language } = req.body;
+
+    const validLanguages = ['en', 'hi', 'ur', 'ml', 'bn'];
+    if (!language || !validLanguages.includes(language)) {
+      return res.status(400).json({ message: "Invalid language" });
+    }
+
+    const user = await User.findOneAndUpdate(
+      { clerkId: userId },
+      { preferredLanguage: language },
+      { new: true }
+    );
+
+    if (!user) {
+      return res.status(404).json({ message: "User not found" });
+    }
+
+    res.status(200).json({ message: "Language updated", preferredLanguage: user.preferredLanguage });
+  } catch (error) {
+    console.error("Update language error:", error);
+    res.status(500).json({ message: "Server error" });
+  }
+};

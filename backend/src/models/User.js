@@ -47,6 +47,13 @@ const userSchema = new mongoose.Schema(
         type: Boolean,
         default: false
       }
+    },
+
+    // Language preference for i18n
+    preferredLanguage: {
+      type: String,
+      enum: ['en', 'hi', 'ur', 'ml', 'bn'],
+      default: 'en'
     }
   },
   { timestamps: true }

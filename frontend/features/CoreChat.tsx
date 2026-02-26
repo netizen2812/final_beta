@@ -10,6 +10,7 @@ import { useAuth } from "@clerk/clerk-react";
 import LeftContextPanel from '../components/LeftContextPanel';
 import GuidanceControlPanel from '../components/RightUtilityPanel';
 import { Analytics } from '../utils/analytics';
+import { useTranslation } from 'react-i18next';
 
 const API_URL = import.meta.env.VITE_API_URL || "http://localhost:5000";
 
@@ -113,11 +114,12 @@ const TypingIndicator: React.FC = () => (
 
 // ─── Empty State ─────────────────────────────────────────────────────────────
 const EmptyState: React.FC<{ onPrompt: (q: string) => void }> = ({ onPrompt }) => {
+  const { t } = useTranslation();
   const prompts = [
-    { emoji: '🤲', text: 'How should I prepare for Salah?' },
-    { emoji: '📖', text: 'Explain the meaning of Surah Al-Fatiha' },
-    { emoji: '💚', text: 'Tell me a story about patience (Sabr)' },
-    { emoji: '🌙', text: 'What is the significance of Ramadan?' },
+    { emoji: '🤲', text: t('chat.promptPrayer') },
+    { emoji: '📖', text: t('chat.promptFatiha') },
+    { emoji: '💚', text: t('chat.promptPatience') },
+    { emoji: '🌙', text: t('chat.promptRamadan') },
   ];
   return (
     <div className="flex flex-col items-center justify-center h-full px-6 max-w-lg mx-auto text-center space-y-8 animate-in zoom-in-95 duration-700">
@@ -128,9 +130,9 @@ const EmptyState: React.FC<{ onPrompt: (q: string) => void }> = ({ onPrompt }) =
         <div className="absolute -inset-3 rounded-[2.5rem] border border-emerald-100/60 animate-pulse" />
       </div>
       <div className="space-y-3">
-        <h3 className="text-3xl font-serif font-bold text-[#052e16]">As-salamu alaykum</h3>
+        <h3 className="text-3xl font-serif font-bold text-[#052e16]">{t('chat.greeting')}</h3>
         <p className="text-sm leading-relaxed text-slate-500 max-w-xs mx-auto">
-          I am here to offer guidance rooted in the Quran, Sunnah, and your chosen school of thought.
+          {t('chat.greetingDesc')}
         </p>
       </div>
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 w-full">
@@ -159,6 +161,7 @@ interface CoreChatProps {
 
 // ─── Main Component ──────────────────────────────────────────────────────────
 const CoreChat: React.FC<CoreChatProps> = ({ madhab, setMadhab, tone: mood, setTone: setMood }) => {
+  const { t } = useTranslation();
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [input, setInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
@@ -349,7 +352,7 @@ const CoreChat: React.FC<CoreChatProps> = ({ madhab, setMadhab, tone: mood, setT
       setMessages(prev => [...prev, {
         id: (Date.now() + 1).toString(),
         role: 'model',
-        text: "I encountered an error while reflecting. Please try again. Allah knows best.",
+        text: t('chat.errorReflecting'),
         timestamp: new Date(),
       }]);
     } finally {
@@ -412,10 +415,10 @@ const CoreChat: React.FC<CoreChatProps> = ({ madhab, setMadhab, tone: mood, setT
                   {activeMood.icon}
                 </div>
                 <div>
-                  <h2 className="text-lg font-serif font-bold text-[#052e16] leading-tight">Chat with Imam</h2>
+                  <h2 className="text-lg font-serif font-bold text-[#052e16] leading-tight">{t('chat.title')}</h2>
                   <div className="flex items-center gap-1.5 mt-0.5">
                     <div className="w-1.5 h-1.5 bg-emerald-500 rounded-full animate-pulse shadow-[0_0_8px_rgba(16,185,129,0.4)]" />
-                    <span className="text-[9px] font-black uppercase tracking-widest text-[#052e16]/50">Spiritual Guide Active</span>
+                    <span className="text-[9px] font-black uppercase tracking-widest text-[#052e16]/50">{t('chat.statusActive')}</span>
                   </div>
                 </div>
               </div>
@@ -505,7 +508,7 @@ const CoreChat: React.FC<CoreChatProps> = ({ madhab, setMadhab, tone: mood, setT
                 <div className="flex items-center gap-3 bg-white p-2.5 rounded-full border border-slate-200 shadow-md focus-within:border-emerald-400 focus-within:ring-2 focus-within:ring-emerald-400/20 transition-all max-w-3xl mx-auto">
                   <input
                     type="text"
-                    placeholder="Seek guidance or ask a question…"
+                    placeholder={t('chat.inputPlaceholder')}
                     value={input}
                     onChange={(e) => setInput(e.target.value)}
                     onKeyDown={(e) => e.key === 'Enter' && handleSend()}
@@ -519,7 +522,7 @@ const CoreChat: React.FC<CoreChatProps> = ({ madhab, setMadhab, tone: mood, setT
                     <Send size={16} />
                   </button>
                 </div>
-                <p className="text-[8px] text-center mt-2 font-black uppercase tracking-[0.2em] text-slate-400/60">Seek knowledge with humility</p>
+                <p className="text-[8px] text-center mt-2 font-black uppercase tracking-[0.2em] text-slate-400/60">{t('chat.seekKnowledge')}</p>
               </div>
             </div>
           </div>
@@ -542,8 +545,8 @@ const CoreChat: React.FC<CoreChatProps> = ({ madhab, setMadhab, tone: mood, setT
             <div className="relative w-full max-w-md bg-white rounded-[2.5rem] shadow-2xl border border-emerald-100 p-7 md:p-9 space-y-7 animate-in slide-in-from-bottom duration-300">
               <div className="flex justify-between items-center">
                 <div>
-                  <h3 className="text-sm font-black uppercase tracking-widest text-[#052e16]">Session Settings</h3>
-                  <p className="text-[10px] text-slate-400 font-bold uppercase tracking-wider mt-0.5">Customize your experience</p>
+                  <h3 className="text-sm font-black uppercase tracking-widest text-[#052e16]">{t('chat.sessionSettings')}</h3>
+                  <p className="text-[10px] text-slate-400 font-bold uppercase tracking-wider mt-0.5">{t('chat.customizeExperience')}</p>
                 </div>
                 <button onClick={() => setShowPreferences(false)} className="p-2 hover:bg-emerald-50 rounded-full text-slate-300 transition-colors">
                   <X size={22} />
@@ -551,7 +554,7 @@ const CoreChat: React.FC<CoreChatProps> = ({ madhab, setMadhab, tone: mood, setT
               </div>
 
               <div className="space-y-3">
-                <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-1">Current Mood</label>
+                <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-1">{t('chat.currentMood')}</label>
                 <div className="grid grid-cols-2 gap-2.5">
                   {moodOptions.map((m, idx) => (
                     <button
@@ -567,7 +570,7 @@ const CoreChat: React.FC<CoreChatProps> = ({ madhab, setMadhab, tone: mood, setT
               </div>
 
               <div className="space-y-3">
-                <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-1">School of Thought (Madhhab)</label>
+                <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-1">{t('chat.schoolOfThought')}</label>
                 <div className="grid grid-cols-2 gap-2">
                   {Object.values(Madhab).map(m => (
                     <button
@@ -582,7 +585,7 @@ const CoreChat: React.FC<CoreChatProps> = ({ madhab, setMadhab, tone: mood, setT
               </div>
 
               <button onClick={() => setShowPreferences(false)} className="w-full py-4.5 bg-[#052e16] text-white rounded-2xl text-[10px] font-black uppercase tracking-widest shadow-xl hover:scale-[1.02] active:scale-95 transition-all">
-                Apply Changes
+                {t('chat.applyChanges')}
               </button>
             </div>
           </div>

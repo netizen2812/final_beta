@@ -1,11 +1,12 @@
 import { generateResponse } from "../services/aiService.js";
 import User from "../models/User.js";
 import Conversation from "../models/Conversation.js";
+import AiResponse from "../models/AiResponse.js";
 import { trackEvent } from "../services/analyticsService.js";
 
 export const chatWithImam = async (req, res) => {
   try {
-    const { prompt, history, conversationId, madhab } = req.body;
+    const { prompt, history, conversationId, madhab, language } = req.body;
     const clerkId = req.auth?.userId;
 
     if (!clerkId) {
@@ -41,7 +42,45 @@ export const chatWithImam = async (req, res) => {
       });
     }
 
-    // 3. Generate AI Response
+    // 3. Check AI Response Cache
+    const normalizedPrompt = prompt.trim().toLowerCase();
+    const userLang = language || 'en';
+    try {
+      const cached = await AiResponse.findOne({
+        question: normalizedPrompt,
+        language: userLang,
+        madhab: madhab || 'General'
+      });
+      if (cached) {
+        console.log(`Cache hit for: "${normalizedPrompt.substring(0, 30)}..." [${userLang}]`);
+        // Still count messages and persist
+        user.dailyChatCount += 1;
+        user.lastChatDate = new Date();
+        await user.save();
+
+        if (conversationId) {
+          try {
+            const conversation = await Conversation.findOne({ _id: conversationId, clerkId });
+            if (conversation) {
+              conversation.messages.push({ role: "user", content: prompt, timestamp: new Date() });
+              conversation.messages.push({ role: "model", content: cached.answer, timestamp: new Date() });
+              if (conversation.messages.length <= 2) {
+                conversation.title = prompt.substring(0, 50) + (prompt.length > 50 ? "..." : "");
+              }
+              await conversation.save();
+            }
+          } catch (dbErr) {
+            console.error("Conversation save error (non-fatal):", dbErr);
+          }
+        }
+
+        return res.json({ success: true, reply: cached.answer });
+      }
+    } catch (cacheErr) {
+      console.warn("Cache lookup failed (non-fatal):", cacheErr);
+    }
+
+    // 4. Generate AI Response (no cache hit)
     // Use OpenRouter Service with RAG Context
     let context = "";
     try {
@@ -51,9 +90,21 @@ export const chatWithImam = async (req, res) => {
       console.warn("RAG Context retrieval failed:", ragErr);
     }
 
-    const reply = await generateResponse(prompt, clerkId, madhab, context);
+    const reply = await generateResponse(prompt, clerkId, madhab, context, userLang);
 
-    // 4. Increment Count & Track
+    // 5. Store in cache
+    try {
+      await AiResponse.create({
+        question: normalizedPrompt,
+        language: userLang,
+        madhab: madhab || 'General',
+        answer: reply
+      });
+    } catch (cacheStoreErr) {
+      console.warn("Cache store failed (non-fatal):", cacheStoreErr);
+    }
+
+    // 6. Increment Count & Track
     user.dailyChatCount += 1;
     user.lastChatDate = new Date();
     await user.save();
@@ -64,7 +115,7 @@ export const chatWithImam = async (req, res) => {
       madhab: madhab
     });
 
-    // 5. Persist messages
+    // 7. Persist messages
     if (conversationId) {
       try {
         const conversation = await Conversation.findOne({ _id: conversationId, clerkId });

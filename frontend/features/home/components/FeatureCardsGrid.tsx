@@ -7,6 +7,7 @@ import {
     Sparkle,
     Target
 } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 
 interface FeatureCardProps {
     title: string;
@@ -86,28 +87,29 @@ interface FeatureCardsGridProps {
 }
 
 const FeatureCardsGrid: React.FC<FeatureCardsGridProps> = ({ onNavigate }) => {
+    const { t } = useTranslation();
     const features = [
         {
-            title: "AI Imam Guidance",
-            desc: "Engage in deep spiritual dialogue with our advanced AI trained on classical wisdom.",
-            benefit: "personalized clarity",
+            title: t('home.aiImamGuidance'),
+            desc: t('home.aiImamDesc'),
+            benefit: t('home.personalizedClarity'),
             icon: MessageSquare,
             image: "/images/ai_imam.png",
             tab: AppTab.CORE,
             variant: 'dark' as const
         },
         {
-            title: "Tarbiyah Learning",
-            desc: "Structured paths for children and adults to grow foundationally in faith.",
-            benefit: "structured growth",
+            title: t('home.tarbiyahLearning'),
+            desc: t('home.tarbiyahDesc'),
+            benefit: t('home.structuredGrowth'),
             icon: Feather,
             image: "/images/tarbiyah.png",
             tab: AppTab.TARBIYAH
         },
         {
-            title: "Ibadah Tools",
-            desc: "Every tool you need for your daily worship, from Quran to Zakat calculations.",
-            benefit: "worship support",
+            title: t('home.ibadahTools'),
+            desc: t('home.ibadahDesc'),
+            benefit: t('home.worshipSupport'),
             icon: Compass,
             image: "/images/ibadah_new.png",
             tab: AppTab.IBADAH
@@ -122,8 +124,8 @@ const FeatureCardsGrid: React.FC<FeatureCardsGridProps> = ({ onNavigate }) => {
         <section id="feature-grid" className="space-y-16 py-20 min-h-[600px]">
             <div className="flex flex-col items-center text-center space-y-4 reveal-on-scroll">
                 <div className="w-12 h-1 bg-emerald-100 rounded-full" />
-                <h2 className="text-3xl md:text-5xl font-serif text-emerald-950">Primary Exploration</h2>
-                <p className="text-xs font-black uppercase tracking-[0.4em] text-emerald-900/40">Choose your destination</p>
+                <h2 className="text-3xl md:text-5xl font-serif text-emerald-950">{t('home.primaryExploration')}</h2>
+                <p className="text-xs font-black uppercase tracking-[0.4em] text-emerald-900/40">{t('home.chooseDestination')}</p>
             </div>
 
             {/* Desktop Grid / Mobile Scroll */}

@@ -34,6 +34,19 @@
         }
         .no-scrollbar::-webkit-scrollbar { display: none; }
         .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+
+        /* RTL Support for Urdu */
+        [dir="rtl"] { text-align: right; }
+        [dir="rtl"] .text-left { text-align: right; }
+        [dir="rtl"] .text-right { text-align: left; }
+        [dir="rtl"] .ml-2, [dir="rtl"] .ml-1 { margin-left: 0; margin-right: 0.5rem; }
+        [dir="rtl"] .mr-2, [dir="rtl"] .mr-1 { margin-right: 0; margin-left: 0.5rem; }
+        [dir="rtl"] .pl-5 { padding-left: 0; padding-right: 1.25rem; }
+        [dir="rtl"] .pr-4 { padding-right: 0; padding-left: 1rem; }
+        [dir="rtl"] .border-l-4 { border-left-width: 0; border-right-width: 4px; }
+        [dir="rtl"] .rounded-tl-none { border-top-left-radius: 1.75rem; border-top-right-radius: 0; }
+        [dir="rtl"] .rounded-tr-sm { border-top-right-radius: 1.75rem; border-top-left-radius: 0.125rem; }
+        [dir="rtl"] .space-x-2 > :not([hidden]) ~ :not([hidden]) { margin-left: 0; margin-right: 0.5rem; }
     </style>
 <script type="importmap">
 {

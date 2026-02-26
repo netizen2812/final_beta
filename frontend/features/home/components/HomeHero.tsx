@@ -1,9 +1,11 @@
 import React, { useEffect, useState } from 'react';
 import { DAILY_REFLECTION } from '../data/mockData';
 import { Sparkles } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 
 const HomeHero: React.FC = () => {
     const [isVisible, setIsVisible] = useState(false);
+    const { t } = useTranslation();
 
     useEffect(() => {
         setIsVisible(true);
@@ -56,7 +58,7 @@ const HomeHero: React.FC = () => {
                         {DAILY_REFLECTION.calligraphy}
                     </div>
                     <h2 className="text-sm md:text-md font-black tracking-[0.6em] uppercase text-emerald-900/60 drop-shadow-sm">
-                        The Path of Enlightenment
+                        {t('home.pathOfEnlightenment')}
                     </h2>
                 </div>
 
@@ -92,7 +94,7 @@ const HomeHero: React.FC = () => {
                     }}
                     className="group relative px-12 py-5 bg-[#0D4433] text-white rounded-full font-black uppercase tracking-[0.3em] text-xs shadow-2xl hover:shadow-emerald-900/20 hover:-translate-y-1 transition-all"
                 >
-                    <span className="relative z-10">Begin today's journey</span>
+                    <span className="relative z-10">{t('home.beginJourney')}</span>
                     <div className="absolute inset-0 rounded-full bg-emerald-400 opacity-0 group-hover:opacity-10 transition-opacity" />
                 </button>
             </div>

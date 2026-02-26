@@ -1,6 +1,7 @@
 import React from 'react';
 import { BookOpen, MessageCircle, Heart, Plus, Trash2, MessageSquare } from 'lucide-react';
 import { Conversation } from '../types';
+import { useTranslation } from 'react-i18next';
 
 interface LeftContextPanelProps {
     conversations: Conversation[];
@@ -12,11 +13,6 @@ interface LeftContextPanelProps {
     onDelete: (id: string) => void;
 }
 
-const islamicTopics = [
-    { icon: <BookOpen size={16} />, label: 'Prayer Guidance', query: 'How should I perform my daily prayers?' },
-    { icon: <Heart size={16} />, label: 'Daily Duas', query: 'What are essential daily duas I should know?' },
-    { icon: <MessageCircle size={16} />, label: 'Fiqh Question', query: 'I have a question about Islamic jurisprudence.' },
-];
 
 const LeftContextPanel: React.FC<LeftContextPanelProps> = ({
     conversations,
@@ -27,6 +23,14 @@ const LeftContextPanel: React.FC<LeftContextPanelProps> = ({
     onTopicClick,
     onDelete,
 }) => {
+    const { t } = useTranslation();
+
+    const islamicTopics = [
+        { icon: <BookOpen size={16} />, label: t('chat.prayerGuidance'), query: t('chat.prayerGuidanceQuery') },
+        { icon: <Heart size={16} />, label: t('chat.dailyDuas'), query: t('chat.dailyDuasQuery') },
+        { icon: <MessageCircle size={16} />, label: t('chat.fiqhQuestion'), query: t('chat.fiqhQuestionQuery') },
+    ];
+
     return (
         <div className="w-[260px] flex flex-col h-full overflow-hidden bg-white/70 backdrop-blur-md border-r border-slate-100/80">
             {/* New Chat Button */}
@@ -36,14 +40,14 @@ const LeftContextPanel: React.FC<LeftContextPanelProps> = ({
                     className="w-full flex items-center justify-center gap-2 px-4 py-3 bg-[#052e16] text-white rounded-2xl text-xs font-black uppercase tracking-widest hover:bg-emerald-900 active:scale-95 transition-all shadow-md shadow-[#052e16]/20"
                 >
                     <Plus size={16} />
-                    New Chat
+                    {t('chat.newChat')}
                 </button>
             </div>
 
             <div className="flex-1 overflow-y-auto p-3 space-y-5 no-scrollbar">
                 {/* Quick Topics */}
                 <div>
-                    <p className="text-[9px] font-black uppercase tracking-[0.2em] text-slate-400 px-2 mb-2">Quick Topics</p>
+                    <p className="text-[9px] font-black uppercase tracking-[0.2em] text-slate-400 px-2 mb-2">{t('chat.quickTopics')}</p>
                     <div className="space-y-1">
                         {islamicTopics.map((topic, idx) => (
                             <button
@@ -60,7 +64,7 @@ const LeftContextPanel: React.FC<LeftContextPanelProps> = ({
 
                 {/* Conversation History */}
                 <div>
-                    <p className="text-[9px] font-black uppercase tracking-[0.2em] text-slate-400 px-2 mb-2">Recent</p>
+                    <p className="text-[9px] font-black uppercase tracking-[0.2em] text-slate-400 px-2 mb-2">{t('chat.recent')}</p>
                     {isLoading ? (
                         <div className="space-y-2 px-2">
                             {[1, 2, 3].map(i => (
@@ -68,15 +72,15 @@ const LeftContextPanel: React.FC<LeftContextPanelProps> = ({
                             ))}
                         </div>
                     ) : conversations.length === 0 ? (
-                        <p className="text-[10px] text-slate-400 px-3 py-2 italic">No conversations yet</p>
+                        <p className="text-[10px] text-slate-400 px-3 py-2 italic">{t('chat.noConversations')}</p>
                     ) : (
                         <div className="space-y-1">
                             {conversations.map((conv) => (
                                 <div
                                     key={conv._id}
                                     className={`group flex items-center gap-2 px-3 py-2.5 rounded-xl cursor-pointer transition-all ${activeConversationId === conv._id
-                                            ? 'bg-[#052e16] text-white shadow-md'
-                                            : 'text-slate-600 hover:bg-slate-50 hover:text-[#052e16]'
+                                        ? 'bg-[#052e16] text-white shadow-md'
+                                        : 'text-slate-600 hover:bg-slate-50 hover:text-[#052e16]'
                                         }`}
                                     onClick={() => onSelect(conv._id)}
                                 >

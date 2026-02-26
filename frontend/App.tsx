@@ -11,7 +11,7 @@ import WelcomeScreen from "./features/WelcomeScreen";
 import AdminDashboard from "./features/AdminDashboard";
 import AdminLiveDashboard from "./features/AdminLiveDashboard";
 import HomeHub from "./features/home/HomeHub";
-import { User, Settings, Radio, Home } from "lucide-react";
+import { User, Settings, Radio, Home, Globe } from "lucide-react";
 
 import {
   SignedIn,
@@ -26,18 +26,56 @@ import axios from "axios";
 
 import { useHeartbeat } from "./hooks/useHeartbeat";
 import { Analytics } from "./utils/analytics";
+import { useTranslation } from "react-i18next";
+
+const SUPPORTED_LANGUAGES = [
+  { code: 'en', label: 'English', flag: '🇬🇧' },
+  { code: 'hi', label: 'हिन्दी', flag: '🇮🇳' },
+  { code: 'ur', label: 'اردو', flag: '🇵🇰' },
+  { code: 'ml', label: 'മലയാളം', flag: '🇮🇳' },
+  { code: 'bn', label: 'বাংলা', flag: '🇧🇩' },
+];
 
 const App: React.FC = () => {
   const [activeTab, setActiveTab] = useState<AppTab>(AppTab.HOME);
   const [madhab, setMadhab] = useState<Madhab>(Madhab.GENERAL);
   const [tone, setTone] = useState<Tone>(Tone.CALM);
   const [isDesktop, setIsDesktop] = useState(window.innerWidth >= 1024);
+  const [showLangDropdown, setShowLangDropdown] = useState(false);
 
   const { user, isLoaded } = useUser();
   const { getToken } = useAuth();
+  const { t, i18n } = useTranslation();
 
   // 💓 Heartbeat for presence
   useHeartbeat();
+
+  // 🌐 RTL handling
+  useEffect(() => {
+    const dir = i18n.language === 'ur' ? 'rtl' : 'ltr';
+    document.documentElement.dir = dir;
+    document.documentElement.lang = i18n.language;
+  }, [i18n.language]);
+
+  const handleLanguageChange = async (langCode: string) => {
+    i18n.changeLanguage(langCode);
+    setShowLangDropdown(false);
+
+    // Save to backend if logged in
+    if (user) {
+      try {
+        const token = await getToken();
+        const API_URL = import.meta.env.VITE_API_URL || "http://localhost:5000";
+        await axios.patch(
+          `${API_URL}/api/users/language`,
+          { language: langCode },
+          { headers: { Authorization: `Bearer ${token}` } }
+        );
+      } catch (err) {
+        console.error("Failed to save language preference:", err);
+      }
+    }
+  };
 
   // Welcome Video Logic
   const [showWelcome, setShowWelcome] = useState(false);
@@ -64,7 +102,7 @@ const App: React.FC = () => {
         const token = await getToken();
 
         const API_URL = import.meta.env.VITE_API_URL || "http://localhost:5000";
-        await axios.post(
+        const response = await axios.post(
           `${API_URL}/api/users/sync`,
           {
             email: user.primaryEmailAddress?.emailAddress,
@@ -76,6 +114,12 @@ const App: React.FC = () => {
             },
           }
         );
+
+        // Auto-set language from user preference
+        const preferredLang = response.data?.user?.preferredLanguage;
+        if (preferredLang && ['en', 'hi', 'ur', 'ml', 'bn'].includes(preferredLang)) {
+          i18n.changeLanguage(preferredLang);
+        }
 
         // Initialize Analytics
         Analytics.init(user.id, (user.publicMetadata?.role as string) || 'parent', getToken);
@@ -131,11 +175,11 @@ const App: React.FC = () => {
   };
 
   const navItems = [
-    { id: AppTab.HOME, label: "Home", icon: <Home /> },
-    { id: AppTab.CORE, label: "Chat", icon: <Icons.Chat /> },
-    { id: AppTab.IBADAH, label: "Ibadah", icon: <Icons.Prayer /> },
-    { id: AppTab.TARBIYAH, label: "Tarbiyah", icon: <Icons.Book /> },
-    { id: AppTab.LIVE, label: "Live", icon: <Icons.Live /> },
+    { id: AppTab.HOME, label: t("nav.home"), icon: <Home /> },
+    { id: AppTab.CORE, label: t("nav.chat"), icon: <Icons.Chat /> },
+    { id: AppTab.IBADAH, label: t("nav.ibadah"), icon: <Icons.Prayer /> },
+    { id: AppTab.TARBIYAH, label: t("nav.tarbiyah"), icon: <Icons.Book /> },
+    { id: AppTab.LIVE, label: t("nav.live"), icon: <Icons.Live /> },
   ];
 
   const rootAdmins = ["sarthakjuneja1999@gmail.com", "huzaifbarkati0@gmail.com"];
@@ -151,8 +195,10 @@ const App: React.FC = () => {
     });
 
   if (isAdmin) {
-    navItems.push({ id: AppTab.ADMIN, label: "Admin", icon: <Settings /> });
+    navItems.push({ id: AppTab.ADMIN, label: t("nav.admin"), icon: <Settings /> });
   }
+
+  const currentLang = SUPPORTED_LANGUAGES.find(l => l.code === i18n.language) || SUPPORTED_LANGUAGES[0];
 
   return (
     <>
@@ -206,28 +252,67 @@ const App: React.FC = () => {
                 </h1>
               </div>
 
-              {activeTab === AppTab.PROFILE ? (
-                <UserButton
-                  afterSignOutUrl="/"
-                  appearance={{
-                    elements: {
-                      avatarBox:
-                        "h-9 w-9 rounded-full shadow-lg shadow-[#052e16]/10 border border-[#052e16]/10",
-                    },
-                  }}
-                />
-              ) : (
-                <button
-                  onClick={() => setActiveTab(AppTab.PROFILE)}
-                  title="My Profile"
-                  className={`h-9 w-9 rounded-full flex items-center justify-center transition-all active:scale-95 ${activeTab === AppTab.PROFILE
-                    ? "bg-[#052e16] text-white shadow-lg"
-                    : "bg-white border border-[#052e16]/10 text-[#052e16] hover:bg-emerald-50 shadow-sm"
-                    }`}
-                >
-                  <User size={16} />
-                </button>
-              )}
+              <div className="flex items-center gap-3">
+                {/* 🌐 Language Selector */}
+                <div className="relative">
+                  <button
+                    onClick={() => setShowLangDropdown(!showLangDropdown)}
+                    className="flex items-center gap-1.5 px-3 py-1.5 bg-white/80 border border-[#052e16]/10 rounded-full hover:bg-emerald-50 transition-all text-sm shadow-sm"
+                    title={t("language.label")}
+                  >
+                    <Globe size={14} className="text-[#052e16]/60" />
+                    <span className="text-xs font-bold text-[#052e16]/70">{currentLang.flag}</span>
+                    <span className="text-[10px] font-bold text-[#052e16]/50 hidden sm:inline">{currentLang.label}</span>
+                  </button>
+
+                  {showLangDropdown && (
+                    <>
+                      <div className="fixed inset-0 z-[150]" onClick={() => setShowLangDropdown(false)} />
+                      <div className="absolute right-0 top-full mt-2 w-44 bg-white rounded-2xl shadow-xl border border-emerald-100 overflow-hidden z-[200] animate-in fade-in slide-in-from-top-2 duration-200">
+                        {SUPPORTED_LANGUAGES.map((lang) => (
+                          <button
+                            key={lang.code}
+                            onClick={() => handleLanguageChange(lang.code)}
+                            className={`w-full flex items-center gap-3 px-4 py-3 text-left transition-all ${i18n.language === lang.code
+                              ? 'bg-emerald-50 text-[#052e16] font-bold'
+                              : 'text-slate-600 hover:bg-slate-50'
+                              }`}
+                          >
+                            <span className="text-base">{lang.flag}</span>
+                            <span className="text-xs font-semibold">{lang.label}</span>
+                            {i18n.language === lang.code && (
+                              <span className="ml-auto w-1.5 h-1.5 bg-emerald-500 rounded-full" />
+                            )}
+                          </button>
+                        ))}
+                      </div>
+                    </>
+                  )}
+                </div>
+
+                {activeTab === AppTab.PROFILE ? (
+                  <UserButton
+                    afterSignOutUrl="/"
+                    appearance={{
+                      elements: {
+                        avatarBox:
+                          "h-9 w-9 rounded-full shadow-lg shadow-[#052e16]/10 border border-[#052e16]/10",
+                      },
+                    }}
+                  />
+                ) : (
+                  <button
+                    onClick={() => setActiveTab(AppTab.PROFILE)}
+                    title={t("header.myProfile")}
+                    className={`h-9 w-9 rounded-full flex items-center justify-center transition-all active:scale-95 ${activeTab === AppTab.PROFILE
+                      ? "bg-[#052e16] text-white shadow-lg"
+                      : "bg-white border border-[#052e16]/10 text-[#052e16] hover:bg-emerald-50 shadow-sm"
+                      }`}
+                  >
+                    <User size={16} />
+                  </button>
+                )}
+              </div>
             </header>
 
             {/* DESKTOP SIDEBAR */}

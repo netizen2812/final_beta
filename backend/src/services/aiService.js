@@ -11,7 +11,15 @@ const OPENROUTER_URL = "https://openrouter.ai/api/v1/chat/completions";
 // Stable high quality model
 const MODEL = "openai/gpt-4o-mini";
 
-export async function generateResponse(prompt, userId = "anonymous", madhab = null, context = "") {
+const LANGUAGE_MAP = {
+  'en': 'English',
+  'hi': 'Hindi',
+  'ur': 'Urdu',
+  'ml': 'Malayalam',
+  'bn': 'Bengali'
+};
+
+export async function generateResponse(prompt, userId = "anonymous", madhab = null, context = "", language = "en") {
   try {
     // SMART MADHAB LOGIC
     let madhabInstruction = "";
@@ -73,6 +81,17 @@ ${madhabInstruction}
 - NO Fancy symbols.
 
 ${context ? "\n### 5. RETRIEVED CONTEXT (For Reference Only)\n" + context : ""}
+
+${language && language !== 'en' ? `
+### ${context ? '6' : '5'}. LANGUAGE (MANDATORY)
+You MUST respond entirely in **${LANGUAGE_MAP[language] || 'English'}**.
+Do NOT translate:
+- Quranic Arabic text (keep original Arabic)
+- Surah names (keep Arabic names)
+- Scholar names (keep original names)
+- Hadith references (keep original)
+All explanations, guidance, and practical advice must be in ${LANGUAGE_MAP[language] || 'English'}.
+` : ''}
     `.trim();
 
     const response = await axios.post(

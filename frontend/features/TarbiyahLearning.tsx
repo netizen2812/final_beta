@@ -14,6 +14,7 @@ import { useChildContext } from '../contexts/ChildContext';
 import { tarbiyahService, ParentDashboardData } from '../services/tarbiyahService';
 import { useAuth } from '@clerk/clerk-react';
 import { Analytics } from '../utils/analytics';
+import { useTranslation } from 'react-i18next';
 
 // Icon Mapping Helper
 const getIconComponent = (iconName: string) => {
@@ -104,6 +105,7 @@ const TarbiyahLearning: React.FC<{ onNavigateToProfile?: () => void }> = ({ onNa
   const [scrollProgress, setScrollProgress] = useState(0);
   const { children, activeChild, loading, setActiveChild, incrementProgress, refreshChildren } = useChildContext();
   const { getToken } = useAuth();
+  const { t } = useTranslation();
 
   const [lessons, setLessons] = useState<any[]>([]);
   const [lessonsLoading, setLessonsLoading] = useState(true);
@@ -173,7 +175,7 @@ const TarbiyahLearning: React.FC<{ onNavigateToProfile?: () => void }> = ({ onNa
   if (loading) return (
     <div className="min-h-screen bg-[#022c22] flex flex-col items-center justify-center space-y-4">
       <Loader2 className="animate-spin text-emerald-400" size={40} />
-      <p className="text-emerald-100/50 font-bold uppercase tracking-widest text-xs">Journey Mapping...</p>
+      <p className="text-emerald-100/50 font-bold uppercase tracking-widest text-xs">{t('tarbiyah.journeyMapping')}</p>
     </div>
   );
 
@@ -183,15 +185,15 @@ const TarbiyahLearning: React.FC<{ onNavigateToProfile?: () => void }> = ({ onNa
         <Users size={48} />
       </div>
       <div>
-        <h2 className="text-3xl font-serif font-bold text-white">No Child Profiles</h2>
-        <p className="text-emerald-100/40 mt-4 max-w-xs mx-auto text-sm leading-relaxed mb-8">Visit the Profile tab to create a profile for your child and begin their learning adventure.</p>
+        <h2 className="text-3xl font-serif font-bold text-white">{t('tarbiyah.noChildProfiles')}</h2>
+        <p className="text-emerald-100/40 mt-4 max-w-xs mx-auto text-sm leading-relaxed mb-8">{t('tarbiyah.noChildDesc')}</p>
 
         {onNavigateToProfile && (
           <button
             onClick={onNavigateToProfile}
             className="px-8 py-3 bg-emerald-500 hover:bg-emerald-400 text-[#022c22] rounded-full font-bold uppercase tracking-widest text-xs shadow-lg shadow-emerald-500/20 transition-all hover:scale-105"
           >
-            Add Child
+            {t('tarbiyah.addChild')}
           </button>
         )}
       </div>
@@ -216,13 +218,13 @@ const TarbiyahLearning: React.FC<{ onNavigateToProfile?: () => void }> = ({ onNa
                   onClick={() => setView('kids')}
                   className={`px-4 sm:px-6 py-2 rounded-full text-xs font-bold transition-all ${view === 'kids' ? 'bg-emerald-600 text-white shadow-[0_0_15px_rgba(16,185,129,0.5)]' : 'text-emerald-200 hover:text-white'}`}
                 >
-                  Kids Mode
+                  {t('tarbiyah.kidsMode')}
                 </button>
                 <button
                   onClick={() => setView('parent')}
                   className={`px-4 sm:px-6 py-2 rounded-full text-xs font-bold transition-all ${view === 'parent' ? 'bg-indigo-600 text-white shadow-[0_0_15px_rgba(79,70,229,0.5)]' : 'text-indigo-200 hover:text-white'}`}
                 >
-                  Parents Area
+                  {t('tarbiyah.parentsArea')}
                 </button>
               </div>
             </div>
@@ -264,6 +266,8 @@ const KidsMain: React.FC<{
   const progress = activeChild?.child_progress?.[0] || { xp: 0, lessons_completed: 0 };
   const rankData: RankCalculationResult = calculateRank(progress.xp);
   const { currentRank, nextRank, xpIntoRank, xpToNext, progressPercent } = rankData;
+
+  const { t } = useTranslation();
 
   const stagesWithStatus = lessons.map((s, idx) => ({
     ...s,
@@ -330,7 +334,7 @@ const KidsMain: React.FC<{
                 </div>
                 <div className="flex items-center gap-1.5 px-3 py-1.5 bg-indigo-500/10 text-indigo-300 rounded-xl border border-indigo-500/20 shadow-[0_0_15px_rgba(99,102,241,0.1)]">
                   <Star size={14} fill="currentColor" />
-                  <span className="text-xs font-bold">{progress.lessons_completed} Done</span>
+                  <span className="text-xs font-bold">{progress.lessons_completed} {t('tarbiyah.done')}</span>
                 </div>
               </div>
             </div>
@@ -338,8 +342,8 @@ const KidsMain: React.FC<{
             {/* Progress Bar Container */}
             <div className="bg-black/20 rounded-2xl p-4 border border-white/5 backdrop-blur-sm relative overflow-hidden">
               <div className="flex justify-between text-[10px] font-bold text-emerald-200/60 uppercase tracking-wider mb-2">
-                <span>Current Progress</span>
-                {nextRank ? <span>{xpToNext} XP to {nextRank.title}</span> : <span className="text-emerald-400">Max Rank Achieved!</span>}
+                <span>{t('tarbiyah.currentProgress')}</span>
+                {nextRank ? <span>{xpToNext} {t('tarbiyah.xpTo')} {nextRank.title}</span> : <span className="text-emerald-400">{t('tarbiyah.maxRank')}</span>}
               </div>
 
               {/* Modern Progress Bar */}
@@ -461,11 +465,11 @@ const KidsMain: React.FC<{
                         };
                         start();
                       }} className={`w-full py-3 sm:py-3.5 rounded-xl sm:rounded-2xl text-xs sm:text-sm font-black uppercase tracking-wider flex items-center justify-center gap-2 transition-all shadow-lg relative z-10 ${stage.completed ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 hover:bg-emerald-500/30' : 'bg-emerald-500 hover:bg-emerald-400 text-[#022c22] shadow-[0_0_15px_rgba(16,185,129,0.4)] hover:shadow-[0_0_25px_rgba(16,185,129,0.6)]'}`}>
-                        {stage.completed ? 'Replay Lesson' : 'Play Lesson'} <Play size={14} fill="currentColor" />
+                        {stage.completed ? t('tarbiyah.replayLesson') : t('tarbiyah.playLesson')} <Play size={14} fill="currentColor" />
                       </button>
                     )}
 
-                    {stage.locked && <div className={`text-xs text-gray-400 font-bold uppercase tracking-wide flex items-center gap-2 bg-black/20 py-2 rounded-lg mt-3 ${isRight ? 'justify-end sm:justify-start' : 'justify-start sm:justify-end'}`}><Lock size={12} /> Locked</div>}
+                    {stage.locked && <div className={`text-xs text-gray-400 font-bold uppercase tracking-wide flex items-center gap-2 bg-black/20 py-2 rounded-lg mt-3 ${isRight ? 'justify-end sm:justify-start' : 'justify-start sm:justify-end'}`}><Lock size={12} /> {t('tarbiyah.locked')}</div>}
                   </div>
                 </div>
               </div>
@@ -480,6 +484,7 @@ const KidsMain: React.FC<{
 const LessonDetail = ({ stage, onNext, onBack }: any) => {
   const { getToken } = useAuth();
   const { activeChild } = useChildContext();
+  const { t } = useTranslation();
 
   const handleBack = async () => {
     // Track exit
@@ -502,13 +507,13 @@ const LessonDetail = ({ stage, onNext, onBack }: any) => {
 
   return (
     <div className="pt-8 sm:pt-12 lg:pt-16 pb-16 sm:pb-20 px-4 sm:px-6 lg:px-8 max-w-4xl mx-auto animate-in fade-in slide-in-from-bottom-8 duration-500">
-      <button onClick={handleBack} className="flex items-center gap-2 text-emerald-400 font-bold mb-6 sm:mb-8 hover:text-white transition-colors"><ChevronLeft size={20} /> Back to Map</button>
+      <button onClick={handleBack} className="flex items-center gap-2 text-emerald-400 font-bold mb-6 sm:mb-8 hover:text-white transition-colors"><ChevronLeft size={20} /> {t('tarbiyah.backToMap')}</button>
       <div className="bg-white/10 backdrop-blur-2xl rounded-[2rem] sm:rounded-[2.5rem] lg:rounded-[3rem] p-6 sm:p-10 lg:p-16 border border-white/20 shadow-2xl relative overflow-hidden space-y-8 sm:space-y-10">
         <div className="absolute top-0 right-0 p-8 sm:p-12 opacity-10 text-emerald-300 group-hover:scale-110 transition-transform">
           <Sun size={80} sm:size={120} />
         </div>
         <div className="relative z-10 space-y-4">
-          <div className="text-xs font-black uppercase tracking-[0.3em] text-emerald-400">Lesson Activity</div>
+          <div className="text-xs font-black uppercase tracking-[0.3em] text-emerald-400">{t('tarbiyah.lessonActivity')}</div>
           <h1 className="text-3xl sm:text-4xl lg:text-6xl font-serif font-bold text-white leading-tight">{stage.title}</h1>
           <p className="text-lg sm:text-xl text-emerald-100/80 leading-relaxed max-w-2xl">{stage.description}</p>
         </div>
@@ -528,7 +533,7 @@ const LessonDetail = ({ stage, onNext, onBack }: any) => {
           ) : (
             <div className="w-full h-full flex flex-col items-center justify-center">
               <div className="w-16 h-16 bg-emerald-500 text-white rounded-full flex items-center justify-center shadow-2xl"><Play size={24} fill="currentColor" /></div>
-              <span className="mt-4 text-xs font-bold text-white/40">Video Unavailable</span>
+              <span className="mt-4 text-xs font-bold text-white/40">{t('tarbiyah.videoUnavailable')}</span>
             </div>
           )}
         </div>
@@ -539,14 +544,14 @@ const LessonDetail = ({ stage, onNext, onBack }: any) => {
               <Trophy size={20} />
             </div>
             <div>
-              <p className="text-[10px] font-black uppercase tracking-widest text-emerald-400">Reward</p>
-              <p className="text-white font-bold">{stage.xpReward || 50} XP base + Quiz Bonus</p>
+              <p className="text-[10px] font-black uppercase tracking-widest text-emerald-400">{t('tarbiyah.reward')}</p>
+              <p className="text-white font-bold">{stage.xpReward || 50} {t('tarbiyah.xpBaseQuiz')}</p>
             </div>
           </div>
         </div>
 
         <button onClick={onNext} className="w-full py-5 bg-emerald-500 hover:bg-emerald-400 text-[#022c22] rounded-[2rem] font-black uppercase tracking-widest text-xs shadow-xl active:scale-95 transition-all">
-          Start Quiz Challenge
+          {t('tarbiyah.startQuizChallenge')}
         </button>
       </div>
     </div>
@@ -556,6 +561,7 @@ const LessonDetail = ({ stage, onNext, onBack }: any) => {
 const QuizView = ({ stage, onComplete, onBack }: any) => {
   const [currentQ, setCurrentQ] = useState(0);
   const [score, setScore] = useState(0);
+  const { t } = useTranslation();
 
   const [questionAttempts, setQuestionAttempts] = useState<{ [key: number]: number }>({});
   const [pointsEarned, setPointsEarned] = useState(0);
@@ -617,28 +623,28 @@ const QuizView = ({ stage, onComplete, onBack }: any) => {
           </div>
 
           <div className="space-y-2">
-            <h2 className="text-4xl font-bold text-white">Quiz Completed!</h2>
-            <p className="text-emerald-100/50 text-xl">You got {score} out of {stage.mcqs?.length} correct.</p>
+            <h2 className="text-4xl font-bold text-white">{t('tarbiyah.quizCompleted')}</h2>
+            <p className="text-emerald-100/50 text-xl">{t('tarbiyah.youGot', { score, total: stage.mcqs?.length })}</p>
           </div>
 
           <div className="bg-white/5 rounded-3xl p-6 border border-white/10 space-y-4">
             <div className="flex justify-between text-sm text-emerald-200/60 font-bold uppercase tracking-widest">
-              <span>Lesson Base XP</span>
+              <span>{t('tarbiyah.lessonBaseXP')}</span>
               <span>{baseReward}</span>
             </div>
             <div className="flex justify-between text-sm text-emerald-200/60 font-bold uppercase tracking-widest">
-              <span>Quiz Score XP</span>
+              <span>{t('tarbiyah.quizScoreXP')}</span>
               <span>{pointsEarned}</span>
             </div>
             {isPerfect && (
               <div className="flex justify-between text-sm text-amber-400 font-bold uppercase tracking-widest">
-                <span>Perfect Bonus 🎯</span>
+                <span>{t('tarbiyah.perfectBonus')}</span>
                 <span>+{finalBonus}</span>
               </div>
             )}
             <div className="h-px bg-white/10 my-2" />
             <div className="flex justify-between text-xl text-white font-black uppercase tracking-widest">
-              <span>Total Earned</span>
+              <span>{t('tarbiyah.totalEarned')}</span>
               <span className="text-emerald-400">+{totalLessonXP} XP</span>
             </div>
           </div>
@@ -646,11 +652,11 @@ const QuizView = ({ stage, onComplete, onBack }: any) => {
           <div className="grid grid-cols-1 gap-4">
             {score === stage.mcqs?.length ? (
               <button onClick={handleFinish} className="w-full py-6 rounded-[2rem] bg-emerald-500 text-[#022c22] font-black uppercase tracking-widest text-xs hover:bg-emerald-400 transition-all shadow-[0_0_30px_rgba(16,185,129,0.4)]">
-                Claim Reward & Unlock Next Lesson
+                {t('tarbiyah.claimReward')}
               </button>
             ) : (
               <button onClick={onBack} className="w-full py-6 rounded-[2rem] bg-white/10 text-white font-bold uppercase tracking-widest text-xs hover:bg-white/20 transition-all">
-                Try Again
+                {t('tarbiyah.tryAgain')}
               </button>
             )}
           </div>
@@ -663,7 +669,7 @@ const QuizView = ({ stage, onComplete, onBack }: any) => {
     <div className="min-h-screen flex items-center justify-center p-6 bg-[#022c22]">
       <div className="max-w-2xl w-full space-y-8 animate-in slide-in-from-right-8 duration-300">
         <div className="flex justify-between items-center text-xs font-bold text-emerald-400 tracking-widest uppercase mb-4">
-          <span>Question {currentQ + 1} / {stage.mcqs.length}</span>
+          <span>{t('tarbiyah.question')} {currentQ + 1} / {stage.mcqs.length}</span>
           <span>{stage.title}</span>
         </div>
         <div className="h-2 bg-white/5 rounded-full overflow-hidden">
@@ -676,7 +682,7 @@ const QuizView = ({ stage, onComplete, onBack }: any) => {
               <div className={`transform scale-150 ${feedback === 'correct' ? 'text-emerald-400' : 'text-red-400'}`}>
                 {feedback === 'correct' ? <CheckCircle size={80} fill="currentColor" className="text-white" /> : <X size={80} />}
                 <p className="text-lg font-black uppercase tracking-widest mt-4 text-white shadow-black drop-shadow-lg">
-                  {feedback === 'correct' ? 'Masha\'Allah!' : 'Try Again'}
+                  {feedback === 'correct' ? 'Masha\'Allah!' : t('tarbiyah.tryAgain')}
                 </p>
                 {feedback === 'correct' && <p className="text-xs text-emerald-200 mt-2 font-serif italic">{question.reference}</p>}
               </div>
@@ -702,34 +708,37 @@ const QuizView = ({ stage, onComplete, onBack }: any) => {
         </div>
 
         <button onClick={onBack} className="w-full text-white/20 hover:text-white/40 text-xs font-bold uppercase tracking-widest transition-colors">
-          Exit Quiz
+          {t('tarbiyah.exitQuiz')}
         </button>
       </div>
     </div>
   );
 };
 
-const CompletionSplash = ({ stage, onFinish }: any) => (
-  <div className="min-h-screen flex items-center justify-center text-center p-6 bg-[#022c22]">
-    <div className="max-w-md space-y-10 animate-in zoom-in duration-700">
-      <div className="w-40 h-40 bg-gradient-to-tr from-amber-300 to-amber-500 rounded-[3rem] flex items-center justify-center mx-auto shadow-[0_0_80px_rgba(251,191,36,0.4)] rotate-12 border-4 border-amber-200">
-        <Trophy size={64} className="text-[#78350f] -rotate-12 drop-shadow-lg" />
-      </div>
-      <div className="space-y-4">
-        <h1 className="text-5xl font-black text-white tracking-tight">Masha'Allah!</h1>
-        <p className="text-emerald-200/60 text-lg font-medium">You completed <span className="text-white font-bold">{stage.title}</span></p>
-
-        <div className="inline-flex items-center gap-2 px-6 py-3 bg-white/10 rounded-full border border-white/10 mt-4 backdrop-blur-md">
-          <Sparkles className="text-amber-400" size={20} />
-          <span className="text-xl font-black text-white">+{stage.earnedXP || 0} XP Earned</span>
+const CompletionSplash = ({ stage, onFinish }: any) => {
+  const { t } = useTranslation();
+  return (
+    <div className="min-h-screen flex items-center justify-center text-center p-6 bg-[#022c22]">
+      <div className="max-w-md space-y-10 animate-in zoom-in duration-700">
+        <div className="w-40 h-40 bg-gradient-to-tr from-amber-300 to-amber-500 rounded-[3rem] flex items-center justify-center mx-auto shadow-[0_0_80px_rgba(251,191,36,0.4)] rotate-12 border-4 border-amber-200">
+          <Trophy size={64} className="text-[#78350f] -rotate-12 drop-shadow-lg" />
         </div>
+        <div className="space-y-4">
+          <h1 className="text-5xl font-black text-white tracking-tight">{t('tarbiyah.mashaAllah')}</h1>
+          <p className="text-emerald-200/60 text-lg font-medium">{t('tarbiyah.youCompleted')} <span className="text-white font-bold">{stage.title}</span></p>
+
+          <div className="inline-flex items-center gap-2 px-6 py-3 bg-white/10 rounded-full border border-white/10 mt-4 backdrop-blur-md">
+            <Sparkles className="text-amber-400" size={20} />
+            <span className="text-xl font-black text-white">+{stage.earnedXP || 0} {t('tarbiyah.xpEarned')}</span>
+          </div>
+        </div>
+        <button onClick={onFinish} className="w-full py-6 bg-emerald-500 hover:bg-emerald-400 text-[#022c22] rounded-[2rem] font-black uppercase tracking-widest text-xs shadow-xl active:scale-95 transition-all">
+          {t('tarbiyah.continueJourney')}
+        </button>
       </div>
-      <button onClick={onFinish} className="w-full py-6 bg-emerald-500 hover:bg-emerald-400 text-[#022c22] rounded-[2rem] font-black uppercase tracking-widest text-xs shadow-xl active:scale-95 transition-all">
-        Continue Journey
-      </button>
     </div>
-  </div>
-);
+  );
+};
 
 const ParentsView: React.FC<{ onNavigate: (v: SubView, i?: any) => void, activeChild: any }> = ({ onNavigate, activeChild }) => {
   const progress = activeChild?.child_progress?.[0] || { xp: 0, level: 1, lessons_completed: 0 };
@@ -760,6 +769,8 @@ const ParentsView: React.FC<{ onNavigate: (v: SubView, i?: any) => void, activeC
     fetchData();
   }, [activeChild?.id, activeChild?.childUserId]);
 
+  const { t } = useTranslation();
+
   if (loading || !dashboardData) {
     return (
       <div className="min-h-screen flex items-center justify-center">
@@ -775,10 +786,10 @@ const ParentsView: React.FC<{ onNavigate: (v: SubView, i?: any) => void, activeC
 
       <div className="mb-10 sm:mb-12 text-center md:text-left">
         <div className="inline-flex items-center gap-2 px-4 py-1.5 bg-indigo-500/20 text-indigo-200 border border-indigo-500/30 rounded-full text-xs font-bold uppercase tracking-wider mb-4">
-          <Shield size={12} /> Parent Dashboard
+          <Shield size={12} /> {t('tarbiyah.parentDashboard')}
         </div>
-        <h1 className="text-3xl sm:text-4xl md:text-5xl font-serif font-bold text-white drop-shadow-md">{activeChild?.name}'s Progress</h1>
-        <p className="text-emerald-200 mt-3 text-base sm:text-lg">Monitor growth, set limits, and explore curriculum.</p>
+        <h1 className="text-3xl sm:text-4xl md:text-5xl font-serif font-bold text-white drop-shadow-md">{t('tarbiyah.progressOf', { name: activeChild?.name })}</h1>
+        <p className="text-emerald-200 mt-3 text-base sm:text-lg">{t('tarbiyah.monitorGrowth')}</p>
       </div>
 
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6 mb-8 sm:mb-10">
@@ -787,7 +798,7 @@ const ParentsView: React.FC<{ onNavigate: (v: SubView, i?: any) => void, activeC
             <div className="p-2 bg-emerald-400/10 rounded-full">
               <Clock size={18} />
             </div>
-            <span className="text-xs font-black uppercase tracking-widest text-emerald-200/70">Time This Week</span>
+            <span className="text-xs font-black uppercase tracking-widest text-emerald-200/70">{t('tarbiyah.timeThisWeek')}</span>
           </div>
           <div className="text-3xl sm:text-4xl font-serif font-bold text-white drop-shadow-sm">{dashboardData.timeThisWeek.total}</div>
           <div className="text-xs text-emerald-400 font-bold flex items-center gap-1 mt-3 bg-emerald-400/10 inline-flex px-3 py-1 rounded-full border border-emerald-400/20">
@@ -800,11 +811,11 @@ const ParentsView: React.FC<{ onNavigate: (v: SubView, i?: any) => void, activeC
             <div className="p-2 bg-blue-400/10 rounded-full">
               <CheckCircle size={18} />
             </div>
-            <span className="text-xs font-black uppercase tracking-widest text-blue-200/70">Lessons Done</span>
+            <span className="text-xs font-black uppercase tracking-widest text-blue-200/70">{t('tarbiyah.lessonsDone')}</span>
           </div>
           <div className="text-3xl sm:text-4xl font-serif font-bold text-white drop-shadow-sm">{dashboardData.lessonsDone.completed}</div>
           <div className="text-xs text-blue-200/50 font-bold mt-3 pl-1">
-            {dashboardData.lessonsDone.total - dashboardData.lessonsDone.completed} remaining
+            {dashboardData.lessonsDone.total - dashboardData.lessonsDone.completed} {t('tarbiyah.remaining')}
           </div>
         </div>
 
@@ -813,11 +824,11 @@ const ParentsView: React.FC<{ onNavigate: (v: SubView, i?: any) => void, activeC
             <div className="p-2 bg-purple-400/10 rounded-full">
               <Target size={18} />
             </div>
-            <span className="text-xs font-black uppercase tracking-widest text-purple-200/70">Current XP</span>
+            <span className="text-xs font-black uppercase tracking-widest text-purple-200/70">{t('tarbiyah.currentXP')}</span>
           </div>
           <div className="text-3xl sm:text-4xl font-serif font-bold text-white drop-shadow-sm">{dashboardData.currentXP}</div>
           <div className="text-xs text-purple-300 font-bold mt-3 bg-purple-400/10 inline-flex px-3 py-1 rounded-full border border-purple-400/20">
-            Level {dashboardData.currentLevel}
+            {t('tarbiyah.level')} {dashboardData.currentLevel}
           </div>
         </div>
 
@@ -830,11 +841,11 @@ const ParentsView: React.FC<{ onNavigate: (v: SubView, i?: any) => void, activeC
               <div className="p-2 bg-emerald-400/10 rounded-full border border-emerald-400/20">
                 <Award size={18} />
               </div>
-              <span className="text-xs font-black uppercase tracking-widest text-emerald-100/70">Badges</span>
+              <span className="text-xs font-black uppercase tracking-widest text-emerald-100/70">{t('tarbiyah.badges')}</span>
             </div>
             <div className="text-3xl sm:text-4xl font-serif font-bold text-white drop-shadow-md mb-2">{dashboardData.totalBadges.count}</div>
             <button onClick={() => onNavigate('achievements')} className="text-[10px] font-black uppercase tracking-widest text-emerald-300 bg-emerald-500/20 hover:bg-emerald-500 hover:text-[#022c22] px-4 py-2 rounded-full border border-emerald-500/30 transition-all shadow-lg active:scale-95 flex items-center gap-2 w-fit">
-              View Showcase <ChevronLeft className="rotate-180" size={12} />
+              {t('tarbiyah.viewShowcase')} <ChevronLeft className="rotate-180" size={12} />
             </button>
           </div>
         </div>
@@ -844,7 +855,7 @@ const ParentsView: React.FC<{ onNavigate: (v: SubView, i?: any) => void, activeC
         {/* Charts and logs refined */}
         <div className="bg-white/10 backdrop-blur-2xl p-6 sm:p-8 rounded-[2.5rem] shadow-2xl border border-white/20 ring-1 ring-white/5 relative overflow-hidden group">
           <div className="absolute inset-0 bg-gradient-to-b from-white/5 to-transparent pointer-events-none"></div>
-          <h3 className="font-serif font-bold text-white text-xl mb-6 sm:mb-8 flex justify-between items-center relative z-10">Total Progress <BarChart2 size={20} className="text-emerald-400" /></h3>
+          <h3 className="font-serif font-bold text-white text-xl mb-6 sm:mb-8 flex justify-between items-center relative z-10">{t('tarbiyah.totalProgress')} <BarChart2 size={20} className="text-emerald-400" /></h3>
           <div className="h-48 sm:h-64 relative z-10">
             <ResponsiveContainer width="100%" height="100%">
               <PieChart>
@@ -879,9 +890,9 @@ const ParentsView: React.FC<{ onNavigate: (v: SubView, i?: any) => void, activeC
         <div className="bg-white/10 backdrop-blur-2xl p-6 sm:p-8 rounded-[2.5rem] shadow-2xl border border-white/20 ring-1 ring-white/5 lg:col-span-2 relative overflow-hidden">
           <div className="absolute inset-0 bg-gradient-to-tr from-emerald-900/20 to-transparent pointer-events-none"></div>
           <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4 mb-6 sm:mb-8 relative z-10">
-            <h3 className="font-serif font-bold text-white text-xl">Activity Log</h3>
+            <h3 className="font-serif font-bold text-white text-xl">{t('tarbiyah.activityLog')}</h3>
             <div className="text-[10px] font-black uppercase tracking-widest bg-emerald-500/10 border border-emerald-500/20 rounded-full py-2 px-4 text-emerald-400 shadow-[0_0_15px_rgba(16,185,129,0.1)]">
-              Last 7 Days
+              {t('tarbiyah.last7Days')}
             </div>
           </div>
           <div className="h-48 sm:h-64 relative z-10">
@@ -904,15 +915,15 @@ const ParentsView: React.FC<{ onNavigate: (v: SubView, i?: any) => void, activeC
           <div className="p-3 bg-emerald-500/20 rounded-full text-emerald-400 border border-emerald-500/30">
             <Settings size={28} />
           </div>
-          Settings & Controls
+          {t('tarbiyah.settingsControls')}
         </h3>
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
           <div className="flex items-center justify-between bg-white/5 p-5 sm:p-6 rounded-[2rem] border border-white/10 hover:border-emerald-500/30 hover:bg-white/10 transition-all group">
             <div>
-              <div className="text-sm font-black uppercase tracking-widest text-white mb-1">Daily Limit</div>
-              <div className="text-xs text-emerald-200/60 font-medium">Currently: <span className="text-white font-bold">{dashboardData.settings.dailyLimitMinutes} mins</span></div>
+              <div className="text-sm font-black uppercase tracking-widest text-white mb-1">{t('tarbiyah.dailyLimit')}</div>
+              <div className="text-xs text-emerald-200/60 font-medium">{t('tarbiyah.currently')}: <span className="text-white font-bold">{dashboardData.settings.dailyLimitMinutes} {t('tarbiyah.mins')}</span></div>
             </div>
-            <button onClick={() => onNavigate('limit-edit')} className="text-[10px] font-black uppercase tracking-widest bg-white/5 hover:bg-white/20 hover:text-white px-5 py-3 rounded-full text-emerald-200 transition-all border border-white/5 group-hover:border-white/20">Edit</button>
+            <button onClick={() => onNavigate('limit-edit')} className="text-[10px] font-black uppercase tracking-widest bg-white/5 hover:bg-white/20 hover:text-white px-5 py-3 rounded-full text-emerald-200 transition-all border border-white/5 group-hover:border-white/20">{t('tarbiyah.edit')}</button>
           </div>
         </div>
       </div>
@@ -925,18 +936,18 @@ const AchievementsShowcase = ({ onBack, onNavigate }: any) => {
   const { activeChild } = useChildContext();
   const progress = activeChild?.child_progress?.[0] || { xp: 0 };
   const { currentRank } = calculateRank(progress.xp);
-
+  const { t } = useTranslation();
   // Filter only earned badges
   const earnedBadges = RANK_LEVELS.filter(rank => progress.xp >= rank.minXP);
 
   return (
     <div className="pt-24 sm:pt-28 lg:pt-32 pb-16 sm:pb-20 px-4 sm:px-6 lg:px-8 max-w-5xl mx-auto animate-in fade-in duration-500">
-      <button onClick={onBack} className="flex items-center gap-2 text-indigo-400 font-bold mb-6 sm:mb-8 hover:text-white transition-colors"><ChevronLeft /> Back to Dashboard</button>
+      <button onClick={onBack} className="flex items-center gap-2 text-indigo-400 font-bold mb-6 sm:mb-8 hover:text-white transition-colors"><ChevronLeft /> {t('tarbiyah.backToDashboard')}</button>
       <div className="space-y-10 sm:space-y-12">
         <div className="flex flex-col sm:flex-row sm:justify-between sm:items-end gap-4">
-          <h2 className="text-4xl sm:text-5xl font-serif font-bold text-white">Showcase</h2>
+          <h2 className="text-4xl sm:text-5xl font-serif font-bold text-white">{t('tarbiyah.showcase')}</h2>
           <div className="text-right">
-            <p className="text-indigo-200 font-bold uppercase tracking-widest text-xs mb-1">Current Rank</p>
+            <p className="text-indigo-200 font-bold uppercase tracking-widest text-xs mb-1">{t('tarbiyah.currentRank')}</p>
             <p className="text-2xl font-black text-white">{currentRank.title}</p>
           </div>
         </div>
@@ -944,7 +955,7 @@ const AchievementsShowcase = ({ onBack, onNavigate }: any) => {
         {earnedBadges.length === 0 ? (
           <div className="text-center py-20 bg-white/5 rounded-[3rem] border border-white/5">
             <Lock size={48} className="mx-auto text-white/20 mb-4" />
-            <p className="text-white/40 font-bold">Start your journey to earn badges!</p>
+            <p className="text-white/40 font-bold">{t('tarbiyah.startJourneyBadges')}</p>
           </div>
         ) : (
           <div className="grid grid-cols-2 md:grid-cols-4 gap-6 sm:gap-8">
@@ -961,34 +972,37 @@ const AchievementsShowcase = ({ onBack, onNavigate }: any) => {
   );
 };
 
-const LimitEdit = ({ onBack }: any) => (
-  <div className="min-h-screen flex items-center justify-center p-4 sm:p-6">
-    <div className="max-w-md w-full bg-white/10 backdrop-blur-3xl p-8 sm:p-12 rounded-[3rem] sm:rounded-[4rem] border border-white/20 shadow-2xl space-y-10 sm:space-y-12">
-      <div className="text-center space-y-4">
-        <div className="w-16 h-16 sm:w-20 sm:h-20 bg-indigo-500/20 text-indigo-300 rounded-[2rem] sm:rounded-[2.5rem] flex items-center justify-center mx-auto"><Clock size={36} /></div>
-        <h2 className="text-2xl sm:text-3xl font-bold text-white">Daily Screen Limit</h2>
-        <p className="text-indigo-200/60 font-medium text-sm sm:text-base">Control digital consumption for balanced learning.</p>
-      </div>
-      <div className="space-y-8">
-        <div className="relative pt-1">
-          <input type="range" className="w-full h-2 bg-black/40 rounded-lg appearance-none cursor-pointer accent-indigo-500" />
-          <div className="flex justify-between mt-4 text-[10px] font-black uppercase text-indigo-300 tracking-widest">
-            <span>15 min</span>
-            <span className="text-white bg-indigo-600 px-3 py-1 rounded-full text-xs">45 mins</span>
-            <span>120 min</span>
+const LimitEdit = ({ onBack }: any) => {
+  const { t } = useTranslation();
+  return (
+    <div className="min-h-screen flex items-center justify-center p-4 sm:p-6">
+      <div className="max-w-md w-full bg-white/10 backdrop-blur-3xl p-8 sm:p-12 rounded-[3rem] sm:rounded-[4rem] border border-white/20 shadow-2xl space-y-10 sm:space-y-12">
+        <div className="text-center space-y-4">
+          <div className="w-16 h-16 sm:w-20 sm:h-20 bg-indigo-500/20 text-indigo-300 rounded-[2rem] sm:rounded-[2.5rem] flex items-center justify-center mx-auto"><Clock size={36} /></div>
+          <h2 className="text-2xl sm:text-3xl font-bold text-white">{t('tarbiyah.dailyScreenLimit')}</h2>
+          <p className="text-indigo-200/60 font-medium text-sm sm:text-base">{t('tarbiyah.controlDigital')}</p>
+        </div>
+        <div className="space-y-8">
+          <div className="relative pt-1">
+            <input type="range" className="w-full h-2 bg-black/40 rounded-lg appearance-none cursor-pointer accent-indigo-500" />
+            <div className="flex justify-between mt-4 text-[10px] font-black uppercase text-indigo-300 tracking-widest">
+              <span>15 min</span>
+              <span className="text-white bg-indigo-600 px-3 py-1 rounded-full text-xs">45 {t('tarbiyah.mins')}</span>
+              <span>120 min</span>
+            </div>
+          </div>
+          <div className="p-5 sm:p-6 bg-white/5 rounded-2xl border border-white/5 space-y-3">
+            <div className="flex justify-between items-center">
+              <span className="text-xs font-bold text-indigo-200">{t('tarbiyah.weekendBuffer')}</span>
+              <div className="w-10 h-6 bg-indigo-600 rounded-full relative"><div className="w-4 h-4 bg-white rounded-full absolute top-1 right-1" /></div>
+            </div>
+            <p className="text-[10px] text-white/30 font-medium">{t('tarbiyah.weekendBufferDesc')}</p>
           </div>
         </div>
-        <div className="p-5 sm:p-6 bg-white/5 rounded-2xl border border-white/5 space-y-3">
-          <div className="flex justify-between items-center">
-            <span className="text-xs font-bold text-indigo-200">Weekend Buffer</span>
-            <div className="w-10 h-6 bg-indigo-600 rounded-full relative"><div className="w-4 h-4 bg-white rounded-full absolute top-1 right-1" /></div>
-          </div>
-          <p className="text-[10px] text-white/30 font-medium">Adds 15 mins automatically on Fri-Sat.</p>
-        </div>
+        <button onClick={onBack} className="w-full py-5 sm:py-6 bg-indigo-600 text-white rounded-[2rem] font-black uppercase tracking-widest text-[11px] sm:text-[12px] shadow-2xl active:scale-95 transition-all">{t('tarbiyah.savePreferences')}</button>
       </div>
-      <button onClick={onBack} className="w-full py-5 sm:py-6 bg-indigo-600 text-white rounded-[2rem] font-black uppercase tracking-widest text-[11px] sm:text-[12px] shadow-2xl active:scale-95 transition-all">Save Preferences</button>
     </div>
-  </div>
-);
+  );
+};
 
 export default TarbiyahLearning;

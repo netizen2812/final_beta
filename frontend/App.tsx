@@ -29,11 +29,11 @@ import { Analytics } from "./utils/analytics";
 import { useTranslation } from "react-i18next";
 
 const SUPPORTED_LANGUAGES = [
-  { code: 'en', label: 'English', flag: '🇬🇧' },
-  { code: 'hi', label: 'हिन्दी', flag: '🇮🇳' },
-  { code: 'ur', label: 'اردو', flag: '🇵🇰' },
-  { code: 'ml', label: 'മലയാളം', flag: '🇮🇳' },
-  { code: 'bn', label: 'বাংলা', flag: '🇧🇩' },
+  { code: 'en', label: 'English', script: 'EN' },
+  { code: 'hi', label: 'हिन्दी', script: 'हि' },
+  { code: 'ur', label: 'اردو', script: 'اُ' },
+  { code: 'ml', label: 'മലയാളം', script: 'മ' },
+  { code: 'bn', label: 'বাংলা', script: 'বা' },
 ];
 
 const App: React.FC = () => {
@@ -261,7 +261,7 @@ const App: React.FC = () => {
                     title={t("language.label")}
                   >
                     <Globe size={14} className="text-[#052e16]/60" />
-                    <span className="text-xs font-bold text-[#052e16]/70">{currentLang.flag}</span>
+                    <span className="text-xs font-bold text-[#052e16]/70">{currentLang.script}</span>
                     <span className="text-[10px] font-bold text-[#052e16]/50 hidden sm:inline">{currentLang.label}</span>
                   </button>
 
@@ -278,7 +278,7 @@ const App: React.FC = () => {
                               : 'text-slate-600 hover:bg-slate-50'
                               }`}
                           >
-                            <span className="text-base">{lang.flag}</span>
+                            <span className="text-xs font-bold text-[#052e16]/60">{lang.script}</span>
                             <span className="text-xs font-semibold">{lang.label}</span>
                             {i18n.language === lang.code && (
                               <span className="ml-auto w-1.5 h-1.5 bg-emerald-500 rounded-full" />

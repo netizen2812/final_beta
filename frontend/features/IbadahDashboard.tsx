@@ -37,6 +37,7 @@ import {
 import QuranPage from './QuranPage';
 import { Analytics } from '../utils/analytics';
 import { getPrayerTimings, getHijriDate, getCalendarMonth, formatDateForAPI } from '../services/aladhan';
+import { useTranslation } from 'react-i18next';
 import { notificationService } from '../services/NotificationService';
 
 // --- TYPES & CONSTANTS ---
@@ -50,7 +51,7 @@ interface PrayerTime {
 }
 const normalizeAngle = (angle: number) => (angle + 360) % 360;
 
-const GENERAL_DISCLAIMER = "For guidance and convenience only. Accuracy may vary. Consult local authorities for definitive religious rulings.";
+// Disclaimer moved to translation: ibadah.disclaimer
 
 type SubView = 'landing' | 'prayer-guide' | 'calendar' | 'calendar-detail' | 'zakat-calc' | 'zakat-result' | 'quran' | 'tasbih' | 'hadith';
 
@@ -95,6 +96,7 @@ const HERO_THEMES = {
 const TasbihPage = ({ onBack }: { onBack: () => void }) => {
   const [count, setCount] = useState(0);
   const [goal, setGoal] = useState(33);
+  const { t } = useTranslation();
 
   const increment = () => {
     setCount(prev => {
@@ -116,7 +118,7 @@ const TasbihPage = ({ onBack }: { onBack: () => void }) => {
           <button onClick={onBack} className="p-3 bg-white hover:bg-emerald-50 rounded-full transition-all text-[#0D4433] shadow-sm border border-emerald-100">
             <ArrowLeft size={20} />
           </button>
-          <h2 className="text-3xl font-serif font-bold text-[#0D4433]">Digital Tasbih</h2>
+          <h2 className="text-3xl font-serif font-bold text-[#0D4433]">{t('ibadah.digitalTasbih')}</h2>
         </div>
 
         <div className="bg-white p-12 rounded-[4rem] border border-emerald-50 shadow-2xl flex flex-col items-center space-y-10">
@@ -125,7 +127,7 @@ const TasbihPage = ({ onBack }: { onBack: () => void }) => {
             className="w-64 h-64 rounded-full bg-emerald-50 border-[12px] border-white shadow-inner flex flex-col items-center justify-center cursor-pointer active:scale-95 transition-all hover:bg-emerald-100 select-none"
           >
             <span className="text-7xl font-black text-[#0D4433]">{count}</span>
-            <span className="text-xs font-black text-emerald-600/40 mt-2 tracking-[0.2em]">TAP TO COUNT</span>
+            <span className="text-xs font-black text-emerald-600/40 mt-2 tracking-[0.2em]">{t('ibadah.tapToCount')}</span>
           </div>
 
           <div className="flex gap-4">
@@ -142,8 +144,8 @@ const TasbihPage = ({ onBack }: { onBack: () => void }) => {
 
           <div className="w-full space-y-2">
             <div className="flex justify-between text-[10px] font-black text-gray-300 uppercase tracking-widest px-2">
-              <span>Progress</span>
-              <span>Goal: {goal}</span>
+              <span>{t('ibadah.progress')}</span>
+              <span>{t('ibadah.goal')}: {goal}</span>
             </div>
             <div className="w-full bg-gray-50 h-3 rounded-full overflow-hidden border border-gray-100">
               <div
@@ -157,7 +159,7 @@ const TasbihPage = ({ onBack }: { onBack: () => void }) => {
             onClick={reset}
             className="w-full py-5 bg-gray-50 text-gray-400 rounded-3xl font-black uppercase tracking-[0.2em] text-[10px] hover:bg-rose-50 hover:text-rose-400 transition-all border border-gray-100"
           >
-            Reset Counter
+            {t('ibadah.resetCounter')}
           </button>
         </div>
       </div>
@@ -168,6 +170,7 @@ const TasbihPage = ({ onBack }: { onBack: () => void }) => {
 const HadithPage = ({ onBack }: { onBack: () => void }) => {
   const [hadith, setHadith] = useState<any>(null);
   const [loading, setLoading] = useState(true);
+  const { t } = useTranslation();
 
   const fetchHadith = async () => {
     setLoading(true);
@@ -192,7 +195,7 @@ const HadithPage = ({ onBack }: { onBack: () => void }) => {
           <button onClick={onBack} className="p-3 bg-white hover:bg-emerald-50 rounded-full transition-all text-[#0D4433] shadow-sm border border-emerald-100">
             <ArrowLeft size={20} />
           </button>
-          <h2 className="text-3xl font-serif font-bold text-[#0D4433]">Hadith of the Day</h2>
+          <h2 className="text-3xl font-serif font-bold text-[#0D4433]">{t('ibadah.hadithOfDay')}</h2>
         </div>
 
         {loading ? (
@@ -333,12 +336,13 @@ const ZakatCalcPage = ({ onResult, onBack }: { onResult: (result: any) => void; 
     }
   };
 
+  const { t } = useTranslation();
   const fields: { label: string; value: string; setter: (v: string) => void; placeholder: string }[] = [
-    { label: 'Cash in Hand / Bank (₹)', value: cash, setter: setCash, placeholder: '₹ 0' },
-    { label: 'Gold (Grams)', value: gold, setter: setGold, placeholder: 'Grams' },
-    { label: 'Silver (Grams)', value: silver, setter: setSilver, placeholder: 'Grams' },
-    { label: 'Investments / Shares (₹)', value: investments, setter: setInvestments, placeholder: '₹ 0' },
-    { label: 'Liabilities / Debts (₹)', value: liabilities, setter: setLiabilities, placeholder: '₹ 0' },
+    { label: t('ibadah.cashInHand'), value: cash, setter: setCash, placeholder: '₹ 0' },
+    { label: t('ibadah.goldGrams'), value: gold, setter: setGold, placeholder: 'Grams' },
+    { label: t('ibadah.silverGrams'), value: silver, setter: setSilver, placeholder: 'Grams' },
+    { label: t('ibadah.investmentsShares'), value: investments, setter: setInvestments, placeholder: '₹ 0' },
+    { label: t('ibadah.liabilitiesDebts'), value: liabilities, setter: setLiabilities, placeholder: '₹ 0' },
   ];
 
   return (
@@ -348,10 +352,10 @@ const ZakatCalcPage = ({ onResult, onBack }: { onResult: (result: any) => void; 
           <button onClick={onBack} className="p-3 bg-white hover:bg-emerald-50 rounded-full transition-all text-[#0D4433] shadow-sm border border-emerald-100">
             <ArrowLeft size={20} />
           </button>
-          <h2 className="text-3xl font-serif font-bold text-[#0D4433]">Zakat Calculator</h2>
+          <h2 className="text-3xl font-serif font-bold text-[#0D4433]">{t('ibadah.zakatCalculator')}</h2>
           {marketPrices?.isLive && (
             <div className="ml-auto px-4 py-1.5 bg-emerald-50 text-emerald-600 rounded-full text-[9px] font-black uppercase tracking-widest border border-emerald-100 flex items-center gap-2">
-              <Sparkles size={12} className="animate-pulse" /> Live Market Prices Active
+              <Sparkles size={12} className="animate-pulse" /> {t('ibadah.liveMarketPrices')}
             </div>
           )}
         </div>
@@ -373,14 +377,14 @@ const ZakatCalcPage = ({ onResult, onBack }: { onResult: (result: any) => void; 
               onClick={handleReset}
               className="flex-1 py-6 bg-gray-50 text-gray-400 rounded-[2rem] font-black uppercase tracking-[0.2em] text-[11px] hover:bg-gray-100 transition-all"
             >
-              Reset
+              {t('ibadah.reset')}
             </button>
             <button
               onClick={calculate}
               disabled={loading}
               className="flex-[2] py-6 bg-[#0D4433] text-white rounded-[2rem] font-black uppercase tracking-[0.2em] text-[11px] shadow-xl hover:bg-emerald-900 transition-all disabled:opacity-60"
             >
-              {loading ? 'Calculating...' : 'Calculate Zakat'}
+              {loading ? t('ibadah.calculating') : t('ibadah.calculateZakat')}
             </button>
           </div>
         </div>
@@ -390,6 +394,7 @@ const ZakatCalcPage = ({ onResult, onBack }: { onResult: (result: any) => void; 
 };
 
 const IbadahDashboard: React.FC = () => {
+  const { t } = useTranslation();
   const [currentTime, setCurrentTime] = useState(new Date());
   const [activeHeroTheme, setActiveHeroTheme] = useState<keyof typeof HERO_THEMES>('dhuhr');
   const [subView, setSubView] = useState<SubView>('landing');
@@ -408,7 +413,7 @@ const IbadahDashboard: React.FC = () => {
 
   // --- BACKEND STATE ---
   const [location, setLocation] = useState<{ lat: number, lng: number } | null>(null);
-  const [locationMethod, setLocationMethod] = useState<string>('Detecting...');
+  const [locationMethod, setLocationMethod] = useState<string>(t('ibadah.detecting'));
   const [prayerTimes, setPrayerTimes] = useState<PrayerTime[]>([]);
   const [nextPrayer, setNextPrayer] = useState<string>('');
 
@@ -570,30 +575,30 @@ const IbadahDashboard: React.FC = () => {
   const PrayerGuidePage = () => (
     <div className="min-h-screen bg-[#FDFCF8] py-12 sm:py-16 lg:py-20 px-4 sm:px-6 lg:px-8 animate-in fade-in duration-500">
       <div className="max-w-4xl mx-auto">
-        <SubHeader title={`${selectedPrayer?.name} Prayer Guide`} />
+        <SubHeader title={t('ibadah.prayerGuide', { name: selectedPrayer?.name })} />
         <div className="space-y-8">
           <div className="bg-[#0D4433] rounded-[3rem] p-10 text-white shadow-2xl relative overflow-hidden">
             <div className="absolute top-0 right-0 p-10 opacity-5"><Sparkles size={120} /></div>
             <div className="relative z-10 grid grid-cols-2 gap-8 text-center">
               <div>
-                <div className="text-[10px] font-black uppercase tracking-[0.3em] opacity-50 mb-2">Total Rakats</div>
+                <div className="text-[10px] font-black uppercase tracking-[0.3em] opacity-50 mb-2">{t('ibadah.totalRakats')}</div>
                 <div className="text-5xl font-black">{selectedPrayer?.name === 'Fajr' ? '2' : selectedPrayer?.name === 'Maghrib' ? '3' : '4'}</div>
               </div>
               <div className="border-l border-white/10">
-                <div className="text-[10px] font-black uppercase tracking-[0.3em] opacity-50 mb-2">Recitation</div>
-                <div className="text-2xl font-bold">{selectedPrayer?.name === 'Asr' || selectedPrayer?.name === 'Dhuhr' ? 'Silent' : 'Loud (1st & 2nd)'}</div>
+                <div className="text-[10px] font-black uppercase tracking-[0.3em] opacity-50 mb-2">{t('ibadah.recitation')}</div>
+                <div className="text-2xl font-bold">{selectedPrayer?.name === 'Asr' || selectedPrayer?.name === 'Dhuhr' ? t('ibadah.silent') : t('ibadah.loudFirstSecond')}</div>
               </div>
             </div>
           </div>
 
           <div className="space-y-6">
-            <h3 className="text-[10px] font-black uppercase tracking-[0.3em] text-gray-400 ml-4">Steps of Worship</h3>
+            <h3 className="text-[10px] font-black uppercase tracking-[0.3em] text-gray-400 ml-4">{t('ibadah.stepsOfWorship')}</h3>
             {[
-              { title: 'Niyyah', desc: 'Formulate the intention in your heart for the specific prayer.' },
-              { title: 'Takbiratul Ihram', desc: 'Raise your hands to ears and say "Allahu Akbar" to begin.' },
-              { title: 'Qiyam & Recitation', desc: 'Stand with hands folded. Recite Surah Al-Fatiha and another Surah.' },
-              { title: 'Ruku', desc: 'Bow down, keeping back straight. Say "Subhana Rabbiyal Adheem" thrice.' },
-              { title: 'Sujud', desc: 'Prostrate with forehead, nose, palms, knees, and toes touching ground.' }
+              { title: t('ibadah.niyyah'), desc: t('ibadah.niyyahDesc') },
+              { title: t('ibadah.takbiratulIhram'), desc: t('ibadah.takbiratulIhramDesc') },
+              { title: t('ibadah.qiyam'), desc: t('ibadah.qiyamDesc') },
+              { title: t('ibadah.ruku'), desc: t('ibadah.rukuDesc') },
+              { title: t('ibadah.sujud'), desc: t('ibadah.sujudDesc') }
             ].map((step, i) => (
               <div key={i} className="bg-white p-8 rounded-[2.5rem] border border-emerald-50 shadow-sm flex items-start gap-8 group hover:border-emerald-200 transition-all">
                 <div className="w-12 h-12 bg-emerald-50 rounded-2xl flex items-center justify-center shrink-0 font-black text-[#0D4433] group-hover:bg-[#0D4433] group-hover:text-white transition-colors">{i + 1}</div>
@@ -621,24 +626,24 @@ const IbadahDashboard: React.FC = () => {
     return (
       <div className="min-h-screen bg-[#FDFCF8] py-12 sm:py-16 lg:py-20 px-4 sm:px-6 lg:px-8 animate-in slide-in-from-right-8 duration-500">
         <div className="max-w-4xl mx-auto">
-          <SubHeader title="Date Details" />
+          <SubHeader title={t('ibadah.dateDetails')} />
           <div className="space-y-12">
             <div className="bg-white p-12 md:p-20 rounded-[4rem] border border-emerald-100 shadow-2xl text-center space-y-10">
               <div className="space-y-2">
                 <div className="text-sm font-black text-emerald-600 uppercase tracking-[0.3em]">{hijri.month.en} {hijri.year}</div>
                 <h1 className="text-6xl md:text-8xl font-black text-[#0D4433] tracking-tighter">{hijri.day}</h1>
-                <p className="text-sm text-gray-400 font-bold uppercase tracking-widest">Gregorian: {gregorianDate}</p>
-                {isToday && <div className="inline-block mt-4 px-4 py-1 bg-[#0D4433] text-white text-[10px] font-black uppercase tracking-widest rounded-full">Today</div>}
+                <p className="text-sm text-gray-400 font-bold uppercase tracking-widest">{t('ibadah.gregorian')}: {gregorianDate}</p>
+                {isToday && <div className="inline-block mt-4 px-4 py-1 bg-[#0D4433] text-white text-[10px] font-black uppercase tracking-widest rounded-full">{t('ibadah.today')}</div>}
               </div>
               <div className="h-px bg-emerald-50 w-24 mx-auto"></div>
 
               <div className="space-y-4">
-                <h2 className="text-3xl font-serif font-bold text-[#1c2833]">Traditionally Observed</h2>
+                <h2 className="text-3xl font-serif font-bold text-[#1c2833]">{t('ibadah.traditionallyObserved')}</h2>
                 <p className="text-xl text-gray-500 font-medium leading-relaxed max-w-2xl mx-auto">
-                  This date is commonly associated with reflection and gratitude in our tradition. Scholarly views may differ regarding the exact historical significance of specific calendar dates.
+                  {t('ibadah.traditionallyObservedDesc')}
                 </p>
                 <div className="inline-flex items-center gap-2 px-4 py-2 bg-amber-50 text-amber-700 rounded-full text-[9px] font-black uppercase tracking-widest border border-amber-100/50">
-                  <Info size={14} /> Scholarly views may differ
+                  <Info size={14} /> {t('ibadah.scholarlyViewsDiffer')}
                 </div>
               </div>
             </div>
@@ -646,13 +651,13 @@ const IbadahDashboard: React.FC = () => {
             <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
               <div className="bg-[#0D4433] p-10 rounded-[3rem] text-white space-y-6 shadow-xl relative overflow-hidden">
                 <div className="absolute top-0 right-0 p-8 opacity-10"><Target size={80} /></div>
-                <h3 className="text-xs font-black uppercase tracking-[0.3em] opacity-50">Recommended Ibadah</h3>
-                <p className="text-lg font-medium leading-relaxed">Focus on your five daily prayers and consider optional (Sunnah) fasts or extra dhikr if your schedule allows.</p>
+                <h3 className="text-xs font-black uppercase tracking-[0.3em] opacity-50">{t('ibadah.recommendedIbadah')}</h3>
+                <p className="text-lg font-medium leading-relaxed">{t('ibadah.recommendedIbadahDesc')}</p>
               </div>
               <div className="bg-emerald-50 p-10 rounded-[3rem] border border-emerald-100 space-y-6">
-                <h3 className="text-xs font-black uppercase tracking-[0.3em] text-emerald-600">Historical Context</h3>
+                <h3 className="text-xs font-black uppercase tracking-[0.3em] text-emerald-600">{t('ibadah.historicalContext')}</h3>
                 <p className="text-sm text-gray-600 font-medium leading-relaxed">
-                  Islamic history reminds us of the cycles of worship and the deep connections we share with the early community through these sacred timings.
+                  {t('ibadah.historicalContextDesc')}
                 </p>
               </div>
             </div>
@@ -668,7 +673,7 @@ const IbadahDashboard: React.FC = () => {
     return (
       <div className="min-h-screen bg-[#FDFCF8] py-12 sm:py-16 lg:py-20 px-4 sm:px-6 lg:px-8 animate-in fade-in duration-500">
         <div className="max-w-4xl mx-auto space-y-12">
-          <SubHeader title="Hijri Calendar" />
+          <SubHeader title={t('ibadah.hijriCalendar')} />
 
           {/* 1️⃣ TODAY SUMMARY CARD (MANDATORY) */}
           {hijriInfo && (
@@ -676,14 +681,14 @@ const IbadahDashboard: React.FC = () => {
               <div className="absolute top-0 right-0 p-12 opacity-5 text-emerald-300 group-hover:scale-110 transition-transform"><Moon size={120} /></div>
               <div className="relative z-10 flex flex-col md:flex-row justify-between items-center gap-8">
                 <div className="text-center md:text-left space-y-1">
-                  <div className="text-[10px] font-black uppercase tracking-[0.4em] opacity-50 mb-3">Today in Hijri</div>
+                  <div className="text-[10px] font-black uppercase tracking-[0.4em] opacity-50 mb-3">{t('ibadah.todayInHijri')}</div>
                   <div className="text-4xl md:text-5xl font-serif font-bold">{hijriInfo.day} {hijriInfo.month.en} {hijriInfo.year}</div>
                   <div className="text-sm font-bold text-emerald-400/80 uppercase tracking-widest">
-                    Gregorian: {currentTime.toLocaleDateString(undefined, { day: 'numeric', month: 'long', year: 'numeric' })}
+                    {t('ibadah.gregorian')}: {currentTime.toLocaleDateString(undefined, { day: 'numeric', month: 'long', year: 'numeric' })}
                   </div>
                 </div>
                 <div className="bg-white/10 backdrop-blur-md px-8 py-5 rounded-[2rem] border border-white/10 text-center max-w-[240px]">
-                  <p className="text-xs font-medium leading-relaxed italic opacity-80">"A blessed day for remembrance and gratitude."</p>
+                  <p className="text-xs font-medium leading-relaxed italic opacity-80">{t('ibadah.blessedDay')}</p>
                 </div>
               </div>
             </div>
@@ -691,12 +696,12 @@ const IbadahDashboard: React.FC = () => {
 
           {/* 2️⃣ CALENDAR GRID & WORKING NAVIGATION */}
           <div className="bg-white p-10 rounded-[4rem] border border-emerald-100 shadow-xl relative overflow-hidden">
-            {isCalendarLoading && <div className="absolute inset-0 z-10 bg-white/60 backdrop-blur-[2px] flex items-center justify-center font-black text-[10px] uppercase tracking-[0.5em] text-[#0D4433]">Refreshing...</div>}
+            {isCalendarLoading && <div className="absolute inset-0 z-10 bg-white/60 backdrop-blur-[2px] flex items-center justify-center font-black text-[10px] uppercase tracking-[0.5em] text-[#0D4433]">{t('ibadah.refreshing')}</div>}
             <div className="flex justify-between items-center mb-12">
               <div className="space-y-1">
-                <div className="text-[10px] font-black text-gray-300 uppercase tracking-widest">Active Month</div>
+                <div className="text-[10px] font-black text-gray-300 uppercase tracking-widest">{t('ibadah.activeMonth')}</div>
                 <h3 className="text-2xl font-serif font-bold text-[#0D4433]">
-                  {days.length > 0 ? `${days[0].date.hijri.month.en} ${days[0].date.hijri.year}` : 'Hijri Month'}
+                  {days.length > 0 ? `${days[0].date.hijri.month.en} ${days[0].date.hijri.year}` : t('ibadah.hijriMonth')}
                 </h3>
               </div>
               <div className="flex gap-3">
@@ -739,10 +744,10 @@ const IbadahDashboard: React.FC = () => {
 
             <div className="flex justify-center gap-8 pt-6 border-t border-gray-50">
               <div className="flex items-center gap-2 text-[9px] font-black uppercase text-gray-400 tracking-widest">
-                <div className="w-3 h-3 bg-[#0D4433] rounded-md shadow-sm" /> Today
+                <div className="w-3 h-3 bg-[#0D4433] rounded-md shadow-sm" /> {t('ibadah.today')}
               </div>
               <div className="flex items-center gap-2 text-[9px] font-black uppercase text-gray-400 tracking-widest">
-                <div className="w-3 h-3 bg-emerald-50 border border-emerald-200 rounded-md" /> Significant
+                <div className="w-3 h-3 bg-emerald-50 border border-emerald-200 rounded-md" /> {t('ibadah.significant')}
               </div>
             </div>
           </div>
@@ -751,9 +756,9 @@ const IbadahDashboard: React.FC = () => {
           <div className="p-8 bg-[#FDFCF8] rounded-[3rem] border border-emerald-100/50 shadow-inner flex gap-6 items-start">
             <div className="p-3 bg-white rounded-2xl shadow-sm border border-emerald-50 shrink-0"><AlertCircle className="text-emerald-600" size={20} /></div>
             <div className="space-y-2">
-              <span className="text-[10px] font-black uppercase tracking-widest text-[#0D4433]/40">Information Source</span>
+              <span className="text-[10px] font-black uppercase tracking-widest text-[#0D4433]/40">{t('ibadah.informationSource')}</span>
               <p className="text-xs text-gray-400 font-medium leading-relaxed">
-                Hijri dates are based on expected lunar calculations. The actual sighting of the moon may vary by one to two days depending on your regional location and local authorities. Scholarly views may differ on historical associations.
+                {t('ibadah.hijriDisclaimer')}
               </p>
             </div>
           </div>
@@ -774,17 +779,17 @@ const IbadahDashboard: React.FC = () => {
             <Calculator size={64} className="text-emerald-500" />
           </div>
           <div className="space-y-4">
-            <h2 className="text-4xl font-serif font-bold text-[#0D4433]">Calculation Result</h2>
-            <p className="text-gray-400 font-medium">Your estimated Zakat due for this year is:</p>
+            <h2 className="text-4xl font-serif font-bold text-[#0D4433]">{t('ibadah.calculationResult')}</h2>
+            <p className="text-gray-400 font-medium">{t('ibadah.estimatedZakat')}</p>
             <div className="text-6xl font-black text-[#0D4433] tracking-tighter">{fmt(zakatResult.zakatDue)}</div>
-            <p className="text-xs text-gray-400">Net Assets: {fmt(zakatResult.netAssets)} &nbsp;|&nbsp; Nisab Threshold: {fmt(zakatResult.nisabThreshold)}</p>
+            <p className="text-xs text-gray-400">{t('ibadah.netAssets')}: {fmt(zakatResult.netAssets)} &nbsp;|&nbsp; {t('ibadah.nisabThreshold')}: {fmt(zakatResult.nisabThreshold)}</p>
             {zakatResult.netAssets < zakatResult.nisabThreshold && (
-              <p className="text-sm text-emerald-600 font-semibold">Your assets are below the Nisab threshold — Zakat is not obligatory this year.</p>
+              <p className="text-sm text-emerald-600 font-semibold">{t('ibadah.belowNisab')}</p>
             )}
           </div>
           <div className="grid grid-cols-1 gap-4 pt-8">
-            <button onClick={() => setSubView('landing')} className="w-full py-6 bg-[#0D4433] text-white rounded-[2rem] font-black uppercase tracking-[0.2em] text-[11px] shadow-xl">Complete Assessment</button>
-            <button onClick={() => setSubView('zakat-calc')} className="w-full py-6 bg-gray-50 text-gray-500 rounded-[2rem] font-black uppercase tracking-[0.2em] text-[11px]">Recalculate</button>
+            <button onClick={() => setSubView('landing')} className="w-full py-6 bg-[#0D4433] text-white rounded-[2rem] font-black uppercase tracking-[0.2em] text-[11px] shadow-xl">{t('ibadah.completeAssessment')}</button>
+            <button onClick={() => setSubView('zakat-calc')} className="w-full py-6 bg-gray-50 text-gray-500 rounded-[2rem] font-black uppercase tracking-[0.2em] text-[11px]">{t('ibadah.recalculate')}</button>
           </div>
         </div>
       </div>
@@ -824,10 +829,10 @@ const IbadahDashboard: React.FC = () => {
         </h1>
         <div className="inline-flex flex-col items-center gap-2">
           <div className="inline-flex items-center gap-3 md:gap-4 px-6 md:px-10 py-3 md:py-4 bg-[#0D4433]/40 backdrop-blur-2xl rounded-full border border-white/30 text-[9px] md:text-[11px] font-black uppercase tracking-[0.3em] shadow-2xl">
-            Next: <span className="text-emerald-400">{nextPrayer || 'Prayer'}</span> <span className="opacity-40">•</span> <span className="text-white">Guidance</span>
+            Next: <span className="text-emerald-400">{nextPrayer || 'Prayer'}</span> <span className="opacity-40">•</span> <span className="text-white">{t('ibadah.guidance')}</span>
           </div>
           <div className="text-[8px] font-black uppercase tracking-[0.3em] opacity-40 mt-2 flex items-center gap-1.5">
-            <MapPin size={10} /> Location: {locationMethod}
+            <MapPin size={10} /> {t('ibadah.location')}: {locationMethod}
           </div>
         </div>
 
@@ -842,7 +847,7 @@ const IbadahDashboard: React.FC = () => {
           >
             {notificationsEnabled ? <Volume2 size={16} /> : <VolumeX size={16} />}
             <span className="text-[10px] font-black uppercase tracking-[0.2em]">
-              {notificationsEnabled ? 'Notifications Active' : 'Enable Prayer Alerts'}
+              {notificationsEnabled ? t('ibadah.notificationsActive') : t('ibadah.enablePrayerAlerts')}
             </span>
           </button>
         </div>
@@ -881,34 +886,34 @@ const IbadahDashboard: React.FC = () => {
       <section className="lg:hidden max-w-7xl mx-auto px-4 sm:px-6 mt-32 md:mt-48 space-y-6">
         <div className="grid grid-cols-2 gap-3 sm:gap-4">
           <FeatureCard
-            title="Quran"
-            desc="Listen & Read"
+            title={t('ibadah.quran')}
+            desc={t('ibadah.listenRead')}
             icon={BookOpen}
             onClick={() => navigateTo('quran')}
             variant="dark"
           />
           <FeatureCard
-            title="Hijri Dates"
-            desc="Sacred Calendar"
+            title={t('ibadah.hijriDates')}
+            desc={t('ibadah.sacredCalendar')}
             icon={CalendarIcon}
             onClick={() => navigateTo('calendar')}
           />
           <FeatureCard
-            title="Hadith"
-            desc="Daily Wisdom"
+            title={t('ibadah.hadith')}
+            desc={t('ibadah.dailyWisdom')}
             icon={Sparkles}
             onClick={() => navigateTo('hadith')}
           />
           <FeatureCard
-            title="Zakat"
-            desc="Calculator"
+            title={t('ibadah.zakat')}
+            desc={t('ibadah.calculator')}
             icon={Calculator}
             onClick={() => navigateTo('zakat-calc')}
             badge="Live"
           />
           <FeatureCard
-            title="Tasbih"
-            desc="Dhikr Counter"
+            title={t('ibadah.tasbih')}
+            desc={t('ibadah.dhikrCounter')}
             icon={Target}
             onClick={() => navigateTo('tasbih')}
           />
@@ -919,34 +924,34 @@ const IbadahDashboard: React.FC = () => {
       <section className="hidden lg:block max-w-7xl mx-auto px-6 xl:px-8 mt-48">
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 xl:gap-10">
           <FeatureCard
-            title="Quran"
-            desc="Immerse yourself in the sacred words with recitation and English translation support."
+            title={t('ibadah.quran')}
+            desc={t('ibadah.quranDesc')}
             icon={BookOpen}
             onClick={() => navigateTo('quran')}
             variant="dark"
           />
           <FeatureCard
-            title="Hijri Calendar"
-            desc="Track sacred months and lunar cycles with our specialized traditionally-aligned view."
+            title={t('ibadah.hijriCalendar')}
+            desc={t('ibadah.hijriCalendarDesc')}
             icon={CalendarIcon}
             onClick={() => navigateTo('calendar')}
           />
           <FeatureCard
-            title="Hadith of the Day"
-            desc="Daily guidance from Sahih Bukhari and Muslim, curated for your morning reflection."
+            title={t('ibadah.hadithOfDay')}
+            desc={t('ibadah.hadithOfDayDesc')}
             icon={Sparkles}
             onClick={() => navigateTo('hadith')}
           />
           <FeatureCard
-            title="Zakat Manager"
-            desc="Precision calculation in INR based on real-time gold and silver market market rates."
+            title={t('ibadah.zakatManager')}
+            desc={t('ibadah.zakatManagerDesc')}
             icon={Calculator}
             onClick={() => navigateTo('zakat-calc')}
             badge="Live"
           />
           <FeatureCard
-            title="Digital Tasbih"
-            desc="Focus on your remembrance with haptic feedback and custom goals for daily dhikr."
+            title={t('ibadah.digitalTasbih')}
+            desc={t('ibadah.digitalTasbihDesc')}
             icon={Target}
             onClick={() => navigateTo('tasbih')}
           />
@@ -956,7 +961,7 @@ const IbadahDashboard: React.FC = () => {
       <div className="max-w-7xl mx-auto px-6 mt-16 md:mt-24 lg:mt-32">
         <div className="bg-[#FDFCF8] rounded-[3rem] p-10 flex flex-col md:flex-row gap-6 items-center text-center md:text-left border border-emerald-100/50 shadow-inner">
           <div className="p-4 bg-white rounded-3xl shadow-md border border-emerald-50"><ShieldCheck className="w-8 h-8 text-emerald-600" /></div>
-          <p className="text-[11px] text-emerald-900/40 font-black italic leading-relaxed uppercase tracking-[0.2em]">{GENERAL_DISCLAIMER}</p>
+          <p className="text-[11px] text-emerald-900/40 font-black italic leading-relaxed uppercase tracking-[0.2em]">{t('ibadah.disclaimer')}</p>
         </div>
       </div>
 

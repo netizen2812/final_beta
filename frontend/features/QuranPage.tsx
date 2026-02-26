@@ -85,7 +85,7 @@ const QuranPage: React.FC<QuranPageProps> = ({
   onPositionChange,
   readOnly
 }) => {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const [surahs, setSurahs] = useState<Surah[]>([]);
   const [activeTab, setActiveTab] = useState<'read' | 'learn' | 'progress'>('read');
   const [viewMode, setViewMode] = useState<'surah' | 'juz'>('surah');
@@ -177,6 +177,14 @@ const QuranPage: React.FC<QuranPageProps> = ({
     fetchSurahs();
   }, []);
 
+  // Refetch current surah/juz content when language changes
+  useEffect(() => {
+    if (view === 'reading') {
+      if (selectedSurah) fetchSurahContent(selectedSurah.number);
+      else if (selectedJuz) fetchJuzContent(selectedJuz);
+    }
+  }, [i18n.language]);
+
   const fetchSurahs = async () => {
     try {
       const API_URL = (import.meta as any).env.VITE_API_URL || "http://localhost:5000";
@@ -193,7 +201,7 @@ const QuranPage: React.FC<QuranPageProps> = ({
     setSelectedJuz(null);
     try {
       const API_URL = (import.meta as any).env.VITE_API_URL || "http://localhost:5000";
-      const res = await fetch(`${API_URL}/api/ibadah/quran/surah/${number}`);
+      const res = await fetch(`${API_URL}/api/ibadah/quran/surah/${number}?lang=${i18n.language}`);
       const data = await res.json();
 
       const { text, trans, audio } = data;
@@ -243,7 +251,7 @@ const QuranPage: React.FC<QuranPageProps> = ({
     setSelectedJuz(juzNumber);
     try {
       const API_URL = (import.meta as any).env.VITE_API_URL || "http://localhost:5000";
-      const res = await fetch(`${API_URL}/api/ibadah/quran/juz/${juzNumber}`);
+      const res = await fetch(`${API_URL}/api/ibadah/quran/juz/${juzNumber}?lang=${i18n.language}`);
       const data = await res.json();
 
       const { text, trans, audio } = data;

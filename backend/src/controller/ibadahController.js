@@ -11,6 +11,15 @@ const cache = {
     quranJuz: new Map()
 };
 
+// Edition identifiers for ayah translations per language
+const TRANSLATION_EDITIONS = {
+    en: 'en.sahih',
+    hi: 'hi.hindi',
+    ur: 'ur.jalandhry',
+    ml: 'ml.abdulhameed',
+    bn: 'bn.bengali'
+};
+
 const CACHE_TTL = {
     timings: 12 * 60 * 60 * 1000,
     hijri: 12 * 60 * 60 * 1000,
@@ -204,14 +213,18 @@ export const getSurahs = async (req, res) => {
 export const getSurahDetail = async (req, res) => {
     try {
         const { id } = req.params;
-        if (cache.quranSurah.has(id)) {
-            const cached = cache.quranSurah.get(id);
+        const lang = req.query.lang || 'en';
+        const edition = TRANSLATION_EDITIONS[lang] || TRANSLATION_EDITIONS.en;
+        const cacheKey = `${id}_${lang}`;
+
+        if (cache.quranSurah.has(cacheKey)) {
+            const cached = cache.quranSurah.get(cacheKey);
             if (!isExpired(cached.timestamp, CACHE_TTL.quran)) return res.json(cached.data);
         }
 
         const [textRes, transRes, audioRes] = await Promise.all([
             fetch(`https://api.alquran.cloud/v1/surah/${id}/quran-uthmani`),
-            fetch(`https://api.alquran.cloud/v1/surah/${id}/en.asad`),
+            fetch(`https://api.alquran.cloud/v1/surah/${id}/${edition}`),
             fetch(`https://api.alquran.cloud/v1/surah/${id}/ar.alafasy`)
         ]);
 
@@ -220,7 +233,7 @@ export const getSurahDetail = async (req, res) => {
         const audio = await audioRes.json();
 
         const result = { text, trans, audio };
-        cache.quranSurah.set(id, { data: result, timestamp: Date.now() });
+        cache.quranSurah.set(cacheKey, { data: result, timestamp: Date.now() });
         res.json(result);
     } catch (error) {
         console.error("Quran Surah detail error:", error);
@@ -231,14 +244,18 @@ export const getSurahDetail = async (req, res) => {
 export const getJuzDetail = async (req, res) => {
     try {
         const { id } = req.params;
-        if (cache.quranJuz.has(id)) {
-            const cached = cache.quranJuz.get(id);
+        const lang = req.query.lang || 'en';
+        const edition = TRANSLATION_EDITIONS[lang] || TRANSLATION_EDITIONS.en;
+        const cacheKey = `${id}_${lang}`;
+
+        if (cache.quranJuz.has(cacheKey)) {
+            const cached = cache.quranJuz.get(cacheKey);
             if (!isExpired(cached.timestamp, CACHE_TTL.quran)) return res.json(cached.data);
         }
 
         const [textRes, transRes, audioRes] = await Promise.all([
             fetch(`https://api.alquran.cloud/v1/juz/${id}/quran-uthmani`),
-            fetch(`https://api.alquran.cloud/v1/juz/${id}/en.asad`),
+            fetch(`https://api.alquran.cloud/v1/juz/${id}/${edition}`),
             fetch(`https://api.alquran.cloud/v1/juz/${id}/ar.alafasy`)
         ]);
 
@@ -247,7 +264,7 @@ export const getJuzDetail = async (req, res) => {
         const audio = await audioRes.json();
 
         const result = { text, trans, audio };
-        cache.quranJuz.set(id, { data: result, timestamp: Date.now() });
+        cache.quranJuz.set(cacheKey, { data: result, timestamp: Date.now() });
         res.json(result);
     } catch (error) {
         console.error("Quran Juz detail error:", error);

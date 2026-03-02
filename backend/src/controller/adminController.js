@@ -88,7 +88,17 @@ export const getAdminStats = async (req, res) => {
         const engagement = {
             chat: await getFeatureUsage('CHAT_MESSAGE_SENT'),
             tarbiyah: await getFeatureUsage('LESSON_COMPLETED'), // or STARTED
-            ibadah: await getFeatureUsage('IBADAH_USED'), // If tracked
+            ibadah: await getFeatureUsage({
+                $in: [
+                    'IBADAH_USED',
+                    'tasbih_increment',
+                    'zakat_calculated',
+                    'quran_reader_open',
+                    'prayer_guide_viewed',
+                    'hadith_viewed',
+                    'qibla_used'
+                ]
+            }), // Matches the new cumulative list
             live: await getFeatureUsage('LIVE_JOINED')
         };
 
@@ -131,7 +141,19 @@ export const getAdminStats = async (req, res) => {
             ? (totalAiQuestions / totalUsersExcludingChildren).toFixed(1)
             : 0;
 
-        const totalIbadahUsage = await AnalyticsEvent.countDocuments({ eventType: 'IBADAH_USED' });
+        const totalIbadahUsage = await AnalyticsEvent.countDocuments({
+            eventType: {
+                $in: [
+                    'IBADAH_USED',
+                    'tasbih_increment',
+                    'zakat_calculated',
+                    'quran_reader_open',
+                    'prayer_guide_viewed', // Extrapolating typical names for other features
+                    'hadith_viewed',
+                    'qibla_used'
+                ]
+            }
+        });
         const totalLessonsTarbiyah = await Lesson.countDocuments();
 
         // Users active for at least 3 days (all time, distinct day+year combinations)

@@ -181,6 +181,18 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onNavigateToLive }) => 
                                 <StatCard label="Parent DB Views" value={stats.learning.parentViews} />
                             </Section>
                         )}
+
+                        {stats && stats.cumulative && (
+                            <Section title="Cumulative Platform Totals" icon={<TrendingUp size={18} />}>
+                                <StatCard label="Total Unique Users" value={stats.cumulative.totalUsersExcludingChildren} />
+                                <StatCard label="Total Users (incl. Children)" value={stats.cumulative.totalUsersIncludingChildren} />
+                                <StatCard label="Total AI Questions" value={stats.cumulative.totalAiQuestions} />
+                                <StatCard label="Avg Questions / User" value={stats.cumulative.avgQuestionsPerUser} />
+                                <StatCard label="Ibadah Usage" value={stats.cumulative.totalIbadahUsage} />
+                                <StatCard label="Total Lessons" value={stats.cumulative.totalLessonsTarbiyah} />
+                                <StatCard label="3+ Days Active Users" value={stats.cumulative.usersWithThreeDays} />
+                            </Section>
+                        )}
                     </>
                 )}
 

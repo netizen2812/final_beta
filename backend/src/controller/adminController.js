@@ -4,6 +4,7 @@ import Batch from "../models/Batch.js";
 import Session from "../models/Session.js";
 import TarbiyahProgress from "../models/TarbiyahProgress.js";
 import AnalyticsEvent from "../models/AnalyticsEvent.js";
+import Lesson from "../models/Lesson.js";
 import mongoose from "mongoose";
 import { clerkClient } from "@clerk/clerk-sdk-node";
 
@@ -120,6 +121,28 @@ export const getAdminStats = async (req, res) => {
 
         const incompleteLessons = await TarbiyahProgress.countDocuments({ completedAt: null, activeSessionStart: { $ne: null } });
 
+        // 📈 CUMULATIVE PLATFORM TOTALS
+        const totalUsersExcludingChildren = await User.countDocuments();
+        const totalChildrenCount = await Child.countDocuments();
+        const totalUsersIncludingChildren = totalUsersExcludingChildren + totalChildrenCount;
+
+        const totalAiQuestions = await AnalyticsEvent.countDocuments({ eventType: 'CHAT_MESSAGE_SENT' });
+        const avgQuestionsPerUser = totalUsersExcludingChildren > 0
+            ? (totalAiQuestions / totalUsersExcludingChildren).toFixed(1)
+            : 0;
+
+        const totalIbadahUsage = await AnalyticsEvent.countDocuments({ eventType: 'IBADAH_USED' });
+        const totalLessonsTarbiyah = await Lesson.countDocuments();
+
+        // Users active for at least 3 days (all time, distinct day+year combinations)
+        const allTimeActiveTuples = await AnalyticsEvent.aggregate([
+            { $group: { _id: { userId: "$userId", day: { $dayOfYear: "$timestamp" }, year: { $year: "$timestamp" } } } },
+            { $group: { _id: "$_id.userId", daysActive: { $sum: 1 } } },
+            { $match: { daysActive: { $gte: 3 } } },
+            { $count: "usersWithThreeDays" }
+        ]);
+        const usersWithThreeDays = allTimeActiveTuples.length > 0 ? allTimeActiveTuples[0].usersWithThreeDays : 0;
+
         res.json({
             startup: {
                 retention,
@@ -138,6 +161,15 @@ export const getAdminStats = async (req, res) => {
             risk: {
                 inactiveChildren,
                 incompleteLessons
+            },
+            cumulative: {
+                totalUsersExcludingChildren,
+                totalUsersIncludingChildren,
+                totalAiQuestions,
+                avgQuestionsPerUser,
+                totalIbadahUsage,
+                totalLessonsTarbiyah,
+                usersWithThreeDays
             }
         });
 

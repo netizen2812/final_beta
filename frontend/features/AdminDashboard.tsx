@@ -182,7 +182,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onNavigateToLive }) => 
                             </Section>
                         )}
 
-                        {stats && stats.cumulative && (
+                        {stats && stats.cumulative ? (
                             <Section title="Cumulative Platform Totals" icon={<TrendingUp size={18} />}>
                                 <StatCard label="Total Unique Users" value={stats.cumulative.totalUsersExcludingChildren} />
                                 <StatCard label="Total Users (incl. Children)" value={stats.cumulative.totalUsersIncludingChildren} />
@@ -192,7 +192,19 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onNavigateToLive }) => 
                                 <StatCard label="Total Lessons" value={stats.cumulative.totalLessonsTarbiyah} />
                                 <StatCard label="3+ Days Active Users" value={stats.cumulative.usersWithThreeDays} />
                             </Section>
-                        )}
+                        ) : stats ? (
+                            <div className="bg-orange-50 border border-orange-200 text-orange-800 p-4 rounded-xl text-sm mb-6 flex items-start gap-3">
+                                <AlertTriangle className="shrink-0 mt-0.5" size={18} />
+                                <div>
+                                    <strong>Frontend Updated, but Data Missing:</strong>
+                                    <p className="mt-1">
+                                        This UI snippet means your frontend has successfully loaded the new code.<br />
+                                        However, the backend is not sending the <code>cumulative</code> metrics object.<br />
+                                        <strong>Fix:</strong> Please verify your Node/Express backend on Render successfully built and restarted.
+                                    </p>
+                                </div>
+                            </div>
+                        ) : null}
                     </>
                 )}
 

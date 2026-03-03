@@ -70,12 +70,12 @@ const HomeHero: React.FC = () => {
 
                     <div className="space-y-8">
                         <p className="text-2xl md:text-4xl font-serif text-emerald-950 leading-relaxed italic">
-                            "{DAILY_REFLECTION.ayah}"
+                            "{t('home.dailyReflectionAyah', { defaultValue: DAILY_REFLECTION.ayah })}"
                         </p>
                         <div className="flex flex-col items-center space-y-2">
                             <div className="w-12 h-px bg-emerald-200" />
                             <p className="text-[10px] md:text-xs font-black uppercase tracking-[0.3em] text-emerald-700/60">
-                                {DAILY_REFLECTION.reference}
+                                {t('home.dailyReflectionReference', { defaultValue: DAILY_REFLECTION.reference })}
                             </p>
                         </div>
                     </div>

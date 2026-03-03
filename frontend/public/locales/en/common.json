@@ -70,6 +70,8 @@
     "lvl": "Lvl"
   },
   "home": {
+    "dailyReflectionAyah": "In the name of Allah, the Entirely Merciful, the Especially Merciful.",
+    "dailyReflectionReference": "Surah Al-Fatihah 1:1",
     "pathOfEnlightenment": "The Path of Enlightenment",
     "beginJourney": "Begin today's journey",
     "primaryExploration": "Primary Exploration",
@@ -263,7 +265,71 @@
     "controlDigital": "Control digital consumption for balanced learning.",
     "weekendBuffer": "Weekend Buffer",
     "weekendBufferDesc": "Adds 15 mins automatically on Fri-Sat.",
-    "savePreferences": "Save Preferences"
+    "savePreferences": "Save Preferences",
+    "ranks": {
+      "1": "Little Learner",
+      "2": "Quran Explorer",
+      "3": "Story Seeker",
+      "4": "Miracle Learner",
+      "5": "Wise Thinker",
+      "6": "Ka'bah Guardian",
+      "7": "Anbiya Champion",
+      "8": "Quranic Scholar",
+      "9": "Prophet's Follower",
+      "10": "Ramadan Champion"
+    },
+    "lessons": {
+      "1": {
+        "title": "Welcome to Ramadan",
+        "subtitle": "The Month of the Quran",
+        "description": "Discover why Ramadan is called the 'Month of the Quran' and learn about the special blessings of this month."
+      },
+      "2": {
+        "title": "The Wise Little Ant",
+        "subtitle": "Lessons from Surah An-Naml",
+        "description": "Explore the story of Prophet Sulayman (AS) and the ant colony, learning about teamwork and gratitude."
+      },
+      "3": {
+        "title": "The Crow That Taught Humanity",
+        "subtitle": "Lessons from Surah Al-Ma'idah",
+        "description": "Learn how a crow taught the first humans a valuable lesson about burial and respect for life."
+      },
+      "4": {
+        "title": "Five Miracles of Isa (AS)",
+        "subtitle": "Prophetic Powers from Allah",
+        "description": "Discover the five extraordinary miracles granted to Prophet Isa (AS) to help and guide his people."
+      },
+      "5": {
+        "title": "The Shirt of Yusuf (AS)",
+        "subtitle": "Blessings of the Pious",
+        "description": "A beautiful story of patience, hope, and the miraculous healing of Prophet Ya'qub's eyesight."
+      },
+      "6": {
+        "title": "Think Before You React",
+        "subtitle": "Lessons from Surah Al-Hujurat",
+        "description": "Learn the importance of verifying news and not spreading rumors, a key social skill in Islam."
+      },
+      "7": {
+        "title": "The Honoured Family",
+        "subtitle": "Ahlul Bayt in the Quran",
+        "description": "Discover the blessed household of Prophet Muhammad ﷺ and why Allah honored them in the Quran."
+      },
+      "8": {
+        "title": "The Army of Birds",
+        "subtitle": "Allah Protects the Ka'bah",
+        "description": "The dramatic story of Abraha's elephant army and how Allah sent birds to protect the Ka'bah."
+      },
+      "9": {
+        "title": "Jinns Are Real!",
+        "subtitle": "Unseen Creation in the Quran",
+        "description": "Learn about the Jinn, a creation made of smokeless fire, and how a Muslim should not fear them excessively."
+      },
+      "10": {
+        "title": "The Moon Split in Two",
+        "subtitle": "Greatest Miracle of Prophet ﷺ",
+        "description": "Discover the breathtaking miracle of Shaqq-ul-Qamar, when the Prophet ﷺ split the moon in half."
+      }
+    }
   },
   "live": {
     "sessionsLocked": "Live Sessions are Locked",

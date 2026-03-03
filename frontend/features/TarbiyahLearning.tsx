@@ -323,7 +323,7 @@ const KidsMain: React.FC<{
             <div className="flex flex-col sm:flex-row justify-between items-center gap-2">
               <div>
                 <h2 className="text-2xl sm:text-3xl font-serif font-bold text-white tracking-tight drop-shadow-md">{activeChild?.name}</h2>
-                <p className="text-xs font-bold text-emerald-300 uppercase tracking-widest mt-1 opacity-80">{currentRank.title}</p>
+                <p className="text-xs font-bold text-emerald-300 uppercase tracking-widest mt-1 opacity-80">{t(`tarbiyah.ranks.${currentRank.level}`, { defaultValue: currentRank.title })}</p>
               </div>
 
               {/* Stats Chips */}
@@ -343,7 +343,7 @@ const KidsMain: React.FC<{
             <div className="bg-black/20 rounded-2xl p-4 border border-white/5 backdrop-blur-sm relative overflow-hidden">
               <div className="flex justify-between text-[10px] font-bold text-emerald-200/60 uppercase tracking-wider mb-2">
                 <span>{t('tarbiyah.currentProgress')}</span>
-                {nextRank ? <span>{xpToNext} {t('tarbiyah.xpTo')} {nextRank.title}</span> : <span className="text-emerald-400">{t('tarbiyah.maxRank')}</span>}
+                {nextRank ? <span>{xpToNext} {t('tarbiyah.xpTo')} {t(`tarbiyah.ranks.${nextRank.level}`, { defaultValue: nextRank.title })}</span> : <span className="text-emerald-400">{t('tarbiyah.maxRank')}</span>}
               </div>
 
               {/* Modern Progress Bar */}
@@ -374,7 +374,7 @@ const KidsMain: React.FC<{
       <div className="relative py-8 sm:py-12 lg:py-16">
         <h3 className="text-center font-serif text-2xl sm:text-3xl font-bold text-white mb-12 sm:mb-16 flex items-center justify-center gap-3 sm:gap-4 text-transparent bg-clip-text bg-gradient-to-r from-emerald-200 to-teal-100">
           <Sparkles size={20} className="text-emerald-400" />
-          Your Journey of Light
+          {t('tarbiyah.yourJourney')}
           <Sparkles size={20} className="text-emerald-400" />
         </h3>
         <div className="absolute left-1/2 -translate-x-1/2 top-24 sm:top-32 bottom-0 w-1 bg-white/10 rounded-full">
@@ -436,8 +436,8 @@ const KidsMain: React.FC<{
                       }
                     `}>
                       <div className={`flex-1 ${!isRight ? 'sm:text-right' : ''}`}>
-                        <h4 className="font-bold text-lg sm:text-xl text-white mb-1 leading-tight">{stage.title}</h4>
-                        <p className="text-xs sm:text-sm text-emerald-200/80">{stage.subtitle}</p>
+                        <h4 className="font-bold text-lg sm:text-xl text-white mb-1 leading-tight">{t(`tarbiyah.lessons.${stage.id}.title`, { defaultValue: stage.title })}</h4>
+                        <p className="text-xs sm:text-sm text-emerald-200/80">{t(`tarbiyah.lessons.${stage.id}.subtitle`, { defaultValue: stage.subtitle })}</p>
                       </div>
                       {!stage.locked && <span className="inline-flex items-center gap-1 text-[9px] sm:text-[10px] bg-amber-500/20 text-amber-300 px-2 sm:px-3 py-1 rounded-full font-bold border border-amber-500/30 shadow-[0_0_10px_rgba(245,158,11,0.2)]"><Trophy size={12} /> +{stage.xpReward} XP</span>}
                     </div>
@@ -514,8 +514,8 @@ const LessonDetail = ({ stage, onNext, onBack }: any) => {
         </div>
         <div className="relative z-10 space-y-4">
           <div className="text-xs font-black uppercase tracking-[0.3em] text-emerald-400">{t('tarbiyah.lessonActivity')}</div>
-          <h1 className="text-3xl sm:text-4xl lg:text-6xl font-serif font-bold text-white leading-tight">{stage.title}</h1>
-          <p className="text-lg sm:text-xl text-emerald-100/80 leading-relaxed max-w-2xl">{stage.description}</p>
+          <h1 className="text-3xl sm:text-4xl lg:text-6xl font-serif font-bold text-white leading-tight">{t(`tarbiyah.lessons.${stage.id}.title`, { defaultValue: stage.title })}</h1>
+          <p className="text-lg sm:text-xl text-emerald-100/80 leading-relaxed max-w-2xl">{t(`tarbiyah.lessons.${stage.id}.description`, { defaultValue: stage.description })}</p>
         </div>
 
         <div className="aspect-video bg-black/40 rounded-[2rem] border-2 border-dashed border-white/10 overflow-hidden shadow-2xl">
@@ -670,7 +670,7 @@ const QuizView = ({ stage, onComplete, onBack }: any) => {
       <div className="max-w-2xl w-full space-y-8 animate-in slide-in-from-right-8 duration-300">
         <div className="flex justify-between items-center text-xs font-bold text-emerald-400 tracking-widest uppercase mb-4">
           <span>{t('tarbiyah.question')} {currentQ + 1} / {stage.mcqs.length}</span>
-          <span>{stage.title}</span>
+          <span>{t(`tarbiyah.lessons.${stage.id}.title`, { defaultValue: stage.title })}</span>
         </div>
         <div className="h-2 bg-white/5 rounded-full overflow-hidden">
           <div className="h-full bg-emerald-500 transition-all duration-500" style={{ width: `${((currentQ + 1) / stage.mcqs.length) * 100}%` }} />
@@ -725,7 +725,7 @@ const CompletionSplash = ({ stage, onFinish }: any) => {
         </div>
         <div className="space-y-4">
           <h1 className="text-5xl font-black text-white tracking-tight">{t('tarbiyah.mashaAllah')}</h1>
-          <p className="text-emerald-200/60 text-lg font-medium">{t('tarbiyah.youCompleted')} <span className="text-white font-bold">{stage.title}</span></p>
+          <p className="text-emerald-200/60 text-lg font-medium">{t('tarbiyah.youCompleted')} <span className="text-white font-bold">{t(`tarbiyah.lessons.${stage.id}.title`, { defaultValue: stage.title })}</span></p>
 
           <div className="inline-flex items-center gap-2 px-6 py-3 bg-white/10 rounded-full border border-white/10 mt-4 backdrop-blur-md">
             <Sparkles className="text-amber-400" size={20} />
@@ -948,7 +948,7 @@ const AchievementsShowcase = ({ onBack, onNavigate }: any) => {
           <h2 className="text-4xl sm:text-5xl font-serif font-bold text-white">{t('tarbiyah.showcase')}</h2>
           <div className="text-right">
             <p className="text-indigo-200 font-bold uppercase tracking-widest text-xs mb-1">{t('tarbiyah.currentRank')}</p>
-            <p className="text-2xl font-black text-white">{currentRank.title}</p>
+            <p className="text-2xl font-black text-white">{t(`tarbiyah.ranks.${currentRank.level}`, { defaultValue: currentRank.title })}</p>
           </div>
         </div>
 
@@ -962,7 +962,7 @@ const AchievementsShowcase = ({ onBack, onNavigate }: any) => {
             {earnedBadges.map((rank) => (
               <div key={rank.level} className="aspect-square rounded-[2rem] sm:rounded-[3rem] border-2 border-dashed border-indigo-500/30 flex flex-col items-center justify-center p-6 sm:p-8 transition-all hover:scale-105 cursor-pointer bg-indigo-600/20">
                 <div className="text-4xl sm:text-5xl mb-4">{rank.icon}</div>
-                <div className="text-xs font-black text-indigo-300 uppercase tracking-widest text-center">{rank.title}</div>
+                <div className="text-xs font-black text-indigo-300 uppercase tracking-widest text-center">{t(`tarbiyah.ranks.${rank.level}`, { defaultValue: rank.title })}</div>
               </div>
             ))}
           </div>

@@ -24,7 +24,8 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onNavigateToLive }) => 
     const [batches, setBatches] = useState<any[]>([]);
     const [sessions, setSessions] = useState<any[]>([]);
     const [analytics, setAnalytics] = useState<any>(null);
-    const [tab, setTab] = useState<'overview' | 'users' | 'batches' | 'sessions'>('overview');
+    const [aiLogs, setAiLogs] = useState<any[]>([]);
+    const [tab, setTab] = useState<'overview' | 'users' | 'batches' | 'sessions' | 'ailogs'>('overview');
     const [error, setError] = useState<string | null>(null);
     const [searchQuery, setSearchQuery] = useState('');
 
@@ -74,6 +75,18 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onNavigateToLive }) => 
         } catch (e) { }
     };
 
+    const fetchAiLogs = async () => {
+        try {
+            const token = await getToken();
+            const res = await axios.get(`${API_BASE}/api/admin/ai-logs`, {
+                headers: { Authorization: `Bearer ${token}` }
+            });
+            setAiLogs(res.data);
+        } catch (e) {
+            console.error("Failed to fetch AI logs", e);
+        }
+    };
+
     useEffect(() => {
         fetchData();
         fetchAnalytics();
@@ -81,6 +94,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onNavigateToLive }) => 
 
     useEffect(() => {
         if (tab === 'batches' || tab === 'sessions') fetchManagementData();
+        if (tab === 'ailogs') fetchAiLogs();
     }, [tab]);
 
     // --- ACTIONS ---
@@ -119,6 +133,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onNavigateToLive }) => 
                     {[
                         { id: 'overview', icon: BarChart2, label: 'Analytics' },
                         { id: 'users', icon: Users, label: 'User Roles' },
+                        { id: 'ailogs', icon: MessageCircle, label: 'AI Logs' },
                     ].map(t => (
                         <button key={t.id} onClick={() => setTab(t.id as any)} className={`px-4 py-2 rounded-lg text-sm font-bold flex items-center gap-2 transition-all ${tab === t.id ? 'bg-emerald-600' : 'hover:bg-white/10 text-emerald-200'}`}>
                             <t.icon size={16} /> {t.label}
@@ -269,6 +284,64 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onNavigateToLive }) => 
                                 ))}
                             </tbody>
                         </table>
+                    </div>
+                )}
+
+                {/* 💬 PART 3 — AI CONVERSATION LOGS */}
+                {tab === 'ailogs' && (
+                    <div className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
+                        <div className="p-6 border-b border-slate-100 flex justify-between items-center bg-slate-50">
+                            <h2 className="font-bold text-lg flex items-center gap-2"><MessageCircle size={20} className="text-emerald-600" /> Recent AI Conversations</h2>
+                            <div className="text-xs text-slate-500 bg-white px-3 py-1 rounded-full border border-slate-200 shadow-inner">Showing last 50 conversations</div>
+                        </div>
+                        <div className="overflow-x-auto">
+                            <table className="w-full text-sm text-left">
+                                <thead className="bg-slate-100 text-slate-600 font-bold uppercase text-[10px] tracking-wider">
+                                    <tr>
+                                        <th className="px-6 py-4 w-1/4">User Info</th>
+                                        <th className="px-6 py-4 w-1/3">Question</th>
+                                        <th className="px-6 py-4 w-1/3">AI Response</th>
+                                        <th className="px-6 py-4 whitespace-nowrap">Time</th>
+                                    </tr>
+                                </thead>
+                                <tbody className="divide-y divide-slate-100">
+                                    {aiLogs.length > 0 ? aiLogs.map(log => (
+                                        <tr key={log._id} className="hover:bg-slate-50 transition-colors group">
+                                            <td className="px-6 py-4 align-top">
+                                                <div className="font-bold text-slate-800 flex items-center gap-2">
+                                                    {log.userName}
+                                                    {log.userRole === 'scholar' && <span className="bg-purple-100 text-purple-700 text-[9px] px-1.5 py-0.5 rounded-sm uppercase tracking-wider">Scholar</span>}
+                                                    {log.userRole === 'admin' && <span className="bg-red-100 text-red-700 text-[9px] px-1.5 py-0.5 rounded-sm uppercase tracking-wider">Admin</span>}
+                                                </div>
+                                                <div className="text-[11px] text-slate-500 mt-1">{log.userEmail}</div>
+                                            </td>
+                                            <td className="px-6 py-4 align-top">
+                                                <div className="text-slate-700 font-medium bg-slate-100 p-3 rounded-lg border border-slate-200/60 leading-relaxed">
+                                                    "{log.question}"
+                                                </div>
+                                            </td>
+                                            <td className="px-6 py-4 align-top">
+                                                <div className="text-slate-600 bg-emerald-50 p-3 rounded-lg border border-emerald-100/50 leading-relaxed max-h-32 overflow-y-auto custom-scrollbar">
+                                                    {log.answer}
+                                                </div>
+                                            </td>
+                                            <td className="px-6 py-4 align-top text-xs text-slate-500 whitespace-nowrap">
+                                                {new Date(log.timestamp).toLocaleString(undefined, {
+                                                    month: 'short', day: 'numeric',
+                                                    hour: '2-digit', minute: '2-digit'
+                                                })}
+                                            </td>
+                                        </tr>
+                                    )) : (
+                                        <tr>
+                                            <td colSpan={4} className="px-6 py-12 text-center text-slate-400 italic">
+                                                No AI conversations recorded recently.
+                                            </td>
+                                        </tr>
+                                    )}
+                                </tbody>
+                            </table>
+                        </div>
                     </div>
                 )}
 

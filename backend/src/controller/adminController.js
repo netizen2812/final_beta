@@ -4,6 +4,7 @@ import Batch from "../models/Batch.js";
 import Session from "../models/Session.js";
 import TarbiyahProgress from "../models/TarbiyahProgress.js";
 import AnalyticsEvent from "../models/AnalyticsEvent.js";
+import Conversation from "../models/Conversation.js";
 import Lesson from "../models/Lesson.js";
 import mongoose from "mongoose";
 import { clerkClient } from "@clerk/clerk-sdk-node";
@@ -267,6 +268,66 @@ export const updateUser = async (req, res) => {
     } catch (error) {
         console.error(error);
         res.status(500).json({ message: "Update failed" });
+    }
+};
+
+// GET /api/admin/ai-logs
+export const getAiLogs = async (req, res) => {
+    try {
+        // Fetch last 50 distinct conversations sorted by newest update
+        const conversations = await Conversation.find()
+            .sort({ updatedAt: -1 })
+            .limit(50)
+            .lean();
+
+        // Extract Clerk IDs to fetch User meta info
+        const clerkIds = [...new Set(conversations.map(c => c.clerkId))];
+        const users = await User.find({ clerkId: { $in: clerkIds } }).select('clerkId name email role').lean();
+
+        const userMap = users.reduce((acc, user) => {
+            acc[user.clerkId] = user;
+            return acc;
+        }, {});
+
+        // Flatten conversations into a Q&A format timeline (newest messages first)
+        let aiLogs = [];
+
+        for (const convo of conversations) {
+            const user = userMap[convo.clerkId] || { name: 'Unknown User', email: 'Unknown Email' };
+
+            // Go through messages in pairs (User Question -> AI Response)
+            for (let i = 0; i < convo.messages.length; i++) {
+                if (convo.messages[i].role === 'user') {
+                    const questionStr = convo.messages[i].content;
+                    const timestamp = convo.messages[i].timestamp || convo.createdAt;
+
+                    // Look ahead for the AI's answer
+                    let answerStr = "Pending / Interrupted";
+                    if (i + 1 < convo.messages.length && convo.messages[i + 1].role === 'model') {
+                        answerStr = convo.messages[i + 1].content;
+                    }
+
+                    aiLogs.push({
+                        _id: convo._id.toString() + '_' + i,
+                        userName: user.name,
+                        userEmail: user.email,
+                        userRole: user.role || 'parent',
+                        question: questionStr,
+                        answer: answerStr,
+                        timestamp: timestamp,
+                        clerkId: convo.clerkId
+                    });
+                }
+            }
+        }
+
+        // Sort flattened logs globally by timestamp descending
+        aiLogs.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
+
+        res.json(aiLogs);
+    } catch (error) {
+        console.error("AI Logs fetch error:", error);
+        res.status(500).json({ message: "Error fetching AI logs" });
     }
 };
 

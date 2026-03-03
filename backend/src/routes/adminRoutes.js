@@ -10,7 +10,8 @@ import {
     updateBatch,
     getSessions,
     createSession,
-    forceEndSession
+    forceEndSession,
+    getAiLogs
 } from "../controller/adminController.js";
 
 const router = express.Router();
@@ -25,6 +26,9 @@ router.get("/stats", getAdminStats);
 router.get("/users", getAllUsers);
 router.patch("/user/:id", updateUser); // specific field updates
 router.post("/user/:id/reset-progress", resetUserProgress);
+
+// AI Conversation Logs
+router.get("/ai-logs", getAiLogs);
 
 // Batch Management
 router.get("/batches", getBatches);

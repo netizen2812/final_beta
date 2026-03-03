@@ -90,7 +90,19 @@
     "footerDesc": "A spiritual environment for the next generation of Ummah.",
     "privacy": "Privacy",
     "ethics": "Ethics",
-    "methodology": "Methodology"
+    "methodology": "Methodology",
+    "prophets": {
+      "title": "Prophets Lineage",
+      "subtitle": "A chronological spiritual journey",
+      "nodeProphetLabel": "Prophet",
+      "exploreLife": "Explore Life",
+      "backToLineage": "Back to Lineage",
+      "sacredLineage": "Sacred Lineage",
+      "eraOfPresence": "Era of Presence",
+      "divineTrials": "Divine Trials",
+      "propheticLessons": "Prophetic Lessons",
+      "quranicReferences": "Quranic References"
+    }
   },
   "welcome": {
     "welcomeToImam": "Welcome to IMAM",
@@ -202,7 +214,23 @@
     "zakatManagerDesc": "Precision calculation in INR based on real-time gold and silver market rates.",
     "digitalTasbihDesc": "Focus on your remembrance with haptic feedback and custom goals for daily dhikr.",
     "zakatManager": "Zakat Manager",
-    "detecting": "Detecting..."
+    "detecting": "Detecting...",
+    "hero": {
+      "fajr": "Fajr — Dawn is Breaking",
+      "dhuhr": "Dhuhr — Under the Midday Sun",
+      "asr": "Asr — Afternoon Glow",
+      "maghrib": "Maghrib — Evening prayer awaits",
+      "isha": "Isha — Under the Night Sky"
+    },
+    "prayers": {
+      "Fajr": "Fajr",
+      "Dhuhr": "Dhuhr",
+      "Asr": "Asr",
+      "Maghrib": "Maghrib",
+      "Isha": "Isha"
+    },
+    "next": "Next",
+    "prayer": "Prayer"
   },
   "tarbiyah": {
     "journeyMapping": "Journey Mapping...",
@@ -517,6 +545,133 @@
       "112": "Al-Ikhlaas",
       "113": "Al-Falaq",
       "114": "An-Naas"
+    }
+  },
+  "prophets": {
+    "adam": {
+      "name": "Adam (AS)",
+      "lineage": "The First Human",
+      "timePeriod": "Beginning of Humanity"
+    },
+    "idris": {
+      "name": "Idris (AS)",
+      "lineage": "Descendant of Adam",
+      "timePeriod": "Ancient Era"
+    },
+    "nuh": {
+      "name": "Nuh (AS)",
+      "lineage": "10th generation after Adam",
+      "timePeriod": "Approx 3900-2900 BC"
+    },
+    "hud": {
+      "name": "Hud (AS)",
+      "lineage": "Sent to tribe of 'Ad",
+      "timePeriod": "Ancient Era"
+    },
+    "salih": {
+      "name": "Saleh (AS)",
+      "lineage": "Sent to Thamud",
+      "timePeriod": "Ancient Era"
+    },
+    "ibrahim": {
+      "name": "Ibrahim (AS)",
+      "lineage": "Known as 'Father of Prophets'",
+      "timePeriod": "Approx 2000 BC"
+    },
+    "lut": {
+      "name": "Lut (AS)",
+      "lineage": "Nephew of Ibrahim",
+      "timePeriod": "Approx 2000 BC"
+    },
+    "ismail": {
+      "name": "Ismail (AS)",
+      "lineage": "Son of Ibrahim & Hajar",
+      "timePeriod": "Approx 1900 BC"
+    },
+    "is-haq": {
+      "name": "Ishaq (AS)",
+      "lineage": "Son of Ibrahim & Sarah",
+      "timePeriod": "Approx 1850 BC"
+    },
+    "yaqub": {
+      "name": "Yaqub (AS)",
+      "lineage": "Son of Ishaq",
+      "timePeriod": "Approx 1800 BC"
+    },
+    "yusuf": {
+      "name": "Yusuf (AS)",
+      "lineage": "Son of Yaqub",
+      "timePeriod": "Approx 1700 BC"
+    },
+    "ayyub": {
+      "name": "Ayyub (AS)",
+      "lineage": "Descendant of Ibrahim",
+      "timePeriod": "Ancient Era"
+    },
+    "shuayb": {
+      "name": "Shu'aib (AS)",
+      "lineage": "Sent to Madyan",
+      "timePeriod": "Ancient Era"
+    },
+    "musa": {
+      "name": "Musa (AS)",
+      "lineage": "Descendant of Yaqub",
+      "timePeriod": "Approx 1300 BC"
+    },
+    "harun": {
+      "name": "Harun (AS)",
+      "lineage": "Brother of Musa",
+      "timePeriod": "Approx 1300 BC"
+    },
+    "dhul-kifl": {
+      "name": "Dhul-Kifl (AS)",
+      "lineage": "Righteous judge after Musa",
+      "timePeriod": "Ancient Era"
+    },
+    "dawud": {
+      "name": "Dawud (AS)",
+      "lineage": "Descendant of Yaqub",
+      "timePeriod": "Approx 1000 BC"
+    },
+    "sulayman": {
+      "name": "Sulayman (AS)",
+      "lineage": "Son of Dawud",
+      "timePeriod": "Approx 950 BC"
+    },
+    "ilyas": {
+      "name": "Ilyas (AS)",
+      "lineage": "Descendant of Harun",
+      "timePeriod": "Ancient Era"
+    },
+    "al-yasa": {
+      "name": "Al-Yasa (AS)",
+      "lineage": "Successor of Ilyas",
+      "timePeriod": "Ancient Era"
+    },
+    "yunus": {
+      "name": "Yunus (AS)",
+      "lineage": "Descendant of Yaqub",
+      "timePeriod": "Approx 8th CC BC"
+    },
+    "zakariya": {
+      "name": "Zakariya (AS)",
+      "lineage": "Descendant of Yaqub",
+      "timePeriod": "1st Century BC"
+    },
+    "yahya": {
+      "name": "Yahya (AS)",
+      "lineage": "Son of Zakariya",
+      "timePeriod": "1st Century AD"
+    },
+    "isa": {
+      "name": "Isa (AS)",
+      "lineage": "Son of Maryam",
+      "timePeriod": "1st Century AD"
+    },
+    "muhammad": {
+      "name": "Muhammad (PBUH)",
+      "lineage": "Descendant of Ismail",
+      "timePeriod": "570 - 632 AD"
     }
   }
 }

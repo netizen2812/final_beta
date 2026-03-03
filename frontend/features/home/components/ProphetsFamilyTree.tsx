@@ -1,8 +1,10 @@
 import React, { useState } from 'react';
 import { PROPHETS_DATA, ProphetNode } from '../data/mockData';
 import { X } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 
 const ProphetsFamilyTree: React.FC = () => {
+    const { t } = useTranslation();
     const [selectedProphet, setSelectedProphet] = useState<ProphetNode | null>(null);
     const scrollContainerRef = React.useRef<HTMLDivElement>(null);
 
@@ -29,8 +31,8 @@ const ProphetsFamilyTree: React.FC = () => {
                 {/* Title Overlay */}
                 <div className="text-center space-y-4 mb-20 pointer-events-none">
                     <div className="w-12 h-1 bg-emerald-100 mx-auto rounded-full" />
-                    <h2 className="text-4xl md:text-6xl font-serif text-emerald-950">Prophets Lineage</h2>
-                    <p className="text-[10px] font-black uppercase tracking-[0.4em] text-emerald-900/30">A chronological spiritual journey</p>
+                    <h2 className="text-4xl md:text-6xl font-serif text-emerald-950">{t('home.prophets.title')}</h2>
+                    <p className="text-[10px] font-black uppercase tracking-[0.4em] text-emerald-900/30">{t('home.prophets.subtitle')}</p>
                 </div>
 
                 {/* The Map Canvas - Now full height and natural scroll with horizontal overflow on mobile */}
@@ -80,14 +82,14 @@ const ProphetsFamilyTree: React.FC = () => {
                                 {/* Node Circle */}
                                 <div className={`w-28 h-28 rounded-full bg-[#0D4433] border-2 border-emerald-900/20 flex items-center justify-center shadow-2xl group-hover:scale-110 group-hover:border-emerald-400 transition-all duration-500`}>
                                     <div className="text-center px-3">
-                                        <div className="text-[7px] font-black tracking-widest text-emerald-400 uppercase mb-1">Prophet</div>
-                                        <div className="text-[11px] font-serif font-bold text-white leading-tight">{prophet.name}</div>
+                                        <div className="text-[7px] font-black tracking-widest text-emerald-400 uppercase mb-1">{t('home.prophets.nodeProphetLabel')}</div>
+                                        <div className="text-[11px] font-serif font-bold text-white leading-tight">{t(`prophets.${prophet.id}.name`, { defaultValue: prophet.name })}</div>
                                     </div>
                                 </div>
 
                                 {/* Label */}
                                 <div className={`absolute top-full mt-4 left-1/2 -translate-x-1/2 whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity`}>
-                                    <span className="bg-emerald-400 text-[#0D4433] text-[8px] font-black px-4 py-1.5 rounded-full uppercase tracking-widest shadow-lg">Explore Life</span>
+                                    <span className="bg-emerald-400 text-[#0D4433] text-[8px] font-black px-4 py-1.5 rounded-full uppercase tracking-widest shadow-lg">{t('home.prophets.exploreLife')}</span>
                                 </div>
                             </div>
                         ))}
@@ -115,21 +117,21 @@ const ProphetsFamilyTree: React.FC = () => {
                                 <div className="p-2 bg-emerald-100 rounded-full group-hover:bg-emerald-200 transition-colors">
                                     <X size={18} />
                                 </div>
-                                <span className="text-xs font-black uppercase tracking-widest">Back to Lineage</span>
+                                <span className="text-xs font-black uppercase tracking-widest">{t('home.prophets.backToLineage')}</span>
                             </button>
                         </div>
 
                         <div className="space-y-12">
                             <div className="space-y-4">
-                                <span className="text-[10px] font-black uppercase tracking-[0.4em] text-emerald-600">Sacred Lineage</span>
-                                <h3 className="text-4xl md:text-6xl font-serif font-bold text-emerald-950 leading-tight">{selectedProphet.name}</h3>
-                                <p className="text-emerald-900/60 font-medium italic text-lg">{selectedProphet.lineage}</p>
+                                <span className="text-[10px] font-black uppercase tracking-[0.4em] text-emerald-600">{t('home.prophets.sacredLineage')}</span>
+                                <h3 className="text-4xl md:text-6xl font-serif font-bold text-emerald-950 leading-tight">{t(`prophets.${selectedProphet.id}.name`, { defaultValue: selectedProphet.name })}</h3>
+                                <p className="text-emerald-900/60 font-medium italic text-lg">{t(`prophets.${selectedProphet.id}.lineage`, { defaultValue: selectedProphet.lineage })}</p>
                             </div>
 
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-8 py-10 border-y border-emerald-100">
                                 <div className="space-y-1">
-                                    <div className="text-[8px] font-black text-emerald-900/30 uppercase tracking-widest">Era of Presence</div>
-                                    <div className="text-lg font-bold text-emerald-950">{selectedProphet.timePeriod}</div>
+                                    <div className="text-[8px] font-black text-emerald-900/30 uppercase tracking-widest">{t('home.prophets.eraOfPresence')}</div>
+                                    <div className="text-lg font-bold text-emerald-950">{t(`prophets.${selectedProphet.id}.timePeriod`, { defaultValue: selectedProphet.timePeriod })}</div>
                                 </div>
                             </div>
 
@@ -137,7 +139,7 @@ const ProphetsFamilyTree: React.FC = () => {
                                 <section className="space-y-6">
                                     <h4 className="text-xs font-black uppercase tracking-[0.3em] text-emerald-950 flex items-center gap-3">
                                         <div className="w-8 h-[1px] bg-emerald-200" />
-                                        Divine Trials
+                                        {t('home.prophets.divineTrials')}
                                     </h4>
                                     <div className="flex flex-wrap gap-3">
                                         {selectedProphet.trials?.map((trial, i) => (
@@ -151,7 +153,7 @@ const ProphetsFamilyTree: React.FC = () => {
                                 <section className="space-y-6">
                                     <h4 className="text-xs font-black uppercase tracking-[0.3em] text-emerald-950 flex items-center gap-3">
                                         <div className="w-8 h-[1px] bg-emerald-200" />
-                                        Prophetic Lessons
+                                        {t('home.prophets.propheticLessons')}
                                     </h4>
                                     <ul className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                         {selectedProphet.lessons?.map((lesson, i) => (
@@ -166,7 +168,7 @@ const ProphetsFamilyTree: React.FC = () => {
                                 <section className="space-y-6">
                                     <h4 className="text-xs font-black uppercase tracking-[0.3em] text-emerald-950 flex items-center gap-3">
                                         <div className="w-8 h-[1px] bg-emerald-200" />
-                                        Quranic References
+                                        {t('home.prophets.quranicReferences')}
                                     </h4>
                                     <div className="space-y-3">
                                         {selectedProphet.references?.map((ref, i) => (

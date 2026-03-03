@@ -823,13 +823,13 @@ const IbadahDashboard: React.FC = () => {
         <div className="mb-4 md:mb-8 lg:mb-4 flex justify-center hover:scale-110 transition-transform cursor-pointer drop-shadow-2xl">
           {theme.icon}
         </div>
-        <p className="text-[10px] md:text-[12px] font-black tracking-[0.5em] uppercase opacity-80 mb-2 md:mb-4">{theme.label}</p>
+        <p className="text-[10px] md:text-[12px] font-black tracking-[0.5em] uppercase opacity-80 mb-2 md:mb-4">{t(`ibadah.hero.${activeHeroTheme}`)}</p>
         <h1 className="text-6xl md:text-[10rem] lg:text-8xl font-light tracking-tighter mb-6 md:mb-10 lg:mb-6 drop-shadow-md">
           {currentTime.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
         </h1>
         <div className="inline-flex flex-col items-center gap-2">
           <div className="inline-flex items-center gap-3 md:gap-4 px-6 md:px-10 py-3 md:py-4 bg-[#0D4433]/40 backdrop-blur-2xl rounded-full border border-white/30 text-[9px] md:text-[11px] font-black uppercase tracking-[0.3em] shadow-2xl">
-            Next: <span className="text-emerald-400">{nextPrayer || 'Prayer'}</span> <span className="opacity-40">•</span> <span className="text-white">{t('ibadah.guidance')}</span>
+            {t('ibadah.next')}: <span className="text-emerald-400">{nextPrayer ? t(`ibadah.prayers.${nextPrayer}`) : t('ibadah.prayer')}</span> <span className="opacity-40">•</span> <span className="text-white">{t('ibadah.guidance')}</span>
           </div>
           <div className="text-[8px] font-black uppercase tracking-[0.3em] opacity-40 mt-2 flex items-center gap-1.5">
             <MapPin size={10} /> {t('ibadah.location')}: {locationMethod}
@@ -867,7 +867,7 @@ const IbadahDashboard: React.FC = () => {
                   className={`flex flex-col items-center justify-center rounded-[1.5rem] md:rounded-[3rem] transition-all duration-700 cursor-pointer group/prayer relative overflow-hidden h-20 md:h-36 lg:h-28 ${isCompleted ? 'bg-emerald-50 text-emerald-600 opacity-60' : isActive ? 'bg-[#0D4433] text-white shadow-xl scale-100 md:scale-110 z-10' : 'bg-[#F9FAF2]/30 md:bg-transparent text-gray-400 border border-transparent hover:border-emerald-100'}`}
                 >
                   <div onClick={(e) => { e.stopPropagation(); togglePrayerCompletion(p.name); }} className={`absolute top-2 right-2 md:top-4 md:right-4 w-4 h-4 md:w-6 md:h-6 rounded-full border-2 flex items-center justify-center transition-all ${isCompleted ? 'bg-emerald-500 border-emerald-500 text-white' : 'border-gray-200 text-transparent'}`}><CheckCircle2 size={10} /></div>
-                  <span className={`text-[7px] md:text-[11px] font-black uppercase tracking-widest mb-0.5 md:mb-2 transition-colors ${isActive ? 'text-emerald-400' : 'group-hover/prayer:text-[#0D4433]'}`}>{p.name}</span>
+                  <span className={`text-[7px] md:text-[11px] font-black uppercase tracking-widest mb-0.5 md:mb-2 transition-colors ${isActive ? 'text-emerald-400' : 'group-hover/prayer:text-[#0D4433]'}`}>{t(`ibadah.prayers.${p.name}`)}</span>
                   <span className={`text-sm md:text-2xl font-black ${isActive ? 'text-white' : 'text-gray-900 opacity-40 group-hover/prayer:opacity-100'}`}>{p.time}</span>
                 </div>
               );

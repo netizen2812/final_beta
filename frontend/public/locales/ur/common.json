@@ -90,7 +90,19 @@
     "footerDesc": "امت کی اگلی نسل کے لیے ایک روحانی ماحول۔",
     "privacy": "رازداری",
     "ethics": "اخلاقیات",
-    "methodology": "طریقہ کار"
+    "methodology": "طریقہ کار",
+    "prophets": {
+      "title": "انبیاء کا شجرہ نسب",
+      "subtitle": "ایک تاریخی روحانی سفر",
+      "nodeProphetLabel": "نبی",
+      "exploreLife": "زندگی جانیں",
+      "backToLineage": "شجرہ نسب پر واپس جائیں",
+      "sacredLineage": "مقدس شجرہ",
+      "eraOfPresence": "دورِ موجودگی",
+      "divineTrials": "الٰہی آزمائشیں",
+      "propheticLessons": "انبیاء کی تعلیمات",
+      "quranicReferences": "قرآنی حوالے"
+    }
   },
   "welcome": {
     "welcomeToImam": "امام میں خوش آمدید",
@@ -202,7 +214,23 @@
     "zakatManagerDesc": "ریئل ٹائم مارکیٹ نرخوں پر INR میں درست حساب۔",
     "digitalTasbihDesc": "ہیپٹک فیڈبیک اور مقاصد کے ساتھ ذکر پر توجہ دیں۔",
     "zakatManager": "زکوٰة مینیجر",
-    "detecting": "پتہ لگا رہا ہے..."
+    "detecting": "پتہ لگا رہا ہے...",
+    "hero": {
+      "fajr": "فجر — صبح نمودار ہو رہی ہے",
+      "dhuhr": "ظہر — دوپہر کی دھوپ میں",
+      "asr": "عصر — ڈھلتی دوپہر کی چمک",
+      "maghrib": "مغرب — شام کی نماز کا وقت",
+      "isha": "عشاء — رات کے آسمان تلے"
+    },
+    "prayers": {
+      "Fajr": "فجر",
+      "Dhuhr": "ظہر",
+      "Asr": "عصر",
+      "Maghrib": "مغرب",
+      "Isha": "عشاء"
+    },
+    "next": "اگلی",
+    "prayer": "نماز"
   },
   "tarbiyah": {
     "journeyMapping": "سفر کی نقشہ بندی...",
@@ -517,6 +545,133 @@
       "112": "الاخلاص",
       "113": "الفلق",
       "114": "الناس"
+    }
+  },
+  "prophets": {
+    "adam": {
+      "name": "آدم (AS)",
+      "lineage": "پہلا انسان",
+      "timePeriod": "انسانیت کا آغاز"
+    },
+    "idris": {
+      "name": "ادریس (AS)",
+      "lineage": "آدم کی نسل",
+      "timePeriod": "قدیم دور"
+    },
+    "nuh": {
+      "name": "نوح (AS)",
+      "lineage": "آدم کے بعد دسویں پشت",
+      "timePeriod": "تقریبا 3900-2900 قبل مسیح"
+    },
+    "hud": {
+      "name": "ہود (AS)",
+      "lineage": "قوم عاد کی طرف بھیجے گئے",
+      "timePeriod": "قدیم دور"
+    },
+    "salih": {
+      "name": "صالح (AS)",
+      "lineage": "قوم ثمود کی طرف بھیجے گئے",
+      "timePeriod": "قدیم دور"
+    },
+    "ibrahim": {
+      "name": "ابراہیم (AS)",
+      "lineage": "انبیاء کے والد",
+      "timePeriod": "تقریبا 2000 قبل مسیح"
+    },
+    "lut": {
+      "name": "لوط (AS)",
+      "lineage": "ابراہیم کے بھتیجے",
+      "timePeriod": "تقریبا 2000 قبل مسیح"
+    },
+    "ismail": {
+      "name": "اسماعیل (AS)",
+      "lineage": "ابراہیم اور ہاجرہ کے بیٹے",
+      "timePeriod": "تقریبا 1900 قبل مسیح"
+    },
+    "is-haq": {
+      "name": "اسحاق (AS)",
+      "lineage": "ابراہیم اور سارہ کے بیٹے",
+      "timePeriod": "تقریبا 1850 قبل مسیح"
+    },
+    "yaqub": {
+      "name": "یعقوب (AS)",
+      "lineage": "اسحاق کے بیٹے",
+      "timePeriod": "تقریبا 1800 قبل مسیح"
+    },
+    "yusuf": {
+      "name": "یوسف (AS)",
+      "lineage": "یعقوب کے بیٹے",
+      "timePeriod": "تقریبا 1700 قبل مسیح"
+    },
+    "ayyub": {
+      "name": "ایوب (AS)",
+      "lineage": "ابراہیم کی نسل",
+      "timePeriod": "قدیم دور"
+    },
+    "shuayb": {
+      "name": "شعیب (AS)",
+      "lineage": "مدین کی طرف بھیجے گئے",
+      "timePeriod": "قدیم دور"
+    },
+    "musa": {
+      "name": "موسیٰ (AS)",
+      "lineage": "یعقوب کی نسل",
+      "timePeriod": "تقریبا 1300 قبل مسیح"
+    },
+    "harun": {
+      "name": "ہارون (AS)",
+      "lineage": "موسیٰ کے بھائی",
+      "timePeriod": "تقریبا 1300 قبل مسیح"
+    },
+    "dhul-kifl": {
+      "name": "ذوالکفل (AS)",
+      "lineage": "موسیٰ کے بعد فیصلے کرنے والے",
+      "timePeriod": "قدیم دور"
+    },
+    "dawud": {
+      "name": "داؤد (AS)",
+      "lineage": "یعقوب کی نسل",
+      "timePeriod": "تقریبا 1000 قبل مسیح"
+    },
+    "sulayman": {
+      "name": "سلیمان (AS)",
+      "lineage": "داؤد کے بیٹے",
+      "timePeriod": "تقریبا 950 قبل مسیح"
+    },
+    "ilyas": {
+      "name": "الیاس (AS)",
+      "lineage": "ہارون کی نسل",
+      "timePeriod": "قدیم دور"
+    },
+    "al-yasa": {
+      "name": "الیسع (AS)",
+      "lineage": "الیاس کے جانشین",
+      "timePeriod": "قدیم دور"
+    },
+    "yunus": {
+      "name": "یونس (AS)",
+      "lineage": "یعقوب کی نسل",
+      "timePeriod": "تقریبا 8ویں صدی قبل مسیح"
+    },
+    "zakariya": {
+      "name": "زکریا (AS)",
+      "lineage": "یعقوب کی نسل",
+      "timePeriod": "پہلی صدی قبل مسیح"
+    },
+    "yahya": {
+      "name": "یحییٰ (AS)",
+      "lineage": "زکریا کے بیٹے",
+      "timePeriod": "پہلی صدی عیسوی"
+    },
+    "isa": {
+      "name": "عیسیٰ (AS)",
+      "lineage": "مریم کے بیٹے",
+      "timePeriod": "پہلی صدی عیسوی"
+    },
+    "muhammad": {
+      "name": "محمد (PBUH)",
+      "lineage": "اسماعیل کی نسل",
+      "timePeriod": "570 - 632 عیسوی"
     }
   }
 }

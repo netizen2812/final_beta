@@ -90,7 +90,19 @@
     "footerDesc": "उम्मत की अगली पीढ़ी के लिए एक आध्यात्मिक वातावरण।",
     "privacy": "गोपनीयता",
     "ethics": "नैतिकता",
-    "methodology": "कार्यप्रणाली"
+    "methodology": "कार्यप्रणाली",
+    "prophets": {
+      "title": "नवियों का वंशज (Lineage)",
+      "subtitle": "एक कालानुक्रमिक रूहानी सफर",
+      "nodeProphetLabel": "नबी (Prophet)",
+      "exploreLife": "जीवन जानें",
+      "backToLineage": "वंशज चार्ट पर लौटें",
+      "sacredLineage": "मुकद्दस वंशावली",
+      "eraOfPresence": "मौजूदगी का दौर",
+      "divineTrials": "ईश्वरीय आज़माइशें",
+      "propheticLessons": "नबियों की सीख",
+      "quranicReferences": "कुरान के हवाले"
+    }
   },
   "welcome": {
     "welcomeToImam": "इमाम में आपका स्वागत है",
@@ -202,7 +214,23 @@
     "zakatManagerDesc": "वास्तविक समय सोने और चाँदी के बाज़ार दरों पर INR में सटीक गणना।",
     "digitalTasbihDesc": "दैनिक ज़िक्र के लिए हैप्टिक फीडबैक और कस्टम लक्ष्यों के साथ अपनी याद पर ध्यान दें।",
     "zakatManager": "ज़कात प्रबंधक",
-    "detecting": "पता लगा रहा है..."
+    "detecting": "पता लगा रहा है...",
+    "hero": {
+      "fajr": "फज्र — सुबह की दस्तक",
+      "dhuhr": "ज़ुहर — दोपहर की रोशनी में",
+      "asr": "अस्र — ढलती दोपहर की चमक",
+      "maghrib": "मगरिब — शाम की नमाज़ का वक़्त",
+      "isha": "ईशा — रात के आसमान तले"
+    },
+    "prayers": {
+      "Fajr": "फज्र",
+      "Dhuhr": "ज़ुहर",
+      "Asr": "अस्र",
+      "Maghrib": "मगरिब",
+      "Isha": "ईशा"
+    },
+    "next": "अगली",
+    "prayer": "नमाज़"
   },
   "tarbiyah": {
     "journeyMapping": "सफ़र मैपिंग...",
@@ -517,6 +545,133 @@
       "112": "अल-इख़लास",
       "113": "अल-फ़लक़",
       "114": "अन-नास"
+    }
+  },
+  "prophets": {
+    "adam": {
+      "name": "आदम (AS)",
+      "lineage": "पहले इंसान",
+      "timePeriod": "मानवता की शुरुआत"
+    },
+    "idris": {
+      "name": "इदरीस (AS)",
+      "lineage": "आदम के वंशज",
+      "timePeriod": "प्राचीन काल"
+    },
+    "nuh": {
+      "name": "नूह (AS)",
+      "lineage": "आदम के बाद 10वीं पीढ़ी",
+      "timePeriod": "लगभग 3900-2900 ईसा पूर्व"
+    },
+    "hud": {
+      "name": "हूद (AS)",
+      "lineage": "आद कबीले की ओर भेजे गए",
+      "timePeriod": "प्राचीन काल"
+    },
+    "salih": {
+      "name": "सालेह (AS)",
+      "lineage": "समूद की ओर भेजे गए",
+      "timePeriod": "प्राचीन काल"
+    },
+    "ibrahim": {
+      "name": "इब्राहीम (AS)",
+      "lineage": "नबियों के पिता के रूप में प्रसिद्ध",
+      "timePeriod": "लगभग 2000 ईसा पूर्व"
+    },
+    "lut": {
+      "name": "लूत (AS)",
+      "lineage": "इब्राहीम के भतीजे",
+      "timePeriod": "लगभग 2000 ईसा पूर्व"
+    },
+    "ismail": {
+      "name": "इस्माईल (AS)",
+      "lineage": "इब्राहीम और हाजरा के पुत्र",
+      "timePeriod": "लगभग 1900 ईसा पूर्व"
+    },
+    "is-haq": {
+      "name": "इसहाक (AS)",
+      "lineage": "इब्राहीम और सारा के पुत्र",
+      "timePeriod": "लगभग 1850 ईसा पूर्व"
+    },
+    "yaqub": {
+      "name": "याकूब (AS)",
+      "lineage": "इसहाक के पुत्र",
+      "timePeriod": "लगभग 1800 ईसा पूर्व"
+    },
+    "yusuf": {
+      "name": "यूसुफ (AS)",
+      "lineage": "याकूब के पुत्र",
+      "timePeriod": "लगभग 1700 ईसा पूर्व"
+    },
+    "ayyub": {
+      "name": "अय्यूब (AS)",
+      "lineage": "इब्राहीम के वंशज",
+      "timePeriod": "प्राचीन काल"
+    },
+    "shuayb": {
+      "name": "शुआएब (AS)",
+      "lineage": "मदयन की ओर भेजे गए",
+      "timePeriod": "प्राचीन काल"
+    },
+    "musa": {
+      "name": "मूसा (AS)",
+      "lineage": "याकूब के वंशज",
+      "timePeriod": "लगभग 1300 ईसा पूर्व"
+    },
+    "harun": {
+      "name": "हारून (AS)",
+      "lineage": "मूसा के भाई",
+      "timePeriod": "लगभग 1300 ईसा पूर्व"
+    },
+    "dhul-kifl": {
+      "name": "जुल-किफ्ल (AS)",
+      "lineage": "मूसा के बाद न्याय करने वाले",
+      "timePeriod": "प्राचीन काल"
+    },
+    "dawud": {
+      "name": "दाऊद (AS)",
+      "lineage": "याकूब के वंशज",
+      "timePeriod": "लगभग 1000 ईसा पूर्व"
+    },
+    "sulayman": {
+      "name": "सुलेमान (AS)",
+      "lineage": "दाऊद के पुत्र",
+      "timePeriod": "लगभग 950 ईसा पूर्व"
+    },
+    "ilyas": {
+      "name": "इल्यास (AS)",
+      "lineage": "हारून के वंशज",
+      "timePeriod": "प्राचीन काल"
+    },
+    "al-yasa": {
+      "name": "अल-यसा (AS)",
+      "lineage": "इल्यास के उत्तराधिकारी",
+      "timePeriod": "प्राचीन काल"
+    },
+    "yunus": {
+      "name": "यूनुस (AS)",
+      "lineage": "याकूब के वंशज",
+      "timePeriod": "लगभग 8वीं सदी ईसा पूर्व"
+    },
+    "zakariya": {
+      "name": "ज़करिया (AS)",
+      "lineage": "याकूब के वंशज",
+      "timePeriod": "पहली सदी ईसा पूर्व"
+    },
+    "yahya": {
+      "name": "याह्या (AS)",
+      "lineage": "ज़करिया के पुत्र",
+      "timePeriod": "पहली सदी ईसवी"
+    },
+    "isa": {
+      "name": "ईसा (AS)",
+      "lineage": "मरियम के पुत्र",
+      "timePeriod": "पहली सदी ईसवी"
+    },
+    "muhammad": {
+      "name": "मुहम्मद (PBUH)",
+      "lineage": "इस्माईल के वंशज",
+      "timePeriod": "570 - 632 ईसवी"
     }
   }
 }

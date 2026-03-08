@@ -96,20 +96,27 @@ const HERO_THEMES = {
 const TasbihPage = ({ onBack }: { onBack: () => void }) => {
   const [count, setCount] = useState(0);
   const [goal, setGoal] = useState(33);
+  const [cycles, setCycles] = useState(0);
   const { t } = useTranslation();
 
   const increment = () => {
     setCount(prev => {
       const next = prev + 1;
-      if (next % 33 === 0) {
-        Analytics.trackEvent('tasbih_increment', { count: next }, 'ibadah');
+      if (next >= goal) {
+        setCycles(c => c + 1);
+        Analytics.trackEvent('tasbih_cycle_completed', { goal }, 'ibadah');
+        if (window.navigator.vibrate) window.navigator.vibrate([100, 50, 100]); // Distinct vibrate for cycle complete
+        return 0; // Restart counting
       }
+      if (window.navigator.vibrate) window.navigator.vibrate(50);
       return next;
     });
-    if (window.navigator.vibrate) window.navigator.vibrate(50);
   };
 
-  const reset = () => setCount(0);
+  const reset = () => {
+    setCount(0);
+    setCycles(0);
+  };
 
   return (
     <div className="min-h-screen bg-[#FDFCF8] py-12 px-4 sm:px-6 animate-in fade-in duration-500 flex flex-col items-center">
@@ -124,8 +131,13 @@ const TasbihPage = ({ onBack }: { onBack: () => void }) => {
         <div className="bg-white p-12 rounded-[4rem] border border-emerald-50 shadow-2xl flex flex-col items-center space-y-10">
           <div
             onClick={increment}
-            className="w-64 h-64 rounded-full bg-emerald-50 border-[12px] border-white shadow-inner flex flex-col items-center justify-center cursor-pointer active:scale-95 transition-all hover:bg-emerald-100 select-none"
+            className="w-64 h-64 rounded-full bg-emerald-50 border-[12px] border-white shadow-inner flex flex-col items-center justify-center cursor-pointer active:scale-95 transition-all hover:bg-emerald-100 select-none relative"
           >
+            {cycles > 0 && (
+              <div className="absolute top-8 text-xs font-black px-3 py-1 bg-emerald-200 text-emerald-800 rounded-full shadow-sm animate-in zoom-in">
+                {cycles} Cycles
+              </div>
+            )}
             <span className="text-7xl font-black text-[#0D4433]">{count}</span>
             <span className="text-xs font-black text-emerald-600/40 mt-2 tracking-[0.2em]">{t('ibadah.tapToCount')}</span>
           </div>
@@ -134,7 +146,10 @@ const TasbihPage = ({ onBack }: { onBack: () => void }) => {
             {[33, 99, 100, 1000].map(g => (
               <button
                 key={g}
-                onClick={() => setGoal(g)}
+                onClick={() => {
+                  setGoal(g);
+                  setCount(0); // Optional: reset count when changing goal to avoid bugs
+                }}
                 className={`px-6 py-3 rounded-2xl text-xs font-black transition-all ${goal === g ? 'bg-[#0D4433] text-white shadow-lg' : 'bg-gray-50 text-gray-400 border border-gray-100'}`}
               >
                 {g}

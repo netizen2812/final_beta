@@ -208,13 +208,20 @@ const QuranPage: React.FC<QuranPageProps> = ({
 
       const { text, trans, audio } = data;
 
-      const combined: Ayah[] = text.data.ayahs.map((ayah: any, idx: number) => ({
-        number: ayah.number,
-        numberInSurah: ayah.numberInSurah,
-        text: ayah.text,
-        translation: trans.data.ayahs[idx].text,
-        audio: audio.data.ayahs[idx].audio
-      }));
+      const combined: Ayah[] = text.data.ayahs.map((ayah: any, idx: number) => {
+        let cleanedText = ayah.text;
+        if (text.data.number !== 1 && text.data.number !== 9 && ayah.numberInSurah === 1) {
+          cleanedText = cleanedText.replace(/^بِسْمِ ٱللَّهِ ٱلرَّحْمَٰنِ ٱلرَّحِيمِ\s*/, '');
+        }
+
+        return {
+          number: ayah.number,
+          numberInSurah: ayah.numberInSurah,
+          text: cleanedText,
+          translation: trans.data.ayahs[idx].text,
+          audio: audio.data.ayahs[idx].audio
+        };
+      });
 
       setSurahContent(combined);
       setView('reading');
@@ -258,17 +265,24 @@ const QuranPage: React.FC<QuranPageProps> = ({
 
       const { text, trans, audio } = data;
 
-      const combined: Ayah[] = text.data.ayahs.map((ayah: any, idx: number) => ({
-        number: ayah.number,
-        numberInSurah: ayah.numberInSurah,
-        text: ayah.text,
-        translation: trans.data.ayahs[idx].text,
-        audio: audio.data.ayahs[idx].audio,
-        surah: {
-          number: ayah.surah.number,
-          englishName: ayah.surah.englishName
+      const combined: Ayah[] = text.data.ayahs.map((ayah: any, idx: number) => {
+        let cleanedText = ayah.text;
+        if (ayah.surah.number !== 1 && ayah.surah.number !== 9 && ayah.numberInSurah === 1) {
+          cleanedText = cleanedText.replace(/^بِسْمِ ٱللَّهِ ٱلرَّحْمَٰنِ ٱلرَّحِيمِ\s*/, '');
         }
-      }));
+
+        return {
+          number: ayah.number,
+          numberInSurah: ayah.numberInSurah,
+          text: cleanedText,
+          translation: trans.data.ayahs[idx].text,
+          audio: audio.data.ayahs[idx].audio,
+          surah: {
+            number: ayah.surah.number,
+            englishName: ayah.surah.englishName
+          }
+        };
+      });
 
       setSurahContent(combined);
       setView('reading');
@@ -599,7 +613,9 @@ const QuranPage: React.FC<QuranPageProps> = ({
           <div className="space-y-10">
             {surahContent.map((ayah, idx) => {
               const isActive = currentAyahIndex === idx;
+              const surahNum = selectedSurah ? selectedSurah.number : ayah.surah?.number;
               const showSurahHeader = selectedJuz && (idx === 0 || surahContent[idx].surah?.number !== surahContent[idx - 1].surah?.number);
+              const showBismillah = ayah.numberInSurah === 1 && surahNum !== 1 && surahNum !== 9;
 
               return (
                 <div key={ayah.number} className="space-y-6">
@@ -608,6 +624,11 @@ const QuranPage: React.FC<QuranPageProps> = ({
                       <div className="h-px w-20 bg-emerald-200" />
                       <h3 className="text-2xl font-serif font-bold text-[#0D4433] uppercase tracking-widest">{ayah.surah?.englishName}</h3>
                       <div className="h-px w-20 bg-emerald-200" />
+                    </div>
+                  )}
+                  {showBismillah && (
+                    <div className="py-6 flex flex-col items-center justify-center animate-in fade-in duration-500">
+                      <p className="text-4xl md:text-5xl font-serif text-[#0D4433] arabic-text text-center">بِسْمِ ٱللَّهِ ٱلرَّحْمَٰنِ ٱلرَّحِيمِ</p>
                     </div>
                   )}
                   <div
@@ -636,6 +657,11 @@ const QuranPage: React.FC<QuranPageProps> = ({
                     <p className={`text-4xl md:text-5xl font-serif text-right leading-[2.2] arabic-text transition-colors ${isActive ? 'text-[#0D4433]' : 'text-gray-700'}`} dir="rtl">
                       {ayah.text}
                     </p>
+                    {surahNum === 1 && ayah.numberInSurah === 7 && (
+                      <p className={`text-2xl md:text-3xl font-serif text-center font-bold arabic-text transition-colors pt-2 pb-4 ${isActive ? 'text-red-600' : 'text-red-500'}`} dir="rtl">
+                        آمِين
+                      </p>
+                    )}
                     <div className={`h-px w-24 ml-auto transition-all ${isActive ? 'bg-emerald-300' : 'bg-gray-100'}`} />
                     <p className={`text-xl font-medium leading-relaxed transition-colors ${isActive ? 'text-[#1c2833]' : 'text-gray-400'}`}>
                       {ayah.translation}

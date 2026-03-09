@@ -1,6 +1,6 @@
 import express from 'express';
 import { syncQuranProgress, getQuranProgress } from '../controller/ibadahController.js';
-import { requireAuth } from '../middleware/requireAuth.js';
+import { requireAuth } from '../middleware/authmiddleware.js';
 
 const router = express.Router();
 

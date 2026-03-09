@@ -134,8 +134,9 @@ const TasbihPage = ({ onBack }: { onBack: () => void }) => {
             className="w-64 h-64 rounded-full bg-emerald-50 border-[12px] border-white shadow-inner flex flex-col items-center justify-center cursor-pointer active:scale-95 transition-all hover:bg-emerald-100 select-none relative"
           >
             {cycles > 0 && (
-              <div className="absolute top-8 text-xs font-black px-3 py-1 bg-emerald-200 text-emerald-800 rounded-full shadow-sm animate-in zoom-in">
-                {cycles} Cycles
+              <div className="absolute -top-5 left-1/2 -translate-x-1/2 flex items-center gap-1.5 px-5 py-1.5 bg-[#0D4433] text-white rounded-full shadow-xl border-[3px] border-emerald-50 animate-bounce">
+                <span className="text-sm font-black">{cycles}</span>
+                <span className="text-[10px] uppercase tracking-widest font-bold text-emerald-200">{t('ibadah.cycles', { defaultValue: 'Cycles' })}</span>
               </div>
             )}
             <span className="text-7xl font-black text-[#0D4433]">{count}</span>

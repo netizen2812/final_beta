@@ -142,7 +142,7 @@ const ProphetsFamilyTree: React.FC = () => {
                                         {t('home.prophets.divineTrials')}
                                     </h4>
                                     <div className="flex flex-wrap gap-3">
-                                        {selectedProphet.trials?.map((trial, i) => (
+                                        {((t(`prophets.${selectedProphet.id}.trials`, { returnObjects: true }) as string[]) || selectedProphet.trials || []).map((trial: string, i: number) => (
                                             <span key={i} className="px-6 py-3 bg-white border border-emerald-50 rounded-2xl text-[11px] font-bold text-emerald-900 shadow-sm">
                                                 {trial}
                                             </span>
@@ -156,7 +156,7 @@ const ProphetsFamilyTree: React.FC = () => {
                                         {t('home.prophets.propheticLessons')}
                                     </h4>
                                     <ul className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                        {selectedProphet.lessons?.map((lesson, i) => (
+                                        {((t(`prophets.${selectedProphet.id}.lessons`, { returnObjects: true }) as string[]) || selectedProphet.lessons || []).map((lesson: string, i: number) => (
                                             <li key={i} className="flex items-start gap-4 p-5 bg-emerald-50/30 rounded-3xl text-sm text-emerald-900 font-medium border border-emerald-100/50">
                                                 <div className="w-2 h-2 rounded-full bg-emerald-500 mt-1.5 shrink-0" />
                                                 {lesson}
@@ -171,7 +171,7 @@ const ProphetsFamilyTree: React.FC = () => {
                                         {t('home.prophets.quranicReferences')}
                                     </h4>
                                     <div className="space-y-3">
-                                        {selectedProphet.references?.map((ref, i) => (
+                                        {((t(`prophets.${selectedProphet.id}.references`, { returnObjects: true }) as string[]) || selectedProphet.references || []).map((ref: string, i: number) => (
                                             <div key={i} className="p-6 bg-[#0D4433] rounded-[2rem] text-[11px] font-black text-emerald-100 tracking-[0.2em] shadow-xl hover:scale-[1.02] transition-transform cursor-default">
                                                 {ref}
                                             </div>

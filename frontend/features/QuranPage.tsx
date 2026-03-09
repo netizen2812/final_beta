@@ -583,10 +583,16 @@ const QuranPage: React.FC<QuranPageProps> = ({
                 </div>
                 <div className="space-y-6">
                   <h3 className="text-3xl font-serif font-bold text-[#0D4433]">{t('quran.khatmProgress')}</h3>
-                  <p className="text-gray-500 font-medium leading-relaxed">{t('quran.khatmDesc')}</p>
-                  <div className="flex gap-4">
-                    <button className="px-8 py-3 bg-[#0D4433] text-white rounded-full text-[10px] font-black uppercase tracking-widest shadow-lg">{t('quran.viewDetailedLog')}</button>
-                  </div>
+                  <p className="text-gray-500 font-medium leading-relaxed">
+                    {stats.khatmPercentage === 0
+                      ? t('quran.khatmDescStart', { defaultValue: 'You have just begun your beautiful journey with the Quran.' })
+                      : stats.khatmPercentage < 50
+                        ? t('quran.khatmDescEarly', { defaultValue: 'Every letter you read brings a reward. Keep going!' })
+                        : stats.khatmPercentage < 100
+                          ? t('quran.khatmDescLate', { defaultValue: 'You are making amazing progress! Consistent daily reading helps.' })
+                          : t('quran.khatmDescDone', { defaultValue: 'Alhamdulillah! You have completed a full Khatm.' })
+                    }
+                  </p>
                 </div>
               </div>
             </div>

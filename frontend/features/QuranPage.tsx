@@ -29,6 +29,7 @@ import {
 } from 'lucide-react';
 import { PieChart, Pie, Cell, ResponsiveContainer } from 'recharts';
 import { Analytics } from '../utils/analytics';
+import { quranTracker } from '../utils/quranProgressTracker';
 import { useTranslation } from 'react-i18next';
 
 interface Surah {
@@ -130,9 +131,12 @@ const QuranPage: React.FC<QuranPageProps> = ({
 
   // Student: report position when surah/ayah changes (ayah click, next/prev, surah switch). Parent throttles.
   useEffect(() => {
-    if (!onPositionChange || readOnly || !selectedSurah || !surahContent.length) return;
+    if (!selectedSurah || !surahContent.length) return;
     const ayah = surahContent[currentAyahIndex];
-    if (ayah) onPositionChange(selectedSurah.number, ayah.numberInSurah);
+    if (ayah) {
+      quranTracker.markAyahRead(selectedSurah.number, ayah.numberInSurah);
+      if (onPositionChange && !readOnly) onPositionChange(selectedSurah.number, ayah.numberInSurah);
+    }
   }, [onPositionChange, readOnly, selectedSurah, currentAyahIndex, surahContent]);
 
   // Student: on scroll stop (throttle 500ms), find visible ayah and report position
@@ -165,7 +169,10 @@ const QuranPage: React.FC<QuranPageProps> = ({
           }
         });
         const ayah = surahContent[bestIdx];
-        if (ayah) onPositionChange(selectedSurah.number, ayah.numberInSurah);
+        if (ayah) {
+          quranTracker.markAyahRead(selectedSurah.number, ayah.numberInSurah);
+          if (onPositionChange && !readOnly) onPositionChange(selectedSurah.number, ayah.numberInSurah);
+        }
       }, 500);
     };
     scrollParent.addEventListener('scroll', onScroll, { passive: true });
@@ -186,6 +193,19 @@ const QuranPage: React.FC<QuranPageProps> = ({
       else if (selectedJuz) fetchJuzContent(selectedJuz);
     }
   }, [i18n.language]);
+
+  // Track the actual reading time of the user
+  useEffect(() => {
+    if (view === 'reading' && !readOnly) {
+      quranTracker.startTimeTracking();
+    } else {
+      quranTracker.stopTimeTracking();
+    }
+
+    return () => {
+      quranTracker.stopTimeTracking();
+    };
+  }, [view, readOnly]);
 
   const fetchSurahs = async () => {
     try {
@@ -341,11 +361,10 @@ const QuranPage: React.FC<QuranPageProps> = ({
     s.name.includes(searchQuery)
   );
 
-  const lastJuz = parseInt(localStorage.getItem('lastReadJuz') || '0', 10);
-  const khatmPercentage = Math.round((lastJuz / 30) * 100) || 0;
+  const stats = quranTracker.getStats();
   const PROGRESS_DATA = [
-    { name: 'Completed', value: khatmPercentage },
-    { name: 'Remaining', value: 100 - khatmPercentage },
+    { name: 'Completed', value: stats.khatmPercentage },
+    { name: 'Remaining', value: 100 - stats.khatmPercentage },
   ];
   const COLORS = ['#10b981', '#f3f4f6'];
 
@@ -519,17 +538,17 @@ const QuranPage: React.FC<QuranPageProps> = ({
               <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                 <div className="bg-white p-8 rounded-[3rem] border border-emerald-50 shadow-sm text-center space-y-3">
                   <Flame size={32} className="mx-auto text-orange-500" fill="currentColor" />
-                  <div className="text-4xl font-black text-[#0D4433]">{lastJuz > 0 ? '1' : '0'}</div>
+                  <div className="text-4xl font-black text-[#0D4433]">{stats.streak}</div>
                   <p className="text-[10px] font-black uppercase text-gray-400 tracking-widest">{t('quran.dayStreak')}</p>
                 </div>
                 <div className="bg-white p-8 rounded-[3rem] border border-emerald-50 shadow-sm text-center space-y-3">
                   <Clock size={32} className="mx-auto text-blue-500" />
-                  <div className="text-4xl font-black text-[#0D4433]">{lastJuz * 15}</div>
+                  <div className="text-4xl font-black text-[#0D4433]">{stats.minutesRead}</div>
                   <p className="text-[10px] font-black uppercase text-gray-400 tracking-widest">{t('quran.minutesRead')}</p>
                 </div>
                 <div className="bg-white p-8 rounded-[3rem] border border-emerald-50 shadow-sm text-center space-y-3">
                   <Target size={32} className="mx-auto text-emerald-500" />
-                  <div className="text-4xl font-black text-[#0D4433]">{khatmPercentage}%</div>
+                  <div className="text-4xl font-black text-[#0D4433]">{stats.khatmPercentage}%</div>
                   <p className="text-[10px] font-black uppercase text-gray-400 tracking-widest">{t('quran.yearGoal')}</p>
                 </div>
               </div>

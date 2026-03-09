@@ -1,3 +1,5 @@
+import axios from 'axios';
+
 interface QuranProgressData {
     readAyahs: string[]; // Set of "SurahNum:AyahNum"
     activeSeconds: number;
@@ -7,9 +9,11 @@ interface QuranProgressData {
 
 class QuranProgressTracker {
     private readonly STORAGE_KEY = 'faithtech_quran_progress';
+    private readonly API_BASE = (import.meta.env.VITE_API_URL || "http://localhost:5000") + "/api/ibadah/quran";
     private data: QuranProgressData;
     private timerInterval: ReturnType<typeof setInterval> | null = null;
     private isTrackingTime = false;
+    private isSyncing = false;
 
     constructor() {
         this.data = this.loadData();
@@ -114,6 +118,66 @@ class QuranProgressTracker {
             minutesRead: Math.floor(this.data.activeSeconds / 60),
             streak: this.data.streak
         };
+    }
+
+    // --- Server Sync Methods ---
+
+    public async fetchFromServer(getToken: () => Promise<string | null>) {
+        try {
+            const token = await getToken();
+            if (!token) return;
+
+            const res = await axios.get(`${this.API_BASE}/progress`, {
+                headers: { Authorization: `Bearer ${token}` }
+            });
+
+            if (res.data?.progress) {
+                const serverData = res.data.progress;
+
+                // Merge local data with server data
+                const mergedAyahs = new Set([...this.data.readAyahs, ...(serverData.readAyahs || [])]);
+                this.data.readAyahs = Array.from(mergedAyahs);
+
+                this.data.activeSeconds = Math.max(this.data.activeSeconds, serverData.activeSeconds || 0);
+                this.data.streak = Math.max(this.data.streak, serverData.streak || 0);
+
+                // Keep the most recent date
+                if (serverData.lastReadDate && (!this.data.lastReadDate || serverData.lastReadDate > this.data.lastReadDate)) {
+                    this.data.lastReadDate = serverData.lastReadDate;
+                }
+
+                this.saveData();
+            }
+        } catch (error) {
+            console.error("Failed to fetch Quran progress from server", error);
+        }
+    }
+
+    public async syncWithServer(getToken: () => Promise<string | null>) {
+        if (this.isSyncing) return;
+
+        try {
+            this.isSyncing = true;
+            const token = await getToken();
+            if (!token) return;
+
+            // Only send if we have some data
+            if (this.data.readAyahs.length === 0 && this.data.activeSeconds === 0) return;
+
+            await axios.post(`${this.API_BASE}/sync-progress`, {
+                readAyahs: this.data.readAyahs,
+                activeSeconds: this.data.activeSeconds,
+                streak: this.data.streak,
+                lastReadDate: this.data.lastReadDate
+            }, {
+                headers: { Authorization: `Bearer ${token}` }
+            });
+
+        } catch (error) {
+            console.error("Failed to sync Quran progress to server", error);
+        } finally {
+            this.isSyncing = false;
+        }
     }
 }
 

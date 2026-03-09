@@ -18,6 +18,7 @@ import conversationRoutes from "./routes/conversationRoutes.js";
 import adminRoutes from "./routes/adminRoutes.js";
 import accessRoutes from "./routes/accessRoutes.js";
 import ibadahRoutes from "./routes/ibadahRoutes.js";
+import ibadahQuranRoutes from "./routes/ibadahQuranRoutes.js";
 import analyticsRoutes from "./routes/analyticsRoutes.js";
 
 // Connect to database
@@ -98,6 +99,7 @@ app.use("/api/tarbiyah", tarbiyahRoutes);
 app.use("/api/admin", adminRoutes);
 app.use("/api/conversations", conversationRoutes);
 app.use("/api/live/access", accessRoutes);
+app.use("/api/ibadah/quran", ibadahQuranRoutes);
 app.use("/api/ibadah", ibadahRoutes);
 app.use("/api/analytics", analyticsRoutes);
 

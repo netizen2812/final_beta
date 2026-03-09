@@ -31,6 +31,7 @@ import { PieChart, Pie, Cell, ResponsiveContainer } from 'recharts';
 import { Analytics } from '../utils/analytics';
 import { quranTracker } from '../utils/quranProgressTracker';
 import { useTranslation } from 'react-i18next';
+import { useAuth } from '@clerk/clerk-react';
 
 interface Surah {
   number: number;
@@ -87,6 +88,8 @@ const QuranPage: React.FC<QuranPageProps> = ({
   readOnly
 }) => {
   const { t, i18n } = useTranslation();
+  const { getToken, isSignedIn } = useAuth();
+
   const surahDisplayName = (s: Surah | { number: number; englishName: string; name?: string }) =>
     t(`quran.surahNames.${s.number}`, { defaultValue: s.englishName });
   const [surahs, setSurahs] = useState<Surah[]>([]);
@@ -106,6 +109,7 @@ const QuranPage: React.FC<QuranPageProps> = ({
   const [currentAyahIndex, setCurrentAyahIndex] = useState(0);
   const [playbackSpeed, setPlaybackSpeed] = useState(1);
   const audioRef = useRef<HTMLAudioElement | null>(null);
+  const [statsKey, setStatsKey] = useState(0); // Used to force progress re-render on sync
 
   // Sync with prop updates (for Live Session) — scholar view: autoscroll to student position
   useEffect(() => {
@@ -184,7 +188,13 @@ const QuranPage: React.FC<QuranPageProps> = ({
 
   useEffect(() => {
     fetchSurahs();
-  }, []);
+    if (isSignedIn) {
+      quranTracker.fetchFromServer(getToken).then(() => {
+        // Force a re-render to update stats if new backend data arrived
+        setStatsKey(prev => prev + 1);
+      });
+    }
+  }, [isSignedIn]);
 
   // Refetch current surah/juz content when language changes
   useEffect(() => {
@@ -200,12 +210,18 @@ const QuranPage: React.FC<QuranPageProps> = ({
       quranTracker.startTimeTracking();
     } else {
       quranTracker.stopTimeTracking();
+      if (isSignedIn) {
+        quranTracker.syncWithServer(getToken);
+      }
     }
 
     return () => {
       quranTracker.stopTimeTracking();
+      if (isSignedIn) {
+        quranTracker.syncWithServer(getToken);
+      }
     };
-  }, [view, readOnly]);
+  }, [view, readOnly, isSignedIn]);
 
   const fetchSurahs = async () => {
     try {

@@ -89,7 +89,7 @@ const QuranPage: React.FC<QuranPageProps> = ({
   const surahDisplayName = (s: Surah | { number: number; englishName: string; name?: string }) =>
     t(`quran.surahNames.${s.number}`, { defaultValue: s.englishName });
   const [surahs, setSurahs] = useState<Surah[]>([]);
-  const [activeTab, setActiveTab] = useState<'read' | 'learn' | 'progress'>('read');
+  const [activeTab, setActiveTab] = useState<'read' | 'progress'>('read');
   const [viewMode, setViewMode] = useState<'surah' | 'juz'>('surah');
   const [view, setView] = useState<'home' | 'reading'>('home');
   const [selectedSurah, setSelectedSurah] = useState<Surah | null>(null);
@@ -341,9 +341,11 @@ const QuranPage: React.FC<QuranPageProps> = ({
     s.name.includes(searchQuery)
   );
 
+  const lastJuz = parseInt(localStorage.getItem('lastReadJuz') || '0', 10);
+  const khatmPercentage = Math.round((lastJuz / 30) * 100) || 0;
   const PROGRESS_DATA = [
-    { name: 'Completed', value: 45 },
-    { name: 'Remaining', value: 55 },
+    { name: 'Completed', value: khatmPercentage },
+    { name: 'Remaining', value: 100 - khatmPercentage },
   ];
   const COLORS = ['#10b981', '#f3f4f6'];
 
@@ -382,13 +384,13 @@ const QuranPage: React.FC<QuranPageProps> = ({
         <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 pt-8 sm:pt-10 lg:pt-12 space-y-8 sm:space-y-12">
           {!readOnly && (
             <div className="flex bg-gray-100 p-1.5 rounded-3xl w-full max-w-md mx-auto">
-              {['read', 'learn', 'progress'].map(tab => (
+              {['read', 'progress'].map(tab => (
                 <button
                   key={tab}
                   onClick={() => setActiveTab(tab as any)}
                   className={`flex-1 py-3 rounded-2xl text-[10px] font-black uppercase tracking-[0.2em] transition-all ${activeTab === tab ? 'bg-white text-[#0D4433] shadow-md' : 'text-gray-400 hover:text-gray-600'}`}
                 >
-                  {tab === 'read' ? t('quran.read') : tab === 'learn' ? t('quran.learn') : t('quran.progress')}
+                  {tab === 'read' ? t('quran.read') : t('quran.progress')}
                 </button>
               ))}
             </div>
@@ -510,61 +512,24 @@ const QuranPage: React.FC<QuranPageProps> = ({
             </div>
           )}
 
-          {activeTab === 'learn' && (
-            <div className="space-y-10 animate-in slide-in-from-right-8 duration-500 pb-20">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-                <div className="bg-emerald-50 p-10 rounded-[3.5rem] border border-emerald-100 space-y-6 group cursor-pointer hover:bg-emerald-100 transition-all">
-                  <div className="w-16 h-16 bg-white rounded-3xl flex items-center justify-center text-emerald-600 shadow-sm group-hover:scale-110 transition-transform"><Book size={32} /></div>
-                  <h3 className="text-2xl font-serif font-bold text-[#0D4433]">{t('quran.learnTajweed')}</h3>
-                  <p className="text-sm text-emerald-800/60 leading-relaxed font-medium">{t('quran.tajweedDesc')}</p>
-                  <button className="px-6 py-2.5 bg-[#0D4433] text-white rounded-full text-[10px] font-black uppercase tracking-widest">{t('quran.startModule')}</button>
-                </div>
-                <div className="bg-amber-50 p-10 rounded-[3.5rem] border border-amber-100 space-y-6 group cursor-pointer hover:bg-amber-100 transition-all">
-                  <div className="w-16 h-16 bg-white rounded-3xl flex items-center justify-center text-amber-600 shadow-sm group-hover:scale-110 transition-transform"><Target size={32} /></div>
-                  <h3 className="text-2xl font-serif font-bold text-[#854d0e]">{t('quran.memorisation')}</h3>
-                  <p className="text-sm text-amber-800/60 leading-relaxed font-medium">{t('quran.memorisationDesc')}</p>
-                  <button className="px-6 py-2.5 bg-[#854d0e] text-white rounded-full text-[10px] font-black uppercase tracking-widest">{t('quran.setGoals')}</button>
-                </div>
-              </div>
-              <div className="bg-white p-10 rounded-[3.5rem] border border-emerald-50 shadow-lg">
-                <h4 className="text-xs font-black uppercase tracking-[0.3em] text-gray-300 mb-8 ml-4">{t('quran.featuredArticles')}</h4>
-                <div className="space-y-6">
-                  {[
-                    { title: t('quran.virtuesKahf'), desc: t('quran.virtuesKahfDesc') },
-                    { title: t('quran.heartOfQuran'), desc: t('quran.heartOfQuranDesc') }
-                  ].map((art, i) => (
-                    <div key={i} className="flex gap-6 items-center p-4 hover:bg-emerald-50 rounded-3xl transition-colors cursor-pointer group">
-                      <div className="w-20 h-20 bg-gray-100 rounded-2xl overflow-hidden shrink-0">
-                        <img src={`https://picsum.photos/seed/art${i}/200/200`} className="w-full h-full object-cover" />
-                      </div>
-                      <div className="flex-1">
-                        <h5 className="font-bold text-gray-900 group-hover:text-[#0D4433] transition-colors">{art.title}</h5>
-                        <p className="text-xs text-gray-400 font-medium">{art.desc}</p>
-                      </div>
-                      <ChevronRight size={16} className="text-gray-300" />
-                    </div>
-                  ))}
-                </div>
-              </div>
-            </div>
-          )}
+
 
           {activeTab === 'progress' && (
             <div className="space-y-12 animate-in slide-in-from-right-8 duration-500 pb-20">
               <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                 <div className="bg-white p-8 rounded-[3rem] border border-emerald-50 shadow-sm text-center space-y-3">
                   <Flame size={32} className="mx-auto text-orange-500" fill="currentColor" />
-                  <div className="text-4xl font-black text-[#0D4433]">12</div>
+                  <div className="text-4xl font-black text-[#0D4433]">{lastJuz > 0 ? '1' : '0'}</div>
                   <p className="text-[10px] font-black uppercase text-gray-400 tracking-widest">{t('quran.dayStreak')}</p>
                 </div>
                 <div className="bg-white p-8 rounded-[3rem] border border-emerald-50 shadow-sm text-center space-y-3">
                   <Clock size={32} className="mx-auto text-blue-500" />
-                  <div className="text-4xl font-black text-[#0D4433]">340</div>
+                  <div className="text-4xl font-black text-[#0D4433]">{lastJuz * 15}</div>
                   <p className="text-[10px] font-black uppercase text-gray-400 tracking-widest">{t('quran.minutesRead')}</p>
                 </div>
                 <div className="bg-white p-8 rounded-[3rem] border border-emerald-50 shadow-sm text-center space-y-3">
                   <Target size={32} className="mx-auto text-emerald-500" />
-                  <div className="text-4xl font-black text-[#0D4433]">45%</div>
+                  <div className="text-4xl font-black text-[#0D4433]">{khatmPercentage}%</div>
                   <p className="text-[10px] font-black uppercase text-gray-400 tracking-widest">{t('quran.yearGoal')}</p>
                 </div>
               </div>

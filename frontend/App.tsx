@@ -11,6 +11,9 @@ import WelcomeScreen from "./features/WelcomeScreen";
 import AdminDashboard from "./features/AdminDashboard";
 import AdminLiveDashboard from "./features/AdminLiveDashboard";
 import HomeHub from "./features/home/HomeHub";
+import Privacy from "./pages/Privacy";
+import Terms from "./pages/Terms";
+import Footer from "./components/Footer";
 import { User, Settings, Radio, Home, Globe } from "lucide-react";
 
 import {
@@ -200,6 +203,26 @@ const App: React.FC = () => {
 
   const currentLang = SUPPORTED_LANGUAGES.find(l => l.code === i18n.language) || SUPPORTED_LANGUAGES[0];
 
+  const path = window.location.pathname;
+
+  if (path === "/privacy") {
+    return (
+      <div className="flex flex-col min-h-screen">
+        <Privacy />
+        <Footer />
+      </div>
+    );
+  }
+
+  if (path === "/terms") {
+    return (
+      <div className="flex flex-col min-h-screen">
+        <Terms />
+        <Footer />
+      </div>
+    );
+  }
+
   return (
     <>
       {/* 🎥 WELCOME VIDEO OVERLAY */}
@@ -207,19 +230,22 @@ const App: React.FC = () => {
 
       {/* 🔓 LOGGED OUT SCREEN */}
       <SignedOut>
-        <div className="min-h-screen flex items-center justify-center bg-white px-4">
-          <div className="w-full max-w-md">
-            <SignIn
-              appearance={{
-                variables: {
-                  colorPrimary: "#052e16",
-                },
-                elements: {
-                  card: "shadow-2xl rounded-2xl",
-                },
-              }}
-            />
+        <div className="min-h-screen flex flex-col bg-white">
+          <div className="flex-1 flex items-center justify-center px-4">
+            <div className="w-full max-w-md">
+              <SignIn
+                appearance={{
+                  variables: {
+                    colorPrimary: "#052e16",
+                  },
+                  elements: {
+                    card: "shadow-2xl rounded-2xl",
+                  },
+                }}
+              />
+            </div>
           </div>
+          <Footer />
         </div>
       </SignedOut>
 
@@ -402,8 +428,11 @@ const App: React.FC = () => {
               className={`flex-1 overflow-y-auto pt-16 pb-24 ${isDesktop ? "ml-64" : ""
                 }`}
             >
-              <div className="w-full h-full">
-                {renderContent()}
+              <div className="w-full min-h-full flex flex-col">
+                <div className="flex-1">
+                  {renderContent()}
+                </div>
+                <Footer />
               </div>
             </main>
 

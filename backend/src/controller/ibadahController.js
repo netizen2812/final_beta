@@ -1,4 +1,6 @@
 import fetch from "node-fetch";
+import QuranProgress from "../models/QuranProgress.js";
+import User from "../models/User.js";
 
 // Simple in-memory cache to massively reduce frontend loading time
 const cache = {
@@ -342,5 +344,49 @@ export const getMetalPrices = async (req, res) => {
     } catch (error) {
         console.error("Metal Prices API error:", error);
         res.json({ gold: 7200, silver: 85, isLive: false });
+    }
+};
+
+export const getQuranProgress = async (req, res) => {
+    try {
+        const clerkId = req.auth.userId;
+        const user = await User.findOne({ clerkId });
+        if (!user) {
+            return res.status(404).json({ error: "User not found" });
+        }
+
+        const progress = await QuranProgress.findOne({ userId: user._id });
+        res.json({ progress: progress || null });
+    } catch (error) {
+        console.error("Error fetching Quran progress:", error);
+        res.status(500).json({ error: "Internal Server Error" });
+    }
+};
+
+export const syncQuranProgress = async (req, res) => {
+    try {
+        const clerkId = req.auth.userId;
+        const { readAyahs, activeSeconds, streak, lastReadDate } = req.body;
+
+        const user = await User.findOne({ clerkId });
+        if (!user) {
+            return res.status(404).json({ error: "User not found" });
+        }
+
+        const progress = await QuranProgress.findOneAndUpdate(
+            { userId: user._id },
+            {
+                readAyahs,
+                activeSeconds,
+                streak,
+                lastReadDate,
+            },
+            { upsert: true, new: true }
+        );
+
+        res.json({ success: true, progress });
+    } catch (error) {
+        console.error("Error syncing Quran progress:", error);
+        res.status(500).json({ error: "Internal Server Error" });
     }
 };

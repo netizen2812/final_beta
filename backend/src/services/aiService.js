@@ -108,7 +108,7 @@ All explanations, guidance, and practical advice must be in ${LANGUAGE_MAP[langu
           },
           ...history.map(msg => ({
             role: msg.role === "model" ? "assistant" : "user",
-            content: msg.content
+            content: msg.content || msg.text || ""
           })),
           {
             role: "user",

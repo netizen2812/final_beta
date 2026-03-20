@@ -19,7 +19,7 @@ const LANGUAGE_MAP = {
   'bn': 'Bengali'
 };
 
-export async function generateResponse(prompt, userId = "anonymous", madhab = null, context = "", language = "en") {
+export async function generateResponse(prompt, userId = "anonymous", madhab = null, context = "", language = "en", history = []) {
   try {
     // SMART MADHAB LOGIC
     let madhabInstruction = "";
@@ -82,8 +82,11 @@ ${madhabInstruction}
 
 ${context ? "\n### 5. RETRIEVED CONTEXT (For Reference Only)\n" + context : ""}
 
+### ${context ? '6' : '5'}. ENGAGEMENT (MANDATORY)
+At the end of your response, you MUST ask ONE brief, natural follow-up question related to the topic to encourage the user to continue the conversation. Do not be overly repetitive.
+
 ${language && language !== 'en' ? `
-### ${context ? '6' : '5'}. LANGUAGE (MANDATORY)
+### ${context ? '7' : '6'}. LANGUAGE (MANDATORY)
 You MUST respond entirely in **${LANGUAGE_MAP[language] || 'English'}**.
 Do NOT translate:
 - Quranic Arabic text (keep original Arabic)
@@ -103,6 +106,10 @@ All explanations, guidance, and practical advice must be in ${LANGUAGE_MAP[langu
             role: "system",
             content: systemPrompt
           },
+          ...history.map(msg => ({
+            role: msg.role === "model" ? "assistant" : "user",
+            content: msg.content
+          })),
           {
             role: "user",
             content: prompt

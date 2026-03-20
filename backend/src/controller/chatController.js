@@ -90,7 +90,10 @@ export const chatWithImam = async (req, res) => {
       console.warn("RAG Context retrieval failed:", ragErr);
     }
 
-    const reply = await generateResponse(prompt, clerkId, madhab, context, userLang);
+    // Keep only the last 4 messages (2 interactions) to save inference cost
+    const recentHistory = Array.isArray(history) ? history.slice(-4) : [];
+
+    const reply = await generateResponse(prompt, clerkId, madhab, context, userLang, recentHistory);
 
     // 5. Store in cache
     try {

@@ -381,6 +381,23 @@ const LiveClassRoom: React.FC = () => {
     }
   }, [userRole, currentSession, accessStatus]);
 
+  // CLASSROOM HOOKS (Must be before any early returns)
+  const fetchLeaderboard = useCallback(async (batchId: string) => {
+    try {
+      const token = await getToken();
+      const res = await axios.get(`${API_BASE}/api/live/batch/${batchId}/leaderboard`, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      setLeaderboard(res.data.leaderboard || []);
+    } catch(e) { console.error("Leaderboard fetch failed", e); }
+  }, [getToken]);
+
+  useEffect(() => {
+    if (showLeaderboard && currentSession?.batchId && !leaderboard) {
+      fetchLeaderboard(currentSession.batchId);
+    }
+  }, [showLeaderboard, currentSession?.batchId, leaderboard, fetchLeaderboard]);
+
   // RENDER: LOCKED STATE
   if (userRole === 'parent' && accessStatus && !accessStatus.hasAccess) {
     return (
@@ -460,21 +477,6 @@ const LiveClassRoom: React.FC = () => {
   };
 
   // CLASSROOM HANDLERS
-  const fetchLeaderboard = useCallback(async (batchId: string) => {
-    try {
-      const token = await getToken();
-      const res = await axios.get(`${API_BASE}/api/live/batch/${batchId}/leaderboard`, {
-        headers: { Authorization: `Bearer ${token}` }
-      });
-      setLeaderboard(res.data.leaderboard || []);
-    } catch(e) { console.error("Leaderboard fetch failed", e); }
-  }, [getToken]);
-
-  useEffect(() => {
-    if (showLeaderboard && currentSession?.batchId && !leaderboard) {
-      fetchLeaderboard(currentSession.batchId);
-    }
-  }, [showLeaderboard, currentSession?.batchId, leaderboard, fetchLeaderboard]);
 
   const handleEndClass = async (batchId: string) => {
      try {

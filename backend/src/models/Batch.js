@@ -37,7 +37,15 @@ const batchSchema = new mongoose.Schema({
         currentAyah: Number,  // Enforce Number
         lastSeen: { type: Date, default: Date.now },
         isActive: { type: Boolean, default: true }
-    }]
+    }],
+    activeChildId: {
+        type: String, // Tracks whose turn it is
+        default: null
+    },
+    activeSessionId: {
+        type: String, // Tracks the current active class session for grouping scores
+        default: null
+    }
 }, { timestamps: true });
 
 const Batch = mongoose.model("Batch", batchSchema);

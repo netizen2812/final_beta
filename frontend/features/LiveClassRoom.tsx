@@ -9,7 +9,8 @@ import {
   BookOpen,
   LayoutDashboard,
   WifiOff,
-  Wifi
+  Wifi,
+  Star, Moon, Cloud, Sprout, Leaf, Sun
 } from 'lucide-react';
 import { useChildContext } from '../contexts/ChildContext';
 import QuranPage from './QuranPage';
@@ -18,6 +19,59 @@ import { useAuth, useUser } from '@clerk/clerk-react';
 import { useTranslation } from 'react-i18next';
 
 const POSITION_THROTTLE_MS = 500;
+
+const MovingBackground = React.memo(() => {
+  const particles = React.useMemo(() => {
+    return [...Array(40)].map((_, i) => {
+      const icons = [Moon, Star, BookOpen, Cloud, Sprout, Leaf, Sun];
+      const Icon = icons[i % icons.length];
+      const left = Math.random() * 100;
+      const duration = 60 + Math.random() * 60;
+      const delay = Math.random() * 60;
+      const size = 16 + Math.random() * 32;
+      const iconColors = ['#059669', '#34d399', '#fcd34d', '#a7f3d0', '#fbbf24'];
+      const color = iconColors[Math.floor(Math.random() * iconColors.length)];
+      return { Icon, left, duration, delay, size, color };
+    });
+  }, []);
+
+  return (
+    <div className="fixed inset-0 overflow-hidden pointer-events-none z-[-1] bg-[#f8fafc]">
+      <style>{`
+        @keyframes float-calm {
+          0% { transform: translateY(110vh) rotate(0deg); opacity: 0; }
+          20% { opacity: 0.2; }
+          80% { opacity: 0.2; }
+          100% { transform: translateY(-20vh) rotate(360deg); opacity: 0; }
+        }
+        .bg-icon-calm {
+          position: absolute;
+          opacity: 0;
+          animation: float-calm linear infinite;
+          will-change: transform;
+        }
+      `}</style>
+      
+      <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,transparent_0%,rgba(5,46,34,0.03)_100%)]"></div>
+
+      {particles.map((p, i) => (
+        <div
+          key={i}
+          className="bg-icon-calm"
+          style={{
+            left: `${p.left}%`,
+            animationDuration: `${p.duration}s`,
+            animationDelay: `-${p.delay}s`,
+            fontSize: p.size,
+            color: p.color
+          }}
+        >
+          <p.Icon size={p.size} strokeWidth={1.5} />
+        </div>
+      ))}
+    </div>
+  );
+});
 
 // Types
 // Types
@@ -60,6 +114,16 @@ const LiveClassRoom: React.FC = () => {
   const [currentSession, setCurrentSession] = useState<LiveSession | null>(null);
 
   const [accessStatus, setAccessStatus] = useState<{ hasAccess: boolean; pendingRequest: boolean } | null>(null);
+
+  // Classroom State (Turn & Session tracking)
+  interface BatchState {
+    activeChildId: string | null;
+    activeSessionId: string | null;
+    status: string;
+  }
+  const [batchState, setBatchState] = useState<BatchState | null>(null);
+  const [leaderboard, setLeaderboard] = useState<any[] | null>(null);
+  const [showLeaderboard, setShowLeaderboard] = useState(false);
 
   // Determine Role & Check Access
   useEffect(() => {
@@ -108,6 +172,8 @@ const LiveClassRoom: React.FC = () => {
         const token = await getToken();
         let allActiveStudents: LiveSession[] = [];
 
+        let firstRawData: any = null;
+
         // Parallelize for better performance
         const promises = scholarBatches.map(async (batch) => {
           if (!batch) return [];
@@ -119,6 +185,8 @@ const LiveClassRoom: React.FC = () => {
               headers: { Authorization: `Bearer ${token}` }
             });
             const rawData = res.data;
+            if (!firstRawData && rawData && !Array.isArray(rawData)) firstRawData = rawData;
+            
             const participants = Array.isArray(rawData) ? rawData : (rawData.activeParticipants || []);
 
             return participants.filter((p: any) => p && p.isActive).map((p: any) => ({
@@ -143,8 +211,16 @@ const LiveClassRoom: React.FC = () => {
         const results = await Promise.all(promises);
         allActiveStudents = results.flat();
 
-        // Compare with previous to avoid unnecessary re-renders if deep equal?
-        // For now, React state setter is fine.
+        // UPDATE CLASS STATE FOR SCHOLAR
+        if (firstRawData) {
+          setBatchState({
+            activeChildId: firstRawData.activeChildId || null,
+            activeSessionId: firstRawData.activeSessionId || null,
+            status: firstRawData.status || 'active'
+          });
+          if (firstRawData.status === 'ended' && !showLeaderboard) setShowLeaderboard(true);
+        }
+
         setActiveSessions(allActiveStudents);
 
       } catch (err) {
@@ -168,6 +244,18 @@ const LiveClassRoom: React.FC = () => {
     }
   }, [userRole, currentSession?.childId, currentSession?.batchId, activeSessions]);
 
+  // SCHOLAR: Auto-switch view to active reciting student
+  useEffect(() => {
+    if (userRole === 'scholar' && batchState?.activeChildId && currentSession?.batchId) {
+      if (currentSession.childId !== batchState.activeChildId) {
+        const nextActive = activeSessions.find(s => s.childId === batchState.activeChildId && s.batchId === currentSession.batchId);
+        if (nextActive) {
+          setCurrentSession(nextActive);
+        }
+      }
+    }
+  }, [userRole, batchState?.activeChildId, activeSessions, currentSession]);
+
   // STUDENT: HEARTBEAT & SYNC
   useEffect(() => {
     if (!currentSession?.batchId || userRole === 'scholar') return;
@@ -188,6 +276,34 @@ const LiveClassRoom: React.FC = () => {
 
     return () => clearInterval(interval);
   }, [currentSession, userRole, getToken]);
+
+  // STUDENT: CLASSROOM STATE POLLING
+  useEffect(() => {
+    if (!currentSession?.batchId || userRole === 'scholar') return;
+    
+    const fetchState = async () => {
+      try {
+        const token = await getToken();
+        const res = await axios.get(`${API_BASE}/api/live/batch/${currentSession.batchId}/state`, {
+           headers: { Authorization: `Bearer ${token}` }
+        });
+        setBatchState({
+          activeChildId: res.data.activeChildId || null,
+          activeSessionId: res.data.activeSessionId || null,
+          status: res.data.status || 'active'
+        });
+
+        if (res.data.status === 'ended' && !showLeaderboard) {
+          setShowLeaderboard(true);
+        }
+      } catch(e) {}
+    };
+
+    fetchState();
+    const interval = setInterval(fetchState, 3000); // 3s poll for state sync
+    return () => clearInterval(interval);
+  }, [currentSession?.batchId, userRole, getToken, showLeaderboard]);
+
 
   const checkAccess = async () => {
     try {
@@ -343,6 +459,57 @@ const LiveClassRoom: React.FC = () => {
     }
   };
 
+  // CLASSROOM HANDLERS
+  const fetchLeaderboard = useCallback(async (batchId: string) => {
+    try {
+      const token = await getToken();
+      const res = await axios.get(`${API_BASE}/api/live/batch/${batchId}/leaderboard`, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      setLeaderboard(res.data.leaderboard || []);
+    } catch(e) { console.error("Leaderboard fetch failed", e); }
+  }, [getToken]);
+
+  useEffect(() => {
+    if (showLeaderboard && currentSession?.batchId && !leaderboard) {
+      fetchLeaderboard(currentSession.batchId);
+    }
+  }, [showLeaderboard, currentSession?.batchId, leaderboard, fetchLeaderboard]);
+
+  const handleEndClass = async (batchId: string) => {
+     try {
+       const token = await getToken();
+       // Use standard end logic but we trigger leaderboard manually
+       await axios.post(`${API_BASE}/api/live/${currentSession?._id}/end`, {}, { headers: { Authorization: `Bearer ${token}` } });
+       setShowLeaderboard(true);
+     } catch(e) { console.warn(e); }
+  };
+
+  const handleSetTurn = async (childId: string, batchId: string) => {
+     try {
+       const token = await getToken();
+       await axios.post(`${API_BASE}/api/live/batch/${batchId}/select-turn`, { childId }, { headers: { Authorization: `Bearer ${token}` } });
+     } catch(e) {}
+  };
+
+  const handleScoreRecitation = async (childId: string, batchId: string, score: number) => {
+     try {
+       const token = await getToken();
+       await axios.post(`${API_BASE}/api/live/batch/${batchId}/score-recitation`, { childId, score }, { headers: { Authorization: `Bearer ${token}` } });
+     } catch(e) {}
+  };
+
+  const handleScoreParticipation = async (points: number = 1) => {
+     if (!currentSession?.batchId || !activeChild) return;
+     try {
+       const token = await getToken();
+       await axios.post(`${API_BASE}/api/live/batch/${currentSession.batchId}/score-participation`, { 
+          childId: activeChild.id, points 
+       }, { headers: { Authorization: `Bearer ${token}` } });
+       alert("Response Submitted!"); // Or set a temporary success state
+     } catch(e) {}
+  };
+
 
   const handleAyahClick = async (surah: number, ayah: number) => {
     if (!currentSession) return;
@@ -363,31 +530,154 @@ const LiveClassRoom: React.FC = () => {
     }
   };
 
+  // RENDER: LEADERBOARD MODAL
+  if (showLeaderboard) {
+    return (
+      <div className="fixed inset-0 z-[2000] bg-emerald-950/90 backdrop-blur-sm flex items-center justify-center p-4 animate-in fade-in">
+        <div className="bg-white rounded-3xl max-w-md w-full p-8 shadow-2xl space-y-6">
+           <div className="text-center space-y-2">
+             <div className="w-20 h-20 bg-amber-100 rounded-full flex items-center justify-center mx-auto text-amber-500 mb-4 border-4 border-white shadow-lg">
+                <svg xmlns="http://www.w3.org/2000/svg" width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m2 4 3 12 5-6 2 6 5-6 3 12"/><path d="M22 20H2"/></svg>
+             </div>
+             <h2 className="text-3xl font-serif font-bold text-[#052e16]">{t('live.classResults', 'Class Results')}</h2>
+             <p className="text-slate-500">Great job everyone!</p>
+           </div>
+
+           <div className="space-y-3 mt-8 max-h-[400px] overflow-y-auto">
+             {leaderboard ? leaderboard.map((l, idx) => (
+                <div key={l.childId} className={`flex items-center justify-between p-4 rounded-2xl ${idx === 0 ? 'bg-gradient-to-r from-amber-400 to-amber-500 text-white shadow-lg transform scale-[1.02]' : 'bg-slate-50 text-slate-800'}`}>
+                   <div className="flex items-center gap-3">
+                      <span className={`font-black text-lg ${idx === 0 ? 'text-white' : 'text-slate-400'}`}>#{idx + 1}</span>
+                      <span className="font-bold truncate max-w-[100px]">{l.name}</span>
+                   </div>
+                   <div className="flex items-center gap-4">
+                      <div className="text-right">
+                         <div className="text-[10px] opacity-80 leading-none uppercase font-bold tracking-wider">Recite</div>
+                         <div className="font-bold">{l.recitationScore}</div>
+                      </div>
+                      <div className="text-right">
+                         <div className="text-[10px] opacity-80 leading-none uppercase font-bold tracking-wider">Engage</div>
+                         <div className="font-bold">{l.participationScore}</div>
+                      </div>
+                      <div className={`font-black text-2xl ml-2 ${idx === 0 ? 'text-emerald-950' : 'text-emerald-600'}`}>
+                         {l.total}
+                      </div>
+                   </div>
+                </div>
+             )) : (
+                <div className="text-center py-10"><Loader2 className="animate-spin mx-auto text-emerald-600" /></div>
+             )}
+           </div>
+
+           <button onClick={() => { setShowLeaderboard(false); handleExitSession(); }} className="w-full bg-[#052e16] text-white py-4 rounded-xl font-bold mt-6 hover:bg-emerald-900 transition-all">
+             Close Class
+           </button>
+        </div>
+      </div>
+    );
+  }
+
   // RENDER: ACTIVE SESSION (Quran View)
   if (currentSession) {
     const hasPosition = currentSession.currentSurah && currentSession.currentAyah;
+    const isMyTurn = userRole === 'parent' && batchState?.activeChildId === currentSession.childId;
+    const isObserving = userRole === 'parent' && batchState?.activeChildId && !isMyTurn;
 
     return (
       <div className="fixed inset-0 z-[1000] bg-white flex flex-col animate-in fade-in duration-300">
-        <div className="bg-emerald-900 text-white p-4 flex justify-between items-center shadow-lg">
+        
+        {/* Scholar Control Panel */}
+        {userRole === 'scholar' && currentSession?.batchId && (
+          <div className="bg-emerald-950 px-4 py-3 flex gap-3 overflow-x-auto shadow-md shrink-0 hide-scrollbar items-center">
+            {activeSessions.map(session => (
+              <div 
+                key={session._id} 
+                onClick={() => handleSetTurn(session.childId, session.batchId!)}
+                className={`px-4 py-2 rounded-xl flex flex-col items-center justify-center shrink-0 cursor-pointer min-w-[130px] transition-all duration-200 ${batchState?.activeChildId === session.childId ? 'bg-amber-400 text-emerald-950 border-2 border-amber-200 shadow-[0_0_15px_rgba(251,191,36,0.5)] scale-105' : 'bg-emerald-900/40 text-emerald-100 hover:bg-emerald-800'}`}
+              >
+                <div className="flex items-center gap-2 mb-1">
+                  <div className={`w-6 h-6 rounded-full flex items-center justify-center text-[10px] font-black shrink-0 ${batchState?.activeChildId === session.childId ? 'bg-emerald-950 text-amber-400' : 'bg-emerald-800 text-emerald-300'}`}>
+                    {session.childId[0].toUpperCase()}
+                  </div>
+                  <span className="font-bold text-sm truncate max-w-[80px]">{session.studentName}</span>
+                </div>
+                
+                {batchState?.activeChildId === session.childId ? (
+                   <div className="flex gap-1 mt-1 justify-center w-full" onClick={e => e.stopPropagation()}>
+                     <button title="Perfect (3)" onClick={() => handleScoreRecitation(session.childId, session.batchId!, 3)} className="w-7 h-7 bg-green-500 hover:bg-green-400 active:scale-95 rounded-md text-[11px] text-white font-black transition-transform">3</button>
+                     <button title="Minor Mistake (2)" onClick={() => handleScoreRecitation(session.childId, session.batchId!, 2)} className="w-7 h-7 bg-amber-500 hover:bg-amber-400 active:scale-95 rounded-md text-[11px] text-white font-black transition-transform">2</button>
+                     <button title="Multiple Mistakes (1)" onClick={() => handleScoreRecitation(session.childId, session.batchId!, 1)} className="w-7 h-7 bg-orange-500 hover:bg-orange-400 active:scale-95 rounded-md text-[11px] text-white font-black transition-transform">1</button>
+                     <button title="Incorrect (0)" onClick={() => handleScoreRecitation(session.childId, session.batchId!, 0)} className="w-7 h-7 bg-red-500 hover:bg-red-400 active:scale-95 rounded-md text-[11px] text-white font-black transition-transform">0</button>
+                   </div>
+                ) : (
+                   <span className="text-[9px] font-bold uppercase tracking-widest opacity-70">Observe</span>
+                )}
+              </div>
+            ))}
+            <div className="ml-auto flex items-center shrink-0 border-l border-emerald-800/50 pl-4 h-full">
+              <button onClick={() => { if(currentSession.batchId) handleEndClass(currentSession.batchId) }} className="bg-red-500 hover:bg-red-400 text-white px-5 py-3 rounded-xl text-sm font-black tracking-wider shadow-lg transition-colors flex items-center gap-2">
+                END CLASS & RESULTS
+              </button>
+            </div>
+          </div>
+        )}
+
+        <div className="bg-emerald-900 text-white p-4 flex justify-between items-center shadow-lg shrink-0">
           <div>
             <h2 className="font-bold text-lg flex items-center gap-2">
               <BookOpen size={20} />
-              {userRole === 'scholar' ? t('live.monitoringSession') : t('live.liveQuranSession')}
+              {userRole === 'scholar' ? t('live.monitoringSession') : t('live.liveClassroom', 'Live Classroom')}
             </h2>
             {userRole === 'scholar' && currentSession && (
-              <p className="text-xs text-emerald-300">Student: {currentSession.studentName || currentSession.childId}</p>
+              <p className="text-xs text-emerald-300">Viewing Student: <span className="font-bold text-white">{currentSession.studentName || currentSession.childId}</span></p>
             )}
           </div>
           <button
             onClick={handleExitSession}
-            className="bg-red-500/80 hover:bg-red-600 text-white px-4 py-2 rounded-full text-xs font-bold uppercase tracking-widest flex items-center gap-2 transition-all"
+            className="bg-emerald-800 hover:bg-emerald-700 text-white px-4 py-2 rounded-full text-xs font-bold uppercase tracking-widest flex items-center gap-2 transition-all"
           >
             <LogOut size={16} /> {t('live.exit')}
           </button>
         </div>
 
-        <div className="flex-1 overflow-y-auto relative">
+        {/* Floating Student Gamification Status */}
+        {userRole === 'parent' && activeChild && (
+          <div className="absolute top-[80px] right-4 z-[60] flex flex-col gap-2 pointer-events-none">
+            <div className="bg-white/90 backdrop-blur-md px-4 py-2 rounded-2xl shadow-xl border border-emerald-100 flex items-center gap-3 animate-in fade-in slide-in-from-right-8 duration-500">
+               <div className="w-8 h-8 bg-emerald-100 text-emerald-600 rounded-full flex items-center justify-center font-bold shadow-inner">
+                 <Star size={14} fill="currentColor" />
+               </div>
+               <div className="pointer-events-auto">
+                 <p className="text-[9px] font-black uppercase tracking-widest text-emerald-800/60">Current XP</p>
+                 <p className="font-serif font-bold text-emerald-900 text-sm leading-none mt-0.5">
+                    {activeChild.child_progress?.[0]?.total_xp || 0}
+                 </p>
+               </div>
+            </div>
+            
+            <div className="bg-white/90 backdrop-blur-md px-4 py-2 rounded-2xl shadow-xl border border-amber-100 flex items-center gap-3 animate-in fade-in slide-in-from-right-8 duration-700 delay-100">
+               <div className="w-8 h-8 bg-amber-100 text-amber-600 rounded-full flex items-center justify-center font-bold shadow-inner">
+                 <Cloud size={14} fill="currentColor" />
+               </div>
+               <div className="pointer-events-auto">
+                 <p className="text-[9px] font-black uppercase tracking-widest text-amber-800/60">Level</p>
+                 <p className="font-serif font-bold text-amber-900 text-sm leading-none mt-0.5">
+                    {activeChild.child_progress?.[0]?.level || 1}
+                 </p>
+               </div>
+            </div>
+          </div>
+        )}
+
+        {/* Student Turn Banner */}
+        {isMyTurn && (
+          <div className="bg-gradient-to-r from-amber-400 via-amber-300 to-amber-400 text-emerald-950 font-black px-6 py-4 flex items-center justify-center gap-3 shadow-md border-b-4 border-amber-500 animate-in slide-in-from-top shrink-0">
+             <div className="w-3 h-3 bg-red-500 rounded-full animate-pulse shadow-[0_0_10px_rgba(239,68,68,0.8)]" />
+             <span className="tracking-widest uppercase text-xl">Your Turn To Recite</span>
+          </div>
+        )}
+
+        <div className="flex-1 overflow-y-auto relative flex flex-col bg-slate-50">
           {!hasPosition && userRole === 'scholar' ? (
             <div className="absolute inset-0 flex items-center justify-center bg-slate-50">
               <div className="text-center p-6">
@@ -399,14 +689,31 @@ const LiveClassRoom: React.FC = () => {
               </div>
             </div>
           ) : (
-            <QuranPage
-              onBack={handleExitSession}
-              sessionCurrentSurah={currentSession.currentSurah}
-              sessionCurrentAyah={currentSession.currentAyah}
-              onAyahClick={handleAyahClick}
-              onPositionChange={userRole === 'scholar' ? undefined : emitPosition}
-              readOnly={userRole === 'scholar'}
-            />
+            <div className="flex-1 flex flex-col">
+              <QuranPage
+                onBack={handleExitSession}
+                sessionCurrentSurah={currentSession.currentSurah}
+                sessionCurrentAyah={currentSession.currentAyah}
+                onAyahClick={handleAyahClick}
+                onPositionChange={userRole === 'scholar' ? undefined : emitPosition}
+                readOnly={userRole === 'scholar' || isObserving}
+              />
+            </div>
+          )}
+
+          {/* Student Engagement Prompt */}
+          {isObserving && (
+            <div className="absolute bottom-6 left-4 right-4 md:left-1/2 md:-translate-x-1/2 md:w-[400px] bg-white text-slate-800 p-5 rounded-3xl shadow-2xl border-4 border-emerald-100/50 z-50 animate-in slide-in-from-bottom">
+              <div className="mb-4">
+                <span className="bg-amber-100 text-amber-800 px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest mb-3 inline-block">Observe & Answer</span>
+                <h4 className="font-bold text-xl text-[#052e16] leading-tight">Was the recitation correct?</h4>
+                <p className="text-sm text-slate-500 mt-1">Listen to your classmate closely.</p>
+              </div>
+              <div className="flex gap-3 mt-5">
+                 <button onClick={() => handleScoreParticipation(1)} className="flex-1 bg-green-500 hover:bg-green-600 shadow-green-500/20 shadow-lg text-white py-4 rounded-xl font-bold transition-transform active:scale-95 text-lg">Yes</button>
+                 <button onClick={() => handleScoreParticipation(2)} className="flex-1 bg-red-500 hover:bg-red-600 shadow-red-500/20 shadow-lg text-white py-4 rounded-xl font-bold transition-transform active:scale-95 text-lg">No (Mistake)</button>
+              </div>
+            </div>
           )}
 
           {userRole === 'scholar' && (
@@ -488,10 +795,68 @@ const LiveClassRoom: React.FC = () => {
     );
   }
 
+  // Gamification Data
+  const progress = activeChild?.child_progress?.[0] || { total_xp: 0, level: 1, streak_days: 0, total_sessions_attended: 0, badges: [] };
+  const badgesCount = progress.badges?.length || 0;
+
   // RENDER: PARENT LOBBY (My Sessions)
   return (
-    <div className="max-w-4xl mx-auto space-y-10 animate-in fade-in duration-500">
-      <div className="flex flex-col md:flex-row md:items-end justify-between gap-6">
+    <>
+      <MovingBackground />
+      <div className="max-w-4xl mx-auto space-y-10 animate-in fade-in duration-500 relative z-10 px-4 md:px-0 pt-6 pb-20">
+      
+      {/* GAMIFICATION DASHBOARD */}
+      {activeChild && (
+        <div className="space-y-6 pt-4">
+          <div className="text-center md:text-left mb-6">
+            <div className="inline-flex items-center gap-2 px-4 py-1.5 bg-emerald-500/20 text-emerald-800 border border-emerald-500/30 rounded-full text-xs font-bold uppercase tracking-wider mb-4">
+              <Star size={12} /> {t('tarbiyah.parentDashboard', 'Progress Dashboard')}
+            </div>
+            <h1 className="text-3xl sm:text-4xl md:text-5xl font-serif font-bold text-[#052e16] drop-shadow-sm">{activeChild?.name}'s Journey</h1>
+          </div>
+
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 pb-4 border-b border-emerald-100">
+            {/* XP Stat */}
+            <div className="bg-white/80 backdrop-blur-xl p-5 rounded-[2rem] shadow-sm border border-emerald-100 hover:shadow-md transition-all duration-300">
+              <div className="flex items-center gap-3 mb-2 text-emerald-600">
+                <div className="p-2 bg-emerald-100 rounded-full"><Star size={16} /></div>
+                <span className="text-[10px] font-black uppercase tracking-widest text-emerald-800/70">Total XP</span>
+              </div>
+              <div className="text-2xl sm:text-3xl font-serif font-bold text-[#052e16]">{progress.total_xp}</div>
+            </div>
+
+            {/* Level Stat */}
+            <div className="bg-white/80 backdrop-blur-xl p-5 rounded-[2rem] shadow-sm border border-emerald-100 hover:shadow-md transition-all duration-300">
+              <div className="flex items-center gap-3 mb-2 text-indigo-600">
+                <div className="p-2 bg-indigo-100 rounded-full"><Cloud size={16} /></div>
+                <span className="text-[10px] font-black uppercase tracking-widest text-indigo-800/70">Level</span>
+              </div>
+              <div className="text-2xl sm:text-3xl font-serif font-bold text-[#052e16]">{progress.level}</div>
+            </div>
+
+            {/* Streak Stat */}
+            <div className="bg-white/80 backdrop-blur-xl p-5 rounded-[2rem] shadow-sm border border-emerald-100 hover:shadow-md transition-all duration-300">
+              <div className="flex items-center gap-3 mb-2 text-amber-600">
+                <div className="p-2 bg-amber-100 rounded-full"><Sun size={16} /></div>
+                <span className="text-[10px] font-black uppercase tracking-widest text-amber-800/70">Streak</span>
+              </div>
+              <div className="text-2xl sm:text-3xl font-serif font-bold text-[#052e16]">{progress.streak_days} <span className="text-sm">Days</span></div>
+            </div>
+
+            {/* Badges Stat */}
+            <div className="bg-white/80 backdrop-blur-xl p-5 rounded-[2rem] shadow-sm border border-emerald-100 hover:shadow-md transition-all duration-300">
+              <div className="flex items-center gap-3 mb-2 text-purple-600">
+                <div className="p-2 bg-purple-100 rounded-full"><ShieldCheck size={16} /></div>
+                <span className="text-[10px] font-black uppercase tracking-widest text-purple-800/70">Badges</span>
+              </div>
+              <div className="text-2xl sm:text-3xl font-serif font-bold text-[#052e16]">{badgesCount}</div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* SESSIONS LIST */}
+      <div className="flex flex-col md:flex-row md:items-end justify-between gap-6 pt-4">
         <div className="space-y-2">
           <div className="inline-flex items-center gap-2 px-3 py-1 bg-emerald-50 text-emerald-700 rounded-full text-[10px] font-black uppercase tracking-widest border border-emerald-100">
             <Users size={12} /> {t('live.liveClasses')}
@@ -519,7 +884,8 @@ const LiveClassRoom: React.FC = () => {
         onJoin={setCurrentSession}
       />
 
-    </div>
+      </div>
+    </>
   );
 };
 

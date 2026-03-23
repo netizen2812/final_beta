@@ -2,7 +2,6 @@ import User from "../models/User.js";
 import Child from "../models/Child.js";
 import Batch from "../models/Batch.js";
 import Session from "../models/Session.js";
-import TarbiyahProgress from "../models/TarbiyahProgress.js";
 import AnalyticsEvent from "../models/AnalyticsEvent.js";
 import Conversation from "../models/Conversation.js";
 import Lesson from "../models/Lesson.js";
@@ -130,7 +129,7 @@ export const getAdminStats = async (req, res) => {
         // Let's use the Child `last_activity` since that's the core value.
         const inactiveChildren = await Child.countDocuments({ "child_progress.0.last_activity": { $lt: sevenDaysAgo } });
 
-        const incompleteLessons = await TarbiyahProgress.countDocuments({ completedAt: null, activeSessionStart: { $ne: null } });
+        const incompleteLessons = 0; // Deprecated Tarbiyah tracking
 
         // 📈 CUMULATIVE PLATFORM TOTALS
         const totalUsersExcludingChildren = await User.countDocuments();
@@ -383,7 +382,6 @@ export const resetUserProgress = async (req, res) => {
         const children = await Child.find({ parent_id: id });
         const childUserIds = children.map(c => c.childUserId).filter(Boolean);
         if (childUserIds.length > 0) {
-            await TarbiyahProgress.deleteMany({ childUserId: { $in: childUserIds } });
             await Child.updateMany({ parent_id: id }, {
                 $set: { "child_progress.0.xp": 0, "child_progress.0.level": 1, "child_progress.0.lessons_completed": 0 }
             });

@@ -51,17 +51,7 @@ export const createChild = async (req, res) => {
             xp: 0
         });
 
-        // Initialize TarbiyahUserStats for the new child
-        await import("../models/TarbiyahUserStats.js").then(async ({ default: TarbiyahUserStats }) => {
-            await TarbiyahUserStats.create({
-                childUserId: newChildUser._id, // Use MongoDB _id
-                totalXP: 0,
-                level: 1,
-                lessonsCompleted: 0,
-                badgesEarned: [],
-                lastActivityAt: new Date()
-            });
-        });
+        // Gamification stats will be initialized directly on the Child document
 
         const child = await Child.create({
             parent_id: parentUser._id,
@@ -142,15 +132,7 @@ export const deleteChild = async (req, res) => {
         if (child.childUserId) {
             await User.findByIdAndDelete(child.childUserId);
 
-            // Delete associated TarbiyahUserStats
-            await import("../models/TarbiyahUserStats.js").then(async ({ default: TarbiyahUserStats }) => {
-                await TarbiyahUserStats.findOneAndDelete({ childUserId: child.childUserId });
-            });
-
-            // Delete associated TarbiyahProgress
-            await import("../models/TarbiyahProgress.js").then(async ({ default: TarbiyahProgress }) => {
-                await TarbiyahProgress.deleteMany({ childUserId: child.childUserId });
-            });
+            // Child document handles gamification stats natively
         }
 
         res.json({ message: "Child deleted successfully" });

@@ -150,9 +150,17 @@ const ProfilePage: React.FC = () => {
                 </div>
                 <div>
                   <h4 className="font-bold text-[#052e16]">{child.name}</h4>
-                  <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest">
-                    {t('profile.lvl')} {child.child_progress?.[0].level || 1}
-                  </p>
+                  <div className="flex items-center gap-2 mt-1">
+                    <span className="text-[10px] text-indigo-600 font-black uppercase tracking-widest bg-indigo-50 px-2 py-0.5 rounded-full border border-indigo-100">
+                      {t('profile.lvl')} {child.child_progress?.[0]?.level || 1}
+                    </span>
+                    <span className="text-[10px] text-emerald-600 font-black uppercase tracking-widest bg-emerald-50 px-2 py-0.5 rounded-full border border-emerald-100">
+                      {child.child_progress?.[0]?.total_xp || 0} XP
+                    </span>
+                    <span className="text-[10px] text-amber-600 font-black uppercase tracking-widest bg-amber-50 px-2 py-0.5 rounded-full border border-amber-100">
+                      🔥 {child.child_progress?.[0]?.streak_days || 0}
+                    </span>
+                  </div>
                 </div>
               </div>
               <div className="flex gap-2">

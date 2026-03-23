@@ -3,7 +3,8 @@ import {
     startSession, getScholarSessions, getSession, updateAyah, endSession, getScholarStatus,
     createBatch, getAdminBatches, updateBatch, deleteBatch, startBatch, joinBatch, getMySessions,
     addStudentToBatch, removeStudentFromBatch, getBatchSessions, debugBatch, debugAllBatches,
-    batchPing, updateBatchProgress, updatePosition, leaveBatch, getBatchActiveParticipants
+    batchPing, updateBatchProgress, updatePosition, leaveBatch, getBatchActiveParticipants,
+    getBatchState, selectTurn, scoreRecitation, scoreParticipation, getLeaderboard
 } from "../controller/liveController.js";
 import { requireAuth, isAdmin, isScholar } from "../middleware/authmiddleware.js";
 
@@ -27,6 +28,13 @@ router.post("/update-progress", requireAuth, updateBatchProgress);
 router.post("/update-position", requireAuth, updatePosition);
 router.post("/leave", requireAuth, leaveBatch);
 router.get("/batch/:id/participants", requireAuth, getBatchActiveParticipants);
+
+// CLASSROOM STATE & SCORING
+router.get("/batch/:id/state", requireAuth, getBatchState);
+router.post("/batch/:id/select-turn", requireAuth, isScholar, selectTurn);
+router.post("/batch/:id/score-recitation", requireAuth, isScholar, scoreRecitation);
+router.post("/batch/:id/score-participation", requireAuth, scoreParticipation);
+router.get("/batch/:id/leaderboard", requireAuth, getLeaderboard);
 
 // ADMIN: Batch Management
 router.post("/admin/batch", requireAuth, isAdmin, createBatch);

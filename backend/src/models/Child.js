@@ -1,7 +1,7 @@
 import mongoose from "mongoose";
 
 const childProgressSchema = new mongoose.Schema({
-    xp: {
+    total_xp: {
         type: Number,
         default: 0,
     },
@@ -9,14 +9,31 @@ const childProgressSchema = new mongoose.Schema({
         type: Number,
         default: 1,
     },
-    lessons_completed: {
+    badges: {
+        type: [String],
+        default: [],
+    },
+    streak_days: {
         type: Number,
         default: 0,
     },
-    last_activity: {
+    last_active_date: {
         type: Date,
-        default: Date.now,
+        default: null,
     },
+    total_sessions_attended: {
+        type: Number,
+        default: 0,
+    },
+    total_correct_recitations: {
+        type: Number,
+        default: 0,
+    },
+    // Keep legacy field just in case
+    lessons_completed: {
+        type: Number,
+        default: 0,
+    }
 });
 
 const childSchema = new mongoose.Schema(

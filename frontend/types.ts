@@ -3,7 +3,6 @@ export enum AppTab {
   HOME = 'home',
   CORE = 'core',
   IBADAH = 'ibadah',
-  TARBIYAH = 'tarbiyah',
   LIVE = 'live',
   PROFILE = 'profile',
   ADMIN = 'admin',

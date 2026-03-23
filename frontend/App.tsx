@@ -4,7 +4,6 @@ import { Icons } from "./constants";
 import { ChildProvider } from "./contexts/ChildContext";
 import CoreChat from "./features/CoreChat";
 import IbadahDashboard from "./features/IbadahDashboard";
-import TarbiyahLearning from "./features/TarbiyahLearning";
 import LiveClassRoom from "./features/LiveClassRoom";
 import ProfilePage from "./features/ProfilePage";
 import WelcomeScreen from "./features/WelcomeScreen";
@@ -162,8 +161,6 @@ const App: React.FC = () => {
         );
       case AppTab.IBADAH:
         return <IbadahDashboard />;
-      case AppTab.TARBIYAH:
-        return <TarbiyahLearning onNavigateToProfile={() => setActiveTab(AppTab.PROFILE)} />;
       case AppTab.LIVE:
         return <LiveClassRoom />;
       case AppTab.ADMIN:
@@ -181,8 +178,7 @@ const App: React.FC = () => {
     { id: AppTab.HOME, label: t("nav.home"), icon: <Home /> },
     { id: AppTab.CORE, label: t("nav.chat"), icon: <Icons.Chat /> },
     { id: AppTab.IBADAH, label: t("nav.ibadah"), icon: <Icons.Prayer /> },
-    { id: AppTab.TARBIYAH, label: t("nav.tarbiyah"), icon: <Icons.Book /> },
-    { id: AppTab.LIVE, label: t("nav.live"), icon: <Icons.Live /> },
+    { id: AppTab.LIVE, label: t("nav.tarbiyah", "Tarbiyah"), icon: <Icons.Book /> }, // Live tab is now labeled Tarbiyah
   ];
 
   const rootAdmins = ["sarthakjuneja1999@gmail.com", "huzaifbarkati0@gmail.com"];

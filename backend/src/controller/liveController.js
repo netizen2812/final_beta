@@ -315,17 +315,18 @@ export const getBatchSessions = async (req, res) => {
     }
 };
 
-// SCHOLAR: POST /api/live/:id/start - This was for Batch Session generic start
-// We might keep this if the Scholar *also* has a session?
 export const startBatch = async (req, res) => {
-    // For Observation Mode, maybe this just marks the batch as "Class in Session"?
-    // For now, let's keep it simple: It activates the batch status.
     try {
         const { id } = req.params;
         const { default: Batch } = await import("../models/Batch.js");
+        const activeSessionId = Date.now().toString();
 
-        await Batch.findByIdAndUpdate(id, { status: 'active' });
-        res.json({ message: "Batch started" });
+        await Batch.findByIdAndUpdate(id, { 
+            status: 'active',
+            activeSessionId,
+            activeChildId: null 
+        });
+        res.json({ message: "Batch started", activeSessionId });
     } catch (error) {
         res.status(500).json({ message: "Server error" });
     }
@@ -518,7 +519,29 @@ export const endSession = async (req, res) => {
         session.endedAt = new Date();
         await session.save();
 
-        res.json({ message: "Session ended" });
+        if (session.batchId) {
+            const { default: Batch } = await import("../models/Batch.js");
+            const { awardXP } = await import("../services/gamificationService.js");
+            
+            const batch = await Batch.findById(session.batchId);
+            if (batch) {
+                batch.status = 'ended';
+                await batch.save();
+
+                // Award +10 XP to everyone who actually joined the live stream
+                for (const p of batch.activeParticipants) {
+                    if (p.isActive) {
+                        try {
+                            await awardXP(p.childId, "session_complete");
+                        } catch (err) {
+                            console.error(`Failed to award XP to ${p.childId}`, err);
+                        }
+                    }
+                }
+            }
+        }
+
+        res.json({ message: "Session ended and XP awarded" });
     } catch (error) {
         console.error("End session error:", error);
         res.status(500).json({ message: "Server error" });
@@ -707,10 +730,148 @@ export const getBatchActiveParticipants = async (req, res) => {
 
         console.log("[SCHOLAR RECEIVE]", { batchId: id, count: liveParticipants.length, participants: liveParticipants.map(p => ({ childId: p.childId, surah: p.currentSurah, ayah: p.currentAyah, lastSeen: p.lastSeen })) });
 
-        res.json(liveParticipants);
+        res.json({
+            activeChildId: batch.activeChildId,
+            activeSessionId: batch.activeSessionId,
+            status: batch.status,
+            activeParticipants: liveParticipants
+        });
 
     } catch (error) {
         console.error("[SCHOLAR RECEIVE] Error:", error);
         res.status(500).json({ error: error.message });
     }
 };
+
+// GET /api/live/batch/:id/state
+export const getBatchState = async (req, res) => {
+    try {
+        const { id } = req.params;
+        const { default: Batch } = await import("../models/Batch.js");
+        const batch = await Batch.findById(id).select("activeChildId activeSessionId status");
+        if (!batch) return res.status(404).json({ message: "Batch not found" });
+        res.json(batch);
+    } catch (error) {
+        res.status(500).json({ error: error.message });
+    }
+};
+
+// POST /api/live/batch/:id/select-turn
+export const selectTurn = async (req, res) => {
+    try {
+        const { id } = req.params;
+        const { childId } = req.body;
+        const { default: Batch } = await import("../models/Batch.js");
+
+        const batch = await Batch.findByIdAndUpdate(id, { activeChildId: childId }, { new: true });
+        res.json({ message: "Turn updated", activeChildId: batch.activeChildId });
+    } catch (error) {
+        res.status(500).json({ error: error.message });
+    }
+};
+
+// POST /api/live/batch/:id/score-recitation
+export const scoreRecitation = async (req, res) => {
+    try {
+        const { id } = req.params;
+        const { childId, score } = req.body;
+        const { default: Batch } = await import("../models/Batch.js");
+        const { default: LiveScore } = await import("../models/LiveScore.js");
+        const { awardXP } = await import("../services/gamificationService.js");
+
+        const batch = await Batch.findById(id);
+        if (!batch || !batch.activeSessionId) return res.status(400).json({ message: "Batch not active or found" });
+
+        await LiveScore.findOneAndUpdate(
+            { batchId: id, sessionId: batch.activeSessionId, childId },
+            { $inc: { recitationScore: score } },
+            { upsert: true, new: true }
+        );
+
+        // Auto move to next active child
+        const activeIdx = batch.activeParticipants.findIndex(p => p.childId === childId && p.isActive);
+        let nextChildId = null;
+        if (activeIdx > -1 && batch.activeParticipants.length > 0) {
+            // Find next active participant
+            for (let i = 1; i <= batch.activeParticipants.length; i++) {
+                const nextIdx = (activeIdx + i) % batch.activeParticipants.length;
+                if (batch.activeParticipants[nextIdx].isActive) {
+                    nextChildId = batch.activeParticipants[nextIdx].childId;
+                    break;
+                }
+            }
+        }
+
+        if (nextChildId) {
+            batch.activeChildId = nextChildId;
+            await batch.save();
+        }
+
+        // Award Gamification XP for Recitation
+        const xpResult = await awardXP(childId, "recitation", { score });
+
+        res.json({ message: "Score saved", nextChildId, xpResult });
+    } catch (error) {
+        res.status(500).json({ error: error.message });
+    }
+};
+
+// POST /api/live/batch/:id/score-participation
+export const scoreParticipation = async (req, res) => {
+    try {
+        const { id } = req.params;
+        const { childId, points } = req.body; // usually 1
+        const { default: Batch } = await import("../models/Batch.js");
+        const { default: LiveScore } = await import("../models/LiveScore.js");
+        const { awardXP } = await import("../services/gamificationService.js");
+
+        const batch = await Batch.findById(id);
+        if (!batch || !batch.activeSessionId) return res.status(400).json({ message: "Batch not active" });
+
+        await LiveScore.findOneAndUpdate(
+            { batchId: id, sessionId: batch.activeSessionId, childId },
+            { $inc: { participationScore: points || 1 } },
+            { upsert: true, new: true }
+        );
+
+        // Award Gamification XP for Participation
+        const xpResult = await awardXP(childId, "participation", { points: points || 1 });
+
+        res.json({ message: "Participation logged", xpResult });
+    } catch (error) {
+        res.status(500).json({ error: error.message });
+    }
+};
+
+// GET /api/live/batch/:id/leaderboard
+export const getLeaderboard = async (req, res) => {
+    try {
+        const { id } = req.params;
+        const { default: Batch } = await import("../models/Batch.js");
+        const { default: LiveScore } = await import("../models/LiveScore.js");
+        const { default: Child } = await import("../models/Child.js");
+
+        const batch = await Batch.findById(id);
+        if (!batch || !batch.activeSessionId) return res.json({ leaderboard: [] });
+
+        const scores = await LiveScore.find({ batchId: id, sessionId: batch.activeSessionId });
+        
+        const leaderboard = await Promise.all(scores.map(async (s) => {
+            const child = await Child.findById(s.childId);
+            return {
+                childId: s.childId,
+                name: child ? child.name : "Unknown",
+                recitationScore: s.recitationScore,
+                participationScore: s.participationScore,
+                total: (s.recitationScore || 0) + (s.participationScore || 0)
+            };
+        }));
+
+        leaderboard.sort((a, b) => b.total - a.total);
+
+        res.json({ leaderboard });
+    } catch (error) {
+        res.status(500).json({ error: error.message });
+    }
+};
+

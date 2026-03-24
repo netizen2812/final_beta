@@ -128,9 +128,9 @@ const LiveClassRoom: React.FC = () => {
     activeSessionId: string | null;
     status: string;
     currentPromptAnswers?: PromptAnswer[];
-    promptEvaluated?: boolean;
   }
   const [batchState, setBatchState] = useState<BatchState | null>(null);
+  const [selectedScore, setSelectedScore] = useState<number | null>(null);
   const [leaderboard, setLeaderboard] = useState<any[] | null>(null);
   const [showLeaderboard, setShowLeaderboard] = useState(false);
 
@@ -531,6 +531,7 @@ const LiveClassRoom: React.FC = () => {
      try {
        const token = await getToken();
        await axios.post(`${API_BASE}/api/live/batch/${batchId}/select-turn`, { childId }, { headers: { Authorization: `Bearer ${token}` } });
+       setSelectedScore(null);
      } catch(e) {}
   };
 
@@ -697,11 +698,23 @@ const LiveClassRoom: React.FC = () => {
                      </div>
 
                      <div className="flex gap-1 justify-center w-full">
-                       <button title="Perfect (+30 XP)" onClick={() => handleScoreRecitation(session.childId, session.batchId!, 3)} className="w-9 h-8 flex items-center justify-center bg-green-500 hover:bg-green-400 active:scale-95 rounded-md text-[10px] text-white font-black transition-transform">+30</button>
-                       <button title="Minor Mistake (+20 XP)" onClick={() => handleScoreRecitation(session.childId, session.batchId!, 2)} className="w-9 h-8 flex items-center justify-center bg-amber-500 hover:bg-amber-400 active:scale-95 rounded-md text-[10px] text-white font-black transition-transform">+20</button>
-                       <button title="Multiple Mistakes (+10 XP)" onClick={() => handleScoreRecitation(session.childId, session.batchId!, 1)} className="w-9 h-8 flex items-center justify-center bg-orange-500 hover:bg-orange-400 active:scale-95 rounded-md text-[10px] text-white font-black transition-transform">+10</button>
-                       <button title="Incorrect (+5 XP)" onClick={() => handleScoreRecitation(session.childId, session.batchId!, 0)} className="w-9 h-8 flex items-center justify-center bg-red-500 hover:bg-red-400 active:scale-95 rounded-md text-[10px] text-white font-black transition-transform">+5</button>
+                       <button title="Perfect (+30 XP)" onClick={() => setSelectedScore(30)} className={`w-9 h-8 flex items-center justify-center rounded-md text-[10px] text-white font-black transition-all ${selectedScore === 30 ? 'bg-green-600 ring-2 ring-white scale-110 shadow-lg' : 'bg-green-500 hover:bg-green-400'}`}>+30</button>
+                       <button title="Minor Mistake (+20 XP)" onClick={() => setSelectedScore(20)} className={`w-9 h-8 flex items-center justify-center rounded-md text-[10px] text-white font-black transition-all ${selectedScore === 20 ? 'bg-amber-600 ring-2 ring-white scale-110 shadow-lg' : 'bg-amber-500 hover:bg-amber-400'}`}>+20</button>
+                       <button title="Multiple Mistakes (+10 XP)" onClick={() => setSelectedScore(10)} className={`w-9 h-8 flex items-center justify-center rounded-md text-[10px] text-white font-black transition-all ${selectedScore === 10 ? 'bg-orange-600 ring-2 ring-white scale-110 shadow-lg' : 'bg-orange-500 hover:bg-orange-400'}`}>+10</button>
+                       <button title="Incorrect (+5 XP)" onClick={() => setSelectedScore(5)} className={`w-9 h-8 flex items-center justify-center rounded-md text-[10px] text-white font-black transition-all ${selectedScore === 5 ? 'bg-red-600 ring-2 ring-white scale-110 shadow-lg' : 'bg-red-500 hover:bg-red-400'}`}>+5</button>
                      </div>
+
+                     {selectedScore !== null && (
+                        <button 
+                          onClick={() => {
+                            handleScoreRecitation(session.childId, session.batchId!, selectedScore);
+                            setSelectedScore(null);
+                          }}
+                          className="w-full mt-2 bg-white hover:bg-emerald-50 text-emerald-900 py-1.5 rounded-lg text-[10px] font-black shadow-lg border-2 border-emerald-500 transition-all uppercase tracking-widest active:scale-95 flex items-center justify-center gap-1"
+                        >
+                          Submit Turn
+                        </button>
+                     )}
                    </div>
                 ) : (
                    <span className="text-[9px] font-bold uppercase tracking-widest opacity-70">Observe</span>

@@ -830,31 +830,16 @@ export const scoreRecitation = async (req, res) => {
             { upsert: true, new: true }
         );
 
-        // Auto move to next active child
-        const activeIdx = batch.activeParticipants.findIndex(p => p.childId === childId && p.isActive);
-        let nextChildId = null;
-        if (activeIdx > -1 && batch.activeParticipants.length > 0) {
-            // Find next active participant
-            for (let i = 1; i <= batch.activeParticipants.length; i++) {
-                const nextIdx = (activeIdx + i) % batch.activeParticipants.length;
-                if (batch.activeParticipants[nextIdx].isActive) {
-                    nextChildId = batch.activeParticipants[nextIdx].childId;
-                    break;
-                }
-            }
-        }
-
-        if (nextChildId) {
-            batch.activeChildId = nextChildId;
-            batch.currentPromptAnswers = [];
-            batch.promptEvaluated = false;
-            await batch.save();
-        }
+        // Reset Turn (Return Scholar to Observer Mode)
+        batch.activeChildId = null;
+        batch.currentPromptAnswers = [];
+        batch.promptEvaluated = false;
+        await batch.save();
 
         // Award Gamification XP for Recitation
         const xpResult = await awardXP(childId, "recitation", { score });
 
-        res.json({ message: "Score saved", nextChildId, xpResult });
+        res.json({ message: "Score saved", nextChildId: null, xpResult });
     } catch (error) {
         res.status(500).json({ error: error.message });
     }

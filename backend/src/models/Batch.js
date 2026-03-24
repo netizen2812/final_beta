@@ -45,6 +45,14 @@ const batchSchema = new mongoose.Schema({
     activeSessionId: {
         type: String, // Tracks the current active class session for grouping scores
         default: null
+    },
+    currentPromptAnswers: [{
+        childId: String,
+        answer: { type: String, enum: ['yes', 'no'] }
+    }],
+    promptEvaluated: {
+        type: Boolean,
+        default: false
     }
 }, { timestamps: true });
 

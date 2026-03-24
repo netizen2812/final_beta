@@ -743,7 +743,9 @@ export const getBatchActiveParticipants = async (req, res) => {
             activeChildId: batch.activeChildId,
             activeSessionId: batch.activeSessionId,
             status: batch.status,
-            activeParticipants: liveParticipants
+            activeParticipants: liveParticipants,
+            currentPromptAnswers: batch.currentPromptAnswers || [],
+            promptEvaluated: batch.promptEvaluated || false
         });
 
     } catch (error) {
@@ -757,7 +759,7 @@ export const getBatchState = async (req, res) => {
     try {
         const { id } = req.params;
         const { default: Batch } = await import("../models/Batch.js");
-        const batch = await Batch.findById(id).select("activeChildId activeSessionId status activeParticipants");
+        const batch = await Batch.findById(id).select("activeChildId activeSessionId status activeParticipants currentPromptAnswers promptEvaluated");
         if (!batch) return res.status(404).json({ message: "Batch not found" });
 
         let activeSurah = null;
@@ -776,7 +778,9 @@ export const getBatchState = async (req, res) => {
             activeSessionId: batch.activeSessionId,
             status: batch.status,
             activeSurah,
-            activeAyah
+            activeAyah,
+            currentPromptAnswers: batch.currentPromptAnswers || [],
+            promptEvaluated: batch.promptEvaluated || false
         });
     } catch (error) {
         res.status(500).json({ error: error.message });
@@ -790,7 +794,11 @@ export const selectTurn = async (req, res) => {
         const { childId } = req.body;
         const { default: Batch } = await import("../models/Batch.js");
 
-        const batch = await Batch.findByIdAndUpdate(id, { activeChildId: childId }, { new: true });
+        const batch = await Batch.findByIdAndUpdate(id, { 
+            activeChildId: childId,
+            currentPromptAnswers: [],
+            promptEvaluated: false
+        }, { new: true });
         res.json({ message: "Turn updated", activeChildId: batch.activeChildId });
     } catch (error) {
         res.status(500).json({ error: error.message });
@@ -831,6 +839,8 @@ export const scoreRecitation = async (req, res) => {
 
         if (nextChildId) {
             batch.activeChildId = nextChildId;
+            batch.currentPromptAnswers = [];
+            batch.promptEvaluated = false;
             await batch.save();
         }
 
@@ -865,6 +875,64 @@ export const scoreParticipation = async (req, res) => {
         const xpResult = await awardXP(childId, "participation", { points: points || 1 });
 
         res.json({ message: "Participation logged", xpResult });
+    } catch (error) {
+        res.status(500).json({ error: error.message });
+    }
+};
+
+// POST /api/live/batch/:id/submit-prompt
+export const submitPrompt = async (req, res) => {
+    try {
+        const { id } = req.params;
+        const { childId, answer } = req.body;
+        const { default: Batch } = await import("../models/Batch.js");
+
+        const batch = await Batch.findById(id);
+        if (!batch || !batch.activeSessionId) return res.status(400).json({ message: "Batch not active" });
+
+        // Update or add the answer
+        const existingIdx = batch.currentPromptAnswers.findIndex(a => a.childId === childId);
+        if (existingIdx > -1) {
+            batch.currentPromptAnswers[existingIdx].answer = answer;
+        } else {
+            batch.currentPromptAnswers.push({ childId, answer });
+        }
+        await batch.save();
+
+        res.json({ message: "Prompt submitted successfully" });
+    } catch (error) {
+        res.status(500).json({ error: error.message });
+    }
+};
+
+// POST /api/live/batch/:id/evaluate-prompt
+export const evaluatePrompt = async (req, res) => {
+    try {
+        const { id } = req.params;
+        const { correctAnswer } = req.body; // 'yes' or 'no'
+        const { default: Batch } = await import("../models/Batch.js");
+        const { awardXP } = await import("../services/gamificationService.js");
+
+        const batch = await Batch.findById(id);
+        if (!batch) return res.status(404).json({ message: "Batch not found" });
+
+        if (batch.promptEvaluated) {
+            return res.status(400).json({ message: "Prompt already evaluated for this turn" });
+        }
+
+        // Find all students who answered correctly
+        const correctStudents = batch.currentPromptAnswers.filter(a => a.answer === correctAnswer);
+
+        // Award XP asynchronously
+        const xpPromises = correctStudents.map(student => 
+            awardXP(student.childId, "participation", { points: 5 }) // 5 XP for getting it right
+        );
+        await Promise.allSettled(xpPromises);
+
+        batch.promptEvaluated = true;
+        await batch.save();
+
+        res.json({ message: "Observers evaluated and XP awarded", correctCount: correctStudents.length });
     } catch (error) {
         res.status(500).json({ error: error.message });
     }

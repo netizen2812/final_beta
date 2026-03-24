@@ -4,7 +4,8 @@ import {
     createBatch, getAdminBatches, updateBatch, deleteBatch, startBatch, joinBatch, getMySessions,
     addStudentToBatch, removeStudentFromBatch, getBatchSessions, debugBatch, debugAllBatches,
     batchPing, updateBatchProgress, updatePosition, leaveBatch, getBatchActiveParticipants,
-    getBatchState, selectTurn, scoreRecitation, scoreParticipation, getLeaderboard
+    getBatchState, selectTurn, scoreRecitation, scoreParticipation, getLeaderboard,
+    submitPrompt, evaluatePrompt
 } from "../controller/liveController.js";
 import { requireAuth, isAdmin, isScholar } from "../middleware/authmiddleware.js";
 
@@ -34,6 +35,8 @@ router.get("/batch/:id/state", requireAuth, getBatchState);
 router.post("/batch/:id/select-turn", requireAuth, isScholar, selectTurn);
 router.post("/batch/:id/score-recitation", requireAuth, isScholar, scoreRecitation);
 router.post("/batch/:id/score-participation", requireAuth, scoreParticipation);
+router.post("/batch/:id/submit-prompt", requireAuth, submitPrompt);
+router.post("/batch/:id/evaluate-prompt", requireAuth, isScholar, evaluatePrompt);
 router.get("/batch/:id/leaderboard", requireAuth, getLeaderboard);
 
 // ADMIN: Batch Management

@@ -117,10 +117,17 @@ const LiveClassRoom: React.FC = () => {
   const [accessStatus, setAccessStatus] = useState<{ hasAccess: boolean; pendingRequest: boolean } | null>(null);
 
   // Classroom State (Turn & Session tracking)
+  interface PromptAnswer {
+    childId: string;
+    answer: 'yes' | 'no';
+  }
+
   interface BatchState {
     activeChildId: string | null;
     activeSessionId: string | null;
     status: string;
+    currentPromptAnswers?: PromptAnswer[];
+    promptEvaluated?: boolean;
   }
   const [batchState, setBatchState] = useState<BatchState | null>(null);
   const [leaderboard, setLeaderboard] = useState<any[] | null>(null);
@@ -217,7 +224,9 @@ const LiveClassRoom: React.FC = () => {
           setBatchState({
             activeChildId: firstRawData.activeChildId || null,
             activeSessionId: firstRawData.activeSessionId || null,
-            status: firstRawData.status || 'active'
+            status: firstRawData.status || 'active',
+            currentPromptAnswers: firstRawData.currentPromptAnswers || [],
+            promptEvaluated: firstRawData.promptEvaluated || false
           });
           if (firstRawData.status === 'ended' && !showLeaderboard) setShowLeaderboard(true);
         }
@@ -291,7 +300,9 @@ const LiveClassRoom: React.FC = () => {
         setBatchState({
           activeChildId: res.data.activeChildId || null,
           activeSessionId: res.data.activeSessionId || null,
-          status: res.data.status || 'active'
+          status: res.data.status || 'active',
+          currentPromptAnswers: res.data.currentPromptAnswers || [],
+          promptEvaluated: res.data.promptEvaluated || false
         });
 
         // STUDENT AUTO-SYNC (Observer View)
@@ -515,6 +526,33 @@ const LiveClassRoom: React.FC = () => {
      } catch(e) {}
   };
 
+  const handleSubmitPrompt = async (answer: 'yes' | 'no') => {
+     if (!currentSession?.batchId || !activeChild) return;
+     try {
+       const token = await getToken();
+       await axios.post(`${API_BASE}/api/live/batch/${currentSession.batchId}/submit-prompt`, { 
+          childId: activeChild.id, answer 
+       }, { headers: { Authorization: `Bearer ${token}` } });
+       
+       setBatchState(prev => prev ? {
+           ...prev, 
+           currentPromptAnswers: [...(prev.currentPromptAnswers || []), { childId: activeChild.id, answer }]
+       } : null);
+     } catch(e) {}
+  };
+
+  const handleEvaluatePrompt = async (correctAnswer: 'yes' | 'no') => {
+     if (!currentSession?.batchId) return;
+     try {
+       const token = await getToken();
+       await axios.post(`${API_BASE}/api/live/batch/${currentSession.batchId}/evaluate-prompt`, { 
+          correctAnswer 
+       }, { headers: { Authorization: `Bearer ${token}` } });
+       
+       setBatchState(prev => prev ? { ...prev, promptEvaluated: true } : null);
+     } catch(e) {}
+  };
+
   const handleScoreParticipation = async (points: number = 1) => {
      if (!currentSession?.batchId || !activeChild) return;
      try {
@@ -522,7 +560,6 @@ const LiveClassRoom: React.FC = () => {
        await axios.post(`${API_BASE}/api/live/batch/${currentSession.batchId}/score-participation`, { 
           childId: activeChild.id, points 
        }, { headers: { Authorization: `Bearer ${token}` } });
-       alert("Response Submitted!"); // Or set a temporary success state
      } catch(e) {}
   };
 
@@ -619,11 +656,32 @@ const LiveClassRoom: React.FC = () => {
                 </div>
                 
                 {batchState?.activeChildId === session.childId ? (
-                   <div className="flex gap-1 mt-1 justify-center w-full" onClick={e => e.stopPropagation()}>
-                     <button title="Perfect (3)" onClick={() => handleScoreRecitation(session.childId, session.batchId!, 3)} className="w-7 h-7 bg-green-500 hover:bg-green-400 active:scale-95 rounded-md text-[11px] text-white font-black transition-transform">3</button>
-                     <button title="Minor Mistake (2)" onClick={() => handleScoreRecitation(session.childId, session.batchId!, 2)} className="w-7 h-7 bg-amber-500 hover:bg-amber-400 active:scale-95 rounded-md text-[11px] text-white font-black transition-transform">2</button>
-                     <button title="Multiple Mistakes (1)" onClick={() => handleScoreRecitation(session.childId, session.batchId!, 1)} className="w-7 h-7 bg-orange-500 hover:bg-orange-400 active:scale-95 rounded-md text-[11px] text-white font-black transition-transform">1</button>
-                     <button title="Incorrect (0)" onClick={() => handleScoreRecitation(session.childId, session.batchId!, 0)} className="w-7 h-7 bg-red-500 hover:bg-red-400 active:scale-95 rounded-md text-[11px] text-white font-black transition-transform">0</button>
+                   <div className="flex flex-col gap-2 mt-2 w-full max-w-[200px]" onClick={e => e.stopPropagation()}>
+                     
+                     {/* OVERVIEW OF OBSERVERS */}
+                     <div className="bg-emerald-950/50 rounded-lg p-2 border border-emerald-800/30">
+                       <p className="text-[9px] text-emerald-300 font-bold uppercase tracking-widest mb-1 text-center">Class Observations</p>
+                       <div className="flex justify-between items-center px-2">
+                         <span className="text-xs font-bold text-green-400">✅ {batchState?.currentPromptAnswers?.filter(a => a.answer === 'yes').length || 0}</span>
+                         <span className="text-xs font-bold text-red-400">❌ {batchState?.currentPromptAnswers?.filter(a => a.answer === 'no').length || 0}</span>
+                       </div>
+                       
+                       {!batchState?.promptEvaluated ? (
+                         <div className="flex gap-1 mt-2">
+                           <button title="Class was right (Perfect)" onClick={() => handleEvaluatePrompt('yes')} className="flex-1 bg-green-500/20 hover:bg-green-500/40 text-green-300 py-1 rounded text-[10px] font-bold border border-green-500/30 transition-colors">Perfect</button>
+                           <button title="Class was right (Mistake)" onClick={() => handleEvaluatePrompt('no')} className="flex-1 bg-red-500/20 hover:bg-red-500/40 text-red-300 py-1 rounded text-[10px] font-bold border border-red-500/30 transition-colors">Mistake</button>
+                         </div>
+                       ) : (
+                         <div className="text-center text-[10px] font-bold text-emerald-400 mt-1 uppercase tracking-widest">Class Evaluated!</div>
+                       )}
+                     </div>
+
+                     <div className="flex gap-1 justify-center w-full">
+                       <button title="Perfect (3)" onClick={() => handleScoreRecitation(session.childId, session.batchId!, 3)} className="w-8 h-8 flex items-center justify-center bg-green-500 hover:bg-green-400 active:scale-95 rounded-md text-xs text-white font-black transition-transform">3</button>
+                       <button title="Minor Mistake (2)" onClick={() => handleScoreRecitation(session.childId, session.batchId!, 2)} className="w-8 h-8 flex items-center justify-center bg-amber-500 hover:bg-amber-400 active:scale-95 rounded-md text-xs text-white font-black transition-transform">2</button>
+                       <button title="Multiple Mistakes (1)" onClick={() => handleScoreRecitation(session.childId, session.batchId!, 1)} className="w-8 h-8 flex items-center justify-center bg-orange-500 hover:bg-orange-400 active:scale-95 rounded-md text-xs text-white font-black transition-transform">1</button>
+                       <button title="Incorrect (0)" onClick={() => handleScoreRecitation(session.childId, session.batchId!, 0)} className="w-8 h-8 flex items-center justify-center bg-red-500 hover:bg-red-400 active:scale-95 rounded-md text-xs text-white font-black transition-transform">0</button>
+                     </div>
                    </div>
                 ) : (
                    <span className="text-[9px] font-bold uppercase tracking-widest opacity-70">Observe</span>
@@ -719,17 +777,42 @@ const LiveClassRoom: React.FC = () => {
 
           {/* Student Engagement Prompt */}
           {isObserving && (
-            <div className="absolute bottom-6 left-4 right-4 md:left-1/2 md:-translate-x-1/2 md:w-[400px] bg-white text-slate-800 p-5 rounded-3xl shadow-2xl border-4 border-emerald-100/50 z-50 animate-in slide-in-from-bottom">
-              <div className="mb-4">
-                <span className="bg-amber-100 text-amber-800 px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest mb-3 inline-block">Observe & Answer</span>
-                <h4 className="font-bold text-xl text-[#052e16] leading-tight">Was the recitation correct?</h4>
-                <p className="text-sm text-slate-500 mt-1">Listen to your classmate closely.</p>
-              </div>
-              <div className="flex gap-3 mt-5">
-                 <button onClick={() => handleScoreParticipation(1)} className="flex-1 bg-green-500 hover:bg-green-600 shadow-green-500/20 shadow-lg text-white py-4 rounded-xl font-bold transition-transform active:scale-95 text-lg">Yes</button>
-                 <button onClick={() => handleScoreParticipation(2)} className="flex-1 bg-red-500 hover:bg-red-600 shadow-red-500/20 shadow-lg text-white py-4 rounded-xl font-bold transition-transform active:scale-95 text-lg">No (Mistake)</button>
-              </div>
-            </div>
+            (() => {
+              const myAnswer = batchState?.currentPromptAnswers?.find(a => a.childId === currentSession.childId);
+              
+              if (batchState?.promptEvaluated) {
+                 return (
+                    <div className="absolute bottom-6 left-4 right-4 md:left-1/2 md:-translate-x-1/2 md:w-[400px] bg-white text-slate-800 p-5 rounded-3xl shadow-2xl border-4 border-emerald-100/50 z-50 animate-in slide-in-from-bottom text-center">
+                       <span className="bg-emerald-100 text-emerald-800 px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest inline-block mb-2">Evaluated</span>
+                       <h4 className="font-bold text-xl text-[#052e16]">The Scholar has checked the answers!</h4>
+                    </div>
+                 );
+              }
+
+              if (myAnswer) {
+                 return (
+                    <div className="absolute bottom-6 left-4 right-4 md:left-1/2 md:-translate-x-1/2 md:w-[400px] bg-white text-slate-800 p-5 rounded-3xl shadow-2xl border-4 border-emerald-100/50 z-50 animate-in slide-in-from-bottom text-center">
+                       <span className="bg-amber-100 text-amber-800 px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest inline-block mb-2">Answer Submitted</span>
+                       <h4 className="font-bold text-xl text-[#052e16]">Waiting for Scholar...</h4>
+                       <p className="text-sm font-bold mt-2">You guessed: {myAnswer.answer === 'yes' ? 'Perfect' : 'Mistake'}</p>
+                    </div>
+                 );
+              }
+
+              return (
+                <div className="absolute bottom-6 left-4 right-4 md:left-1/2 md:-translate-x-1/2 md:w-[400px] bg-white text-slate-800 p-5 rounded-3xl shadow-2xl border-4 border-emerald-100/50 z-50 animate-in slide-in-from-bottom">
+                  <div className="mb-4">
+                    <span className="bg-amber-100 text-amber-800 px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest mb-3 inline-block">Observe & Answer</span>
+                    <h4 className="font-bold text-xl text-[#052e16] leading-tight">Was the recitation correct?</h4>
+                    <p className="text-sm text-slate-500 mt-1">Listen to your classmate closely.</p>
+                  </div>
+                  <div className="flex gap-3 mt-5">
+                     <button onClick={() => handleSubmitPrompt('yes')} className="flex-1 bg-green-500 hover:bg-green-600 shadow-green-500/20 shadow-lg text-white py-4 rounded-xl font-bold transition-transform active:scale-95 text-lg">Yes</button>
+                     <button onClick={() => handleSubmitPrompt('no')} className="flex-1 bg-red-500 hover:bg-red-600 shadow-red-500/20 shadow-lg text-white py-4 rounded-xl font-bold transition-transform active:scale-95 text-lg">No (Mistake)</button>
+                  </div>
+                </div>
+              );
+            })()
           )}
 
           {userRole === 'scholar' && (

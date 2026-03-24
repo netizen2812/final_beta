@@ -88,11 +88,13 @@ export const awardXP = async (childId, action, data = {}) => {
         updateStreak(progress);
 
         if (action === "recitation") {
-            const { score } = data; // 0, 1, 2, 3
-            if (score === 3) xpGained = 30;
-            else if (score === 2) xpGained = 20;
-            else if (score === 1) xpGained = 10;
-            else if (score === 0) xpGained = 5;
+            const { score } = data; // directly 10, 20, 30
+            // Allow direct integer scores
+            xpGained = score || 0;
+
+            if (score >= 30) {
+                progress.total_correct_recitations += 1;
+            }
 
             if (score === 3) {
                 progress.total_correct_recitations += 1;
@@ -115,7 +117,8 @@ export const awardXP = async (childId, action, data = {}) => {
                     batchId: batchId || null,
                     sessionId: sessionId || null,
                     date: new Date(),
-                    status: 'present'
+                    status: 'present',
+                    type: 'session_complete'
                 });
             }
 

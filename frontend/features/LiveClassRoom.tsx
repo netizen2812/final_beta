@@ -227,7 +227,7 @@ const LiveClassRoom: React.FC = () => {
             setActiveSessions(mappedSessions);
         }
 
-        if (data.status === 'ended' && !showLeaderboard) {
+        if ((data.status === 'ended' || data.status === 'upcoming') && !showLeaderboard) {
            const lastSession = data.pastSessions?.[data.pastSessions.length - 1];
            if (lastSession) {
              setShowLeaderboard(lastSession.sessionId);
@@ -309,7 +309,7 @@ const LiveClassRoom: React.FC = () => {
             }
         }
 
-        if (res.data.status === 'ended' && !showLeaderboard) {
+        if ((res.data.status === 'ended' || res.data.status === 'upcoming') && !showLeaderboard) {
           setShowLeaderboard(true);
         }
       } catch(e) {}

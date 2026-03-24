@@ -1,5 +1,6 @@
 import express from "express";
 import {
+    startSession, getScholarSessions, getSession, updateAyah, endSession, getScholarStatus,
     createBatch, getAdminBatches, updateBatch, deleteBatch, startBatch, joinBatch, getMySessions,
     addStudentToBatch, removeStudentFromBatch, getBatchSessions, debugBatch, debugAllBatches,
     batchPing, updateBatchProgress, updatePosition, leaveBatch, getBatchActiveParticipants,
@@ -11,6 +12,7 @@ import { requireAuth, isAdmin, isScholar } from "../middleware/authmiddleware.js
 const router = express.Router();
 
 // Helper: Scholar Status
+router.get("/scholar/status", requireAuth, getScholarStatus);
 
 // SCHOLAR: My Batches
 router.get("/scholar/batches", requireAuth, isScholar, getScholarBatches);
@@ -62,6 +64,11 @@ router.post("/batch/:id/end", requireAuth, isScholar, endBatch);
 router.get("/batch/:id/sessions", requireAuth, isScholar, getBatchSessions);
 
 // SCHOLAR: Common / Legacy
+router.get("/scholar/sessions", requireAuth, isScholar, getScholarSessions); // for scholar dashboard
+router.post("/start", requireAuth, startSession); // legacy 1-on-1 if still needed
+router.get("/:id", requireAuth, getSession);
+router.patch("/:id", requireAuth, updateAyah);
+router.post("/:id/end", requireAuth, endSession);
 
 console.log("✅ Live routes loaded successfully");
 

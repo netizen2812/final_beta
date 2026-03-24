@@ -206,7 +206,8 @@ const KidsView = ({ scrollProgress, activeChild, onJoinLive, currentBatchStatus,
   const [selectedSessionId, setSelectedSessionId] = useState<string | null>(null);
   
   // Calculate Map fill percentage
-  const totalClassesPassed = activeBatch?.pastSessions?.length || 0;
+  // Only count sessions that have actually ended to advance the permanent tracker
+  const totalClassesPassed = activeBatch?.pastSessions?.filter((s: any) => s.endedAt).length || 0;
   const lastUnlockedIndex = Math.min(totalClassesPassed, 15);
   const maxPercentage = (lastUnlockedIndex / (JOURNEY_STAGES.length - 1)) * 100;
   const currentDraw = scrollProgress * 2.0;

@@ -136,7 +136,7 @@ const FeatureCardsGrid: React.FC<FeatureCardsGridProps> = ({ onNavigate }) => {
             benefit: t('home.structuredGrowth'),
             icon: Feather,
             image: "/images/tarbiyah.png",
-            tab: AppTab.TARBIYAH
+            tab: AppTab.LIVE
         },
         {
             title: t('home.ibadahTools'),

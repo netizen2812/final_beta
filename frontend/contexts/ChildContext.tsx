@@ -1,7 +1,7 @@
 
 import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
 import { Child, ChildProgress } from '../types';
-import { tarbiyahService } from '../services/tarbiyahService';
+import { childService } from '../services/childService';
 import { useAuth } from '@clerk/clerk-react';
 
 interface ChildContextType {
@@ -34,7 +34,7 @@ export const ChildProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       try {
         const token = await getToken();
         if (token) {
-          const data = await tarbiyahService.getChildren(getToken);
+          const data = await childService.getChildren(getToken);
           setChildrenList(data);
         }
       } catch (error) {
@@ -63,7 +63,7 @@ export const ChildProvider: React.FC<{ children: React.ReactNode }> = ({ childre
 
   const addChild = async (payload: Partial<Child>) => {
     try {
-      const newChild = await tarbiyahService.addChild(payload, getToken);
+      const newChild = await childService.addChild(payload, getToken);
       setChildrenList(prev => [...prev, newChild]);
       if (!activeChildId) setActiveChildId(newChild.id);
     } catch (error) {
@@ -73,7 +73,7 @@ export const ChildProvider: React.FC<{ children: React.ReactNode }> = ({ childre
 
   const updateChild = async (updatedChild: Child) => {
     try {
-      const result = await tarbiyahService.updateChild(updatedChild.id, updatedChild, getToken);
+      const result = await childService.updateChild(updatedChild.id, updatedChild, getToken);
       setChildrenList(prev => prev.map(c => c.id === result.id ? result : c));
     } catch (error) {
       console.error("Failed to update child", error);
@@ -82,7 +82,7 @@ export const ChildProvider: React.FC<{ children: React.ReactNode }> = ({ childre
 
   const deleteChild = async (id: string) => {
     try {
-      await tarbiyahService.deleteChild(id, getToken);
+      await childService.deleteChild(id, getToken);
       setChildrenList(prev => prev.filter(c => c.id !== id));
       if (activeChildId === id) setActiveChildId(null);
     } catch (error) {
@@ -98,7 +98,7 @@ export const ChildProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     try {
       const token = await getToken();
       if (token) {
-        const data = await tarbiyahService.getChildren(getToken);
+        const data = await childService.getChildren(getToken);
         setChildrenList(data);
       }
     } catch (error) {
@@ -137,7 +137,7 @@ export const ChildProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       // Note: check if updateProgress backend handles partial updates.
       // The backend uses: children.child_progress[0].lessons_completed = lessons_completed !== undefined ? ...
       // So if we omit it, it keeps existing value. Perfect.
-      await tarbiyahService.updateProgress(childId, { ...newProgressState, lessons_completed: undefined } as any, getToken);
+      await childService.updateProgress(childId, { ...newProgressState, lessons_completed: undefined } as any, getToken);
     } catch (error) {
       console.error("Failed to sync progress", error);
     }

@@ -757,9 +757,27 @@ export const getBatchState = async (req, res) => {
     try {
         const { id } = req.params;
         const { default: Batch } = await import("../models/Batch.js");
-        const batch = await Batch.findById(id).select("activeChildId activeSessionId status");
+        const batch = await Batch.findById(id).select("activeChildId activeSessionId status activeParticipants");
         if (!batch) return res.status(404).json({ message: "Batch not found" });
-        res.json(batch);
+
+        let activeSurah = null;
+        let activeAyah = null;
+
+        if (batch.activeChildId && batch.activeParticipants) {
+            const activeParticipant = batch.activeParticipants.find(p => p.childId === batch.activeChildId);
+            if (activeParticipant) {
+                activeSurah = activeParticipant.currentSurah;
+                activeAyah = activeParticipant.currentAyah;
+            }
+        }
+
+        res.json({
+            activeChildId: batch.activeChildId,
+            activeSessionId: batch.activeSessionId,
+            status: batch.status,
+            activeSurah,
+            activeAyah
+        });
     } catch (error) {
         res.status(500).json({ error: error.message });
     }

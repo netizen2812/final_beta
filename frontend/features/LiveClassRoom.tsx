@@ -294,6 +294,19 @@ const LiveClassRoom: React.FC = () => {
           status: res.data.status || 'active'
         });
 
+        // STUDENT AUTO-SYNC (Observer View)
+        if (res.data.activeChildId && res.data.activeChildId !== currentSession.childId) {
+            if (res.data.activeSurah && res.data.activeAyah) {
+                setCurrentSession(prev => {
+                    if (!prev) return prev;
+                    if (prev.currentSurah !== res.data.activeSurah || prev.currentAyah !== res.data.activeAyah) {
+                        return { ...prev, currentSurah: res.data.activeSurah, currentAyah: res.data.activeAyah };
+                    }
+                    return prev;
+                });
+            }
+        }
+
         if (res.data.status === 'ended' && !showLeaderboard) {
           setShowLeaderboard(true);
         }
@@ -303,7 +316,7 @@ const LiveClassRoom: React.FC = () => {
     fetchState();
     const interval = setInterval(fetchState, 3000); // 3s poll for state sync
     return () => clearInterval(interval);
-  }, [currentSession?.batchId, userRole, getToken, showLeaderboard]);
+  }, [currentSession?.batchId, currentSession?.childId, userRole, getToken, showLeaderboard]);
 
 
   const checkAccess = async () => {

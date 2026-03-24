@@ -319,6 +319,12 @@ export const startBatch = async (req, res) => {
     try {
         const { id } = req.params;
         const { default: Batch } = await import("../models/Batch.js");
+
+        let batch = await Batch.findById(id);
+        if (batch && batch.status === 'active' && batch.activeSessionId) {
+            return res.json({ message: "Batch already active", activeSessionId: batch.activeSessionId });
+        }
+
         const activeSessionId = Date.now().toString();
 
         await Batch.findByIdAndUpdate(id, { 
@@ -1008,5 +1014,40 @@ export const getScholarBatches = async (req, res) => {
     } catch (error) {
         console.error("Scholar batches error:", error);
         res.status(500).json({ error: error.message });
+    }
+};
+
+// POST /api/live/batch/:id/end
+export const endBatch = async (req, res) => {
+    try {
+        const { id } = req.params;
+        const { default: Batch } = await import("../models/Batch.js");
+        const { awardXP } = await import("../services/gamificationService.js");
+
+        const batch = await Batch.findById(id);
+        if (!batch) return res.status(404).json({ message: "Batch not found" });
+
+        const durationMinutes = 45; 
+        
+        // Ensure participants who joined get completion XP
+        if (batch.activeParticipants) {
+            for (const p of batch.activeParticipants) {
+                if (p.isActive) {
+                    try { 
+                        await awardXP(p.childId, "session_complete", {});
+                    } catch (err) { }
+                }
+            }
+        }
+
+        batch.status = 'ended';
+        // Cleanup active state so it can be restarted later
+        batch.activeSessionId = null; 
+        batch.activeChildId = null;
+        await batch.save();
+
+        res.json({ message: "Batch ended and XP awarded" });
+    } catch (error) {
+        res.status(500).json({ message: "Server error" });
     }
 };

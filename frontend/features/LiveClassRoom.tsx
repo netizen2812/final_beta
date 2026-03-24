@@ -470,7 +470,7 @@ const LiveClassRoom: React.FC = () => {
     }
   };
 
-  const handleScholarJoinBatch = (batch: any) => {
+  const handleScholarJoinBatch = async (batch: any) => {
     setCurrentSession({
       _id: batch._id || batch.id,
       batchId: batch._id || batch.id,
@@ -488,6 +488,15 @@ const LiveClassRoom: React.FC = () => {
         currentPromptAnswers: [],
         promptEvaluated: false
     });
+
+    try {
+        const token = await getToken();
+        await axios.post(`${API_BASE}/api/live/${batch._id || batch.id}/start`, {}, { 
+            headers: { Authorization: `Bearer ${token}` } 
+        });
+    } catch (e) { 
+        console.error("Failed to start batch", e); 
+    }
   };
 
   const handleExitSession = async () => {
@@ -513,8 +522,7 @@ const LiveClassRoom: React.FC = () => {
   const handleEndClass = async (batchId: string) => {
      try {
        const token = await getToken();
-       // Use standard end logic but we trigger leaderboard manually
-       await axios.post(`${API_BASE}/api/live/${currentSession?._id}/end`, {}, { headers: { Authorization: `Bearer ${token}` } });
+       await axios.post(`${API_BASE}/api/live/batch/${batchId}/end`, {}, { headers: { Authorization: `Bearer ${token}` } });
        setShowLeaderboard(true);
      } catch(e) { console.warn(e); }
   };

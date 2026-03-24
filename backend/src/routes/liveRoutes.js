@@ -5,7 +5,7 @@ import {
     addStudentToBatch, removeStudentFromBatch, getBatchSessions, debugBatch, debugAllBatches,
     batchPing, updateBatchProgress, updatePosition, leaveBatch, getBatchActiveParticipants,
     getBatchState, selectTurn, scoreRecitation, scoreParticipation, getLeaderboard,
-    submitPrompt, evaluatePrompt, getScholarBatches
+    submitPrompt, evaluatePrompt, getScholarBatches, endBatch
 } from "../controller/liveController.js";
 import { requireAuth, isAdmin, isScholar } from "../middleware/authmiddleware.js";
 
@@ -55,6 +55,9 @@ router.get("/debug/batches", requireAuth, isAdmin, debugAllBatches);
 
 // SCHOLAR: Start Batch
 router.post("/:id/start", requireAuth, isScholar, startBatch);
+
+// SCHOLAR: End Batch
+router.post("/batch/:id/end", requireAuth, isScholar, endBatch);
 
 // SCHOLAR: Batch Observation
 router.get("/batch/:id/sessions", requireAuth, isScholar, getBatchSessions);

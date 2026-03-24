@@ -759,7 +759,13 @@ export const getLeaderboard = async (req, res) => {
         const batch = await Batch.findById(id);
         if (!batch) return res.json({ leaderboard: [] });
 
-        const querySessionId = req.query.sessionId || batch.activeSessionId;
+        let querySessionId = req.query.sessionId || batch.activeSessionId;
+        
+        // If no active session, grab the most recently ended session to populate Class Results
+        if (!querySessionId && batch.pastSessions && batch.pastSessions.length > 0) {
+            querySessionId = batch.pastSessions[batch.pastSessions.length - 1].sessionId;
+        }
+
         if (!querySessionId) return res.json({ leaderboard: [] });
 
         const scores = await LiveScore.find({ batchId: id, sessionId: querySessionId });

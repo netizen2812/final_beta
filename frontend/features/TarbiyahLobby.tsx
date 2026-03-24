@@ -3,7 +3,7 @@ import {
   BookOpen, Heart, Sun, Cloud, Play, Lock, Sprout, Star, 
   Trophy, Flame, Target, User, Settings, Clock, CheckCircle, 
   TrendingUp, Shield, Award, Moon, Sparkles, Leaf, Book,
-  ChevronLeft, BarChart2, Calendar, Download, Share2
+  ChevronLeft, BarChart2, Calendar, Download, Share2, Users
 } from 'lucide-react';
 import { PieChart, Pie, Cell, ResponsiveContainer, BarChart, Bar, XAxis, Tooltip as RechartsTooltip } from 'recharts';
 import { useChildContext } from '../contexts/ChildContext';
@@ -102,8 +102,22 @@ export const MovingBackground = React.memo(() => {
   );
 });
 
-export const TarbiyahLobby = ({ getToken, onJoinSession }: { getToken: any, onJoinSession: (s: any) => void }) => {
-  const [view, setView] = useState<'kids' | 'parent'>('kids');
+export const TarbiyahLobby = ({ 
+  getToken, 
+  onJoinSession,
+  userRole = 'parent',
+  scholarBatches = [],
+  onScholarJoinSession
+}: { 
+  getToken: any, 
+  onJoinSession: (s: any) => void,
+  userRole?: 'parent' | 'scholar',
+  scholarBatches?: any[],
+  onScholarJoinSession?: (b: any) => void
+}) => {
+  const [view, setView] = useState<'kids' | 'parent' | 'scholar_journey' | 'scholar_dashboard'>(
+     userRole === 'scholar' ? 'scholar_journey' : 'kids'
+  );
   const [scrollProgress, setScrollProgress] = useState(0);
   const { activeChild } = useChildContext();
   const [batches, setBatches] = useState<any[]>([]);
@@ -168,32 +182,67 @@ export const TarbiyahLobby = ({ getToken, onJoinSession }: { getToken: any, onJo
       <div className="fixed top-20 left-0 w-full z-40 px-4 py-3 pointer-events-none">
         <div className="max-w-5xl mx-auto flex justify-center md:justify-end items-start mt-2 md:mt-0">
           <div className="pointer-events-auto bg-black/40 backdrop-blur-md rounded-full p-1 shadow-lg border border-white/10 inline-flex ring-1 ring-white/5">
-            <button 
-              onClick={() => setView('kids')}
-              className={`px-6 py-2 rounded-full text-xs font-bold transition-all ${view === 'kids' ? 'bg-emerald-600 text-white shadow-[0_0_15px_rgba(16,185,129,0.5)]' : 'text-emerald-200 hover:text-white'}`}
-            >
-              Kids Map
-            </button>
-            <button 
-              onClick={() => setView('parent')}
-              className={`px-6 py-2 rounded-full text-xs font-bold transition-all ${view === 'parent' ? 'bg-indigo-600 text-white shadow-[0_0_15px_rgba(79,70,229,0.5)]' : 'text-indigo-200 hover:text-white'}`}
-            >
-              Parents Area
-            </button>
+            {userRole === 'scholar' ? (
+              <>
+                <button 
+                  onClick={() => setView('scholar_journey')}
+                  className={`px-6 py-2 rounded-full text-xs font-bold transition-all ${view === 'scholar_journey' ? 'bg-emerald-600 text-white shadow-[0_0_15px_rgba(16,185,129,0.5)]' : 'text-emerald-200 hover:text-white'}`}
+                >
+                  Class Journey
+                </button>
+                <button 
+                  onClick={() => setView('scholar_dashboard')}
+                  className={`px-6 py-2 rounded-full text-xs font-bold transition-all ${view === 'scholar_dashboard' ? 'bg-indigo-600 text-white shadow-[0_0_15px_rgba(79,70,229,0.5)]' : 'text-indigo-200 hover:text-white'}`}
+                >
+                  Scholar Dashboard
+                </button>
+              </>
+            ) : (
+              <>
+                <button 
+                  onClick={() => setView('kids')}
+                  className={`px-6 py-2 rounded-full text-xs font-bold transition-all ${view === 'kids' ? 'bg-emerald-600 text-white shadow-[0_0_15px_rgba(16,185,129,0.5)]' : 'text-emerald-200 hover:text-white'}`}
+                >
+                  Kids Map
+                </button>
+                <button 
+                  onClick={() => setView('parent')}
+                  className={`px-6 py-2 rounded-full text-xs font-bold transition-all ${view === 'parent' ? 'bg-indigo-600 text-white shadow-[0_0_15px_rgba(79,70,229,0.5)]' : 'text-indigo-200 hover:text-white'}`}
+                >
+                  Parents Area
+                </button>
+              </>
+            )}
           </div>
         </div>
       </div>
 
-      {view === 'kids' ? (
-        <KidsView 
-          scrollProgress={scrollProgress} 
-          activeChild={activeChild} 
-          onJoinLive={handleJoinLive} 
-          currentBatchStatus={currentBatchStatus}
-          batches={batches}
-        />
+      {userRole === 'scholar' ? (
+        view === 'scholar_journey' ? (
+          <ScholarJourneyView 
+             scrollProgress={scrollProgress} 
+             batches={scholarBatches} 
+             onJoinSession={onScholarJoinSession!} 
+          />
+        ) : (
+          <ScholarDashboardView 
+             batches={scholarBatches} 
+             onJoinSession={onScholarJoinSession!} 
+             getToken={getToken}
+          />
+        )
       ) : (
-        <ParentsView activeChild={activeChild} batches={batches} getToken={getToken} />
+        view === 'kids' ? (
+          <KidsView 
+            scrollProgress={scrollProgress} 
+            activeChild={activeChild} 
+            onJoinLive={handleJoinLive} 
+            currentBatchStatus={currentBatchStatus}
+            batches={batches}
+          />
+        ) : (
+          <ParentsView activeChild={activeChild} batches={batches} getToken={getToken} />
+        )
       )}
     </div>
   );
@@ -387,6 +436,194 @@ const KidsView = ({ scrollProgress, activeChild, onJoinLive, currentBatchStatus,
              </div>
            </div>
          </div>
+      )}
+    </div>
+  );
+};
+
+const ScholarJourneyView = ({ scrollProgress, batches, onJoinSession }: any) => {
+  const [selectedBatchId, setSelectedBatchId] = useState<string | null>(batches?.[0]?._id || null);
+  const activeBatch = batches.find((b:any) => b._id === selectedBatchId) || batches?.[0];
+  const [selectedSessionId, setSelectedSessionId] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!selectedBatchId && batches?.length > 0) {
+      setSelectedBatchId(batches[0]._id);
+    }
+  }, [batches, selectedBatchId]);
+
+  const totalClassesPassed = activeBatch?.pastSessions?.filter((s: any) => s.endedAt).length || 0;
+  const lastUnlockedIndex = Math.min(totalClassesPassed, 15);
+  const maxPercentage = (lastUnlockedIndex / (JOURNEY_STAGES.length - 1)) * 100;
+  const currentDraw = scrollProgress * 2.0;
+  const fillPercentage = Math.min(currentDraw, maxPercentage);
+
+  return (
+    <div className="relative z-10 pt-36 pb-20">
+      <div className="max-w-3xl mx-auto px-6 mb-16 text-center">
+        <h1 className="text-4xl font-serif font-bold text-white mb-4">Class Journey</h1>
+        {batches && batches.length > 0 ? (
+          <select 
+             value={selectedBatchId || ''} 
+             onChange={(e) => setSelectedBatchId(e.target.value)}
+             className="bg-emerald-950/80 text-emerald-100 px-6 py-4 rounded-2xl border border-emerald-800/80 w-full mb-8 font-bold shadow-lg shadow-emerald-950/50 appearance-none text-center text-lg"
+          >
+            {batches.map((b: any) => (
+               <option key={b._id} value={b._id}>{b.name}</option>
+            ))}
+          </select>
+        ) : (
+           <div className="text-emerald-300">No active batches assigned.</div>
+        )}
+      </div>
+
+      <div className="relative max-w-3xl mx-auto px-6 pb-24">
+        {/* SVG Path exactly like KidsView */}
+        <div className="absolute top-0 bottom-0 left-[3.5rem] md:left-1/2 w-1.5 -translate-x-1/2 bg-white/10 rounded-full z-0 pointer-events-none overflow-hidden">
+          <div 
+             className="w-full bg-gradient-to-b from-emerald-400 via-teal-300 to-amber-300 transition-all duration-300 ease-out origin-top shadow-[0_0_15px_rgba(16,185,129,0.5)]" 
+             style={{ height: `${fillPercentage}%` }} 
+          />
+        </div>
+
+        <div className="grid grid-cols-1 gap-24 relative sm:ml-[3rem] md:ml-0">
+          {JOURNEY_STAGES.map((stage, index) => {
+            const pastSession = activeBatch?.pastSessions?.[index];
+            const isCurrent = index === totalClassesPassed;
+            const isLocked = index > totalClassesPassed;
+            const isCompleted = index < totalClassesPassed;
+
+            return (
+              <div key={stage.id} className="flex md:justify-center items-center relative group perspective-1000">
+                <div 
+                   onClick={() => {
+                      if (isCompleted && pastSession && activeBatch) {
+                        setSelectedSessionId(pastSession.sessionId);
+                      } else if (isCurrent && activeBatch) {
+                        onJoinSession(activeBatch);
+                      }
+                   }}
+                   className={`
+                   absolute left-[2rem] md:left-1/2 -translate-x-1/2 w-14 h-14 rounded-full border-4 border-[#022c22] z-20 flex items-center justify-center shadow-xl transition-all duration-500 cursor-pointer
+                   ${isLocked ? 'bg-gray-800 text-gray-500 border-gray-700' : isCurrent ? 'bg-gradient-to-tr from-amber-400 to-yellow-300 text-amber-900 border-amber-200 shadow-[0_0_30px_rgba(251,191,36,0.6)] animate-pulse scale-125' : 'bg-gradient-to-tr from-emerald-400 to-teal-300 text-emerald-950 border-emerald-200'}
+                   `}
+                >
+                  {isLocked ? <Lock size={20} /> : isCurrent ? <Play size={20} fill="currentColor" /> : <CheckCircle size={20} />}
+                </div>
+
+                <div className={`w-full md:w-[45%] ${index % 2 === 0 ? 'md:mr-auto ml-20 md:ml-0 md:pr-16 text-left md:text-right' : 'md:ml-auto ml-20 md:ml-0 md:pl-16 text-left'}`}>
+                   <div className={`bg-white/5 backdrop-blur-xl p-6 rounded-3xl border transition-all duration-500 ${isCurrent ? 'border-amber-400/50 shadow-[0_0_30px_rgba(251,191,36,0.15)] ring-1 ring-amber-400/20' : isCompleted ? 'border-emerald-500/30' : 'border-white/5 opacity-50'}`}>
+                      <div className={`text-xs font-bold uppercase tracking-widest mb-2 flex items-center gap-2 md:justify-${index % 2 === 0 ? 'end' : 'start'} ${isCurrent ? 'text-amber-400' : 'text-emerald-400'}`}>
+                         Level {stage.id}
+                      </div>
+                      <h3 className={`font-serif text-2xl font-bold mb-1 ${isLocked ? 'text-gray-400' : 'text-white'}`}>{stage.title}</h3>
+                      <p className="text-sm text-emerald-200/70">{stage.subtitle}</p>
+
+                      {isCurrent ? (
+                        <button 
+                           onClick={() => onJoinSession(activeBatch)}
+                           className="mt-4 bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 text-amber-950 font-black px-6 py-2.5 rounded-xl shadow-[0_0_20px_rgba(245,158,11,0.4)] transition-all flex items-center gap-2 justify-center md:justify-start transform hover:scale-105"
+                        >
+                           <Play size={16} fill="currentColor" /> Start Live Class
+                        </button>
+                      ) : isLocked ? (
+                         <div className="mt-4 text-xs text-gray-400 font-bold uppercase tracking-wide flex items-center gap-2 justify-center md:justify-start bg-black/20 py-2 rounded-lg">
+                            <Lock size={12} /> Locked
+                         </div>
+                      ) : (
+                         <div className="mt-4 text-xs text-emerald-400 font-bold uppercase tracking-wide flex items-center gap-2 justify-center md:justify-start bg-emerald-900/30 py-2 rounded-lg">
+                            <CheckCircle size={12} /> Completed
+                         </div>
+                      )}
+                   </div>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      </div>
+      
+      {selectedSessionId && activeBatch && (
+         <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-in fade-in">
+           <div className="bg-white rounded-3xl w-full max-w-4xl max-h-[90vh] overflow-hidden flex flex-col shadow-2xl">
+             <div className="flex justify-end p-2 bg-slate-50 border-b border-slate-100">
+               <button onClick={() => setSelectedSessionId(null)} className="text-slate-400 hover:text-slate-600 p-2">
+                 ✕ Close
+               </button>
+             </div>
+             <div className="flex-1 overflow-y-auto relative h-[600px]">
+               <SessionLeaderboard 
+                 batchId={activeBatch._id} 
+                 sessionId={selectedSessionId} 
+                 onClose={() => setSelectedSessionId(null)} 
+               />
+             </div>
+           </div>
+         </div>
+      )}
+    </div>
+  );
+};
+
+const ScholarDashboardView = ({ batches, onJoinSession }: any) => {
+  return (
+    <div className="relative z-10 pt-32 pb-20 max-w-6xl mx-auto px-6 space-y-8 animate-in fade-in">
+      <div className="flex flex-col md:flex-row items-center justify-between bg-[#052e16]/80 backdrop-blur-md p-8 rounded-[2rem] shadow-2xl relative overflow-hidden border border-emerald-800/50">
+        <div className="absolute top-0 right-0 w-64 h-64 bg-emerald-800 rounded-full blur-3xl opacity-30 -translate-y-1/2 translate-x-1/2" />
+        
+        <div className="relative z-10 text-center md:text-left mb-6 md:mb-0">
+          <h1 className="text-4xl md:text-5xl font-serif font-bold text-white drop-shadow-md mb-2">Scholar Dashboard</h1>
+          <p className="text-emerald-200 text-lg">Manage Batches & Global Rankings.</p>
+        </div>
+        <div className="relative z-10 bg-white/10 text-white px-6 py-3 rounded-2xl border border-white/20 font-bold flex items-center gap-3 shadow-lg backdrop-blur-md">
+          <BookOpen size={20} className="text-emerald-300" />
+          <div className="text-xl">{batches.length} <span className="text-sm font-normal text-emerald-200 uppercase tracking-widest ml-1">Assigned Batches</span></div>
+        </div>
+      </div>
+
+      {batches.length === 0 ? (
+        <div className="text-center py-20 bg-emerald-950/40 backdrop-blur-md rounded-3xl border border-dashed border-emerald-700/50 shadow-sm">
+          <div className="w-20 h-20 bg-emerald-900/50 border border-emerald-800 rounded-full flex items-center justify-center mx-auto mb-6 shadow-inner ring-4 ring-emerald-950/50">
+            <Clock size={32} className="text-emerald-400" />
+          </div>
+          <h3 className="text-white font-bold text-2xl mb-2">No Batches Found</h3>
+          <p className="text-emerald-200/80 max-w-sm mx-auto">You do not have any active or upcoming student batches assigned to you right now.</p>
+        </div>
+      ) : (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          {batches.map((batch: any) => (
+            <div key={batch._id} className="bg-emerald-950/40 backdrop-blur-md p-6 rounded-[2rem] border border-emerald-800/50 shadow-md hover:shadow-xl hover:border-emerald-500/50 transition-all group overflow-hidden relative flex flex-col">
+              <div className="absolute top-0 right-0 w-32 h-32 bg-emerald-800/30 rounded-full blur-2xl -mr-10 -mt-10 transition-transform group-hover:scale-150" />
+              
+              <div className="relative z-10 flex-1">
+                <div className="flex justify-between items-start mb-6">
+                  <div className="w-14 h-14 bg-gradient-to-br from-emerald-500 to-teal-600 rounded-2xl flex items-center justify-center text-white shadow-lg transform -rotate-3 group-hover:rotate-0 transition-transform">
+                    <BookOpen size={24} />
+                  </div>
+                  <span className={`px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest shadow-sm ${batch.status === 'active' ? 'bg-emerald-500/20 border border-emerald-500/30 text-emerald-300 animate-pulse' : 'bg-white/10 text-emerald-100'}`}>
+                    {batch.status === 'active' ? '● Live' : 'Scheduled'}
+                  </span>
+                </div>
+
+                <h3 className="font-bold text-2xl text-white mb-1 truncate">
+                  {batch.name}
+                </h3>
+                <p className="text-sm text-emerald-300 font-bold mb-6 flex items-center gap-2">
+                  <Users size={16} /> {batch.students?.length || 0} Enrolled Students
+                </p>
+              </div>
+
+              <div className="relative z-10 mt-auto">
+                <button
+                  onClick={() => onJoinSession(batch)}
+                  className="w-full bg-emerald-500 hover:bg-emerald-400 text-[#022c22] py-4 rounded-xl font-bold text-sm flex items-center justify-center gap-2 transition-all active:scale-95 shadow-[0_0_15px_rgba(16,185,129,0.3)]"
+                >
+                  Start Class <ChevronLeft className="rotate-180" size={16} />
+                </button>
+              </div>
+            </div>
+          ))}
+        </div>
       )}
     </div>
   );

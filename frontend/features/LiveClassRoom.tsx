@@ -944,89 +944,14 @@ const LiveClassRoom: React.FC = () => {
       </div>
     );
   }
-
-  if (userRole === 'scholar') {
-    return (
-      <div className="fixed inset-0 z-[1000] bg-[#022c22] overflow-y-auto overflow-x-hidden p-6 font-sans">
-        <div className="fixed inset-0 pointer-events-none">
-          <div className="absolute top-[-20%] left-[-10%] w-[50%] h-[50%] bg-teal-900/40 rounded-full blur-[120px]" />
-          <div className="absolute bottom-[-20%] right-[-10%] w-[60%] h-[60%] bg-emerald-900/30 rounded-full blur-[150px]" />
-          <MovingBackground />
-        </div>
-        
-        <div className="max-w-6xl mx-auto space-y-8 animate-in fade-in relative z-10 w-full">
-          <div className="flex flex-col md:flex-row items-center justify-between bg-[#052e16]/80 backdrop-blur-md p-8 rounded-[2rem] shadow-2xl relative overflow-hidden border border-emerald-800/50">
-            <div className="absolute top-0 right-0 w-64 h-64 bg-emerald-800 rounded-full blur-3xl opacity-30 -translate-y-1/2 translate-x-1/2" />
-            
-            <div className="relative z-10 text-center md:text-left mb-6 md:mb-0">
-              <h1 className="text-4xl md:text-5xl font-serif font-bold text-white drop-shadow-md mb-2">{t('live.scholarDashboard', 'Scholar Dashboard')}</h1>
-              <p className="text-emerald-200 text-lg">Manage your virtual classrooms and Batches.</p>
-            </div>
-            <div className="relative z-10 bg-white/10 text-white px-6 py-3 rounded-2xl border border-white/20 font-bold flex items-center gap-3 shadow-lg backdrop-blur-md">
-              <LayoutDashboard size={20} className="text-emerald-300" />
-              <div className="text-xl">{scholarBatches.length} <span className="text-sm font-normal text-emerald-200 uppercase tracking-widest ml-1">Assigned Batches</span></div>
-            </div>
-          </div>
-
-          {scholarBatches.length === 0 ? (
-            <div className="text-center py-20 bg-emerald-950/40 backdrop-blur-md rounded-3xl border border-dashed border-emerald-700/50 shadow-sm">
-            <div className="w-20 h-20 bg-emerald-900/50 border border-emerald-800 rounded-full flex items-center justify-center mx-auto mb-6 shadow-inner ring-4 ring-emerald-950/50">
-              <Clock size={32} className="text-emerald-400" />
-            </div>
-            <h3 className="text-white font-bold text-2xl mb-2">No Batches Found</h3>
-            <p className="text-emerald-200/80 max-w-sm mx-auto">You do not have any active or upcoming student batches assigned to you right now.</p>
-          </div>
-        ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {scholarBatches.map(batch => (
-              <div key={batch._id} className="bg-emerald-950/40 backdrop-blur-md p-6 rounded-[2rem] border border-emerald-800/50 shadow-md hover:shadow-xl hover:border-emerald-500/50 transition-all group overflow-hidden relative">
-                <div className="absolute top-0 right-0 w-32 h-32 bg-emerald-800/30 rounded-full blur-2xl -mr-10 -mt-10 transition-transform group-hover:scale-150" />
-                
-                <div className="relative z-10">
-                  <div className="flex justify-between items-start mb-6">
-                    <div className="w-14 h-14 bg-gradient-to-br from-emerald-500 to-teal-600 rounded-2xl flex items-center justify-center text-white shadow-lg transform -rotate-3 group-hover:rotate-0 transition-transform">
-                      <BookOpen size={24} />
-                    </div>
-                    <span className={`px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest shadow-sm ${batch.status === 'active' ? 'bg-emerald-500/20 border border-emerald-500/30 text-emerald-300 animate-pulse' : 'bg-white/10 text-emerald-100'}`}>
-                      {batch.status === 'active' ? '● Live' : 'Scheduled'}
-                    </span>
-                  </div>
-
-                  <h3 className="font-bold text-2xl text-white mb-1 truncate">
-                    {batch.name}
-                  </h3>
-                  <p className="text-sm text-emerald-300 font-bold mb-6 flex items-center gap-2">
-                    <Users size={16} /> {batch.students?.length || 0} Enrolled Students
-                  </p>
-
-                  <div className="bg-emerald-900/40 rounded-2xl p-4 mb-6 border border-emerald-800/50">
-                    <div className="text-[10px] text-emerald-400 font-bold uppercase tracking-widest mb-1">Scholar Assigned</div>
-                    <p className="font-bold text-white text-sm truncate">
-                      {batch.scholar?.name || 'Unassigned'}
-                    </p>
-                  </div>
-
-                  <button
-                    onClick={() => handleScholarJoinBatch(batch)}
-                    className="w-full bg-emerald-500 hover:bg-emerald-400 text-[#022c22] py-4 rounded-xl font-bold text-sm flex items-center justify-center gap-2 transition-all active:scale-95 shadow-[0_0_15px_rgba(16,185,129,0.3)]"
-                  >
-                    Manage Class <ArrowRight size={16} />
-                  </button>
-                </div>
-              </div>
-            ))}
-          </div>
-        )}
-        </div>
-      </div>
-    );
-  }
-
-  // RENDER: PARENT LOBBY (My Sessions)
+  // RENDER: LOBBY (Scholar or Parent/Kid)
   return (
     <TarbiyahLobby 
       getToken={getToken} 
       onJoinSession={setCurrentSession} 
+      userRole={userRole}
+      scholarBatches={scholarBatches}
+      onScholarJoinSession={handleScholarJoinBatch}
     />
   );
 };

@@ -1058,6 +1058,7 @@ export const endBatch = async (req, res) => {
 
         // Mark the historical session as ended
         if (batch.activeSessionId) {
+            batch.pastSessions = batch.pastSessions || [];
             const sessionIndex = batch.pastSessions.findIndex(s => s.sessionId === batch.activeSessionId);
             if (sessionIndex > -1) {
                 batch.pastSessions[sessionIndex].endedAt = new Date();
@@ -1068,14 +1069,12 @@ export const endBatch = async (req, res) => {
         // Cleanup active state so it can be restarted later
         batch.activeSessionId = null; 
         batch.activeChildId = null;
-        // Do not clear activeParticipants so we can still see who attended this batch recently,
-        // or we could clear them depending on how we want the next class to boot up.
-        // It's safer to clear them so the next class starts empty and students must join.
         batch.activeParticipants = [];
         await batch.save();
 
         res.json({ message: "Batch ended and XP awarded" });
     } catch (error) {
-        res.status(500).json({ message: "Server error" });
+        console.error("End batch error:", error);
+        res.status(500).json({ message: "Server error", error: error.message, stack: process.env.NODE_ENV !== 'production' ? error.stack : undefined });
     }
 };

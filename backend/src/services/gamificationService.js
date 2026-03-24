@@ -1,29 +1,17 @@
 import Child from "../models/Child.js";
 import ChildActivity from "../models/ChildActivity.js";
 
-const LEVELS = {
-    1: 0,
-    2: 100,
-    3: 250,
-    4: 500,
-    5: 800,
-    6: 1200,
-    7: 1700,
-    8: 2300,
-    9: 3000,
-    10: 4000
-};
-
 export const calculateLevel = (xp) => {
-    let currentLevel = 1;
-    for (const [level, reqXp] of Object.entries(LEVELS)) {
-        if (xp >= reqXp) {
-            currentLevel = parseInt(level);
-        } else {
-            break;
-        }
-    }
-    return Math.max(currentLevel, Math.floor(xp / 100) + 1); // Fallback to linear if above configured array
+    // Progressive curve designed for a 16-session monthly batch (~600-720 XP/month)
+    // Target ~4 levels in month 1: Level = floor(sqrt(max(0, xp) / 50)) + 1
+    // L1: 0 XP
+    // L2: 50 XP (quick initial dopamine hit, ~2 sessions)
+    // L3: 200 XP (~1 week)
+    // L4: 450 XP (~2-3 weeks)
+    // L5: 800 XP (~1 month worth of Live classes)
+    // L6: 1250 XP (~1.5 months)
+    // L10: 4050 XP (~6 months)
+    return Math.floor(Math.sqrt(Math.max(0, xp) / 50)) + 1;
 };
 
 const checkBadges = (progress) => {
@@ -88,15 +76,10 @@ export const awardXP = async (childId, action, data = {}) => {
         updateStreak(progress);
 
         if (action === "recitation") {
-            const { score } = data; // directly 10, 20, 30
-            // Allow direct integer scores
+            const { score, rawScore } = data; 
             xpGained = score || 0;
 
-            if (score >= 30) {
-                progress.total_correct_recitations += 1;
-            }
-
-            if (score === 3) {
+            if (rawScore === 3 || score >= 30) {
                 progress.total_correct_recitations += 1;
             }
         } 

@@ -21,58 +21,7 @@ import { TarbiyahLobby } from './TarbiyahLobby';
 
 const POSITION_THROTTLE_MS = 500;
 
-const MovingBackground = React.memo(() => {
-  const particles = React.useMemo(() => {
-    return [...Array(40)].map((_, i) => {
-      const icons = [Moon, Star, BookOpen, Cloud, Sprout, Leaf, Sun];
-      const Icon = icons[i % icons.length];
-      const left = Math.random() * 100;
-      const duration = 60 + Math.random() * 60;
-      const delay = Math.random() * 60;
-      const size = 16 + Math.random() * 32;
-      const iconColors = ['#059669', '#34d399', '#fcd34d', '#a7f3d0', '#fbbf24'];
-      const color = iconColors[Math.floor(Math.random() * iconColors.length)];
-      return { Icon, left, duration, delay, size, color };
-    });
-  }, []);
-
-  return (
-    <div className="fixed inset-0 overflow-hidden pointer-events-none z-[-1] bg-[#f8fafc]">
-      <style>{`
-        @keyframes float-calm {
-          0% { transform: translateY(110vh) rotate(0deg); opacity: 0; }
-          20% { opacity: 0.2; }
-          80% { opacity: 0.2; }
-          100% { transform: translateY(-20vh) rotate(360deg); opacity: 0; }
-        }
-        .bg-icon-calm {
-          position: absolute;
-          opacity: 0;
-          animation: float-calm linear infinite;
-          will-change: transform;
-        }
-      `}</style>
-      
-      <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,transparent_0%,rgba(5,46,34,0.03)_100%)]"></div>
-
-      {particles.map((p, i) => (
-        <div
-          key={i}
-          className="bg-icon-calm"
-          style={{
-            left: `${p.left}%`,
-            animationDuration: `${p.duration}s`,
-            animationDelay: `-${p.delay}s`,
-            fontSize: p.size,
-            color: p.color
-          }}
-        >
-          <p.Icon size={p.size} strokeWidth={1.5} />
-        </div>
-      ))}
-    </div>
-  );
-});
+import { MovingBackground } from './TarbiyahLobby';
 
 // Types
 // Types
@@ -632,43 +581,49 @@ const LiveClassRoom: React.FC = () => {
   // RENDER: LEADERBOARD MODAL
   if (showLeaderboard) {
     return (
-      <div className="fixed inset-0 z-[2000] bg-emerald-950/90 backdrop-blur-sm flex items-center justify-center p-4 animate-in fade-in">
-        <div className="bg-white rounded-3xl max-w-md w-full p-8 shadow-2xl space-y-6">
+      <div className="fixed inset-0 z-[2000] bg-[#022c22] overflow-y-auto overflow-x-hidden p-4 flex items-center justify-center animate-in fade-in">
+        <div className="fixed inset-0 pointer-events-none">
+          <div className="absolute top-[-20%] left-[-10%] w-[50%] h-[50%] bg-teal-900/40 rounded-full blur-[120px]" />
+          <div className="absolute bottom-[-20%] right-[-10%] w-[60%] h-[60%] bg-emerald-900/30 rounded-full blur-[150px]" />
+          <MovingBackground />
+        </div>
+        
+        <div className="bg-emerald-950/80 backdrop-blur-xl border border-emerald-500/30 rounded-3xl max-w-md w-full p-8 shadow-[0_0_50px_rgba(16,185,129,0.15)] space-y-6 relative z-10">
            <div className="text-center space-y-2">
-             <div className="w-20 h-20 bg-amber-100 rounded-full flex items-center justify-center mx-auto text-amber-500 mb-4 border-4 border-white shadow-lg">
+             <div className="w-20 h-20 bg-amber-500/20 rounded-full flex items-center justify-center mx-auto text-amber-400 mb-4 border-4 border-amber-500/30 shadow-inner">
                 <svg xmlns="http://www.w3.org/2000/svg" width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m2 4 3 12 5-6 2 6 5-6 3 12"/><path d="M22 20H2"/></svg>
              </div>
-             <h2 className="text-3xl font-serif font-bold text-[#052e16]">{t('live.classResults', 'Class Results')}</h2>
-             <p className="text-slate-500">Great job everyone!</p>
+             <h2 className="text-3xl font-serif font-bold text-white">{t('live.classResults', 'Class Results')}</h2>
+             <p className="text-emerald-200/80">Great job everyone!</p>
            </div>
 
-           <div className="space-y-3 mt-8 max-h-[400px] overflow-y-auto">
+           <div className="space-y-3 mt-8 max-h-[400px] overflow-y-auto pr-2">
              {leaderboard ? leaderboard.map((l, idx) => (
-                <div key={l.childId} className={`flex items-center justify-between p-4 rounded-2xl ${idx === 0 ? 'bg-gradient-to-r from-amber-400 to-amber-500 text-white shadow-lg transform scale-[1.02]' : 'bg-slate-50 text-slate-800'}`}>
+                <div key={l.childId} className={`flex items-center justify-between p-4 rounded-2xl border ${idx === 0 ? 'bg-gradient-to-r from-amber-500 to-amber-600 border-amber-400/50 shadow-[0_0_20px_rgba(245,158,11,0.3)] transform scale-[1.02]' : 'bg-emerald-900/50 border-emerald-800/50'}`}>
                    <div className="flex items-center gap-3">
-                      <span className={`font-black text-lg ${idx === 0 ? 'text-white' : 'text-slate-400'}`}>#{idx + 1}</span>
-                      <span className="font-bold truncate max-w-[100px]">{l.name}</span>
+                      <span className={`font-black text-lg ${idx === 0 ? 'text-white' : 'text-emerald-500'}`}>#{idx + 1}</span>
+                      <span className={`font-bold truncate max-w-[100px] ${idx === 0 ? 'text-white' : 'text-emerald-50'}`}>{l.name}</span>
                    </div>
                    <div className="flex items-center gap-4">
                       <div className="text-right">
-                         <div className="text-[10px] opacity-80 leading-none uppercase font-bold tracking-wider">Recite</div>
-                         <div className="font-bold">{l.recitationScore}</div>
+                         <div className={`text-[10px] opacity-80 leading-none uppercase font-bold tracking-wider ${idx === 0 ? 'text-amber-100' : 'text-emerald-300/60'}`}>Recite</div>
+                         <div className={`font-bold ${idx === 0 ? 'text-white' : 'text-emerald-50'}`}>{l.recitationScore}</div>
                       </div>
                       <div className="text-right">
-                         <div className="text-[10px] opacity-80 leading-none uppercase font-bold tracking-wider">Engage</div>
-                         <div className="font-bold">{l.participationScore}</div>
+                         <div className={`text-[10px] opacity-80 leading-none uppercase font-bold tracking-wider ${idx === 0 ? 'text-amber-100' : 'text-emerald-300/60'}`}>Engage</div>
+                         <div className={`font-bold ${idx === 0 ? 'text-white' : 'text-emerald-50'}`}>{l.participationScore}</div>
                       </div>
-                      <div className={`font-black text-2xl ml-2 ${idx === 0 ? 'text-emerald-950' : 'text-emerald-600'}`}>
+                      <div className={`font-black text-2xl ml-2 px-3 py-1 rounded-lg border ${idx === 0 ? 'bg-amber-400 text-amber-900 border-amber-300' : 'bg-emerald-800 text-emerald-300 border-emerald-700/50'}`}>
                          {l.total}
                       </div>
                    </div>
                 </div>
              )) : (
-                <div className="text-center py-10"><Loader2 className="animate-spin mx-auto text-emerald-600" /></div>
+                <div className="text-center py-10"><Loader2 className="animate-spin mx-auto text-emerald-400" /></div>
              )}
            </div>
 
-           <button onClick={() => { setShowLeaderboard(false); handleExitSession(); }} className="w-full bg-[#052e16] text-white py-4 rounded-xl font-bold mt-6 hover:bg-emerald-900 transition-all">
+           <button onClick={() => { setShowLeaderboard(false); handleExitSession(); }} className="w-full bg-emerald-500 hover:bg-emerald-400 text-[#022c22] py-4 rounded-xl font-bold mt-6 transition-all shadow-[0_0_15px_rgba(16,185,129,0.3)]">
              Close Class
            </button>
         </div>
@@ -688,7 +643,12 @@ const LiveClassRoom: React.FC = () => {
     }
 
     return (
-      <div className="fixed inset-0 z-[1000] bg-white flex flex-col animate-in fade-in duration-300">
+      <div className="fixed inset-0 z-[1000] bg-[#022c22] flex flex-col animate-in fade-in duration-300 overflow-hidden font-sans">
+        <div className="fixed inset-0 pointer-events-none">
+          <div className="absolute top-[-20%] left-[-10%] w-[50%] h-[50%] bg-teal-900/40 rounded-full blur-[120px]" />
+          <div className="absolute bottom-[-20%] right-[-10%] w-[60%] h-[60%] bg-emerald-900/30 rounded-full blur-[150px]" />
+          <MovingBackground />
+        </div>
         
         {/* Scholar Control Panel */}
         {userRole === 'scholar' && currentSession?.batchId && (
@@ -728,10 +688,10 @@ const LiveClassRoom: React.FC = () => {
                      </div>
 
                      <div className="flex gap-1 justify-center w-full">
-                       <button title="Perfect (+30 XP)" onClick={() => setSelectedScore(30)} className={`w-9 h-8 flex items-center justify-center rounded-md text-[10px] text-white font-black transition-all ${selectedScore === 30 ? 'bg-green-600 ring-2 ring-white scale-110 shadow-lg' : 'bg-green-500 hover:bg-green-400'}`}>+30</button>
-                       <button title="Minor Mistake (+20 XP)" onClick={() => setSelectedScore(20)} className={`w-9 h-8 flex items-center justify-center rounded-md text-[10px] text-white font-black transition-all ${selectedScore === 20 ? 'bg-amber-600 ring-2 ring-white scale-110 shadow-lg' : 'bg-amber-500 hover:bg-amber-400'}`}>+20</button>
-                       <button title="Multiple Mistakes (+10 XP)" onClick={() => setSelectedScore(10)} className={`w-9 h-8 flex items-center justify-center rounded-md text-[10px] text-white font-black transition-all ${selectedScore === 10 ? 'bg-orange-600 ring-2 ring-white scale-110 shadow-lg' : 'bg-orange-500 hover:bg-orange-400'}`}>+10</button>
-                       <button title="Incorrect (+5 XP)" onClick={() => setSelectedScore(5)} className={`w-9 h-8 flex items-center justify-center rounded-md text-[10px] text-white font-black transition-all ${selectedScore === 5 ? 'bg-red-600 ring-2 ring-white scale-110 shadow-lg' : 'bg-red-500 hover:bg-red-400'}`}>+5</button>
+                       <button title="Perfect (+20 XP)" onClick={() => setSelectedScore(3)} className={`w-12 h-8 flex items-center justify-center rounded-md text-[10px] text-white font-black transition-all ${selectedScore === 3 ? 'bg-green-600 ring-2 ring-white scale-110 shadow-lg' : 'bg-green-500 hover:bg-green-400'}`}>+20 XP</button>
+                       <button title="Minor Mistake (+15 XP)" onClick={() => setSelectedScore(2)} className={`w-12 h-8 flex items-center justify-center rounded-md text-[10px] text-white font-black transition-all ${selectedScore === 2 ? 'bg-amber-600 ring-2 ring-white scale-110 shadow-lg' : 'bg-amber-500 hover:bg-amber-400'}`}>+15 XP</button>
+                       <button title="Multiple Mistakes (+10 XP)" onClick={() => setSelectedScore(1)} className={`w-12 h-8 flex items-center justify-center rounded-md text-[10px] text-white font-black transition-all ${selectedScore === 1 ? 'bg-orange-600 ring-2 ring-white scale-110 shadow-lg' : 'bg-orange-500 hover:bg-orange-400'}`}>+10 XP</button>
+                       <button title="Incorrect (+5 XP)" onClick={() => setSelectedScore(0)} className={`w-12 h-8 flex items-center justify-center rounded-md text-[10px] text-white font-black transition-all ${selectedScore === 0 ? 'bg-red-600 ring-2 ring-white scale-110 shadow-lg' : 'bg-red-500 hover:bg-red-400'}`}>+5 XP</button>
                      </div>
 
                      {selectedScore !== null && (
@@ -817,25 +777,25 @@ const LiveClassRoom: React.FC = () => {
           </div>
         )}
 
-        <div className="flex-1 overflow-y-auto relative flex flex-col bg-slate-50">
+        <div className="flex-1 overflow-y-auto relative flex flex-col bg-transparent">
           {!hasPosition && userRole === 'scholar' ? (
-            <div className="absolute inset-0 flex items-center justify-center bg-slate-50">
+            <div className="absolute inset-0 flex items-center justify-center bg-transparent">
               <div className="text-center p-6">
-                <div className="w-16 h-16 bg-slate-200 rounded-full flex items-center justify-center mx-auto mb-4 animate-pulse">
-                  <BookOpen className="text-slate-400" />
+                <div className="w-16 h-16 bg-white/10 rounded-full flex items-center justify-center mx-auto mb-4 animate-pulse">
+                  <BookOpen className="text-emerald-100" />
                 </div>
-                <h3 className="font-bold text-slate-700">{t('live.studentSelecting')}</h3>
-                <p className="text-sm text-slate-500">{t('live.quranViewAppear')}</p>
+                <h3 className="font-bold text-white">{t('live.studentSelecting', 'Student is selecting Ayah...')}</h3>
+                <p className="text-sm text-emerald-200">{t('live.quranViewAppear', 'Quran view will appear soon.')}</p>
               </div>
             </div>
           ) : userRole === 'parent' && !isMyTurn ? (
-            <div className="absolute inset-0 flex flex-col items-center justify-start bg-[#f8fafc] overflow-y-auto">
-               <div className="w-full bg-emerald-900 text-white p-8 md:p-12 shadow-xl relative overflow-hidden shrink-0">
+            <div className="absolute inset-0 flex flex-col items-center justify-start bg-transparent overflow-y-auto">
+               <div className="w-full bg-[#022c22]/50 backdrop-blur-md border-b border-emerald-800/50 text-white p-8 md:p-12 shadow-xl relative overflow-hidden shrink-0">
                   <div className="absolute top-0 right-0 w-64 h-64 bg-emerald-800 rounded-full blur-3xl opacity-50 -translate-y-1/2 translate-x-1/2" />
                   <div className="absolute bottom-0 left-0 w-48 h-48 bg-teal-800 rounded-full blur-3xl opacity-30 translate-y-1/2 -translate-x-1/4" />
                   
                   <div className="relative z-10 flex flex-col items-center text-center">
-                    <div className="w-20 h-20 mb-6 rounded-full bg-emerald-800 flex items-center justify-center animate-pulse shadow-[0_0_30px_rgba(16,185,129,0.3)] ring-4 ring-emerald-700">
+                    <div className="w-20 h-20 mb-6 rounded-full bg-emerald-800/50 flex items-center justify-center animate-pulse shadow-[0_0_30px_rgba(16,185,129,0.3)] ring-4 ring-emerald-700">
                        <BookOpen className="text-emerald-300" size={32} />
                     </div>
                     <h3 className="font-serif text-3xl md:text-4xl font-bold text-white mb-3">Live Session Active</h3>
@@ -847,7 +807,7 @@ const LiveClassRoom: React.FC = () => {
 
                <div className="w-full max-w-2xl px-4 py-8 md:py-12 flex-1 pb-40">
                   <div className="flex items-center justify-between mb-6">
-                    <h4 className="font-bold text-xl text-[#052e16] flex items-center gap-2">
+                    <h4 className="font-bold text-xl text-white flex items-center gap-2">
                        <Trophy className="text-amber-500" size={24} /> 
                        Live Leaderboard
                     </h4>
@@ -858,42 +818,42 @@ const LiveClassRoom: React.FC = () => {
                   
                   <div className="space-y-3">
                      {leaderboard && leaderboard.length > 0 ? leaderboard.map((l, idx) => (
-                        <div key={l.childId} className="flex items-center justify-between p-4 rounded-2xl bg-white shadow-sm border border-emerald-50 hover:shadow-md transition-all">
+                        <div key={l.childId} className="flex items-center justify-between p-4 rounded-2xl bg-emerald-950/40 backdrop-blur-md shadow-sm border border-emerald-800/50 hover:border-emerald-500/50 transition-all">
                            <div className="flex items-center gap-4">
-                              <span className="font-black text-lg text-slate-300 w-6">#{idx + 1}</span>
-                              <span className="font-bold text-slate-700 truncate max-w-[120px]">{l.name}</span>
+                              <span className="font-black text-lg text-emerald-500 w-6">#{idx + 1}</span>
+                              <span className="font-bold text-emerald-50 truncate max-w-[120px]">{l.name}</span>
                            </div>
                            <div className="flex items-center gap-6">
                               <div className="text-right hidden sm:block">
-                                 <div className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">Recitation</div>
-                                 <div className="font-bold text-slate-700">{l.recitationScore}</div>
+                                 <div className="text-[10px] text-emerald-300/60 font-bold uppercase tracking-wider">Recitation</div>
+                                 <div className="font-bold text-emerald-50">{l.recitationScore}</div>
                               </div>
                               <div className="text-right hidden sm:block">
-                                 <div className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">Evaluation</div>
-                                 <div className="font-bold text-slate-700">{l.participationScore}</div>
+                                 <div className="text-[10px] text-emerald-300/60 font-bold uppercase tracking-wider">Evaluation</div>
+                                 <div className="font-bold text-emerald-50">{l.participationScore}</div>
                               </div>
-                              <div className="font-black text-xl text-emerald-600 bg-emerald-50 px-4 py-1.5 rounded-lg w-16 text-center">
+                              <div className="font-black text-xl text-amber-300 bg-amber-500/20 border border-amber-500/30 px-4 py-1.5 rounded-lg w-16 text-center">
                                  {l.total}
                               </div>
                            </div>
                         </div>
                      )) : (
-                        <div className="text-center py-12 bg-white rounded-3xl border border-dashed border-emerald-200">
+                        <div className="text-center py-12 bg-white/5 backdrop-blur-md rounded-3xl border border-dashed border-emerald-500/30">
                            <Loader2 className="animate-spin mx-auto text-emerald-300 mb-2" size={24} />
-                           <p className="text-[10px] font-bold text-emerald-600/60 uppercase tracking-widest mt-2">Compiling Scores...</p>
+                           <p className="text-[10px] font-bold text-emerald-200/60 uppercase tracking-widest mt-2">Compiling Scores...</p>
                         </div>
                      )}
                   </div>
                </div>
             </div>
           ) : userRole === 'parent' && isMyTurn && !hasStartedReciting ? (
-            <div className="absolute inset-0 flex flex-col items-center justify-center bg-[#f8fafc] p-4">
-               <div className="bg-white p-10 rounded-3xl shadow-2xl border border-emerald-100 text-center max-w-md w-full animate-in zoom-in-95 duration-300">
-                 <div className="w-20 h-20 bg-amber-100 text-amber-600 rounded-full flex items-center justify-center mx-auto mb-6 shadow-inner ring-4 ring-amber-50">
+            <div className="absolute inset-0 flex flex-col items-center justify-center bg-transparent p-4">
+               <div className="bg-emerald-950/80 backdrop-blur-xl p-10 rounded-3xl shadow-[0_0_50px_rgba(16,185,129,0.15)] border border-emerald-500/30 text-center max-w-md w-full animate-in zoom-in-95 duration-300">
+                 <div className="w-20 h-20 bg-amber-500/20 text-amber-400 rounded-full flex items-center justify-center mx-auto mb-6 shadow-inner ring-4 ring-amber-500/20">
                     <Mic size={36} />
                  </div>
-                 <h3 className="font-bold text-2xl text-[#052e16] mb-2">It's Your Turn!</h3>
-                 <p className="text-slate-500 mb-8">The Scholar is ready for your recitation.</p>
+                 <h3 className="font-bold text-2xl text-white mb-2">It's Your Turn!</h3>
+                 <p className="text-emerald-200/80 mb-8">The Scholar is ready for your recitation.</p>
                  <button onClick={() => setHasStartedReciting(true)} className="w-full bg-gradient-to-r from-emerald-500 to-emerald-600 hover:from-emerald-400 hover:to-emerald-500 text-white py-4 rounded-xl font-black text-lg shadow-[0_0_20px_rgba(5,150,105,0.4)] transition-all active:scale-95 flex flex-col items-center justify-center gap-1">
                     <span>RECITE NOW</span>
                     <span className="text-[10px] uppercase font-bold text-emerald-100 opacity-80 tracking-widest">Open Quran</span>
@@ -920,29 +880,29 @@ const LiveClassRoom: React.FC = () => {
               
               if (batchState?.promptEvaluated) {
                  return (
-                    <div className="absolute bottom-6 left-4 right-4 md:left-1/2 md:-translate-x-1/2 md:w-[400px] bg-white text-slate-800 p-5 rounded-3xl shadow-2xl border-4 border-emerald-100/50 z-50 animate-in slide-in-from-bottom text-center">
-                       <span className="bg-emerald-100 text-emerald-800 px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest inline-block mb-2">Evaluated</span>
-                       <h4 className="font-bold text-xl text-[#052e16]">The Scholar has checked the answers!</h4>
+                    <div className="absolute bottom-6 left-4 right-4 md:left-1/2 md:-translate-x-1/2 md:w-[400px] bg-emerald-950/90 text-white backdrop-blur-xl p-5 rounded-3xl shadow-2xl border-4 border-emerald-500/30 z-50 animate-in slide-in-from-bottom text-center">
+                       <span className="bg-emerald-500/20 text-emerald-300 px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest inline-block mb-2">Evaluated</span>
+                       <h4 className="font-bold text-xl text-white">The Scholar has checked the answers!</h4>
                     </div>
                  );
               }
 
               if (myAnswer) {
                  return (
-                    <div className="absolute bottom-6 left-4 right-4 md:left-1/2 md:-translate-x-1/2 md:w-[400px] bg-white text-slate-800 p-5 rounded-3xl shadow-2xl border-4 border-emerald-100/50 z-50 animate-in slide-in-from-bottom text-center">
-                       <span className="bg-amber-100 text-amber-800 px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest inline-block mb-2">Answer Submitted</span>
-                       <h4 className="font-bold text-xl text-[#052e16]">Waiting for Scholar...</h4>
-                       <p className="text-sm font-bold mt-2">You guessed: {myAnswer.answer === 'yes' ? 'Perfect' : 'Mistake'}</p>
+                    <div className="absolute bottom-6 left-4 right-4 md:left-1/2 md:-translate-x-1/2 md:w-[400px] bg-emerald-950/90 text-white backdrop-blur-xl p-5 rounded-3xl shadow-2xl border-4 border-emerald-500/30 z-50 animate-in slide-in-from-bottom text-center">
+                       <span className="bg-amber-500/20 text-amber-300 px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest inline-block mb-2">Answer Submitted</span>
+                       <h4 className="font-bold text-xl text-white">Waiting for Scholar...</h4>
+                       <p className="text-sm font-bold mt-2 text-emerald-100">You guessed: {myAnswer.answer === 'yes' ? 'Perfect' : 'Mistake'}</p>
                     </div>
                  );
               }
 
               return (
-                <div className="absolute bottom-6 left-4 right-4 md:left-1/2 md:-translate-x-1/2 md:w-[400px] bg-white text-slate-800 p-5 rounded-3xl shadow-2xl border-4 border-emerald-100/50 z-50 animate-in slide-in-from-bottom">
+                <div className="absolute bottom-6 left-4 right-4 md:left-1/2 md:-translate-x-1/2 md:w-[400px] bg-emerald-950/90 text-white backdrop-blur-xl p-5 rounded-3xl shadow-2xl border-4 border-emerald-500/30 z-50 animate-in slide-in-from-bottom">
                   <div className="mb-4">
-                    <span className="bg-amber-100 text-amber-800 px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest mb-3 inline-block">Observe & Answer</span>
-                    <h4 className="font-bold text-xl text-[#052e16] leading-tight">Was the recitation correct?</h4>
-                    <p className="text-sm text-slate-500 mt-1">Listen to your classmate closely.</p>
+                    <span className="bg-amber-500/20 text-amber-300 px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest mb-3 inline-block">Observe & Answer</span>
+                    <h4 className="font-bold text-xl text-white leading-tight">Was the recitation correct?</h4>
+                    <p className="text-sm text-emerald-200/80 mt-1">Listen to your classmate closely.</p>
                   </div>
                   <div className="flex gap-3 mt-5">
                      <button onClick={() => handleSubmitPrompt('yes')} className="flex-1 bg-green-500 hover:bg-green-600 shadow-green-500/20 shadow-lg text-white py-4 rounded-xl font-bold transition-transform active:scale-95 text-lg">Yes</button>
@@ -964,15 +924,15 @@ const LiveClassRoom: React.FC = () => {
           
           {confirmEndClass && (
             <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-in fade-in">
-              <div className="bg-white rounded-3xl p-8 max-w-sm w-full text-center shadow-2xl border-4 border-red-100">
-                 <div className="w-16 h-16 bg-red-100 text-red-600 rounded-full flex items-center justify-center mx-auto mb-4 border border-red-200 shadow-inner">
+              <div className="bg-[#022c22]/90 backdrop-blur-xl rounded-3xl p-8 max-w-sm w-full text-center shadow-[0_0_50px_rgba(239,68,68,0.2)] border border-red-500/30">
+                 <div className="w-16 h-16 bg-red-500/20 text-red-400 rounded-full flex items-center justify-center mx-auto mb-4 border border-red-500/30 shadow-inner">
                    <LogOut size={32} />
                  </div>
-                 <h3 className="font-bold text-2xl text-slate-800 mb-2">End Session?</h3>
-                 <p className="text-slate-500 mb-6 text-sm">Are you sure you want to end this live class? This restricts student access and awards final attendance XP.</p>
+                 <h3 className="font-bold text-2xl text-white mb-2">End Session?</h3>
+                 <p className="text-emerald-100/80 mb-6 text-sm">Are you sure you want to end this live class? This restricts student access and awards final attendance XP.</p>
                  <div className="flex gap-3">
-                   <button onClick={() => setConfirmEndClass(null)} className="flex-1 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold py-3 rounded-xl transition-all">Cancel</button>
-                   <button onClick={() => { handleEndClass(confirmEndClass); setConfirmEndClass(null); }} className="flex-1 bg-red-500 hover:bg-red-600 text-white font-bold py-3 rounded-xl shadow-lg shadow-red-500/30 transition-all">Yes, End Class</button>
+                   <button onClick={() => setConfirmEndClass(null)} className="flex-1 bg-white/10 hover:bg-white/20 text-white font-bold py-3 rounded-xl transition-all">Cancel</button>
+                   <button onClick={() => { handleEndClass(confirmEndClass); setConfirmEndClass(null); }} className="flex-1 bg-gradient-to-r from-red-500 to-red-600 hover:from-red-400 hover:to-red-500 text-white font-bold py-3 rounded-xl shadow-[0_0_15px_rgba(239,68,68,0.4)] transition-all">Yes, End Class</button>
                  </div>
               </div>
             </div>
@@ -982,65 +942,70 @@ const LiveClassRoom: React.FC = () => {
     );
   }
 
-  // RENDER: SCHOLAR DASHBOARD
-  // RENDER: SCHOLAR DASHBOARD
   if (userRole === 'scholar') {
     return (
-      <div className="max-w-6xl mx-auto p-6 space-y-8 animate-in fade-in">
-        <div className="flex flex-col md:flex-row items-center justify-between bg-emerald-950 p-8 rounded-[2rem] shadow-2xl relative overflow-hidden">
-          <div className="absolute top-0 right-0 w-64 h-64 bg-emerald-800 rounded-full blur-3xl opacity-30 -translate-y-1/2 translate-x-1/2" />
-          
-          <div className="relative z-10 text-center md:text-left mb-6 md:mb-0">
-            <h1 className="text-4xl md:text-5xl font-serif font-bold text-white drop-shadow-md mb-2">{t('live.scholarDashboard', 'Scholar Dashboard')}</h1>
-            <p className="text-emerald-200 text-lg">Manage your virtual classrooms and Batches.</p>
-          </div>
-          <div className="relative z-10 bg-white/10 text-white px-6 py-3 rounded-2xl border border-white/20 font-bold flex items-center gap-3 shadow-lg backdrop-blur-md">
-            <LayoutDashboard size={20} className="text-emerald-300" />
-            <div className="text-xl">{scholarBatches.length} <span className="text-sm font-normal text-emerald-200 uppercase tracking-widest ml-1">Assigned Batches</span></div>
-          </div>
+      <div className="fixed inset-0 z-[1000] bg-[#022c22] overflow-y-auto overflow-x-hidden p-6 font-sans">
+        <div className="fixed inset-0 pointer-events-none">
+          <div className="absolute top-[-20%] left-[-10%] w-[50%] h-[50%] bg-teal-900/40 rounded-full blur-[120px]" />
+          <div className="absolute bottom-[-20%] right-[-10%] w-[60%] h-[60%] bg-emerald-900/30 rounded-full blur-[150px]" />
+          <MovingBackground />
         </div>
+        
+        <div className="max-w-6xl mx-auto space-y-8 animate-in fade-in relative z-10 w-full">
+          <div className="flex flex-col md:flex-row items-center justify-between bg-[#052e16]/80 backdrop-blur-md p-8 rounded-[2rem] shadow-2xl relative overflow-hidden border border-emerald-800/50">
+            <div className="absolute top-0 right-0 w-64 h-64 bg-emerald-800 rounded-full blur-3xl opacity-30 -translate-y-1/2 translate-x-1/2" />
+            
+            <div className="relative z-10 text-center md:text-left mb-6 md:mb-0">
+              <h1 className="text-4xl md:text-5xl font-serif font-bold text-white drop-shadow-md mb-2">{t('live.scholarDashboard', 'Scholar Dashboard')}</h1>
+              <p className="text-emerald-200 text-lg">Manage your virtual classrooms and Batches.</p>
+            </div>
+            <div className="relative z-10 bg-white/10 text-white px-6 py-3 rounded-2xl border border-white/20 font-bold flex items-center gap-3 shadow-lg backdrop-blur-md">
+              <LayoutDashboard size={20} className="text-emerald-300" />
+              <div className="text-xl">{scholarBatches.length} <span className="text-sm font-normal text-emerald-200 uppercase tracking-widest ml-1">Assigned Batches</span></div>
+            </div>
+          </div>
 
-        {scholarBatches.length === 0 ? (
-          <div className="text-center py-20 bg-white rounded-3xl border border-dashed border-emerald-200 shadow-sm">
-            <div className="w-20 h-20 bg-emerald-50 rounded-full flex items-center justify-center mx-auto mb-6 shadow-inner ring-4 ring-emerald-50/50">
+          {scholarBatches.length === 0 ? (
+            <div className="text-center py-20 bg-emerald-950/40 backdrop-blur-md rounded-3xl border border-dashed border-emerald-700/50 shadow-sm">
+            <div className="w-20 h-20 bg-emerald-900/50 border border-emerald-800 rounded-full flex items-center justify-center mx-auto mb-6 shadow-inner ring-4 ring-emerald-950/50">
               <Clock size={32} className="text-emerald-400" />
             </div>
-            <h3 className="text-slate-900 font-bold text-2xl mb-2">No Batches Found</h3>
-            <p className="text-slate-500 max-w-sm mx-auto">You do not have any active or upcoming student batches assigned to you right now.</p>
+            <h3 className="text-white font-bold text-2xl mb-2">No Batches Found</h3>
+            <p className="text-emerald-200/80 max-w-sm mx-auto">You do not have any active or upcoming student batches assigned to you right now.</p>
           </div>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {scholarBatches.map(batch => (
-              <div key={batch._id} className="bg-white p-6 rounded-[2rem] border border-emerald-100 shadow-md hover:shadow-xl hover:border-emerald-300 transition-all group overflow-hidden relative">
-                <div className="absolute top-0 right-0 w-32 h-32 bg-emerald-50 rounded-full blur-2xl -mr-10 -mt-10 transition-transform group-hover:scale-150" />
+              <div key={batch._id} className="bg-emerald-950/40 backdrop-blur-md p-6 rounded-[2rem] border border-emerald-800/50 shadow-md hover:shadow-xl hover:border-emerald-500/50 transition-all group overflow-hidden relative">
+                <div className="absolute top-0 right-0 w-32 h-32 bg-emerald-800/30 rounded-full blur-2xl -mr-10 -mt-10 transition-transform group-hover:scale-150" />
                 
                 <div className="relative z-10">
                   <div className="flex justify-between items-start mb-6">
-                    <div className="w-14 h-14 bg-gradient-to-br from-emerald-400 to-teal-500 rounded-2xl flex items-center justify-center text-white shadow-lg transform -rotate-3 group-hover:rotate-0 transition-transform">
+                    <div className="w-14 h-14 bg-gradient-to-br from-emerald-500 to-teal-600 rounded-2xl flex items-center justify-center text-white shadow-lg transform -rotate-3 group-hover:rotate-0 transition-transform">
                       <BookOpen size={24} />
                     </div>
-                    <span className={`px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest shadow-sm ${batch.status === 'active' ? 'bg-emerald-100 text-emerald-700 animate-pulse' : 'bg-slate-100 text-slate-500'}`}>
+                    <span className={`px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest shadow-sm ${batch.status === 'active' ? 'bg-emerald-500/20 border border-emerald-500/30 text-emerald-300 animate-pulse' : 'bg-white/10 text-emerald-100'}`}>
                       {batch.status === 'active' ? '● Live' : 'Scheduled'}
                     </span>
                   </div>
 
-                  <h3 className="font-bold text-2xl text-[#052e16] mb-1 truncate">
+                  <h3 className="font-bold text-2xl text-white mb-1 truncate">
                     {batch.name}
                   </h3>
-                  <p className="text-sm text-emerald-600 font-bold mb-6 flex items-center gap-2">
+                  <p className="text-sm text-emerald-300 font-bold mb-6 flex items-center gap-2">
                     <Users size={16} /> {batch.students?.length || 0} Enrolled Students
                   </p>
 
-                  <div className="bg-slate-50 rounded-2xl p-4 mb-6 border border-slate-100">
-                    <div className="text-[10px] text-slate-400 font-bold uppercase tracking-widest mb-1">Scholar Assigned</div>
-                    <p className="font-bold text-slate-800 text-sm truncate">
+                  <div className="bg-emerald-900/40 rounded-2xl p-4 mb-6 border border-emerald-800/50">
+                    <div className="text-[10px] text-emerald-400 font-bold uppercase tracking-widest mb-1">Scholar Assigned</div>
+                    <p className="font-bold text-white text-sm truncate">
                       {batch.scholar?.name || 'Unassigned'}
                     </p>
                   </div>
 
                   <button
                     onClick={() => handleScholarJoinBatch(batch)}
-                    className="w-full bg-[#052e16] hover:bg-emerald-900 text-white py-4 rounded-xl font-bold text-sm flex items-center justify-center gap-2 transition-all active:scale-95 shadow-[0_4px_15px_rgba(5,46,22,0.2)]"
+                    className="w-full bg-emerald-500 hover:bg-emerald-400 text-[#022c22] py-4 rounded-xl font-bold text-sm flex items-center justify-center gap-2 transition-all active:scale-95 shadow-[0_0_15px_rgba(16,185,129,0.3)]"
                   >
                     Manage Class <ArrowRight size={16} />
                   </button>
@@ -1049,6 +1014,7 @@ const LiveClassRoom: React.FC = () => {
             ))}
           </div>
         )}
+        </div>
       </div>
     );
   }

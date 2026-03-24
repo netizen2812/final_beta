@@ -852,9 +852,12 @@ export const scoreRecitation = async (req, res) => {
         const batch = await Batch.findById(id);
         if (!batch || !batch.activeSessionId) return res.status(400).json({ message: "Batch not active or found" });
 
+        // Enforce strict limit maps
+        const xpAward = Number(score) === 3 ? 20 : Number(score) === 2 ? 15 : Number(score) === 1 ? 10 : 5;
+
         await LiveScore.findOneAndUpdate(
             { batchId: id, sessionId: batch.activeSessionId, childId },
-            { $inc: { recitationScore: score } },
+            { $inc: { recitationScore: xpAward } },
             { upsert: true, new: true }
         );
 
@@ -865,7 +868,7 @@ export const scoreRecitation = async (req, res) => {
         await batch.save();
 
         // Award Gamification XP for Recitation
-        const xpResult = await awardXP(childId, "recitation", { score });
+        const xpResult = await awardXP(childId, "recitation", { score: xpAward, rawScore: score });
 
         res.json({ message: "Score saved", nextChildId: null, xpResult });
     } catch (error) {
@@ -931,23 +934,40 @@ export const evaluatePrompt = async (req, res) => {
         const { id } = req.params;
         const { correctAnswer } = req.body; // 'yes' or 'no'
         const { default: Batch } = await import("../models/Batch.js");
+        const { default: LiveScore } = await import("../models/LiveScore.js");
         const { awardXP } = await import("../services/gamificationService.js");
 
         const batch = await Batch.findById(id);
-        if (!batch) return res.status(404).json({ message: "Batch not found" });
+        if (!batch || !batch.activeSessionId) return res.status(404).json({ message: "Batch not found or not active" });
 
         if (batch.promptEvaluated) {
             return res.status(400).json({ message: "Prompt already evaluated for this turn" });
         }
 
-        // Find all students who answered correctly
+        // Find all students who answered correctly and incorrectly
         const correctStudents = batch.currentPromptAnswers.filter(a => a.answer === correctAnswer);
+        const incorrectStudents = batch.currentPromptAnswers.filter(a => a.answer !== correctAnswer);
 
-        // Award XP asynchronously
-        const xpPromises = correctStudents.map(student => 
-            awardXP(student.childId, "participation", { points: 5 }) // 5 XP for getting it right
-        );
-        await Promise.allSettled(xpPromises);
+        // Award XP asynchronously and update LiveScores
+        const correctPromises = correctStudents.map(async (student) => {
+            await LiveScore.findOneAndUpdate(
+                { batchId: id, sessionId: batch.activeSessionId, childId: student.childId },
+                { $inc: { participationScore: 3 } },
+                { upsert: true }
+            );
+            return awardXP(student.childId, "participation", { points: 3 });
+        });
+
+        const incorrectPromises = incorrectStudents.map(async (student) => {
+            await LiveScore.findOneAndUpdate(
+                { batchId: id, sessionId: batch.activeSessionId, childId: student.childId },
+                { $inc: { participationScore: 1 } },
+                { upsert: true }
+            );
+            return awardXP(student.childId, "participation", { points: 1 });
+        });
+
+        await Promise.allSettled([...correctPromises, ...incorrectPromises]);
 
         batch.promptEvaluated = true;
         await batch.save();
@@ -1042,6 +1062,11 @@ export const endBatch = async (req, res) => {
 
         const batch = await Batch.findById(id);
         if (!batch) return res.status(404).json({ message: "Batch not found" });
+
+        // Prevent double-clicking / duplicate Session Complete XP bugs
+        if (!batch.activeSessionId) {
+            return res.status(400).json({ message: "No active session to end. Already processed." });
+        }
 
         const durationMinutes = 45; 
         

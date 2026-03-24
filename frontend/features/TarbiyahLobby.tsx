@@ -46,7 +46,7 @@ const BADGES = [
   { id: 'b3', emoji: '🌙', name: 'Moon Walker', desc: 'Attended a night story session.', progress: 100 },
 ];
 
-const MovingBackground = React.memo(() => {
+export const MovingBackground = React.memo(() => {
   const particles = useMemo(() => {
     return [...Array(60)].map((_, i) => {
       const Icon = [Moon, Star, BookOpen, Book, Cloud, Sprout, Leaf, Sun][i % 8] as any;

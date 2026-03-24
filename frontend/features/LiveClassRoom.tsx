@@ -10,7 +10,7 @@ import {
   LayoutDashboard,
   WifiOff,
   Wifi,
-  Star, Moon, Cloud, Sprout, Leaf, Sun, Mic
+  Star, Moon, Cloud, Sprout, Leaf, Sun, Mic, Trophy
 } from 'lucide-react';
 import { useChildContext } from '../contexts/ChildContext';
 import QuranPage from './QuranPage';
@@ -419,10 +419,18 @@ const LiveClassRoom: React.FC = () => {
   }, [getToken]);
 
   useEffect(() => {
-    if (showLeaderboard && currentSession?.batchId && !leaderboard) {
-      fetchLeaderboard(currentSession.batchId);
-    }
-  }, [showLeaderboard, currentSession?.batchId, leaderboard, fetchLeaderboard]);
+    if (!currentSession?.batchId) return;
+    
+    // Initial fetch
+    fetchLeaderboard(currentSession.batchId);
+    
+    // Poll every 15s to keep waiting room updated
+    const interval = setInterval(() => {
+      fetchLeaderboard(currentSession.batchId!);
+    }, 15000);
+    
+    return () => clearInterval(interval);
+  }, [currentSession?.batchId, fetchLeaderboard]);
 
   // RENDER: LOCKED STATE
   if (userRole === 'parent' && accessStatus && !accessStatus.hasAccess) {
@@ -769,12 +777,62 @@ const LiveClassRoom: React.FC = () => {
               </div>
             </div>
           ) : userRole === 'parent' && !isMyTurn ? (
-            <div className="absolute inset-0 flex flex-col items-center justify-center bg-[#f8fafc]">
-               <div className="w-24 h-24 mb-6 rounded-full bg-emerald-100 flex items-center justify-center animate-pulse shadow-inner">
-                  <BookOpen className="text-emerald-600" size={40} />
+            <div className="absolute inset-0 flex flex-col items-center justify-start bg-[#f8fafc] overflow-y-auto">
+               <div className="w-full bg-emerald-900 text-white p-8 md:p-12 shadow-xl relative overflow-hidden shrink-0">
+                  <div className="absolute top-0 right-0 w-64 h-64 bg-emerald-800 rounded-full blur-3xl opacity-50 -translate-y-1/2 translate-x-1/2" />
+                  <div className="absolute bottom-0 left-0 w-48 h-48 bg-teal-800 rounded-full blur-3xl opacity-30 translate-y-1/2 -translate-x-1/4" />
+                  
+                  <div className="relative z-10 flex flex-col items-center text-center">
+                    <div className="w-20 h-20 mb-6 rounded-full bg-emerald-800 flex items-center justify-center animate-pulse shadow-[0_0_30px_rgba(16,185,129,0.3)] ring-4 ring-emerald-700">
+                       <BookOpen className="text-emerald-300" size={32} />
+                    </div>
+                    <h3 className="font-serif text-3xl md:text-4xl font-bold text-white mb-3">Live Session Active</h3>
+                    <p className="text-emerald-200/80 max-w-md mx-auto text-sm md:text-base leading-relaxed">
+                       A classmate is currently reciting. Listen carefully, as you'll be prompted to evaluate them soon!
+                    </p>
+                  </div>
                </div>
-               <h3 className="font-serif text-3xl font-bold text-[#052e16] mb-2">Waiting For Your Turn</h3>
-               <p className="text-slate-500 max-w-sm text-center">Listen carefully to your classmate's recitation. The prompt will appear below when it's time to evaluate!</p>
+
+               <div className="w-full max-w-2xl px-4 py-8 md:py-12 flex-1 pb-40">
+                  <div className="flex items-center justify-between mb-6">
+                    <h4 className="font-bold text-xl text-[#052e16] flex items-center gap-2">
+                       <Trophy className="text-amber-500" size={24} /> 
+                       Live Leaderboard
+                    </h4>
+                    <span className="text-[10px] font-bold text-emerald-600 bg-emerald-100 px-3 py-1 rounded-full uppercase tracking-wider flex items-center gap-1">
+                      <div className="w-1.5 h-1.5 bg-emerald-500 rounded-full animate-pulse" /> Live
+                    </span>
+                  </div>
+                  
+                  <div className="space-y-3">
+                     {leaderboard && leaderboard.length > 0 ? leaderboard.map((l, idx) => (
+                        <div key={l.childId} className="flex items-center justify-between p-4 rounded-2xl bg-white shadow-sm border border-emerald-50 hover:shadow-md transition-all">
+                           <div className="flex items-center gap-4">
+                              <span className="font-black text-lg text-slate-300 w-6">#{idx + 1}</span>
+                              <span className="font-bold text-slate-700 truncate max-w-[120px]">{l.name}</span>
+                           </div>
+                           <div className="flex items-center gap-6">
+                              <div className="text-right hidden sm:block">
+                                 <div className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">Recitation</div>
+                                 <div className="font-bold text-slate-700">{l.recitationScore}</div>
+                              </div>
+                              <div className="text-right hidden sm:block">
+                                 <div className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">Evaluation</div>
+                                 <div className="font-bold text-slate-700">{l.participationScore}</div>
+                              </div>
+                              <div className="font-black text-xl text-emerald-600 bg-emerald-50 px-4 py-1.5 rounded-lg w-16 text-center">
+                                 {l.total}
+                              </div>
+                           </div>
+                        </div>
+                     )) : (
+                        <div className="text-center py-12 bg-white rounded-3xl border border-dashed border-emerald-200">
+                           <Loader2 className="animate-spin mx-auto text-emerald-300 mb-2" size={24} />
+                           <p className="text-[10px] font-bold text-emerald-600/60 uppercase tracking-widest mt-2">Compiling Scores...</p>
+                        </div>
+                     )}
+                  </div>
+               </div>
             </div>
           ) : userRole === 'parent' && isMyTurn && !hasStartedReciting ? (
             <div className="absolute inset-0 flex flex-col items-center justify-center bg-[#f8fafc] p-4">

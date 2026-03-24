@@ -970,3 +970,26 @@ export const getLeaderboard = async (req, res) => {
     }
 };
 
+// GET /api/live/global-leaderboard
+export const getGlobalLeaderboard = async (req, res) => {
+    try {
+        const { default: Child } = await import("../models/Child.js");
+        const children = await Child.find({"child_progress.0": { $exists: true }})
+            .select("name child_progress")
+            .sort({ "child_progress.0.total_xp": -1 })
+            .limit(10);
+            
+        const leaderboard = children.map(c => ({
+            id: c._id,
+            name: c.name,
+            totalXp: c.child_progress[0]?.total_xp || 0,
+            level: c.child_progress[0]?.level || 1,
+            streak: c.child_progress[0]?.streak_days || 0
+        }));
+        
+        res.json({ leaderboard });
+    } catch (e) {
+        console.error("Global leaderboard error:", e);
+        res.status(500).json({ error: e.message });
+    }
+};

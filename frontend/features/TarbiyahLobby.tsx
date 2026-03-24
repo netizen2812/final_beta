@@ -346,6 +346,7 @@ const KidsView = ({ scrollProgress, activeChild, onJoinLive, currentBatchStatus 
 const ParentsView = ({ activeChild, batches, getToken }: any) => {
   const progress = activeChild?.child_progress?.[0] || {};
   const [dashboardData, setDashboardData] = useState<any>(null);
+  const [globalLeaderboard, setGlobalLeaderboard] = useState<any[]>([]);
 
   useEffect(() => {
     const fetchDashboard = async () => {
@@ -353,10 +354,18 @@ const ParentsView = ({ activeChild, batches, getToken }: any) => {
       try {
         const token = await getToken();
         if (!token) return;
+        
+        // Fetch specific child dashboard
         const res = await axios.get(`${API_BASE}/api/parent/dashboard/${activeChild.id}`, {
           headers: { Authorization: `Bearer ${token}` }
         });
         setDashboardData(res.data);
+        
+        // Fetch top global leaders
+        const boardRes = await axios.get(`${API_BASE}/api/live/global-leaderboard`, {
+          headers: { Authorization: `Bearer ${token}` }
+        });
+        setGlobalLeaderboard(boardRes.data.leaderboard || []);
       } catch (err) {
         console.error("Failed to load parent dashboard", err);
       }
@@ -453,6 +462,40 @@ const ParentsView = ({ activeChild, batches, getToken }: any) => {
                </div>
              ) : (
                 <div className="h-64 flex items-center justify-center text-emerald-200/50">No activity logged this week</div>
+             )}
+          </div>
+       </div>
+
+       {/* CUMULATIVE GLOBAL PLATFORM LEADERBOARD */}
+       <div className="mt-8 bg-white/5 backdrop-blur-md p-8 rounded-[2rem] shadow-lg border border-white/10">
+          <div className="flex justify-between items-center mb-8">
+             <h3 className="font-bold text-white text-lg flex items-center gap-2">
+                <Trophy size={20} className="text-amber-400" />
+                Global Platform Leaderboard
+             </h3>
+             <span className="text-[10px] font-bold bg-amber-500/20 text-amber-400 px-3 py-1 text-center rounded-full border border-amber-500/30">Top Explorers</span>
+          </div>
+          
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+             {globalLeaderboard.map((student, idx) => (
+                <div key={student.id || idx} className={`flex items-center gap-4 p-4 rounded-2xl border transition-all ${student.id === activeChild?.id ? 'bg-indigo-900/40 border-indigo-500/50 shadow-[0_0_15px_rgba(99,102,241,0.2)]' : 'bg-white/5 border-white/5 hover:bg-white/10'}`}>
+                   <div className={`w-10 h-10 rounded-full flex shrink-0 items-center justify-center font-black text-lg shadow-inner ${idx === 0 ? 'bg-amber-400 text-amber-900' : idx === 1 ? 'bg-slate-300 text-slate-800' : idx === 2 ? 'bg-amber-700 text-amber-100' : 'bg-emerald-900 text-emerald-300'}`}>
+                      #{idx + 1}
+                   </div>
+                   <div className="flex-1 min-w-0">
+                      <div className="font-bold text-white truncate text-base flex items-center gap-2">
+                         {student.name} {student.id === activeChild?.id && <span className="text-[9px] bg-indigo-500 px-2 py-0.5 rounded text-white uppercase tracking-wider">You</span>}
+                      </div>
+                      <div className="text-[10px] text-emerald-300 font-bold uppercase tracking-widest mt-0.5">Level {student.level}</div>
+                   </div>
+                   <div className="text-right shrink-0">
+                      <div className="font-black text-amber-400 text-lg">{student.totalXp}</div>
+                      <div className="text-[9px] text-white/50 uppercase tracking-widest font-bold">Total XP</div>
+                   </div>
+                </div>
+             ))}
+             {globalLeaderboard.length === 0 && (
+                <div className="col-span-full text-center py-8 text-white/50 text-sm">Gathering leaderboard heroes...</div>
              )}
           </div>
        </div>

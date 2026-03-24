@@ -135,6 +135,7 @@ const LiveClassRoom: React.FC = () => {
   const [leaderboard, setLeaderboard] = useState<any[] | null>(null);
   const [showLeaderboard, setShowLeaderboard] = useState<boolean | string>(false);
   const [attendedSessionIds, setAttendedSessionIds] = useState<string[]>([]);
+  const [confirmEndClass, setConfirmEndClass] = useState<string | null>(null);
 
   // Determine Role & Check Access
   useEffect(() => {
@@ -227,7 +228,12 @@ const LiveClassRoom: React.FC = () => {
         }
 
         if (data.status === 'ended' && !showLeaderboard) {
-           setShowLeaderboard(true);
+           const lastSession = data.pastSessions?.[data.pastSessions.length - 1];
+           if (lastSession) {
+             setShowLeaderboard(lastSession.sessionId);
+           } else {
+             setShowLeaderboard(true);
+           }
         }
       } catch (err) {
         console.error("Batch state poll error", err);
@@ -543,7 +549,11 @@ const LiveClassRoom: React.FC = () => {
      try {
        const token = await getToken();
        await axios.post(`${API_BASE}/api/live/batch/${batchId}/end`, {}, { headers: { Authorization: `Bearer ${token}` } });
-       setShowLeaderboard(true);
+       
+       if (userRole === 'scholar') {
+         setCurrentSession(null);
+         setActiveSessions([]);
+       }
      } catch(e) { console.warn(e); }
   };
 
@@ -742,7 +752,10 @@ const LiveClassRoom: React.FC = () => {
               </div>
             ))}
             <div className="ml-auto flex items-center shrink-0 border-l border-emerald-800/50 pl-4 h-full">
-              <button onClick={() => { if(currentSession.batchId) handleEndClass(currentSession.batchId) }} className="bg-red-500 hover:bg-red-400 text-white px-5 py-3 rounded-xl text-sm font-black tracking-wider shadow-lg transition-colors flex items-center gap-2">
+              <button 
+                onClick={() => { if(currentSession.batchId) setConfirmEndClass(currentSession.batchId) }} 
+                className="bg-red-500 hover:bg-red-400 text-white px-5 py-3 rounded-xl text-sm font-black tracking-wider shadow-lg transition-colors flex items-center gap-2"
+              >
                 END CLASS & RESULTS
               </button>
             </div>
@@ -946,6 +959,22 @@ const LiveClassRoom: React.FC = () => {
                 <span className="w-2 h-2 bg-green-500 rounded-full animate-pulse" />
                 {t('live.liveSyncActive')}
               </p>
+            </div>
+          )}
+          
+          {confirmEndClass && (
+            <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-in fade-in">
+              <div className="bg-white rounded-3xl p-8 max-w-sm w-full text-center shadow-2xl border-4 border-red-100">
+                 <div className="w-16 h-16 bg-red-100 text-red-600 rounded-full flex items-center justify-center mx-auto mb-4 border border-red-200 shadow-inner">
+                   <LogOut size={32} />
+                 </div>
+                 <h3 className="font-bold text-2xl text-slate-800 mb-2">End Session?</h3>
+                 <p className="text-slate-500 mb-6 text-sm">Are you sure you want to end this live class? This restricts student access and awards final attendance XP.</p>
+                 <div className="flex gap-3">
+                   <button onClick={() => setConfirmEndClass(null)} className="flex-1 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold py-3 rounded-xl transition-all">Cancel</button>
+                   <button onClick={() => { handleEndClass(confirmEndClass); setConfirmEndClass(null); }} className="flex-1 bg-red-500 hover:bg-red-600 text-white font-bold py-3 rounded-xl shadow-lg shadow-red-500/30 transition-all">Yes, End Class</button>
+                 </div>
+              </div>
             </div>
           )}
         </div>

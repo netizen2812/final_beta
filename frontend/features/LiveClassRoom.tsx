@@ -677,10 +677,10 @@ const LiveClassRoom: React.FC = () => {
                      </div>
 
                      <div className="flex gap-1 justify-center w-full">
-                       <button title="Perfect (3)" onClick={() => handleScoreRecitation(session.childId, session.batchId!, 3)} className="w-8 h-8 flex items-center justify-center bg-green-500 hover:bg-green-400 active:scale-95 rounded-md text-xs text-white font-black transition-transform">3</button>
-                       <button title="Minor Mistake (2)" onClick={() => handleScoreRecitation(session.childId, session.batchId!, 2)} className="w-8 h-8 flex items-center justify-center bg-amber-500 hover:bg-amber-400 active:scale-95 rounded-md text-xs text-white font-black transition-transform">2</button>
-                       <button title="Multiple Mistakes (1)" onClick={() => handleScoreRecitation(session.childId, session.batchId!, 1)} className="w-8 h-8 flex items-center justify-center bg-orange-500 hover:bg-orange-400 active:scale-95 rounded-md text-xs text-white font-black transition-transform">1</button>
-                       <button title="Incorrect (0)" onClick={() => handleScoreRecitation(session.childId, session.batchId!, 0)} className="w-8 h-8 flex items-center justify-center bg-red-500 hover:bg-red-400 active:scale-95 rounded-md text-xs text-white font-black transition-transform">0</button>
+                       <button title="Perfect (+30 XP)" onClick={() => handleScoreRecitation(session.childId, session.batchId!, 3)} className="w-9 h-8 flex items-center justify-center bg-green-500 hover:bg-green-400 active:scale-95 rounded-md text-[10px] text-white font-black transition-transform">+30</button>
+                       <button title="Minor Mistake (+20 XP)" onClick={() => handleScoreRecitation(session.childId, session.batchId!, 2)} className="w-9 h-8 flex items-center justify-center bg-amber-500 hover:bg-amber-400 active:scale-95 rounded-md text-[10px] text-white font-black transition-transform">+20</button>
+                       <button title="Multiple Mistakes (+10 XP)" onClick={() => handleScoreRecitation(session.childId, session.batchId!, 1)} className="w-9 h-8 flex items-center justify-center bg-orange-500 hover:bg-orange-400 active:scale-95 rounded-md text-[10px] text-white font-black transition-transform">+10</button>
+                       <button title="Incorrect (+5 XP)" onClick={() => handleScoreRecitation(session.childId, session.batchId!, 0)} className="w-9 h-8 flex items-center justify-center bg-red-500 hover:bg-red-400 active:scale-95 rounded-md text-[10px] text-white font-black transition-transform">+5</button>
                      </div>
                    </div>
                 ) : (

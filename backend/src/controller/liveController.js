@@ -205,7 +205,6 @@ export const joinBatch = async (req, res) => {
 
         const { default: Batch } = await import("../models/Batch.js");
         const { default: Child } = await import("../models/Child.js");
-        const { default: LiveAttendance } = await import("../models/LiveAttendance.js");
 
         const batch = await Batch.findById(id);
         if (!batch) return res.status(404).json({ success: false, message: "Batch not found" });
@@ -239,14 +238,7 @@ export const joinBatch = async (req, res) => {
         await batch.save();
         // --- PRESENCE TRACKING END ---
 
-        // Log Attendance
-        await LiveAttendance.create({
-            sessionId: batch.activeSessionId ? batch.activeSessionId : null,
-            userId,
-            childId,
-            role: 'student',
-            joinTime: new Date()
-        });
+        // Legacy Attendance logic removed because LiveAttendance schema was purged.
 
         res.json({ success: true, session, message: "Joined successfully" });
 

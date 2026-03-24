@@ -206,6 +206,24 @@ const LiveClassRoom: React.FC = () => {
            } : null);
         }
 
+        // Map active participants back to `activeSessions` for the UI
+        if (data.activeParticipants && Array.isArray(data.activeParticipants)) {
+            const mappedSessions = data.activeParticipants.filter((p: any) => p && p.isActive).map((p: any) => ({
+              _id: `${p.childId}-${currentSession.batchId}`,
+              parentId: "unknown",
+              childId: p.childId,
+              scholarId: user?.id || "scholar",
+              currentSurah: p.currentSurah || null,
+              currentAyah: p.currentAyah || null,
+              lastSeen: p.lastSeen,
+              status: 'active',
+              studentName: p.childName || 'Student',
+              parentName: `Batch`,
+              batchId: currentSession.batchId
+            }));
+            setActiveSessions(mappedSessions);
+        }
+
         if (data.status === 'ended' && !showLeaderboard) {
            setShowLeaderboard(true);
         }
@@ -223,13 +241,13 @@ const LiveClassRoom: React.FC = () => {
   useEffect(() => {
     if (userRole === 'scholar' && batchState?.activeChildId && currentSession?.batchId) {
       if (currentSession.childId !== batchState.activeChildId) {
-        const nextActive = scholarBatches.find(b => b._id === currentSession.batchId)?.activeSessions?.find((s: LiveSession) => s.childId === batchState.activeChildId);
+        const nextActive = activeSessions.find(s => s.childId === batchState.activeChildId);
         if (nextActive) {
           setCurrentSession(nextActive);
         }
       }
     }
-  }, [userRole, batchState?.activeChildId, scholarBatches, currentSession]);
+  }, [userRole, batchState?.activeChildId, activeSessions, currentSession]);
 
   // STUDENT: HEARTBEAT & SYNC
   useEffect(() => {

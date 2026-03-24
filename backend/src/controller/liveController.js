@@ -780,7 +780,8 @@ export const getBatchState = async (req, res) => {
             activeSurah,
             activeAyah,
             currentPromptAnswers: batch.currentPromptAnswers || [],
-            promptEvaluated: batch.promptEvaluated || false
+            promptEvaluated: batch.promptEvaluated || false,
+            activeParticipants: batch.activeParticipants || []
         });
     } catch (error) {
         res.status(500).json({ error: error.message });

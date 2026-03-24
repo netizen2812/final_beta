@@ -27,7 +27,7 @@ const batchSchema = new mongoose.Schema({
     },
     status: {
         type: String,
-        enum: ["active", "archived", "upcoming"],
+        enum: ["active", "archived", "upcoming", "ended"],
         default: "active"
     },
     activeParticipants: [{

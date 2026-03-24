@@ -10,7 +10,7 @@ import {
   LayoutDashboard,
   WifiOff,
   Wifi,
-  Star, Moon, Cloud, Sprout, Leaf, Sun
+  Star, Moon, Cloud, Sprout, Leaf, Sun, Mic
 } from 'lucide-react';
 import { useChildContext } from '../contexts/ChildContext';
 import QuranPage from './QuranPage';
@@ -113,6 +113,7 @@ const LiveClassRoom: React.FC = () => {
 
   // Active Session State
   const [currentSession, setCurrentSession] = useState<LiveSession | null>(null);
+  const [hasStartedReciting, setHasStartedReciting] = useState(false);
 
   const [accessStatus, setAccessStatus] = useState<{ hasAccess: boolean; pendingRequest: boolean } | null>(null);
 
@@ -636,6 +637,11 @@ const LiveClassRoom: React.FC = () => {
     const isMyTurn = userRole === 'parent' && batchState?.activeChildId === currentSession.childId;
     const isObserving = userRole === 'parent' && batchState?.activeChildId && !isMyTurn;
 
+    // Reset recite flag if turn changes
+    if (!isMyTurn && hasStartedReciting) {
+        setHasStartedReciting(false);
+    }
+
     return (
       <div className="fixed inset-0 z-[1000] bg-white flex flex-col animate-in fade-in duration-300">
         
@@ -762,8 +768,30 @@ const LiveClassRoom: React.FC = () => {
                 <p className="text-sm text-slate-500">{t('live.quranViewAppear')}</p>
               </div>
             </div>
+          ) : userRole === 'parent' && !isMyTurn ? (
+            <div className="absolute inset-0 flex flex-col items-center justify-center bg-[#f8fafc]">
+               <div className="w-24 h-24 mb-6 rounded-full bg-emerald-100 flex items-center justify-center animate-pulse shadow-inner">
+                  <BookOpen className="text-emerald-600" size={40} />
+               </div>
+               <h3 className="font-serif text-3xl font-bold text-[#052e16] mb-2">Waiting For Your Turn</h3>
+               <p className="text-slate-500 max-w-sm text-center">Listen carefully to your classmate's recitation. The prompt will appear below when it's time to evaluate!</p>
+            </div>
+          ) : userRole === 'parent' && isMyTurn && !hasStartedReciting ? (
+            <div className="absolute inset-0 flex flex-col items-center justify-center bg-[#f8fafc] p-4">
+               <div className="bg-white p-10 rounded-3xl shadow-2xl border border-emerald-100 text-center max-w-md w-full animate-in zoom-in-95 duration-300">
+                 <div className="w-20 h-20 bg-amber-100 text-amber-600 rounded-full flex items-center justify-center mx-auto mb-6 shadow-inner ring-4 ring-amber-50">
+                    <Mic size={36} />
+                 </div>
+                 <h3 className="font-bold text-2xl text-[#052e16] mb-2">It's Your Turn!</h3>
+                 <p className="text-slate-500 mb-8">The Scholar is ready for your recitation.</p>
+                 <button onClick={() => setHasStartedReciting(true)} className="w-full bg-gradient-to-r from-emerald-500 to-emerald-600 hover:from-emerald-400 hover:to-emerald-500 text-white py-4 rounded-xl font-black text-lg shadow-[0_0_20px_rgba(5,150,105,0.4)] transition-all active:scale-95 flex flex-col items-center justify-center gap-1">
+                    <span>RECITE NOW</span>
+                    <span className="text-[10px] uppercase font-bold text-emerald-100 opacity-80 tracking-widest">Open Quran</span>
+                 </button>
+               </div>
+            </div>
           ) : (
-            <div className="flex-1 flex flex-col">
+            <div className="flex-1 flex flex-col h-full relative">
               <QuranPage
                 onBack={handleExitSession}
                 sessionCurrentSurah={currentSession.currentSurah}

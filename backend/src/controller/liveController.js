@@ -238,9 +238,15 @@ export const joinBatch = async (req, res) => {
         await batch.save();
         // --- PRESENCE TRACKING END ---
 
-        // Legacy Attendance logic removed because LiveAttendance schema was purged.
+        const mockSession = {
+            _id: batch.activeSessionId || batch._id.toString(),
+            batchId: batch._id,
+            childId,
+            status: batch.status,
+            title: batch.name
+        };
 
-        res.json({ success: true, session, message: "Joined successfully" });
+        res.json({ success: true, session: mockSession, message: "Joined successfully" });
 
     } catch (error) {
         console.error("❌ Join Batch Error:", error);

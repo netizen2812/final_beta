@@ -76,7 +76,11 @@ const childSchema = new mongoose.Schema(
         },
         child_progress: [childProgressSchema],
     },
-    { timestamps: true }
+    { 
+        timestamps: true,
+        toJSON: { virtuals: true },
+        toObject: { virtuals: true }
+    }
 );
 
 const Child = mongoose.model("Child", childSchema);

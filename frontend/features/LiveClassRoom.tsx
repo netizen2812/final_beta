@@ -128,11 +128,13 @@ const LiveClassRoom: React.FC = () => {
     activeSessionId: string | null;
     status: string;
     currentPromptAnswers?: PromptAnswer[];
+    pastSessions?: { sessionId: string; startedAt: string; endedAt: string }[];
   }
   const [batchState, setBatchState] = useState<BatchState | null>(null);
   const [selectedScore, setSelectedScore] = useState<number | null>(null);
   const [leaderboard, setLeaderboard] = useState<any[] | null>(null);
-  const [showLeaderboard, setShowLeaderboard] = useState(false);
+  const [showLeaderboard, setShowLeaderboard] = useState<boolean | string>(false);
+  const [attendedSessionIds, setAttendedSessionIds] = useState<string[]>([]);
 
   // Determine Role & Check Access
   useEffect(() => {
@@ -193,7 +195,7 @@ const LiveClassRoom: React.FC = () => {
            activeSessionId: data.activeSessionId,
            status: data.status,
            currentPromptAnswers: data.currentPromptAnswers || [],
-           promptEvaluated: data.promptEvaluated || false
+           pastSessions: data.pastSessions || []
         });
         
         // Auto scroll to latest active participant's position
@@ -381,6 +383,24 @@ const LiveClassRoom: React.FC = () => {
       }
     }, POSITION_THROTTLE_MS);
   }, [currentSession, userRole, getToken, user?.id]);
+
+  // Fetch Attendance for Current Batch (Parents only)
+  useEffect(() => {
+    const fetchAttendance = async () => {
+      if (userRole === 'parent' && currentSession?.batchId && currentSession?.childId) {
+        try {
+          const token = await getToken();
+          const res = await axios.get(`${API_BASE}/api/live/batch/${currentSession.batchId}/attendance?childId=${currentSession.childId}`, {
+            headers: { Authorization: `Bearer ${token}` }
+          });
+          if (res.data.attendedSessionIds) {
+            setAttendedSessionIds(res.data.attendedSessionIds);
+          }
+        } catch (e) { console.error("Attendance fetch failed", e); }
+      }
+    };
+    fetchAttendance();
+  }, [userRole, currentSession?.batchId, currentSession?.childId, getToken]);
 
   // POLL: Scholar Status (for parent lobby) - Optional, leaving for now
   useEffect(() => {

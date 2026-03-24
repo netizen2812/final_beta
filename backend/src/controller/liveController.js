@@ -330,7 +330,8 @@ export const startBatch = async (req, res) => {
         await Batch.findByIdAndUpdate(id, { 
             status: 'active',
             activeSessionId,
-            activeChildId: null 
+            activeChildId: null,
+            $push: { pastSessions: { sessionId: activeSessionId, startedAt: new Date() } }
         });
         res.json({ message: "Batch started", activeSessionId });
     } catch (error) {
@@ -765,7 +766,7 @@ export const getBatchState = async (req, res) => {
     try {
         const { id } = req.params;
         const { default: Batch } = await import("../models/Batch.js");
-        const batch = await Batch.findById(id).select("activeChildId activeSessionId status activeParticipants currentPromptAnswers promptEvaluated");
+        const batch = await Batch.findById(id).select("activeChildId activeSessionId status activeParticipants currentPromptAnswers promptEvaluated pastSessions");
         if (!batch) return res.status(404).json({ message: "Batch not found" });
 
         let activeSurah = null;
@@ -787,11 +788,31 @@ export const getBatchState = async (req, res) => {
             activeAyah,
             currentPromptAnswers: batch.currentPromptAnswers || [],
             promptEvaluated: batch.promptEvaluated || false,
-            activeParticipants: batch.activeParticipants || []
+            activeParticipants: batch.activeParticipants || [],
+            pastSessions: batch.pastSessions || []
         });
     } catch (error) {
         res.status(500).json({ error: error.message });
     }
+};
+
+// GET /api/live/batch/:id/attendance?childId=...
+export const getBatchAttendance = async (req, res) => {
+    try {
+        const { id } = req.params;
+        const { childId } = req.query;
+        if (!childId) return res.json({ attendedSessionIds: [] });
+        
+        const { default: Child } = await import("../models/Child.js");
+        const child = await Child.findById(childId).lean();
+        if (!child || !child.attendance) return res.json({ attendedSessionIds: [] });
+
+        const attendedSessionIds = child.attendance
+            .filter(a => a.type === 'session_complete' && a.details && a.details.batchId === id)
+            .map(a => a.details.sessionId);
+            
+        res.json({ attendedSessionIds });
+    } catch(err) { res.status(500).json({ error: err.message }); }
 };
 
 // POST /api/live/batch/:id/select-turn
@@ -806,6 +827,13 @@ export const selectTurn = async (req, res) => {
             currentPromptAnswers: [],
             promptEvaluated: false
         }, { new: true });
+
+        // Reset the student's position so they start fresh on the Quran landing page
+        await Batch.updateOne(
+            { _id: id, "activeParticipants.childId": childId },
+            { $set: { "activeParticipants.$.currentSurah": null, "activeParticipants.$.currentAyah": null } }
+        );
+
         res.json({ message: "Turn updated", activeChildId: batch.activeChildId });
     } catch (error) {
         res.status(500).json({ error: error.message });
@@ -939,9 +967,12 @@ export const getLeaderboard = async (req, res) => {
         const { default: Child } = await import("../models/Child.js");
 
         const batch = await Batch.findById(id);
-        if (!batch || !batch.activeSessionId) return res.json({ leaderboard: [] });
+        if (!batch) return res.json({ leaderboard: [] });
 
-        const scores = await LiveScore.find({ batchId: id, sessionId: batch.activeSessionId });
+        const querySessionId = req.query.sessionId || batch.activeSessionId;
+        if (!querySessionId) return res.json({ leaderboard: [] });
+
+        const scores = await LiveScore.find({ batchId: id, sessionId: querySessionId });
         
         const leaderboard = await Promise.all(scores.map(async (s) => {
             const child = await Child.findById(s.childId);
@@ -1019,9 +1050,17 @@ export const endBatch = async (req, res) => {
             for (const p of batch.activeParticipants) {
                 if (p.isActive) {
                     try { 
-                        await awardXP(p.childId, "session_complete", {});
+                        await awardXP(p.childId, "session_complete", { sessionId: batch.activeSessionId, batchId: id });
                     } catch (err) { }
                 }
+            }
+        }
+
+        // Mark the historical session as ended
+        if (batch.activeSessionId) {
+            const sessionIndex = batch.pastSessions.findIndex(s => s.sessionId === batch.activeSessionId);
+            if (sessionIndex > -1) {
+                batch.pastSessions[sessionIndex].endedAt = new Date();
             }
         }
 
@@ -1029,6 +1068,10 @@ export const endBatch = async (req, res) => {
         // Cleanup active state so it can be restarted later
         batch.activeSessionId = null; 
         batch.activeChildId = null;
+        // Do not clear activeParticipants so we can still see who attended this batch recently,
+        // or we could clear them depending on how we want the next class to boot up.
+        // It's safer to clear them so the next class starts empty and students must join.
+        batch.activeParticipants = [];
         await batch.save();
 
         res.json({ message: "Batch ended and XP awarded" });

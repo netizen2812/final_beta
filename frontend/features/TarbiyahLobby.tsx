@@ -9,6 +9,7 @@ import { PieChart, Pie, Cell, ResponsiveContainer, BarChart, Bar, XAxis, Tooltip
 import { useChildContext } from '../contexts/ChildContext';
 import axios from 'axios';
 import { useTranslation } from 'react-i18next';
+import SessionLeaderboard from './SessionLeaderboard';
 
 // --- DATA & CONSTANTS ---
 const API_BASE = import.meta.env.VITE_API_URL || "http://localhost:5000";
@@ -188,7 +189,8 @@ export const TarbiyahLobby = ({ getToken, onJoinSession }: { getToken: any, onJo
           scrollProgress={scrollProgress} 
           activeChild={activeChild} 
           onJoinLive={handleJoinLive} 
-          currentBatchStatus={currentBatchStatus} 
+          currentBatchStatus={currentBatchStatus}
+          batches={batches}
         />
       ) : (
         <ParentsView activeChild={activeChild} batches={batches} getToken={getToken} />
@@ -197,13 +199,15 @@ export const TarbiyahLobby = ({ getToken, onJoinSession }: { getToken: any, onJo
   );
 };
 
-const KidsView = ({ scrollProgress, activeChild, onJoinLive, currentBatchStatus }: any) => {
+const KidsView = ({ scrollProgress, activeChild, onJoinLive, currentBatchStatus, batches }: any) => {
   const progress = activeChild?.child_progress?.[0];
-  const totalSessionsAttended = progress?.total_sessions_attended || 0;
+  const activeBatch = batches && batches.length > 0 ? batches[0] : null; // Usually the first is their main
+  
+  const [selectedSessionId, setSelectedSessionId] = useState<string | null>(null);
   
   // Calculate Map fill percentage
-  // Last Unlocked = attended (so if they attended 0, node 1 is unlocked. attended 1 -> node 2 is unlocked)
-  const lastUnlockedIndex = Math.min(totalSessionsAttended, 15);
+  const totalClassesPassed = activeBatch?.pastSessions?.length || 0;
+  const lastUnlockedIndex = Math.min(totalClassesPassed, 15);
   const maxPercentage = (lastUnlockedIndex / (JOURNEY_STAGES.length - 1)) * 100;
   const currentDraw = scrollProgress * 2.0;
   const fillPercentage = Math.min(currentDraw, maxPercentage);
@@ -282,21 +286,42 @@ const KidsView = ({ scrollProgress, activeChild, onJoinLive, currentBatchStatus 
         <div className="space-y-24 relative z-10">
           {JOURNEY_STAGES.map((stage, index) => {
             const isRight = index % 2 !== 0;
-            const isCompleted = index < totalSessionsAttended;
-            const isCurrent = index === totalSessionsAttended;
-            const isLocked = index > totalSessionsAttended;
+            const pastSession = activeBatch?.pastSessions?.[index];
+            const isCurrent = index === totalClassesPassed;
+            const isLocked = index > totalClassesPassed;
+            
+            // Check Attendance
+            let isCompleted = false;
+            let isMissed = false;
+            if (pastSession) {
+               // See if child has a session_complete record for this sessionId
+               const attended = activeChild?.attendance?.some((a: any) => 
+                   a.type === 'session_complete' && a.details?.sessionId === pastSession.sessionId
+               );
+               if (attended) isCompleted = true;
+               else isMissed = true;
+            }
 
             return (
               <div key={stage.id} className={`flex md:justify-center items-center relative group perspective-1000`}>
                 
-                <div className={`
-                   absolute left-[2rem] md:left-1/2 -translate-x-1/2 w-14 h-14 rounded-full border-4 border-[#022c22] z-20 flex items-center justify-center shadow-xl transition-all duration-500
+                <div 
+                   onClick={() => {
+                      if ((isCompleted || isMissed) && pastSession && activeBatch) {
+                        setSelectedSessionId(pastSession.sessionId);
+                      } else if (isCurrent) {
+                        onJoinLive();
+                      }
+                   }}
+                   className={`
+                   absolute left-[2rem] md:left-1/2 -translate-x-1/2 w-14 h-14 rounded-full border-4 border-[#022c22] z-20 flex items-center justify-center shadow-xl transition-all duration-500 cursor-pointer
                    ${isLocked 
                      ? 'bg-gray-800 text-gray-500 border-gray-700' 
-                     : isCompleted ? 'bg-emerald-600 text-[#022c22] border-emerald-400'
-                     : 'bg-gradient-to-br from-emerald-400 to-teal-500 text-[#022c22] scale-110 shadow-[0_0_30px_rgba(52,211,153,0.6)]'}
+                     : isCompleted ? 'bg-emerald-600 text-[#022c22] border-emerald-400 hover:scale-110'
+                     : isMissed ? 'bg-red-500 text-white border-red-700 hover:scale-110'
+                     : 'bg-gradient-to-br from-emerald-400 to-teal-500 text-[#022c22] scale-110 shadow-[0_0_30px_rgba(52,211,153,0.6)] hover:scale-125'}
                 `}>
-                   {isLocked ? <Lock size={18} /> : isCompleted ? <CheckCircle size={20} fill="currentColor" className="text-white" /> : <div className="text-xl font-bold">{index + 1}</div>}
+                   {isLocked ? <Lock size={18} /> : isCompleted ? <CheckCircle size={20} fill="currentColor" className="text-white" /> : isMissed ? <div className="text-xl font-bold">X</div> : <div className="text-xl font-bold">{index + 1}</div>}
                 </div>
 
                 <div className={`w-full md:w-[45%] pl-24 md:pl-0 ${isRight ? 'md:ml-auto md:pl-20 text-left' : 'md:mr-auto md:pr-20 md:text-right'}`}>
@@ -327,6 +352,10 @@ const KidsView = ({ scrollProgress, activeChild, onJoinLive, currentBatchStatus 
                          <div className="mt-4 text-xs text-gray-400 font-bold uppercase tracking-wide flex items-center gap-2 justify-center md:justify-start bg-black/20 py-2 rounded-lg">
                             <Lock size={12} /> Locked
                          </div>
+                      ) : isMissed ? (
+                         <div className="mt-4 text-xs text-red-400 font-bold uppercase tracking-wide flex items-center gap-2 justify-center md:justify-start bg-red-900/30 py-2 rounded-lg">
+                            <span className="w-2 h-2 rounded-full bg-red-500"></span> Missed Class
+                         </div>
                       ) : (
                          <div className="mt-4 text-xs text-emerald-400 font-bold uppercase tracking-wide flex items-center gap-2 justify-center md:justify-start bg-emerald-900/30 py-2 rounded-lg">
                             <CheckCircle size={12} /> Completed
@@ -339,6 +368,25 @@ const KidsView = ({ scrollProgress, activeChild, onJoinLive, currentBatchStatus 
           })}
         </div>
       </div>
+      
+      {selectedSessionId && activeBatch && (
+         <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-in fade-in">
+           <div className="bg-white rounded-3xl w-full max-w-4xl max-h-[90vh] overflow-hidden flex flex-col shadow-2xl">
+             <div className="flex justify-end p-2 bg-slate-50 border-b border-slate-100">
+               <button onClick={() => setSelectedSessionId(null)} className="text-slate-400 hover:text-slate-600 p-2">
+                 ✕ Close
+               </button>
+             </div>
+             <div className="flex-1 overflow-y-auto relative h-[600px]">
+               <SessionLeaderboard 
+                 batchId={activeBatch._id} 
+                 sessionId={selectedSessionId} 
+                 onClose={() => setSelectedSessionId(null)} 
+               />
+             </div>
+           </div>
+         </div>
+      )}
     </div>
   );
 };

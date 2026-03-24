@@ -31,9 +31,10 @@ const childProgressSchema = new mongoose.Schema({
     },
     attendance: [{
         batchId: { type: mongoose.Schema.Types.ObjectId, ref: 'Batch' },
-        sessionId: { type: mongoose.Schema.Types.ObjectId, ref: 'Session' },
+        sessionId: { type: String },
         date: { type: Date, default: Date.now },
-        status: { type: String, enum: ['present', 'absent', 'late'], default: 'present' }
+        status: { type: String, enum: ['present', 'absent', 'late'], default: 'present' },
+        type: { type: String } // e.g. 'session_complete'
     }]
 });
 

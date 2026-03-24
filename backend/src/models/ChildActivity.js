@@ -16,7 +16,7 @@ const childActivitySchema = new mongoose.Schema(
             type: Number,
             default: 0,
         },
-        lessons_completed: {
+        sessions_attended: {
             type: Number,
             default: 0,
         },

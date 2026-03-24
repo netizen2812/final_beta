@@ -1,4 +1,5 @@
 import Child from "../models/Child.js";
+import ChildActivity from "../models/ChildActivity.js";
 
 const LEVELS = {
     1: 0,
@@ -104,6 +105,41 @@ export const awardXP = async (childId, action, data = {}) => {
         else if (action === "session_complete") {
             xpGained = 10;
             progress.total_sessions_attended += 1;
+            
+            const { batchId, sessionId, duration } = data;
+            
+            // Push structured attendance record
+            if (batchId || sessionId) {
+                child.attendance = child.attendance || [];
+                child.attendance.push({
+                    batchId: batchId || null,
+                    sessionId: sessionId || null,
+                    date: new Date(),
+                    status: 'present'
+                });
+            }
+
+            // Log strictly to ChildActivity for Parent Dashboard analytics
+            try {
+                const today = new Date();
+                today.setHours(0, 0, 0, 0);
+                await ChildActivity.findOneAndUpdate(
+                    { child_id: childId, date: today },
+                    {
+                        $inc: {
+                            minutes_spent: duration || 45,
+                            sessions_attended: 1,
+                        },
+                        $set: {
+                            // Optionally tag topics 
+                            "topics_studied.Live Class": duration || 45
+                        }
+                    },
+                    { new: true, upsert: true }
+                );
+            } catch(e) {
+                console.error("Failed to log ChildActivity", e);
+            }
         }
 
         progress.total_xp += xpGained;

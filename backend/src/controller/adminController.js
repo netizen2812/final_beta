@@ -3,8 +3,6 @@ import Child from "../models/Child.js";
 import Batch from "../models/Batch.js";
 import Session from "../models/Session.js";
 import AnalyticsEvent from "../models/AnalyticsEvent.js";
-import Conversation from "../models/Conversation.js";
-import Lesson from "../models/Lesson.js";
 import mongoose from "mongoose";
 import { clerkClient } from "@clerk/clerk-sdk-node";
 
@@ -87,7 +85,7 @@ export const getAdminStats = async (req, res) => {
 
         const engagement = {
             chat: await getFeatureUsage('CHAT_MESSAGE_SENT'),
-            tarbiyah: await getFeatureUsage('LESSON_COMPLETED'), // or STARTED
+            tarbiyah: await getFeatureUsage('LIVE_JOINED'), // Tarbiyah is now Live Classroom
             ibadah: await getFeatureUsage({
                 $in: [
                     'IBADAH_USED',
@@ -105,8 +103,8 @@ export const getAdminStats = async (req, res) => {
         // 5. Depth
         // Msg per session: total msgs / total chat sessions (approx by users?)
         const totalMsgs = await AnalyticsEvent.countDocuments({ eventType: 'CHAT_MESSAGE_SENT', timestamp: { $gte: sevenDaysAgo } });
-        // Lessons per week
-        const totalLessons = await AnalyticsEvent.countDocuments({ eventType: 'LESSON_COMPLETED', timestamp: { $gte: sevenDaysAgo } });
+        // Live Sessions completed per week
+        const totalLessons = await AnalyticsEvent.countDocuments({ eventType: 'LIVE_JOINED', timestamp: { $gte: sevenDaysAgo } });
 
 
         // 🧒 TIER 2 — PARENT + CHILD
@@ -154,7 +152,7 @@ export const getAdminStats = async (req, res) => {
                 ]
             }
         });
-        const totalLessonsTarbiyah = await Lesson.countDocuments();
+        const totalLessonsTarbiyah = await Session.countDocuments();
 
         // Users active for at least 3 days (all time, distinct day+year combinations)
         const allTimeActiveTuples = await AnalyticsEvent.aggregate([

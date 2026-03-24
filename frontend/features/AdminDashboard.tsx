@@ -192,7 +192,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onNavigateToLive }) => 
                             <Section title="Historical Context" icon={<Database size={18} />}>
                                 <StatCard label="D1 Retention" value={`${stats.startup.retention.d1}%`} />
                                 <StatCard label="Messages / Week" value={stats.depth.msgsPerWeek} />
-                                <StatCard label="Avg Lessons / Child" value={stats.learning.avgLessonsPerChild} />
+                                <StatCard label="Avg Sessions / Child" value={stats.learning.avgLessonsPerChild} />
                                 <StatCard label="Parent DB Views" value={stats.learning.parentViews} />
                             </Section>
                         )}
@@ -204,7 +204,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onNavigateToLive }) => 
                                 <StatCard label="Total AI Questions" value={stats.cumulative.totalAiQuestions} />
                                 <StatCard label="Avg Questions / User" value={stats.cumulative.avgQuestionsPerUser} />
                                 <StatCard label="Ibadah Usage" value={stats.cumulative.totalIbadahUsage} />
-                                <StatCard label="Total Lessons" value={stats.cumulative.totalLessonsTarbiyah} />
+                                <StatCard label="Total Sessions" value={stats.cumulative.totalLessonsTarbiyah} />
                                 <StatCard label="3+ Days Active Users" value={stats.cumulative.usersWithThreeDays} />
                             </Section>
                         ) : stats ? (

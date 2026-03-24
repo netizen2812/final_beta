@@ -36,24 +36,8 @@ const GENERATE_STAGES = () => {
 
 const JOURNEY_STAGES = GENERATE_STAGES();
 
-const PARENT_STATS = [
-  { name: 'Stories', value: 400 },
-  { name: 'Duas', value: 300 },
-  { name: 'Salah', value: 300 },
-  { name: 'History', value: 200 },
-];
-
-const WEEKLY_ACTIVITY = [
-  { day: 'M', min: 20 },
-  { day: 'T', min: 45 },
-  { day: 'W', min: 30 },
-  { day: 'T', min: 15 },
-  { day: 'F', min: 60 },
-  { day: 'S', min: 10 },
-  { day: 'S', min: 5 },
-];
-
-const COLORS = ['#10b981', '#fbbf24', '#3b82f6', '#f43f5e'];
+// Dynamic data fetched from API now
+const COLORS = ['#10b981', '#fbbf24', '#3b82f6', '#f43f5e', '#8b5cf6'];
 
 const BADGES = [
   { id: 'b1', emoji: '🌅', name: 'Early Bird', desc: 'Completed a lesson before 8 AM.', progress: 100 },
@@ -207,7 +191,7 @@ export const TarbiyahLobby = ({ getToken, onJoinSession }: { getToken: any, onJo
           currentBatchStatus={currentBatchStatus} 
         />
       ) : (
-        <ParentsView activeChild={activeChild} batches={batches} />
+        <ParentsView activeChild={activeChild} batches={batches} getToken={getToken} />
       )}
     </div>
   );
@@ -359,15 +343,37 @@ const KidsView = ({ scrollProgress, activeChild, onJoinLive, currentBatchStatus 
   );
 };
 
-const ParentsView = ({ activeChild, batches }: any) => {
+const ParentsView = ({ activeChild, batches, getToken }: any) => {
   const progress = activeChild?.child_progress?.[0] || {};
+  const [dashboardData, setDashboardData] = useState<any>(null);
+
+  useEffect(() => {
+    const fetchDashboard = async () => {
+      if (!activeChild?.id) return;
+      try {
+        const token = await getToken();
+        if (!token) return;
+        const res = await axios.get(`${API_BASE}/api/parent/dashboard/${activeChild.id}`, {
+          headers: { Authorization: `Bearer ${token}` }
+        });
+        setDashboardData(res.data);
+      } catch (err) {
+        console.error("Failed to load parent dashboard", err);
+      }
+    };
+    fetchDashboard();
+  }, [activeChild, getToken]);
+
+  const topicCount = dashboardData?.topicBreakdown || [];
+  const weeklyData = dashboardData?.weeklyActivity || [];
+
   return (
     <div className="pt-32 pb-20 px-4 md:px-8 max-w-6xl mx-auto relative z-10 animate-in fade-in zoom-in-95">
        <div className="mb-12 text-center md:text-left">
           <div className="inline-flex items-center gap-2 px-4 py-1.5 bg-indigo-500/20 text-indigo-400 border border-indigo-500/30 rounded-full text-xs font-bold uppercase tracking-wider mb-4">
              <Shield size={12} /> Parent Dashboard
           </div>
-          <h1 className="text-4xl md:text-5xl font-serif font-bold text-white drop-shadow-md">Child's Progress</h1>
+          <h1 className="text-4xl md:text-5xl font-serif font-bold text-white drop-shadow-md">{activeChild?.name || 'Child'}'s Progress</h1>
           <p className="text-emerald-200 mt-3 text-lg">Monitor growth, set limits, and explore curriculum.</p>
        </div>
 
@@ -405,39 +411,49 @@ const ParentsView = ({ activeChild, batches }: any) => {
        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
           <div className="bg-white/5 backdrop-blur-md p-8 rounded-[2rem] shadow-lg border border-white/10">
              <h3 className="font-bold text-white text-lg mb-8 flex justify-between items-center">Topic Focus <BarChart2 size={18} className="text-emerald-400" /></h3>
-             <div className="h-64">
-                <ResponsiveContainer width="100%" height="100%">
-                   <PieChart>
-                      <Pie data={PARENT_STATS} cx="50%" cy="50%" innerRadius={60} outerRadius={80} paddingAngle={5} dataKey="value" stroke="none">
-                         {PARENT_STATS.map((entry, index) => <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />)}
-                      </Pie>
-                      <RechartsTooltip contentStyle={{ backgroundColor: '#064e3b', borderColor: '#34d399', color: '#fff' }} />
-                   </PieChart>
-                </ResponsiveContainer>
-             </div>
-             <div className="flex flex-wrap justify-center gap-4 text-xs font-medium text-gray-300 mt-6">
-                {PARENT_STATS.map((item, idx) => (
-                   <div key={item.name} className="flex items-center gap-2 bg-white/5 px-3 py-1 rounded-full">
-                      <span className="w-2 h-2 rounded-full shadow-[0_0_8px]" style={{ backgroundColor: COLORS[idx % COLORS.length], boxShadow: `0 0 8px ${COLORS[idx % COLORS.length]}` }}></span>
-                      {item.name}
-                   </div>
-                ))}
-             </div>
+             {topicCount.length > 0 ? (
+               <>
+                 <div className="h-64">
+                    <ResponsiveContainer width="100%" height="100%">
+                       <PieChart>
+                          <Pie data={topicCount} cx="50%" cy="50%" innerRadius={60} outerRadius={80} paddingAngle={5} dataKey="value" stroke="none">
+                             {topicCount.map((entry: any, index: number) => <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />)}
+                          </Pie>
+                          <RechartsTooltip contentStyle={{ backgroundColor: '#064e3b', borderColor: '#34d399', color: '#fff' }} />
+                       </PieChart>
+                    </ResponsiveContainer>
+                 </div>
+                 <div className="flex flex-wrap justify-center gap-4 text-xs font-medium text-gray-300 mt-6">
+                    {topicCount.map((item: any, idx: number) => (
+                       <div key={item.name} className="flex items-center gap-2 bg-white/5 px-3 py-1 rounded-full">
+                          <span className="w-2 h-2 rounded-full shadow-[0_0_8px]" style={{ backgroundColor: COLORS[idx % COLORS.length], boxShadow: `0 0 8px ${COLORS[idx % COLORS.length]}` }}></span>
+                          {item.name} ({item.value}m)
+                       </div>
+                    ))}
+                 </div>
+               </>
+             ) : (
+                <div className="h-64 flex items-center justify-center text-emerald-200/50">No data for this week</div>
+             )}
           </div>
 
           <div className="bg-white/5 backdrop-blur-md p-8 rounded-[2rem] shadow-lg border border-white/10 lg:col-span-2">
              <div className="flex justify-between items-center mb-8">
-                <h3 className="font-bold text-white text-lg">Activity Log</h3>
+                <h3 className="font-bold text-white text-lg">Activity Log (Minutes)</h3>
              </div>
-             <div className="h-64">
-                <ResponsiveContainer width="100%" height="100%">
-                   <BarChart data={WEEKLY_ACTIVITY}>
-                      <XAxis dataKey="day" axisLine={false} tickLine={false} tick={{ fontSize: 12, fill: '#34d399', fontWeight: 'bold' }} dy={10} />
-                      <RechartsTooltip cursor={{ fill: 'rgba(255,255,255,0.05)' }} contentStyle={{ backgroundColor: '#064e3b', borderColor: '#34d399', color: '#fff', borderRadius: '10px' }} />
-                      <Bar dataKey="min" fill="#10b981" radius={[6, 6, 0, 0]} barSize={50} />
-                   </BarChart>
-                </ResponsiveContainer>
-             </div>
+             {weeklyData.length > 0 ? (
+               <div className="h-64">
+                  <ResponsiveContainer width="100%" height="100%">
+                     <BarChart data={weeklyData}>
+                        <XAxis dataKey="day" axisLine={false} tickLine={false} tick={{ fontSize: 12, fill: '#34d399', fontWeight: 'bold' }} dy={10} />
+                        <RechartsTooltip cursor={{ fill: 'rgba(255,255,255,0.05)' }} contentStyle={{ backgroundColor: '#064e3b', borderColor: '#34d399', color: '#fff', borderRadius: '10px' }} />
+                        <Bar dataKey="min" fill="#10b981" radius={[6, 6, 0, 0]} barSize={50} />
+                     </BarChart>
+                  </ResponsiveContainer>
+               </div>
+             ) : (
+                <div className="h-64 flex items-center justify-center text-emerald-200/50">No activity logged this week</div>
+             )}
           </div>
        </div>
     </div>

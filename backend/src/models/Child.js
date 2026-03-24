@@ -29,11 +29,12 @@ const childProgressSchema = new mongoose.Schema({
         type: Number,
         default: 0,
     },
-    // Keep legacy field just in case
-    lessons_completed: {
-        type: Number,
-        default: 0,
-    }
+    attendance: [{
+        batchId: { type: mongoose.Schema.Types.ObjectId, ref: 'Batch' },
+        sessionId: { type: mongoose.Schema.Types.ObjectId, ref: 'Session' },
+        date: { type: Date, default: Date.now },
+        status: { type: String, enum: ['present', 'absent', 'late'], default: 'present' }
+    }]
 });
 
 const childSchema = new mongoose.Schema(

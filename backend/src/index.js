@@ -26,20 +26,6 @@ connectDB().then(async () => {
     // Log AI Provider Info
     console.log("AI provider: OpenRouter");
     console.log("Model: openai/gpt-4o-mini");
-
-    const Lesson = (await import("./models/Lesson.js")).default;
-    const { standardLessons } = await import("./data/lessons.js");
-
-    console.log(`🌱 Checking ${standardLessons.length} standard lessons...`);
-
-    for (const lesson of standardLessons) {
-      await Lesson.updateOne(
-        { id: lesson.id },
-        { $set: lesson },
-        { upsert: true }
-      );
-    }
-    console.log("✅ Standard lessons synced successfully.");
   } catch (err) {
     console.error("Seeding error:", err);
   }

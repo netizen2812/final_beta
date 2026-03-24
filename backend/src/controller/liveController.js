@@ -528,11 +528,20 @@ export const endSession = async (req, res) => {
                 batch.status = 'ended';
                 await batch.save();
 
+                // Calculate approximate duration
+                const durationMinutes = session.endedAt && session.createdAt 
+                    ? Math.max(1, Math.round((session.endedAt - session.createdAt) / 60000))
+                    : 45;
+
                 // Award +10 XP to everyone who actually joined the live stream
                 for (const p of batch.activeParticipants) {
                     if (p.isActive) {
                         try {
-                            await awardXP(p.childId, "session_complete");
+                            await awardXP(p.childId, "session_complete", { 
+                                batchId: session.batchId, 
+                                sessionId: session._id, 
+                                duration: durationMinutes 
+                            });
                         } catch (err) {
                             console.error(`Failed to award XP to ${p.childId}`, err);
                         }

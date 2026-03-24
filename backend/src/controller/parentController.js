@@ -27,7 +27,7 @@ export const getDashboardStats = async (req, res) => {
 
         // Calculate weekly stats
         const totalMinutes = weeklyActivity.reduce((sum, day) => sum + day.minutes_spent, 0);
-        const totalLessons = weeklyActivity.reduce((sum, day) => sum + day.lessons_completed, 0);
+        const totalLessons = weeklyActivity.reduce((sum, day) => sum + day.sessions_attended, 0);
 
         // Aggregate topic breakdown
         const topicBreakdown = {};
@@ -62,7 +62,7 @@ export const getDashboardStats = async (req, res) => {
             stats: {
                 timeThisWeek: `${Math.floor(totalMinutes / 60)}h ${totalMinutes % 60}m`,
                 totalMinutes,
-                lessonsDone: progress.lessons_completed,
+                lessonsDone: progress.total_sessions_attended || 0,
                 currentXP: progress.xp,
                 currentLevel: progress.level,
                 totalBadges: badgeCount,
@@ -251,7 +251,7 @@ export const getReportCard = async (req, res) => {
             metrics: {
                 totalDays,
                 avgMinutesPerDay: Math.round(avgMinutesPerDay),
-                totalLessons: weeklyActivity.reduce((sum, day) => sum + day.lessons_completed, 0),
+                totalLessons: weeklyActivity.reduce((sum, day) => sum + (day.sessions_attended || 0), 0),
             },
         });
     } catch (error) {
@@ -264,7 +264,7 @@ export const getReportCard = async (req, res) => {
 export const logActivity = async (req, res) => {
     try {
         const { childId } = req.params;
-        const { minutes_spent, lessons_completed, topics_studied } = req.body;
+        const { minutes_spent, sessions_attended, topics_studied } = req.body;
         const userId = req.auth.sub;
 
         // Verify child belongs to parent
@@ -283,7 +283,7 @@ export const logActivity = async (req, res) => {
             {
                 $inc: {
                     minutes_spent: minutes_spent || 0,
-                    lessons_completed: lessons_completed || 0,
+                    sessions_attended: sessions_attended || 0,
                 },
                 $set: {
                     topics_studied: topics_studied || {},

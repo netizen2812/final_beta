@@ -1,5 +1,4 @@
 import User from "../models/User.js";
-import LiveSession from "../models/LiveSession.js";
 import { trackEvent } from "../services/analyticsService.js";
 
 const SCHOLAR_EMAIL = "scholar1.imam@gmail.com";
@@ -24,9 +23,6 @@ const getOrCreateScholar = async () => {
 // GET /api/live/scholar/status - Check if ANY scholar is available (or specific for lobby)
 export const getScholarStatus = async (req, res) => {
     try {
-        const activeSessions = await LiveSession.countDocuments({ status: "active" });
-
-        // Check if any user with role 'scholar' or 'admin' has a recent heartbeat
         const twoMinutesAgo = new Date(Date.now() - 2 * 60 * 1000);
         const onlineScholar = await User.findOne({
             role: { $in: ['scholar', 'admin'] },
@@ -36,7 +32,7 @@ export const getScholarStatus = async (req, res) => {
         res.json({
             online: !!onlineScholar,
             scholarName: onlineScholar ? onlineScholar.name : "Scholar",
-            activeSessions
+            activeSessions: 0
         });
     } catch (error) {
         console.error("Scholar status error:", error);
@@ -44,125 +40,19 @@ export const getScholarStatus = async (req, res) => {
     }
 };
 
-// POST /api/live/start - Parent starts a session
+// POST /api/live/start - Parent starts a session (Legacy)
 export const startSession = async (req, res) => {
-    console.log("🚀 startSession called!", req.body);
-
-    try {
-        const { childId } = req.body;
-        const parentId = req.auth.userId;
-
-        if (!childId) {
-            return res.status(400).json({ message: "childId is required" });
-        }
-
-        // 1. Check Daily Limit
-        const { checkDailyLimit } = await import("../utils/limitUtils.js");
-        const limitCheck = await checkDailyLimit(childId);
-
-        if (!limitCheck.allowed) {
-            return res.status(403).json({
-                message: "Daily learning limit reached",
-                limitValues: limitCheck
-            });
-        }
-
-        // Get or create scholar safely (no duplicate key errors)
-        const scholar = await getOrCreateScholar();
-        console.log("Scholar ready:", scholar._id);
-
-        // Reuse existing active session if one exists
-        let session = await LiveSession.findOne({
-            parentId,
-            childId,
-            status: { $in: ['active', 'waiting'] }
-        });
-
-        if (!session) {
-            session = new LiveSession({
-                parentId,
-                childId,
-                scholarId: scholar._id,
-                currentSurah: 1,
-                currentAyah: 1,
-                status: "active",
-                startedAt: new Date() // Track start time
-            });
-            await session.save();
-            trackEvent(parentId, "LIVE_STARTED", { sessionId: session._id, childId });
-            console.log("New session created:", session._id);
-        } else {
-            if (session.status === 'waiting') {
-                session.status = 'active';
-                if (!session.startedAt) session.startedAt = new Date(); // Ensure start time
-                await session.save();
-            }
-            console.log("Reusing existing session:", session._id);
-        }
-
-        res.status(200).json({ session });
-
-    } catch (error) {
-        console.error("❌ startSession error:", error.message);
-        res.status(500).json({ message: "Server error starting session", detail: error.message });
-    }
+    res.status(501).json({ message: "Legacy session method disabled" });
 };
 
-// GET /api/live/scholar/sessions - Scholar fetches active sessions
+// GET /api/live/scholar/sessions - Scholar fetches active sessions (Legacy)
 export const getScholarSessions = async (req, res) => {
-    try {
-        const userId = req.auth.userId;
-        const scholar = await User.findOne({ clerkId: userId });
-
-        if (!scholar || scholar.role !== 'scholar') {
-            return res.status(403).json({ message: "Access denied" });
-        }
-
-        const sessions = await LiveSession.find({
-            scholarId: scholar._id,
-            status: "active"
-        });
-
-        const { default: Child } = await import("../models/Child.js");
-        const populatedSessions = await Promise.all(sessions.map(async (s) => {
-            const parent = await User.findOne({ clerkId: s.parentId });
-            // Attempt to resolve child name
-            let childName = s.childId;
-            // If childId looks like an ObjectId, try to find it
-            if (s.childId && s.childId.length > 10) {
-                const child = await Child.findById(s.childId);
-                if (child) childName = child.name;
-            }
-
-            return {
-                ...s.toObject(),
-                parentName: parent ? parent.name : "Unknown Parent",
-                studentName: childName
-            };
-        }));
-
-        res.json({ sessions: populatedSessions });
-
-    } catch (error) {
-        console.error("getScholarSessions error:", error);
-        res.status(500).json({ message: "Server error" });
-    }
+    res.json({ sessions: [] });
 };
 
 // GET /api/live/:id - Get single session
 export const getSession = async (req, res) => {
-    try {
-        const { id } = req.params;
-        if (!id || id === 'undefined') {
-            return res.status(400).json({ message: "Invalid session ID" });
-        }
-        const session = await LiveSession.findById(id);
-        if (!session) return res.status(404).json({ message: "Session not found" });
-        res.json(session);
-    } catch (error) {
-        console.error("getSession error:", error.message);
-        res.status(500).json({ message: "Server error" });
-    }
+    res.status(404).json({ message: "Not found" });
 };
 
 // ADMIN: POST /api/live/admin/batch - Create new batch
@@ -272,47 +162,7 @@ export const removeStudentFromBatch = async (req, res) => {
 
 // SCHOLAR: GET /api/live/batch/:id/sessions - Get active student sessions for a batch
 export const getBatchSessions = async (req, res) => {
-    try {
-        const { id } = req.params; // Batch ID
-
-        // Find all active sessions where the child is in this batch
-        // OR: simpler, find active sessions where `batchId` matches (if we add batchId to LiveSession)
-        // For now, let's look for active sessions of students in this batch.
-
-        const { default: Batch } = await import("../models/Batch.js");
-        const batch = await Batch.findById(id);
-        if (!batch) return res.status(404).json({ message: "Batch not found" });
-
-        // Find sessions for these students
-        const sessions = await LiveSession.find({
-            childId: { $in: batch.students },
-            status: 'active'
-        }).populate('childId', 'name');
-        // Note: childId in LiveSession is currently a String (ID or Name?) 
-        // In startSession we use `childId` from body.
-        // We need to ensure we are consistent. `LiveSession.childId` should probably be an ObjectId ref to Child?
-        // Checking LiveSession model... it might not be defined in this file.
-        // Assuming LiveSession.childId is the Child ID string.
-
-        // Let's populate manually or just return what we have
-        // If LiveSession.childId is just a string, we can't populate.
-        // But we can fetch Child details.
-
-        const { default: Child } = await import("../models/Child.js");
-        const populated = await Promise.all(sessions.map(async s => {
-            const child = await Child.findById(s.childId);
-            return {
-                ...s.toObject(),
-                studentName: child ? child.name : "Unknown"
-            };
-        }));
-
-        res.json(populated);
-
-    } catch (error) {
-        console.error("Get batch sessions error:", error);
-        res.status(500).json({ message: "Server error" });
-    }
+    res.json([]);
 };
 
 export const startBatch = async (req, res) => {
@@ -354,7 +204,6 @@ export const joinBatch = async (req, res) => {
         }
 
         const { default: Batch } = await import("../models/Batch.js");
-        const { default: LiveSession } = await import("../models/LiveSession.js");
         const { default: Child } = await import("../models/Child.js");
         const { default: LiveAttendance } = await import("../models/LiveAttendance.js");
 
@@ -390,41 +239,9 @@ export const joinBatch = async (req, res) => {
         await batch.save();
         // --- PRESENCE TRACKING END ---
 
-        // Legacy Session Creation (Optional, for stats). No default surah/ayah — student is source of truth.
-        let session = await LiveSession.findOne({ childId, status: 'active' });
-
-        if (session) {
-            // Fix: Ensure reused session points to THIS batch
-            if (!session.batchId || session.batchId.toString() !== batch._id.toString()) {
-                session.batchId = batch._id;
-                session.scholarId = batch.scholar;
-                session.title = batch.name;
-                session.updatedAt = new Date();
-                await session.save();
-                console.log("Updated existing session with new batchId:", batch._id);
-            }
-        } else {
-            try {
-                session = await LiveSession.create({
-                    title: batch.name,
-                    parentId: userId,
-                    childId,
-                    scholarId: batch.scholar,
-                    // Do NOT set currentSurah/currentAyah — remain null until first student movement
-                    status: 'active',
-                    startedAt: new Date(),
-                    scheduledStartTime: new Date(),
-                    scheduledEndTime: new Date(Date.now() + 60 * 60 * 1000),
-                    batchId: batch._id
-                });
-            } catch (dbError) {
-                console.error("Session create error (non-fatal):", dbError.message);
-            }
-        }
-
         // Log Attendance
         await LiveAttendance.create({
-            sessionId: session ? session._id : null,
+            sessionId: batch.activeSessionId ? batch.activeSessionId : null,
             userId,
             childId,
             role: 'student',
@@ -488,80 +305,14 @@ export const getMySessions = async (req, res) => {
     }
 };
 
-// ... keep updateAyah and endSession (refactored for generic use)
 // PATCH /api/live/:id - Update Ayah (Parent)
 export const updateAyah = async (req, res) => {
-    try {
-        const { id } = req.params;
-        const { surah, ayah } = req.body;
-        // ... (Logic to allow any participant or just scholar?)
-        // For classroom: Scholar likely controls, or student controls their own view?
-        // Let's assume Scholar controls the "Master" view, but for now allow anyone to update (sync)
-
-        const session = await LiveSession.findByIdAndUpdate(id, { currentSurah: surah, currentAyah: ayah }, { new: true });
-        res.json({ session });
-    } catch (error) {
-        res.status(500).json({ message: "Server error" });
-    }
+    res.status(501).json({ message: "Disabled" });
 };
 
 // POST /api/live/:id/end - End Session
 export const endSession = async (req, res) => {
-    try {
-        const { id } = req.params;
-        const userId = req.auth.userId; // Clerk ID
-
-        const session = await LiveSession.findById(id);
-        if (!session) return res.status(404).json({ message: "Session not found" });
-
-        // Only Scholar or Admin can end
-        const user = await User.findOne({ clerkId: userId });
-        const isScholar = session.scholarId.toString() === user._id.toString();
-
-        if (user.role !== 'admin' && !isScholar) {
-            return res.status(403).json({ message: "Unauthorized action" });
-        }
-
-        session.status = 'ended';
-        session.endedAt = new Date();
-        await session.save();
-
-        if (session.batchId) {
-            const { default: Batch } = await import("../models/Batch.js");
-            const { awardXP } = await import("../services/gamificationService.js");
-            
-            const batch = await Batch.findById(session.batchId);
-            if (batch) {
-                batch.status = 'ended';
-                await batch.save();
-
-                // Calculate approximate duration
-                const durationMinutes = session.endedAt && session.createdAt 
-                    ? Math.max(1, Math.round((session.endedAt - session.createdAt) / 60000))
-                    : 45;
-
-                // Award +10 XP to everyone who actually joined the live stream
-                for (const p of batch.activeParticipants) {
-                    if (p.isActive) {
-                        try {
-                            await awardXP(p.childId, "session_complete", { 
-                                batchId: session.batchId, 
-                                sessionId: session._id, 
-                                duration: durationMinutes 
-                            });
-                        } catch (err) {
-                            console.error(`Failed to award XP to ${p.childId}`, err);
-                        }
-                    }
-                }
-            }
-        }
-
-        res.json({ message: "Session ended and XP awarded" });
-    } catch (error) {
-        console.error("End session error:", error);
-        res.status(500).json({ message: "Server error" });
-    }
+    res.status(501).json({ message: "Disabled" });
 };
 
 // DEBUG: GET /api/live/:id/debug

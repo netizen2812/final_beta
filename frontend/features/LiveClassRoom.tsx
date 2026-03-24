@@ -47,7 +47,7 @@ interface ScholarStatus {
 const API_BASE = import.meta.env.VITE_API_URL || "http://localhost:5000";
 
 const LiveClassRoom: React.FC = () => {
-  const { activeChild } = useChildContext();
+  const { activeChild, refreshChildren } = useChildContext();
   const { getToken } = useAuth();
   const { user } = useUser();
   const { t } = useTranslation();
@@ -478,6 +478,9 @@ const LiveClassRoom: React.FC = () => {
     const sessionToExit = currentSession;
     setCurrentSession(null);
     if (userRole === 'scholar') setActiveSessions([]);
+    
+    // Refresh child context to pull new attendance/XP for Journey of Light
+    if (refreshChildren) refreshChildren();
 
     if (userRole !== 'scholar' && sessionToExit?.batchId) {
       try {

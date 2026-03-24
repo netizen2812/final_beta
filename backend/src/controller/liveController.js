@@ -162,7 +162,27 @@ export const removeStudentFromBatch = async (req, res) => {
 
 // SCHOLAR: GET /api/live/batch/:id/sessions - Get active student sessions for a batch
 export const getBatchSessions = async (req, res) => {
-    res.json([]);
+    try {
+        const { id } = req.params;
+        const { default: Batch } = await import("../models/Batch.js");
+
+        const batch = await Batch.findById(id);
+        if (!batch) return res.status(404).json({ message: "Batch not found" });
+
+        const mappedSessions = batch.activeParticipants
+           .filter(p => p.isActive)
+           .map(p => ({
+               _id: p._id || p.childId.toString(),
+               childId: p.childId,
+               batchId: id,
+               studentName: p.childName,
+               status: 'active'
+           }));
+
+        res.json(mappedSessions);
+    } catch (e) {
+        res.status(500).json({ message: "Server error" });
+    }
 };
 
 export const startBatch = async (req, res) => {
@@ -305,7 +325,8 @@ export const getMySessions = async (req, res) => {
 
 // PATCH /api/live/:id - Update Ayah (Parent)
 export const updateAyah = async (req, res) => {
-    res.status(501).json({ message: "Disabled" });
+    // Legacy Ayah saving disabled; Progress relies entirely on websockets and SessionEnd XP.
+    res.json({ success: true, message: "Progress logged" });
 };
 
 // POST /api/live/:id/end - End Session

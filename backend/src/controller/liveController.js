@@ -993,3 +993,19 @@ export const getGlobalLeaderboard = async (req, res) => {
         res.status(500).json({ error: e.message });
     }
 };
+
+// GET /api/live/scholar/batches
+export const getScholarBatches = async (req, res) => {
+    try {
+        const { default: Batch } = await import("../models/Batch.js");
+        // For MVP: Return all batches the scholar has access to.
+        const batches = await Batch.find()
+            .populate('scholar', 'name')
+            .populate('students', 'name');
+            
+        res.json({ batches });
+    } catch (error) {
+        console.error("Scholar batches error:", error);
+        res.status(500).json({ error: error.message });
+    }
+};

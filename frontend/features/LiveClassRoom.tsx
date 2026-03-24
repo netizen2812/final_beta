@@ -153,119 +153,83 @@ const LiveClassRoom: React.FC = () => {
   // SCHOLAR DASHBOARD STATE
   const [scholarBatches, setScholarBatches] = useState<any[]>([]);
 
-  // 1. Fetch Scholar's Batches (Once on mount)
+  // Fetch Scholar's Batches (Once on mount)
   useEffect(() => {
     if (userRole !== 'scholar') return;
     const fetchBatches = async () => {
       try {
         const token = await getToken();
-        const res = await axios.get(`${API_BASE}/api/live/my-sessions`, {
+        // Fetch batches assigned to this scholar (or all for MVP)
+        const res = await axios.get(`${API_BASE}/api/live/scholar/batches`, {
           headers: { Authorization: `Bearer ${token}` }
         });
-        // Safety check
-        setScholarBatches(Array.isArray(res.data) ? res.data : []);
+        setScholarBatches(Array.isArray(res.data.batches) ? res.data.batches : []);
       } catch (err) {
         console.error("Failed to fetch scholar batches", err);
         setScholarBatches([]);
       }
     };
     fetchBatches();
+    // Poll every 10s for new batches
+    const interval = setInterval(fetchBatches, 10000);
+    return () => clearInterval(interval);
   }, [userRole, getToken]);
 
-  // 2. Poll Active Participants (Every 2s) - Only if we have batches
   useEffect(() => {
-    if (userRole !== 'scholar' || !Array.isArray(scholarBatches) || scholarBatches.length === 0) return;
-
-    const fetchParticipants = async () => {
+    if (userRole !== 'scholar' || !currentSession?.batchId) return;
+    
+    // Instead of hacking activeSessions, we poll the batch state directly!
+    const fetchBatchState = async () => {
       try {
         const token = await getToken();
-        let allActiveStudents: LiveSession[] = [];
-
-        let firstRawData: any = null;
-
-        // Parallelize for better performance
-        const promises = scholarBatches.map(async (batch) => {
-          if (!batch) return [];
-          const batchId = batch._id || batch.id;
-          if (!batchId) return [];
-
-          try {
-            const res = await axios.get(`${API_BASE}/api/live/batch/${batchId}/participants`, {
-              headers: { Authorization: `Bearer ${token}` }
-            });
-            const rawData = res.data;
-            if (!firstRawData && rawData && !Array.isArray(rawData)) firstRawData = rawData;
-            
-            const participants = Array.isArray(rawData) ? rawData : (rawData.activeParticipants || []);
-
-            return participants.filter((p: any) => p && p.isActive).map((p: any) => ({
-              _id: `${p.childId}-${batchId}`,
-              parentId: "unknown",
-              childId: p.childId,
-              scholarId: "scholar",
-              currentSurah: p.currentSurah || null, // Allow null so it says "Selecting..."
-              currentAyah: p.currentAyah || null,     // Allow null
-              lastSeen: p.lastSeen,
-              status: 'active',
-              studentName: p.childName || 'Unknown Student',
-              parentName: `Batch: ${batch.title || batch.name}`,
-              batchId: batchId
-            }));
-          } catch (e) {
-            console.error(`Failed to fetch part. for batch ${batchId}`, e);
-            return [];
-          }
+        // Get full batch state which includes participants
+        const res = await axios.get(`${API_BASE}/api/live/batch/${currentSession.batchId}/state`, {
+          headers: { Authorization: `Bearer ${token}` }
         });
-
-        const results = await Promise.all(promises);
-        allActiveStudents = results.flat();
-
-        // UPDATE CLASS STATE FOR SCHOLAR
-        if (firstRawData) {
-          setBatchState({
-            activeChildId: firstRawData.activeChildId || null,
-            activeSessionId: firstRawData.activeSessionId || null,
-            status: firstRawData.status || 'active',
-            currentPromptAnswers: firstRawData.currentPromptAnswers || [],
-            promptEvaluated: firstRawData.promptEvaluated || false
-          });
-          if (firstRawData.status === 'ended' && !showLeaderboard) setShowLeaderboard(true);
+        
+        const data = res.data;
+        setBatchState({
+           activeChildId: data.activeChildId,
+           activeSessionId: data.activeSessionId,
+           status: data.status,
+           currentPromptAnswers: data.currentPromptAnswers || [],
+           promptEvaluated: data.promptEvaluated || false
+        });
+        
+        // Auto scroll to latest active participant's position
+        if (data.activeChildId && data.activeSurah && data.activeAyah) {
+           setCurrentSession(prev => prev ? {
+              ...prev,
+              childId: data.activeChildId,
+              currentSurah: data.activeSurah,
+              currentAyah: data.activeAyah
+           } : null);
         }
 
-        setActiveSessions(allActiveStudents);
-
+        if (data.status === 'ended' && !showLeaderboard) {
+           setShowLeaderboard(true);
+        }
       } catch (err) {
-        console.error("Scholar participants polling error", err);
+        console.error("Batch state poll error", err);
       }
     };
 
-    fetchParticipants();
-    const interval = setInterval(fetchParticipants, 2000);
+    fetchBatchState();
+    const interval = setInterval(fetchBatchState, 1500);
     return () => clearInterval(interval);
-  }, [userRole, getToken, scholarBatches]);
-
-  // Scholar viewing a session: merge latest participant position so Quran auto-scrolls
-  useEffect(() => {
-    if (userRole !== 'scholar' || !currentSession?.childId) return;
-    // activeSessions is updated by polling; find this session's participant and sync position
-    const match = activeSessions.find((s: LiveSession) => s.childId === currentSession.childId && s.batchId === currentSession.batchId);
-    if (match && (match.currentSurah !== currentSession.currentSurah || match.currentAyah !== currentSession.currentAyah)) {
-      setCurrentSession(prev => prev ? { ...prev, currentSurah: match.currentSurah, currentAyah: match.currentAyah } : null);
-      console.log("[SCHOLAR RENDER] position updated", { surah: match.currentSurah, ayah: match.currentAyah });
-    }
-  }, [userRole, currentSession?.childId, currentSession?.batchId, activeSessions]);
+  }, [userRole, getToken, currentSession?.batchId, showLeaderboard]);
 
   // SCHOLAR: Auto-switch view to active reciting student
   useEffect(() => {
     if (userRole === 'scholar' && batchState?.activeChildId && currentSession?.batchId) {
       if (currentSession.childId !== batchState.activeChildId) {
-        const nextActive = activeSessions.find(s => s.childId === batchState.activeChildId && s.batchId === currentSession.batchId);
+        const nextActive = scholarBatches.find(b => b._id === currentSession.batchId)?.activeSessions?.find((s: LiveSession) => s.childId === batchState.activeChildId);
         if (nextActive) {
           setCurrentSession(nextActive);
         }
       }
     }
-  }, [userRole, batchState?.activeChildId, activeSessions, currentSession]);
+  }, [userRole, batchState?.activeChildId, scholarBatches, currentSession]);
 
   // STUDENT: HEARTBEAT & SYNC
   useEffect(() => {
@@ -488,8 +452,24 @@ const LiveClassRoom: React.FC = () => {
     }
   };
 
-  const handleScholarJoinSession = (session: LiveSession) => {
-    setCurrentSession(session);
+  const handleScholarJoinBatch = (batch: any) => {
+    setCurrentSession({
+      _id: batch._id || batch.id,
+      batchId: batch._id || batch.id,
+      childId: batch.activeChildId || '',
+      parentId: '',
+      scholarId: user?.id || '',
+      currentSurah: null,
+      currentAyah: null,
+      status: 'active'
+    });
+    setBatchState({
+        activeChildId: batch.activeChildId || null,
+        activeSessionId: null,
+        status: 'active',
+        currentPromptAnswers: [],
+        promptEvaluated: false
+    });
   };
 
   const handleExitSession = async () => {
@@ -915,63 +895,68 @@ const LiveClassRoom: React.FC = () => {
   }
 
   // RENDER: SCHOLAR DASHBOARD
+  // RENDER: SCHOLAR DASHBOARD
   if (userRole === 'scholar') {
     return (
       <div className="max-w-6xl mx-auto p-6 space-y-8 animate-in fade-in">
-        <div className="flex items-center justify-between">
-          <div>
-            <h1 className="text-3xl font-serif font-bold text-[#052e16]">{t('live.scholarDashboard')}</h1>
-            <p className="text-slate-500">{t('live.monitorSessions')}</p>
+        <div className="flex flex-col md:flex-row items-center justify-between bg-emerald-950 p-8 rounded-[2rem] shadow-2xl relative overflow-hidden">
+          <div className="absolute top-0 right-0 w-64 h-64 bg-emerald-800 rounded-full blur-3xl opacity-30 -translate-y-1/2 translate-x-1/2" />
+          
+          <div className="relative z-10 text-center md:text-left mb-6 md:mb-0">
+            <h1 className="text-4xl md:text-5xl font-serif font-bold text-white drop-shadow-md mb-2">{t('live.scholarDashboard', 'Scholar Dashboard')}</h1>
+            <p className="text-emerald-200 text-lg">Manage your virtual classrooms and Batches.</p>
           </div>
-          <div className="bg-emerald-50 text-emerald-800 px-4 py-2 rounded-xl border border-emerald-100 font-bold text-sm flex items-center gap-2">
-            <LayoutDashboard size={18} />
-            {activeSessions.length} {t('live.activeSessions')}
+          <div className="relative z-10 bg-white/10 text-white px-6 py-3 rounded-2xl border border-white/20 font-bold flex items-center gap-3 shadow-lg backdrop-blur-md">
+            <LayoutDashboard size={20} className="text-emerald-300" />
+            <div className="text-xl">{scholarBatches.length} <span className="text-sm font-normal text-emerald-200 uppercase tracking-widest ml-1">Assigned Batches</span></div>
           </div>
         </div>
 
-        {activeSessions.length === 0 ? (
-          <div className="text-center py-20 bg-white rounded-3xl border border-dashed border-slate-200">
-            <div className="w-16 h-16 bg-slate-50 rounded-full flex items-center justify-center mx-auto mb-4">
-              <Clock size={24} className="text-slate-400" />
+        {scholarBatches.length === 0 ? (
+          <div className="text-center py-20 bg-white rounded-3xl border border-dashed border-emerald-200 shadow-sm">
+            <div className="w-20 h-20 bg-emerald-50 rounded-full flex items-center justify-center mx-auto mb-6 shadow-inner ring-4 ring-emerald-50/50">
+              <Clock size={32} className="text-emerald-400" />
             </div>
-            <h3 className="text-slate-900 font-bold text-lg">{t('live.noActiveSessions')}</h3>
-            <p className="text-slate-500 text-sm">{t('live.waitingForStudents')}</p>
+            <h3 className="text-slate-900 font-bold text-2xl mb-2">No Batches Found</h3>
+            <p className="text-slate-500 max-w-sm mx-auto">You do not have any active or upcoming student batches assigned to you right now.</p>
           </div>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {activeSessions.map(session => (
-              <div key={session._id} className="bg-white p-6 rounded-2xl border border-slate-100 shadow-sm hover:shadow-md transition-all group">
-                <div className="flex justify-between items-start mb-4">
-                  <div className="w-12 h-12 bg-emerald-100 rounded-full flex items-center justify-center text-emerald-700 font-bold text-lg">
-                    {session.childId ? session.childId[0].toUpperCase() : 'S'}
+            {scholarBatches.map(batch => (
+              <div key={batch._id} className="bg-white p-6 rounded-[2rem] border border-emerald-100 shadow-md hover:shadow-xl hover:border-emerald-300 transition-all group overflow-hidden relative">
+                <div className="absolute top-0 right-0 w-32 h-32 bg-emerald-50 rounded-full blur-2xl -mr-10 -mt-10 transition-transform group-hover:scale-150" />
+                
+                <div className="relative z-10">
+                  <div className="flex justify-between items-start mb-6">
+                    <div className="w-14 h-14 bg-gradient-to-br from-emerald-400 to-teal-500 rounded-2xl flex items-center justify-center text-white shadow-lg transform -rotate-3 group-hover:rotate-0 transition-transform">
+                      <BookOpen size={24} />
+                    </div>
+                    <span className={`px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest shadow-sm ${batch.status === 'active' ? 'bg-emerald-100 text-emerald-700 animate-pulse' : 'bg-slate-100 text-slate-500'}`}>
+                      {batch.status === 'active' ? '● Live' : 'Scheduled'}
+                    </span>
                   </div>
-                  <span className="bg-green-100 text-green-700 px-2 py-1 rounded-md text-[10px] font-black uppercase tracking-widest">
-                    Live
-                  </span>
-                </div>
 
-                <h3 className="font-bold text-lg text-[#052e16] mb-1">
-                  {t('live.student')}: {session.studentName || session.childId}
-                </h3>
-                <p className="text-xs text-slate-400 font-bold uppercase tracking-widest mb-6">
-                  {t('live.parent')}: {session.parentName || 'Unknown'}
-                </p>
-
-                <div className="bg-slate-50 rounded-xl p-4 mb-6 border border-slate-100">
-                  <div className="flex justify-between items-center text-sm">
-                    <span className="text-slate-500">{t('live.currentPosition')}</span>
-                  </div>
-                  <p className="font-bold text-slate-800 mt-1">
-                    {session.currentSurah ? `Surah ${session.currentSurah}, Ayah ${session.currentAyah}` : t('live.selecting')}
+                  <h3 className="font-bold text-2xl text-[#052e16] mb-1 truncate">
+                    {batch.name}
+                  </h3>
+                  <p className="text-sm text-emerald-600 font-bold mb-6 flex items-center gap-2">
+                    <Users size={16} /> {batch.students?.length || 0} Enrolled Students
                   </p>
-                </div>
 
-                <button
-                  onClick={() => handleScholarJoinSession(session)}
-                  className="w-full bg-[#052e16] hover:bg-emerald-900 text-white py-3 rounded-xl font-bold text-sm flex items-center justify-center gap-2 transition-transform active:scale-95"
-                >
-                  {t('live.observeSession')} <ArrowRight size={16} />
-                </button>
+                  <div className="bg-slate-50 rounded-2xl p-4 mb-6 border border-slate-100">
+                    <div className="text-[10px] text-slate-400 font-bold uppercase tracking-widest mb-1">Scholar Assigned</div>
+                    <p className="font-bold text-slate-800 text-sm truncate">
+                      {batch.scholar?.name || 'Unassigned'}
+                    </p>
+                  </div>
+
+                  <button
+                    onClick={() => handleScholarJoinBatch(batch)}
+                    className="w-full bg-[#052e16] hover:bg-emerald-900 text-white py-4 rounded-xl font-bold text-sm flex items-center justify-center gap-2 transition-all active:scale-95 shadow-[0_4px_15px_rgba(5,46,22,0.2)]"
+                  >
+                    Manage Class <ArrowRight size={16} />
+                  </button>
+                </div>
               </div>
             ))}
           </div>

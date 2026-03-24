@@ -5,7 +5,7 @@ import {
     addStudentToBatch, removeStudentFromBatch, getBatchSessions, debugBatch, debugAllBatches,
     batchPing, updateBatchProgress, updatePosition, leaveBatch, getBatchActiveParticipants,
     getBatchState, selectTurn, scoreRecitation, scoreParticipation, getLeaderboard,
-    submitPrompt, evaluatePrompt
+    submitPrompt, evaluatePrompt, getScholarBatches
 } from "../controller/liveController.js";
 import { requireAuth, isAdmin, isScholar } from "../middleware/authmiddleware.js";
 
@@ -13,6 +13,9 @@ const router = express.Router();
 
 // Helper: Scholar Status
 router.get("/scholar/status", requireAuth, getScholarStatus);
+
+// SCHOLAR: My Batches
+router.get("/scholar/batches", requireAuth, isScholar, getScholarBatches);
 
 // USER: My Sessions
 router.get("/my-sessions", requireAuth, getMySessions);

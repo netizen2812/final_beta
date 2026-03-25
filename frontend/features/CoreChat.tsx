@@ -11,6 +11,7 @@ import LeftContextPanel from '../components/LeftContextPanel';
 import GuidanceControlPanel from '../components/RightUtilityPanel';
 import { Analytics } from '../utils/analytics';
 import { useTranslation } from 'react-i18next';
+import { ChatLimitModal } from './ChatLimitModal';
 
 const API_URL = import.meta.env.VITE_API_URL || "http://localhost:5000";
 
@@ -168,6 +169,7 @@ const CoreChat: React.FC<CoreChatProps> = ({ madhab, setMadhab, tone: mood, setT
   const [showPreferences, setShowPreferences] = useState(false);
   const [showLeftPanel, setShowLeftPanel] = useState(true);
   const [showRightPanel, setShowRightPanel] = useState(true);
+  const [showLimitModal, setShowLimitModal] = useState(false);
 
   // Conversation state
   const [conversations, setConversations] = useState<Conversation[]>([]);
@@ -336,6 +338,12 @@ const CoreChat: React.FC<CoreChatProps> = ({ madhab, setMadhab, tone: mood, setT
       }, 'ai_imam');
 
       const aiResponse = await getImamResponse(input, madhab, mood, apiHistory, token, convId ?? undefined);
+
+      if (aiResponse === "PAYWALL_TRIGGER") {
+         setMessages(prev => prev.slice(0, -1)); // Remove the user message
+         setShowLimitModal(true);
+         return;
+      }
 
       const assistantMessage: ChatMessage = {
         id: (Date.now() + 1).toString(),
@@ -591,6 +599,15 @@ const CoreChat: React.FC<CoreChatProps> = ({ madhab, setMadhab, tone: mood, setT
           </div>
         )}
       </div>
+
+      <ChatLimitModal 
+         isOpen={showLimitModal} 
+         onClose={() => setShowLimitModal(false)} 
+         onSuccess={() => {
+            alert("Payment successful! You now have unlimited messaging for 30 days. Please ask your question again.");
+            setShowLimitModal(false);
+         }} 
+      />
     </>
   );
 };

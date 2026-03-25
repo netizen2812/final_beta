@@ -46,6 +46,10 @@ const userSchema = new mongoose.Schema(
       liveAccess: {
         type: Boolean,
         default: false
+      },
+      aiPremiumUntil: {
+        type: Date,
+        default: null
       }
     },
 

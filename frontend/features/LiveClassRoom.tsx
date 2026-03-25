@@ -22,6 +22,8 @@ import { TarbiyahLobby } from './TarbiyahLobby';
 const POSITION_THROTTLE_MS = 500;
 
 import { MovingBackground } from './TarbiyahLobby';
+import { loadRazorpayScript } from '../utils/razorpay';
+import { Crown } from 'lucide-react';
 
 // Types
 // Types
@@ -288,16 +290,52 @@ const LiveClassRoom: React.FC = () => {
     setIsLoading(true);
     try {
       const token = await getToken();
-      await axios.post(`${API_BASE}/api/live/access/request`, {
-        email: user?.primaryEmailAddress?.emailAddress,
-        name: user?.fullName
-      }, {
-        headers: { Authorization: `Bearer ${token}` }
+      
+      // Load Razorpay SDK
+      const res = await loadRazorpayScript();
+      if (!res) {
+        alert("Razorpay SDK failed to load. Are you online?");
+        setIsLoading(false);
+        return;
+      }
+
+      // 1. Create Order
+      const { data: order } = await axios.post(`${API_BASE}/api/payment/create-order`, {
+        planType: 'TARBIYAH_LIFETIME'
+      }, { headers: { Authorization: `Bearer ${token}` } });
+
+      // 2. Open Checkout
+      const options = {
+        key: import.meta.env.VITE_RAZORPAY_KEY_ID,
+        amount: order.amount,
+        currency: order.currency,
+        name: "Imam",
+        description: "Lifetime Tarbiyah Access",
+        order_id: order.id,
+        handler: async function (response: any) {
+             // 3. Verify Payment
+             await axios.post(`${API_BASE}/api/payment/verify`, {
+                 ...response,
+                 planType: 'TARBIYAH_LIFETIME'
+             }, { headers: { Authorization: `Bearer ${token}` } });
+             
+             alert("Payment successful! Access granted. Pulling down classes now.");
+             setAccessStatus({ hasAccess: true, pendingRequest: false });
+        },
+        theme: {
+          color: "#052e16"
+        }
+      };
+
+      const rzp = new (window as any).Razorpay(options);
+      rzp.on('payment.failed', function (response: any){
+          alert("Payment failed. Please try again.");
       });
-      setAccessStatus(prev => prev ? { ...prev, pendingRequest: true } : null);
-      alert("Request submitted! Please wait for admin approval.");
+      rzp.open();
+      
     } catch (err) {
-      alert("Failed to submit request.");
+      console.error("Payment initiation failed", err);
+      alert("Something went wrong with the payment gateway.");
     } finally {
       setIsLoading(false);
     }
@@ -398,23 +436,22 @@ const LiveClassRoom: React.FC = () => {
           <ShieldCheck size={48} />
         </div>
         <h1 className="text-3xl font-serif font-bold text-slate-800">{t('live.sessionsLocked')}</h1>
-        <p className="text-slate-500 max-w-md mx-auto">
-          {t('live.accessRestricted')}
+        <p className="text-slate-500 max-w-md mx-auto leading-relaxed">
+          Tarbiyah requires a one-time premium lifetime pass for ₹399. You will gain unlimited access to our live scheduled classes, learning journey nodes, and scholar sessions.
         </p>
 
-        {accessStatus.pendingRequest ? (
-          <div className="bg-amber-50 text-amber-800 px-6 py-3 rounded-full inline-flex items-center gap-2 font-bold text-sm">
-            <Clock size={16} /> {t('live.requestPending')}
-          </div>
-        ) : (
-          <button
-            onClick={handleRequestAccess}
-            disabled={isLoading}
-            className="bg-[#052e16] text-white px-8 py-3 rounded-xl font-bold hover:bg-emerald-900 transition-all flex items-center gap-2 mx-auto"
-          >
-            {isLoading ? <Loader2 className="animate-spin" /> : t('live.requestAccess')}
-          </button>
-        )}
+        <button
+          onClick={handleRequestAccess}
+          disabled={isLoading}
+          className="bg-gradient-to-br from-[#052e16] to-[#064e3b] text-white px-8 py-4 rounded-2xl font-black uppercase tracking-widest hover:scale-105 active:scale-95 transition-all shadow-[0_10px_30px_rgba(5,46,22,0.3)] flex items-center gap-3 mx-auto"
+        >
+          {isLoading ? <Loader2 className="animate-spin" /> : 
+             <>
+               <Crown size={20} className="text-emerald-400" />
+               Unlock Lifetime Access (₹399)
+             </>
+          }
+        </button>
       </div>
     );
   }

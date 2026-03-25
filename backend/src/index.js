@@ -19,6 +19,7 @@ import accessRoutes from "./routes/accessRoutes.js";
 import ibadahRoutes from "./routes/ibadahRoutes.js";
 import ibadahQuranRoutes from "./routes/ibadahQuranRoutes.js";
 import analyticsRoutes from "./routes/analyticsRoutes.js";
+import paymentRoutes from "./routes/paymentRoutes.js";
 
 // Connect to database
 connectDB().then(async () => {
@@ -86,6 +87,7 @@ app.use("/api/live/access", accessRoutes);
 app.use("/api/ibadah/quran", ibadahQuranRoutes);
 app.use("/api/ibadah", ibadahRoutes);
 app.use("/api/analytics", analyticsRoutes);
+app.use("/api/payment", paymentRoutes);
 
 console.log("✅ All routes registered:");
 console.log("   - GET /ai-test (OpenRouter Verification)");

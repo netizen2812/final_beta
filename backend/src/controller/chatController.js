@@ -33,11 +33,13 @@ export const chatWithImam = async (req, res) => {
     }
 
     // STRICT LIMIT: Allow max 6 messages
-    if (user.dailyChatCount >= 6) {
+    const isPremium = user.features && user.features.aiPremiumUntil && new Date(user.features.aiPremiumUntil) > new Date();
+
+    if (!isPremium && user.dailyChatCount >= 6) {
       trackEvent(clerkId, 'CHAT_LIMIT_REACHED', { attemptedAt: new Date() });
       return res.json({
         success: false,
-        message: "I apologize, but to ensure I can help everyone, I am limited to 6 questions per day. Please come back tomorrow, Insha'Allah.",
+        message: "PAYWALL_TRIGGER",
         reply: "Daily limit reached."
       });
     }

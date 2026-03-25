@@ -660,7 +660,7 @@ const QuranPage: React.FC<QuranPageProps> = ({
                         <button className="p-2 text-gray-300 hover:text-[#0D4433] transition-colors"><MoreVertical size={18} /></button>
                       </div>
                     </div>
-                    <p className={`text-4xl md:text-5xl font-serif text-right leading-[2.2] arabic-text transition-colors ${isActive ? 'text-[#0D4433]' : 'text-gray-700'}`} dir="rtl">
+                    <p className={`${readOnly ? 'text-2xl md:text-3xl lg:text-4xl leading-loose' : 'text-4xl md:text-5xl leading-[2.2]'} font-serif text-right arabic-text transition-colors ${isActive ? 'text-[#0D4433]' : 'text-gray-700'}`} dir="rtl">
                       {ayah.text}
                     </p>
                     {surahNum === 1 && ayah.numberInSurah === 7 && (

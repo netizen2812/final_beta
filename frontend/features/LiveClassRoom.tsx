@@ -81,6 +81,7 @@ const LiveClassRoom: React.FC = () => {
   }
   const [batchState, setBatchState] = useState<BatchState | null>(null);
   const [selectedScore, setSelectedScore] = useState<number | null>(null);
+  const [promptDecision, setPromptDecision] = useState<'yes' | 'no' | null>(null);
   const [leaderboard, setLeaderboard] = useState<any[] | null>(null);
   const [showLeaderboard, setShowLeaderboard] = useState<boolean | string>(false);
   const [attendedSessionIds, setAttendedSessionIds] = useState<string[]>([]);
@@ -514,6 +515,7 @@ const LiveClassRoom: React.FC = () => {
        const token = await getToken();
        await axios.post(`${API_BASE}/api/live/batch/${batchId}/select-turn`, { childId }, { headers: { Authorization: `Bearer ${token}` } });
        setSelectedScore(null);
+       setPromptDecision(null);
      } catch(e) {}
   };
 
@@ -703,8 +705,8 @@ const LiveClassRoom: React.FC = () => {
                             
                             {!batchState?.promptEvaluated ? (
                               <div className="flex gap-1 mt-1.5">
-                                <button onClick={() => handleEvaluatePrompt('yes')} className="flex-1 bg-green-500/20 hover:bg-green-500/40 text-green-300 py-1 rounded text-[9px] font-black border border-green-500/30 transition-colors uppercase">Perfect</button>
-                                <button onClick={() => handleEvaluatePrompt('no')} className="flex-1 bg-red-500/20 hover:bg-red-500/40 text-red-300 py-1 rounded text-[9px] font-black border border-red-500/30 transition-colors uppercase">Mistake</button>
+                                <button onClick={() => setPromptDecision('yes')} className={`flex-1 ${promptDecision === 'yes' ? 'bg-green-500 text-white shadow-md' : 'bg-green-500/20 hover:bg-green-500/40 text-green-300'} py-1 rounded text-[9px] font-black border border-green-500/30 transition-colors uppercase`}>Perfect</button>
+                                <button onClick={() => setPromptDecision('no')} className={`flex-1 ${promptDecision === 'no' ? 'bg-red-500 text-white shadow-md' : 'bg-red-500/20 hover:bg-red-500/40 text-red-300'} py-1 rounded text-[9px] font-black border border-red-500/30 transition-colors uppercase`}>Mistake</button>
                               </div>
                             ) : (
                               <div className="text-center text-[9px] font-bold text-emerald-400 mt-1.5 uppercase tracking-widest bg-emerald-900/40 py-0.5 rounded">Evaluated</div>
@@ -718,15 +720,21 @@ const LiveClassRoom: React.FC = () => {
                             <button onClick={() => setSelectedScore(0)} className={`py-1.5 flex items-center justify-center rounded-lg text-[9px] text-white font-black transition-all ${selectedScore === 0 ? 'bg-red-600 ring-1 ring-white shadow-md' : 'bg-red-500 hover:bg-red-400'}`}>+5 XP</button>
                           </div>
      
-                          {selectedScore !== null && (
+                          {(selectedScore !== null || promptDecision !== null) && (
                              <button 
                                onClick={() => {
-                                 handleScoreRecitation(session.childId, session.batchId!, selectedScore);
-                                 setSelectedScore(null);
+                                 if (promptDecision !== null && !batchState?.promptEvaluated) {
+                                    handleEvaluatePrompt(promptDecision);
+                                    setPromptDecision(null);
+                                 }
+                                 if (selectedScore !== null) {
+                                    handleScoreRecitation(session.childId, session.batchId!, selectedScore);
+                                    setSelectedScore(null);
+                                 }
                                }}
-                               className="w-full mt-1 bg-white hover:bg-emerald-50 text-emerald-950 py-2 rounded-xl text-[10px] font-black shadow-lg border-2 border-emerald-500 transition-all uppercase tracking-widest active:scale-95"
+                               className="w-full mt-1 bg-white hover:bg-emerald-50 text-emerald-950 py-2 rounded-xl text-[10px] font-black shadow-lg border-2 border-emerald-500 transition-all uppercase tracking-widest active:scale-95 flex justify-center items-center gap-1"
                              >
-                               Submit Score
+                               Submit <CheckCircle size={10} />
                              </button>
                           )}
                         </div>

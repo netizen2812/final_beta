@@ -660,7 +660,7 @@ const ScholarDashboardView = ({ batches, onJoinSession }: any) => {
                   onClick={() => onJoinSession(batch)}
                   className="w-full bg-emerald-500 hover:bg-emerald-400 text-[#022c22] py-4 rounded-xl font-bold text-sm flex items-center justify-center gap-2 transition-all active:scale-95 shadow-[0_0_15px_rgba(16,185,129,0.3)]"
                 >
-                  Start Class <ChevronLeft className="rotate-180" size={16} />
+                  Class Journey <ChevronLeft className="rotate-180" size={16} />
                 </button>
               </div>
             </div>

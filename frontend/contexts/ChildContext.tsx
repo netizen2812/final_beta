@@ -112,14 +112,16 @@ export const ChildProvider: React.FC<{ children: React.ReactNode }> = ({ childre
 
     setChildrenList(prev => prev.map(c => {
       if (c.id !== childId) return c;
-      const prog = c.child_progress?.[0] || { xp: 0, level: 1, lessons_completed: 0 };
-      const newXp = prog.xp + xpGain;
+      const prog = c.child_progress?.[0] || { xp: 0, total_xp: 0, level: 1, lessons_completed: 0 };
+      const currentXp = prog.total_xp !== undefined ? prog.total_xp : (prog.xp || 0);
+      const newXp = currentXp + xpGain;
       const newLevel = Math.floor(newXp / 1000) + 1;
 
       const updatedChild = {
         ...c,
         child_progress: [{
           ...prog,
+          total_xp: newXp,
           xp: newXp,
           level: newLevel,
           // Do NOT increment lessons_completed here blindly. Rely on backend.

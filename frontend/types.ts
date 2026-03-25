@@ -57,7 +57,8 @@ export interface Conversation {
 }
 
 export interface ChildProgress {
-  xp: number;
+  xp?: number;
+  total_xp?: number;
   level: number;
   lessons_completed: number;
   last_activity: string;

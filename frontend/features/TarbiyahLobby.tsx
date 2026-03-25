@@ -350,7 +350,8 @@ const KidsView = ({ scrollProgress, activeChild, onJoinLive, currentBatchStatus,
                pastSession = activeBatch?.pastSessions?.[index];
                if (pastSession) {
                  // See if child has a session_complete record for this sessionId
-                 const attended = activeChild?.attendance?.some((a: any) => 
+                 const attendanceRecords = activeChild?.child_progress?.[0]?.attendance || [];
+                 const attended = attendanceRecords.some((a: any) => 
                      a.type === 'session_complete' && a.sessionId === pastSession.sessionId
                  );
                  if (attended) isCompleted = true;

@@ -163,7 +163,7 @@ export const TarbiyahLobby = ({
     if (!activeChild) return alert("Select a child first");
     const activeBatch = batches.find(b => b.status === 'active');
     const batchToJoin = activeBatch || batches[0];
-    if (!batchToJoin) return alert("No active classes found to join.");
+    if (!batchToJoin) return alert("Payment verified! Your batch assignment is pending. Please wait for an Admin to assign your classes.");
 
     try {
       const token = await getToken();
@@ -271,11 +271,16 @@ const KidsView = ({ scrollProgress, activeChild, onJoinLive, currentBatchStatus,
   const [selectedSessionId, setSelectedSessionId] = useState<string | null>(null);
   
   // Calculate Map fill percentage
-  // A class is historical if it is in pastSessions AND is not the currently active session
   const hasActiveSession = activeBatch?.status === 'active' && activeBatch?.pastSessions?.length > 0 && !activeBatch.pastSessions[activeBatch.pastSessions.length - 1].endedAt;
-  const totalClassesPassed = activeBatch?.pastSessions?.length ? (hasActiveSession ? activeBatch.pastSessions.length - 1 : activeBatch.pastSessions.length) : 0;
+  
+  let totalClassesPassed = 0;
+  if (!accessStatus?.hasAccess) {
+    totalClassesPassed = -1; // Force everything to be locked
+  } else if (activeBatch?.pastSessions?.length) {
+    totalClassesPassed = hasActiveSession ? activeBatch.pastSessions.length - 1 : activeBatch.pastSessions.length;
+  }
 
-  const lastUnlockedIndex = Math.min(totalClassesPassed, 15);
+  const lastUnlockedIndex = Math.max(0, Math.min(totalClassesPassed, 15));
   const maxPercentage = (lastUnlockedIndex / (JOURNEY_STAGES.length - 1)) * 100;
   const currentDraw = scrollProgress * 2.0;
   const fillPercentage = Math.min(currentDraw, maxPercentage);
@@ -317,48 +322,6 @@ const KidsView = ({ scrollProgress, activeChild, onJoinLive, currentBatchStatus,
       setIsLoading(false);
     }
   };
-
-  if (accessStatus && !accessStatus.hasAccess) {
-    return (
-      <div className="relative z-10 pt-36 pb-20 max-w-4xl mx-auto text-center space-y-6 animate-in fade-in">
-        <div className="w-24 h-24 bg-white/10 backdrop-blur-xl border border-white/20 rounded-full flex items-center justify-center mx-auto text-emerald-400 shadow-[0_0_30px_rgba(16,185,129,0.3)]">
-          <ShieldCheck size={48} />
-        </div>
-        <h1 className="text-4xl font-serif font-black text-white drop-shadow-md tracking-wider uppercase">Tarbiyah Premium</h1>
-        <p className="text-emerald-100/80 max-w-md mx-auto leading-relaxed text-lg pb-4">
-          Unlock your child's spiritual journey. Gain unlimited lifetime access to live scheduled classes, learning journey nodes, and direct scholar sessions for just ₹399.
-        </p>
-
-         <button
-          onClick={handleRequestAccess}
-          disabled={isLoading}
-          className="bg-gradient-to-br from-[#052e16] to-[#064e3b] text-white px-10 py-5 rounded-2xl font-black uppercase tracking-widest hover:scale-105 active:scale-95 transition-all shadow-[0_10px_40px_rgba(5,46,22,0.5)] flex items-center gap-3 mx-auto border border-emerald-500/30"
-        >
-          {isLoading ? <Loader2 className="animate-spin" /> : 
-             <>
-               <Crown size={22} className="text-emerald-400" />
-               Unlock Lifetime Access (₹399)
-             </>
-          }
-        </button>
-      </div>
-    );
-  }
-
-  // If they have access but no batches assigned by admin yet
-  if (accessStatus?.hasAccess && (!batches || batches.length === 0)) {
-    return (
-      <div className="relative z-10 pt-36 pb-20 max-w-4xl mx-auto text-center space-y-6 animate-in fade-in">
-        <div className="w-24 h-24 bg-white/10 backdrop-blur-xl border border-white/20 rounded-full flex items-center justify-center mx-auto text-emerald-400 shadow-[0_0_30px_rgba(16,185,129,0.3)]">
-          <Clock size={48} className="animate-pulse" />
-        </div>
-        <h1 className="text-4xl font-serif font-black text-white drop-shadow-md tracking-wider">Welcome to Tarbiyah Premium</h1>
-        <p className="text-emerald-100/80 max-w-md mx-auto leading-relaxed text-lg pb-4">
-          Your payment was successful and your account is upgraded! Our scholarly team is currently reviewing your profile to assign you to the perfect learning batch. Please check back shortly.
-        </p>
-      </div>
-    );
-  }
 
   return (
     <div className="relative z-10 pt-36 pb-20">
@@ -462,7 +425,9 @@ const KidsView = ({ scrollProgress, activeChild, onJoinLive, currentBatchStatus,
                 
                 <div 
                    onClick={() => {
-                      if ((isCompleted || isMissed) && pastSession && activeBatch) {
+                      if (!accessStatus?.hasAccess) {
+                         handleRequestAccess();
+                      } else if ((isCompleted || isMissed) && pastSession && activeBatch) {
                         setSelectedSessionId(pastSession.sessionId);
                       } else if (isCurrent) {
                         onJoinLive();
@@ -504,9 +469,19 @@ const KidsView = ({ scrollProgress, activeChild, onJoinLive, currentBatchStatus,
                            {currentBatchStatus === 'active' ? 'Join Live Class' : 'Class Scheduled'} <Play size={14} fill="currentColor" />
                         </button>
                       ) : isLocked ? (
-                         <div className="mt-4 text-xs text-gray-400 font-bold uppercase tracking-wide flex items-center gap-2 justify-center md:justify-start bg-black/20 py-2 rounded-lg">
-                            <Lock size={12} /> Locked
-                         </div>
+                         <button 
+                           onClick={() => {
+                              if (!accessStatus?.hasAccess) handleRequestAccess();
+                           }}
+                           className={`mt-4 w-full text-xs font-bold uppercase tracking-wide flex items-center gap-2 justify-center md:justify-start py-3 px-4 rounded-xl transition-all 
+                             ${!accessStatus?.hasAccess ? 'bg-[#052e16] hover:bg-emerald-900 border border-emerald-500/40 text-emerald-300 shadow-[0_0_20px_rgba(5,46,22,0.6)] cursor-pointer hover:scale-105 active:scale-95' : 'bg-black/20 text-gray-400 cursor-not-allowed'}`}
+                         >
+                            {!accessStatus?.hasAccess ? (
+                               isLoading ? <Loader2 className="animate-spin text-emerald-400 mx-auto" size={14} /> : <><Crown size={14} className="text-emerald-400" /> Unlock Premium (₹399)</>
+                            ) : (
+                               <><Lock size={12} /> Locked</>
+                            )}
+                         </button>
                       ) : isMissed ? (
                          <div className="mt-4 text-xs text-red-400 font-bold uppercase tracking-wide flex items-center gap-2 justify-center md:justify-start bg-red-900/30 py-2 rounded-lg">
                             <span className="w-2 h-2 rounded-full bg-red-500"></span> Missed Class

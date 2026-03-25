@@ -118,6 +118,7 @@ export const TarbiyahLobby = ({
   const [view, setView] = useState<'kids' | 'parent' | 'scholar_journey' | 'scholar_dashboard'>(
      userRole === 'scholar' ? 'scholar_journey' : 'kids'
   );
+  const [targetBatchId, setTargetBatchId] = useState<string | null>(null);
   const [scrollProgress, setScrollProgress] = useState(0);
   const { activeChild } = useChildContext();
   const [batches, setBatches] = useState<any[]>([]);
@@ -223,11 +224,15 @@ export const TarbiyahLobby = ({
              scrollProgress={scrollProgress} 
              batches={scholarBatches} 
              onJoinSession={onScholarJoinSession!} 
+             initialBatchId={targetBatchId}
           />
         ) : (
           <ScholarDashboardView 
              batches={scholarBatches} 
-             onJoinSession={onScholarJoinSession!} 
+             onJoinSession={(batch: any) => {
+                setTargetBatchId(batch._id);
+                setView('scholar_journey');
+             }} 
              getToken={getToken}
           />
         )
@@ -450,8 +455,8 @@ const KidsView = ({ scrollProgress, activeChild, onJoinLive, currentBatchStatus,
   );
 };
 
-const ScholarJourneyView = ({ scrollProgress, batches, onJoinSession }: any) => {
-  const [selectedBatchId, setSelectedBatchId] = useState<string | null>(batches?.[0]?._id || null);
+const ScholarJourneyView = ({ scrollProgress, batches, onJoinSession, initialBatchId }: any) => {
+  const [selectedBatchId, setSelectedBatchId] = useState<string | null>(initialBatchId || batches?.[0]?._id || null);
   const activeBatch = batches.find((b:any) => b._id === selectedBatchId) || batches?.[0];
   const [selectedSessionId, setSelectedSessionId] = useState<string | null>(null);
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);

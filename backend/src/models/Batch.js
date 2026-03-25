@@ -28,7 +28,7 @@ const batchSchema = new mongoose.Schema({
     status: {
         type: String,
         enum: ["active", "archived", "upcoming", "ended"],
-        default: "active"
+        default: "upcoming" // Fix: Default must be upcoming so students see "Class Scheduled" until Scholar actually starts it
     },
     activeParticipants: [{
         childId: String,

@@ -246,6 +246,10 @@ export const joinBatch = async (req, res) => {
         if (participantIndex > -1) {
             batch.activeParticipants[participantIndex].isActive = true;
             batch.activeParticipants[participantIndex].lastSeen = new Date();
+            // Patch older records that might be missing childName from previous versions
+            if (!batch.activeParticipants[participantIndex].childName && childName) {
+                batch.activeParticipants[participantIndex].childName = childName;
+            }
         } else {
             batch.activeParticipants.push({
                 childId,
@@ -312,7 +316,9 @@ export const getMySessions = async (req, res) => {
             status: b.status,
             scholarName: b.scholar?.name || 'Assigned Scholar',
             schedule: b.schedule,
-            isBatch: true // Flag to distinguish from individual sessions
+            isBatch: true, // Flag to distinguish from individual sessions
+            pastSessions: b.pastSessions || [], // Needed by TarbiyahLobby to unlock Journey nodes
+            activeParticipants: b.activeParticipants || []
         }));
 
         res.json(mappedSessions);
@@ -514,13 +520,22 @@ export const getBatchActiveParticipants = async (req, res) => {
 
         const liveParticipants = batch.activeParticipants.filter(p => p.isActive);
 
-        console.log("[SCHOLAR RECEIVE]", { batchId: id, count: liveParticipants.length, participants: liveParticipants.map(p => ({ childId: p.childId, surah: p.currentSurah, ayah: p.currentAyah, lastSeen: p.lastSeen })) });
+        console.log("[SCHOLAR RECEIVE]", { batchId: id, count: liveParticipants.length, participants: liveParticipants.map(p => ({ childId: p.childId, childName: p.childName, surah: p.currentSurah, ayah: p.currentAyah, lastSeen: p.lastSeen })) });
 
         res.json({
             activeChildId: batch.activeChildId,
             activeSessionId: batch.activeSessionId,
             status: batch.status,
-            activeParticipants: liveParticipants,
+            // Explicitly map liveParticipants to ensure childName makes it to JSON (sometimes Mongoose strict schema strips undocumented fields if not careful, though we added it to schema)
+            activeParticipants: liveParticipants.map(p => ({
+                _id: p._id,
+                childId: p.childId,
+                childName: p.childName || 'Student',
+                currentSurah: p.currentSurah,
+                currentAyah: p.currentAyah,
+                lastSeen: p.lastSeen,
+                isActive: p.isActive
+            })),
             currentPromptAnswers: batch.currentPromptAnswers || [],
             promptEvaluated: batch.promptEvaluated || false
         });
@@ -863,6 +878,7 @@ export const endBatch = async (req, res) => {
             const sessionIndex = batch.pastSessions.findIndex(s => s.sessionId === batch.activeSessionId);
             if (sessionIndex > -1) {
                 batch.pastSessions[sessionIndex].endedAt = new Date();
+                batch.markModified('pastSessions'); // Crucial fix: notify Mongoose that the mixed sub-array changed
             } else {
                 // Failsafe: if startBatch missed it, push the completed session so the Journey advances
                 batch.pastSessions.push({

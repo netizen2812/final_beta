@@ -3,7 +3,7 @@ import {
   BookOpen, Heart, Sun, Cloud, Play, Lock, Sprout, Star, 
   Trophy, Flame, Target, User, Settings, Clock, CheckCircle, 
   TrendingUp, Shield, Award, Moon, Sparkles, Leaf, Book,
-  ChevronLeft, BarChart2, Calendar, Download, Share2, Users
+  ChevronLeft, BarChart2, Calendar, Download, Share2, Users, ChevronDown
 } from 'lucide-react';
 import { PieChart, Pie, Cell, ResponsiveContainer, BarChart, Bar, XAxis, Tooltip as RechartsTooltip } from 'recharts';
 import { useChildContext } from '../contexts/ChildContext';
@@ -255,8 +255,10 @@ const KidsView = ({ scrollProgress, activeChild, onJoinLive, currentBatchStatus,
   const [selectedSessionId, setSelectedSessionId] = useState<string | null>(null);
   
   // Calculate Map fill percentage
-  // Only count sessions that have actually ended to advance the permanent tracker
-  const totalClassesPassed = activeBatch?.pastSessions?.filter((s: any) => s.endedAt).length || 0;
+  // A class is historical if it is in pastSessions AND is not the currently active session
+  const hasActiveSession = activeBatch?.status === 'active' && activeBatch?.pastSessions?.length > 0 && !activeBatch.pastSessions[activeBatch.pastSessions.length - 1].endedAt;
+  const totalClassesPassed = activeBatch?.pastSessions?.length ? (hasActiveSession ? activeBatch.pastSessions.length - 1 : activeBatch.pastSessions.length) : 0;
+
   const lastUnlockedIndex = Math.min(totalClassesPassed, 15);
   const maxPercentage = (lastUnlockedIndex / (JOURNEY_STAGES.length - 1)) * 100;
   const currentDraw = scrollProgress * 2.0;
@@ -336,20 +338,26 @@ const KidsView = ({ scrollProgress, activeChild, onJoinLive, currentBatchStatus,
         <div className="space-y-24 relative z-10">
           {JOURNEY_STAGES.map((stage, index) => {
             const isRight = index % 2 !== 0;
-            const pastSession = activeBatch?.pastSessions?.[index];
+            const isHistorical = index < totalClassesPassed;
             const isCurrent = index === totalClassesPassed;
             const isLocked = index > totalClassesPassed;
             
             // Check Attendance
             let isCompleted = false;
             let isMissed = false;
-            if (pastSession) {
-               // See if child has a session_complete record for this sessionId
-               const attended = activeChild?.attendance?.some((a: any) => 
-                   a.type === 'session_complete' && a.sessionId === pastSession.sessionId
-               );
-               if (attended) isCompleted = true;
-               else isMissed = true;
+            let pastSession = null;
+            if (isHistorical) {
+               pastSession = activeBatch?.pastSessions?.[index];
+               if (pastSession) {
+                 // See if child has a session_complete record for this sessionId
+                 const attended = activeChild?.attendance?.some((a: any) => 
+                     a.type === 'session_complete' && a.sessionId === pastSession.sessionId
+                 );
+                 if (attended) isCompleted = true;
+                 else isMissed = true;
+               } else {
+                 isMissed = true; // Historical but no session data
+               }
             }
 
             return (
@@ -445,6 +453,7 @@ const ScholarJourneyView = ({ scrollProgress, batches, onJoinSession }: any) => 
   const [selectedBatchId, setSelectedBatchId] = useState<string | null>(batches?.[0]?._id || null);
   const activeBatch = batches.find((b:any) => b._id === selectedBatchId) || batches?.[0];
   const [selectedSessionId, setSelectedSessionId] = useState<string | null>(null);
+  const [isDropdownOpen, setIsDropdownOpen] = useState(false);
 
   useEffect(() => {
     if (!selectedBatchId && batches?.length > 0) {
@@ -452,7 +461,15 @@ const ScholarJourneyView = ({ scrollProgress, batches, onJoinSession }: any) => 
     }
   }, [batches, selectedBatchId]);
 
-  const totalClassesPassed = activeBatch?.pastSessions?.filter((s: any) => s.endedAt).length || 0;
+  useEffect(() => {
+    if (!selectedBatchId && batches?.length > 0) {
+      setSelectedBatchId(batches[0]._id);
+    }
+  }, [batches, selectedBatchId]);
+
+  const hasActiveSession = activeBatch?.status === 'active' && activeBatch?.pastSessions?.length > 0 && !activeBatch.pastSessions[activeBatch.pastSessions.length - 1].endedAt;
+  const totalClassesPassed = activeBatch?.pastSessions?.length ? (hasActiveSession ? activeBatch.pastSessions.length - 1 : activeBatch.pastSessions.length) : 0;
+
   const lastUnlockedIndex = Math.min(totalClassesPassed, 15);
   const maxPercentage = (lastUnlockedIndex / (JOURNEY_STAGES.length - 1)) * 100;
   const currentDraw = scrollProgress * 2.0;
@@ -463,17 +480,40 @@ const ScholarJourneyView = ({ scrollProgress, batches, onJoinSession }: any) => 
       <div className="max-w-3xl mx-auto px-6 mb-16 text-center">
         <h1 className="text-4xl font-serif font-bold text-white mb-4">Class Journey</h1>
         {batches && batches.length > 0 ? (
-          <select 
-             value={selectedBatchId || ''} 
-             onChange={(e) => setSelectedBatchId(e.target.value)}
-             className="bg-emerald-950/80 text-emerald-100 px-6 py-4 rounded-2xl border border-emerald-800/80 w-full mb-8 font-bold shadow-lg shadow-emerald-950/50 appearance-none text-center text-lg"
-          >
-            {batches.map((b: any) => (
-               <option key={b._id} value={b._id}>{b.name}</option>
-            ))}
-          </select>
+          <div className="relative max-w-md mx-auto mb-12">
+             <button 
+                onClick={() => setIsDropdownOpen(!isDropdownOpen)}
+                className="w-full bg-gradient-to-b from-emerald-800 to-emerald-900 border-2 border-emerald-500/30 hover:border-emerald-400 text-white px-6 py-4 rounded-2xl font-black text-lg shadow-[0_10px_30px_rgba(4,47,46,0.5)] flex items-center justify-between transition-all group"
+             >
+                <div className="flex items-center gap-3">
+                   <div className="w-10 h-10 bg-amber-500/20 text-amber-400 rounded-xl flex items-center justify-center">
+                      <BookOpen size={20} />
+                   </div>
+                   <span className="tracking-wide font-serif">{activeBatch?.name || 'Select Batch'}</span>
+                </div>
+                <ChevronDown size={24} className={`text-emerald-400 transition-transform duration-300 ${isDropdownOpen ? 'rotate-180' : ''}`} />
+             </button>
+
+             {isDropdownOpen && (
+                <div className="absolute top-full left-0 right-0 mt-3 bg-emerald-950/95 backdrop-blur-xl border border-emerald-800/50 rounded-2xl shadow-2xl overflow-hidden z-[200] animate-in slide-in-from-top-2 duration-200">
+                   {batches.map((b: any) => (
+                      <button 
+                         key={b._id}
+                         onClick={() => {
+                            setSelectedBatchId(b._id);
+                            setIsDropdownOpen(false);
+                         }}
+                         className={`w-full text-left px-6 py-4 hover:bg-emerald-800/50 transition-colors flex items-center gap-3 ${selectedBatchId === b._id ? 'bg-emerald-900 border-l-4 border-amber-400' : 'border-l-4 border-transparent'}`}
+                      >
+                         <div className={`w-2 h-2 rounded-full ${selectedBatchId === b._id ? 'bg-amber-400 animate-pulse' : 'bg-emerald-600'}`} />
+                         <span className="font-bold text-emerald-50 text-base">{b.name}</span>
+                      </button>
+                   ))}
+                </div>
+             )}
+          </div>
         ) : (
-           <div className="text-emerald-300">No active batches assigned.</div>
+           <div className="text-emerald-300 mb-12">No active batches assigned.</div>
         )}
       </div>
 
@@ -488,10 +528,11 @@ const ScholarJourneyView = ({ scrollProgress, batches, onJoinSession }: any) => 
 
         <div className="grid grid-cols-1 gap-24 relative sm:ml-[3rem] md:ml-0">
           {JOURNEY_STAGES.map((stage, index) => {
-            const pastSession = activeBatch?.pastSessions?.[index];
+            const isHistorical = index < totalClassesPassed;
             const isCurrent = index === totalClassesPassed;
             const isLocked = index > totalClassesPassed;
-            const isCompleted = index < totalClassesPassed;
+            const isCompleted = isHistorical; // Scholar view simplifies all historical to completed
+            const pastSession = isHistorical ? activeBatch?.pastSessions?.[index] : null;
 
             return (
               <div key={stage.id} className="flex md:justify-center items-center relative group perspective-1000">

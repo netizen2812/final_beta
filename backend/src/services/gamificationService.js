@@ -95,8 +95,8 @@ export const awardXP = async (childId, action, data = {}) => {
             
             // Push structured attendance record
             if (batchId || sessionId) {
-                child.attendance = child.attendance || [];
-                child.attendance.push({
+                progress.attendance = progress.attendance || [];
+                progress.attendance.push({
                     batchId: batchId || null,
                     sessionId: sessionId || null,
                     date: new Date(),
@@ -140,6 +140,7 @@ export const awardXP = async (childId, action, data = {}) => {
             progress.badges = [...(progress.badges || []), ...newBadges];
         }
 
+        child.markModified('child_progress');
         await child.save();
 
         return {

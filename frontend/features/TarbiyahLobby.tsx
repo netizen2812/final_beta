@@ -273,8 +273,10 @@ const KidsView = ({ scrollProgress, activeChild, onJoinLive, currentBatchStatus,
   // Calculate Map fill percentage
   const hasActiveSession = activeBatch?.status === 'active' && activeBatch?.pastSessions?.length > 0 && !activeBatch.pastSessions[activeBatch.pastSessions.length - 1].endedAt;
   
+  const hasPremium = accessStatus?.hasAccess || (batches && batches.length > 0);
+
   let totalClassesPassed = 0;
-  if (!accessStatus?.hasAccess) {
+  if (!hasPremium) {
     totalClassesPassed = -1; // Force everything to be locked
   } else if (activeBatch?.pastSessions?.length) {
     totalClassesPassed = hasActiveSession ? activeBatch.pastSessions.length - 1 : activeBatch.pastSessions.length;
@@ -425,7 +427,7 @@ const KidsView = ({ scrollProgress, activeChild, onJoinLive, currentBatchStatus,
                 
                 <div 
                    onClick={() => {
-                      if (!accessStatus?.hasAccess) {
+                      if (!hasPremium) {
                          handleRequestAccess();
                       } else if ((isCompleted || isMissed) && pastSession && activeBatch) {
                         setSelectedSessionId(pastSession.sessionId);
@@ -471,12 +473,12 @@ const KidsView = ({ scrollProgress, activeChild, onJoinLive, currentBatchStatus,
                       ) : isLocked ? (
                          <button 
                            onClick={() => {
-                              if (!accessStatus?.hasAccess) handleRequestAccess();
+                              if (!hasPremium) handleRequestAccess();
                            }}
                            className={`mt-4 w-full text-xs font-bold uppercase tracking-wide flex items-center gap-2 justify-center md:justify-start py-3 px-4 rounded-xl transition-all 
-                             ${!accessStatus?.hasAccess ? 'bg-[#052e16] hover:bg-emerald-900 border border-emerald-500/40 text-emerald-300 shadow-[0_0_20px_rgba(5,46,22,0.6)] cursor-pointer hover:scale-105 active:scale-95' : 'bg-black/20 text-gray-400 cursor-not-allowed'}`}
+                             ${!hasPremium ? 'bg-[#052e16] hover:bg-emerald-900 border border-emerald-500/40 text-emerald-300 shadow-[0_0_20px_rgba(5,46,22,0.6)] cursor-pointer hover:scale-105 active:scale-95' : 'bg-black/20 text-gray-400 cursor-not-allowed'}`}
                          >
-                            {!accessStatus?.hasAccess ? (
+                            {!hasPremium ? (
                                isLoading ? <Loader2 className="animate-spin text-emerald-400 mx-auto" size={14} /> : <><Crown size={14} className="text-emerald-400" /> Unlock Premium (₹399)</>
                             ) : (
                                <><Lock size={12} /> Locked</>

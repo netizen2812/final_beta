@@ -3,13 +3,14 @@ import {
   BookOpen, Heart, Sun, Cloud, Play, Lock, Sprout, Star, 
   Trophy, Flame, Target, User, Settings, Clock, CheckCircle, 
   TrendingUp, Shield, Award, Moon, Sparkles, Leaf, Book,
-  ChevronLeft, BarChart2, Calendar, Download, Share2, Users, ChevronDown
+  ChevronLeft, BarChart2, Calendar, Download, Share2, Users, ChevronDown, ShieldCheck, Loader2, Crown
 } from 'lucide-react';
 import { PieChart, Pie, Cell, ResponsiveContainer, BarChart, Bar, XAxis, Tooltip as RechartsTooltip } from 'recharts';
 import { useChildContext } from '../contexts/ChildContext';
 import axios from 'axios';
 import { useTranslation } from 'react-i18next';
 import SessionLeaderboard from './SessionLeaderboard';
+import { loadRazorpayScript } from '../utils/razorpay';
 
 // --- DATA & CONSTANTS ---
 const API_BASE = import.meta.env.VITE_API_URL || "http://localhost:5000";
@@ -122,23 +123,29 @@ export const TarbiyahLobby = ({
   const [scrollProgress, setScrollProgress] = useState(0);
   const { activeChild } = useChildContext();
   const [batches, setBatches] = useState<any[]>([]);
+  const [accessStatus, setAccessStatus] = useState<any>(null);
   const { t } = useTranslation();
 
-  // Fetch enrolled batches
+  // Fetch enrolled batches and access status
   useEffect(() => {
-    const fetchBatches = async () => {
+    const fetchData = async () => {
       try {
         const token = await getToken();
         if (!token) return;
-        const res = await axios.get(`${API_BASE}/api/live/my-sessions`, {
-          headers: { Authorization: `Bearer ${token}` }
-        });
-        setBatches(res.data || []);
+        
+        // Parallel requests
+        const [batchesRes, accessRes] = await Promise.all([
+           axios.get(`${API_BASE}/api/live/my-sessions`, { headers: { Authorization: `Bearer ${token}` } }),
+           axios.get(`${API_BASE}/api/live/access/status`, { headers: { Authorization: `Bearer ${token}` } })
+        ]);
+
+        setBatches(batchesRes.data || []);
+        setAccessStatus(accessRes.data);
       } catch (err) {}
     };
-    fetchBatches();
+    fetchData();
     // Poll every 10s in case a batch goes live
-    const interval = setInterval(fetchBatches, 10000);
+    const interval = setInterval(fetchData, 10000);
     return () => clearInterval(interval);
   }, [getToken]);
 
@@ -244,6 +251,8 @@ export const TarbiyahLobby = ({
             onJoinLive={handleJoinLive} 
             currentBatchStatus={currentBatchStatus}
             batches={batches}
+            accessStatus={accessStatus}
+            getToken={getToken}
           />
         ) : (
           <ParentsView activeChild={activeChild} batches={batches} getToken={getToken} />
@@ -253,7 +262,9 @@ export const TarbiyahLobby = ({
   );
 };
 
-const KidsView = ({ scrollProgress, activeChild, onJoinLive, currentBatchStatus, batches }: any) => {
+const KidsView = ({ scrollProgress, activeChild, onJoinLive, currentBatchStatus, batches, accessStatus, getToken }: any) => {
+  const { t } = useTranslation();
+  const [isLoading, setIsLoading] = useState(false);
   const progress = activeChild?.child_progress?.[0];
   const activeBatch = batches && batches.length > 0 ? batches[0] : null; // Usually the first is their main
   
@@ -268,6 +279,71 @@ const KidsView = ({ scrollProgress, activeChild, onJoinLive, currentBatchStatus,
   const maxPercentage = (lastUnlockedIndex / (JOURNEY_STAGES.length - 1)) * 100;
   const currentDraw = scrollProgress * 2.0;
   const fillPercentage = Math.min(currentDraw, maxPercentage);
+
+  const handleRequestAccess = async () => {
+    setIsLoading(true);
+    try {
+      const token = await getToken();
+      
+      const res = await loadRazorpayScript();
+      if (!res) { alert("Razorpay SDK failed to load."); setIsLoading(false); return; }
+
+      const { data: order } = await axios.post(`${API_BASE}/api/payment/create-order`, {
+        planType: 'TARBIYAH_LIFETIME'
+      }, { headers: { Authorization: `Bearer ${token}` } });
+
+      const options = {
+        key: import.meta.env.VITE_RAZORPAY_KEY_ID,
+        amount: order.amount,
+        currency: order.currency,
+        name: "Imam",
+        description: "Lifetime Tarbiyah Access",
+        order_id: order.id,
+        handler: async function (response: any) {
+             await axios.post(`${API_BASE}/api/payment/verify`, {
+                 ...response,
+                 planType: 'TARBIYAH_LIFETIME'
+             }, { headers: { Authorization: `Bearer ${token}` } });
+             alert("Payment successful! Please wait for an Admin to assign your batch!");
+             window.location.reload();
+        },
+        theme: { color: "#052e16" }
+      };
+      const rzp = new (window as any).Razorpay(options);
+      rzp.open();
+    } catch (err) {
+      alert("Payment initiation failed.");
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  if (accessStatus && !accessStatus.hasAccess) {
+    return (
+      <div className="relative z-10 pt-36 pb-20 max-w-4xl mx-auto text-center space-y-6 animate-in fade-in">
+        <div className="w-24 h-24 bg-white/10 backdrop-blur-xl border border-white/20 rounded-full flex items-center justify-center mx-auto text-emerald-400 shadow-[0_0_30px_rgba(16,185,129,0.3)]">
+          <ShieldCheck size={48} />
+        </div>
+        <h1 className="text-4xl font-serif font-black text-white drop-shadow-md tracking-wider uppercase">Tarbiyah Premium</h1>
+        <p className="text-emerald-100/80 max-w-md mx-auto leading-relaxed text-lg pb-4">
+          Unlock your child's spiritual journey. Gain unlimited lifetime access to live scheduled classes, learning journey nodes, and direct scholar sessions for just ₹399.
+        </p>
+
+        <button
+          onClick={handleRequestAccess}
+          disabled={isLoading}
+          className="bg-gradient-to-br from-[#052e16] to-[#064e3b] text-white px-10 py-5 rounded-2xl font-black uppercase tracking-widest hover:scale-105 active:scale-95 transition-all shadow-[0_10px_40px_rgba(5,46,22,0.5)] flex items-center gap-3 mx-auto border border-emerald-500/30"
+        >
+          {isLoading ? <Loader2 className="animate-spin" /> : 
+             <>
+               <Crown size={22} className="text-emerald-400" />
+               Unlock Lifetime Access (₹399)
+             </>
+          }
+        </button>
+      </div>
+    );
+  }
 
   return (
     <div className="relative z-10 pt-36 pb-20">

@@ -329,7 +329,7 @@ const KidsView = ({ scrollProgress, activeChild, onJoinLive, currentBatchStatus,
           Unlock your child's spiritual journey. Gain unlimited lifetime access to live scheduled classes, learning journey nodes, and direct scholar sessions for just ₹399.
         </p>
 
-        <button
+         <button
           onClick={handleRequestAccess}
           disabled={isLoading}
           className="bg-gradient-to-br from-[#052e16] to-[#064e3b] text-white px-10 py-5 rounded-2xl font-black uppercase tracking-widest hover:scale-105 active:scale-95 transition-all shadow-[0_10px_40px_rgba(5,46,22,0.5)] flex items-center gap-3 mx-auto border border-emerald-500/30"
@@ -341,6 +341,21 @@ const KidsView = ({ scrollProgress, activeChild, onJoinLive, currentBatchStatus,
              </>
           }
         </button>
+      </div>
+    );
+  }
+
+  // If they have access but no batches assigned by admin yet
+  if (accessStatus?.hasAccess && (!batches || batches.length === 0)) {
+    return (
+      <div className="relative z-10 pt-36 pb-20 max-w-4xl mx-auto text-center space-y-6 animate-in fade-in">
+        <div className="w-24 h-24 bg-white/10 backdrop-blur-xl border border-white/20 rounded-full flex items-center justify-center mx-auto text-emerald-400 shadow-[0_0_30px_rgba(16,185,129,0.3)]">
+          <Clock size={48} className="animate-pulse" />
+        </div>
+        <h1 className="text-4xl font-serif font-black text-white drop-shadow-md tracking-wider">Welcome to Tarbiyah Premium</h1>
+        <p className="text-emerald-100/80 max-w-md mx-auto leading-relaxed text-lg pb-4">
+          Your payment was successful and your account is upgraded! Our scholarly team is currently reviewing your profile to assign you to the perfect learning batch. Please check back shortly.
+        </p>
       </div>
     );
   }

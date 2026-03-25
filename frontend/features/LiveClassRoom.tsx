@@ -10,7 +10,7 @@ import {
   LayoutDashboard,
   WifiOff,
   Wifi,
-  Star, Moon, Cloud, Sprout, Leaf, Sun, Mic, Trophy
+  Star, Moon, Cloud, Sprout, Leaf, Sun, Mic, Trophy, CheckCircle, Lock
 } from 'lucide-react';
 import { useChildContext } from '../contexts/ChildContext';
 import QuranPage from './QuranPage';
@@ -653,78 +653,89 @@ const LiveClassRoom: React.FC = () => {
           <MovingBackground />
         </div>
         
-        {/* Scholar Control Panel */}
+        {/* Scholar Control Panel (Fixed Bottom Dock) */}
         {userRole === 'scholar' && currentSession?.batchId && (
-          <div className="relative z-10 bg-emerald-900/90 backdrop-blur-md px-4 py-3 flex overflow-x-auto shadow-xl border-b border-emerald-800/50 shrink-0 hide-scrollbar justify-between">
-            
-            <div className="flex items-center gap-3 pr-4">
-              {activeSessions.map(session => (
-                <div 
-                  key={session._id} 
-                  onClick={() => handleSetTurn(session.childId, session.batchId!)}
-                  className={`px-4 py-3 rounded-xl flex flex-col items-center justify-center shrink-0 cursor-pointer min-w-[140px] transition-all duration-200 ${batchState?.activeChildId === session.childId ? 'bg-amber-400 text-emerald-950 border-2 border-amber-200 shadow-[0_0_15px_rgba(251,191,36,0.5)] scale-105' : 'bg-emerald-950/80 text-emerald-100 border border-emerald-800/30 hover:bg-emerald-800'}`}
-                >
-                  <div className="flex items-center gap-2 mb-1">
-                    <div className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-black shrink-0 ${batchState?.activeChildId === session.childId ? 'bg-emerald-950 text-amber-400' : 'bg-emerald-800 text-emerald-300 shadow-inner'}`}>
-                      {session.childId[0].toUpperCase()}
-                    </div>
-                    <span className="font-bold text-sm truncate max-w-[80px]">{session.studentName || 'Student'}</span>
-                  </div>
-                
-                {batchState?.activeChildId === session.childId ? (
-                   <div className="flex flex-col gap-2 mt-2 w-full max-w-[200px]" onClick={e => e.stopPropagation()}>
-                     
-                     {/* OVERVIEW OF OBSERVERS */}
-                     <div className="bg-emerald-950/50 rounded-lg p-2 border border-emerald-800/30">
-                       <p className="text-[9px] text-emerald-300 font-bold uppercase tracking-widest mb-1 text-center">Class Observations</p>
-                       <div className="flex justify-between items-center px-2">
-                         <span className="text-xs font-bold text-green-400">✅ {batchState?.currentPromptAnswers?.filter(a => a.answer === 'yes').length || 0}</span>
-                         <span className="text-xs font-bold text-red-400">❌ {batchState?.currentPromptAnswers?.filter(a => a.answer === 'no').length || 0}</span>
+          <div className="fixed bottom-0 left-0 right-0 z-[5000] bg-[#022c22] border-t border-emerald-800 shadow-[0_-15px_40px_rgba(0,0,0,0.5)]">
+            <div className="max-w-7xl mx-auto flex flex-col w-full relative">
+               
+               {/* Status & End Button Row */}
+               <div className="flex justify-between items-center px-4 py-2 border-b border-emerald-900/50 bg-emerald-950">
+                  <span className="text-[10px] font-bold text-emerald-400 uppercase tracking-widest flex items-center gap-2">
+                     <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" /> Live Monitoring
+                  </span>
+                  <button 
+                     onClick={() => setConfirmEndClass(currentSession.batchId!)} 
+                     className="bg-red-500 hover:bg-red-400 text-white px-4 py-1.5 rounded-lg text-xs font-black tracking-wider shadow-[0_2px_10px_rgba(239,68,68,0.4)] transition-all flex items-center gap-1 active:scale-95"
+                  >
+                     <LogOut size={12} /> END CLASS & RESULTS
+                  </button>
+               </div>
+
+               {/* Student Horizontal Scroll Frame */}
+               <div className="flex gap-4 overflow-x-auto hide-scrollbar px-4 py-3 items-end">
+                 {activeSessions.length === 0 && (
+                   <div className="text-emerald-500/50 text-xs py-4 italic w-full text-center">Waiting for students to join...</div>
+                 )}
+                 {activeSessions.map(session => (
+                   <div 
+                     key={session._id} 
+                     onClick={() => handleSetTurn(session.childId, session.batchId!)}
+                     className={`p-3 rounded-2xl flex flex-col items-center justify-center shrink-0 cursor-pointer min-w-[130px] transition-all duration-200 ${batchState?.activeChildId === session.childId ? 'bg-amber-400 text-emerald-950 border border-amber-200 shadow-[0_0_20px_rgba(251,191,36,0.3)] scale-[1.02]' : 'bg-emerald-900/40 text-emerald-100 border border-emerald-800/40 hover:bg-emerald-800'}`}
+                   >
+                     <div className="flex items-center gap-2 mb-1 w-full justify-center">
+                       <div className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-black shrink-0 ${batchState?.activeChildId === session.childId ? 'bg-emerald-950 text-amber-400' : 'bg-emerald-800 text-emerald-300 shadow-inner'}`}>
+                         {session.childId[0].toUpperCase()}
                        </div>
-                       
-                       {!batchState?.promptEvaluated ? (
-                         <div className="flex gap-1 mt-2">
-                           <button title="Class was right (Perfect)" onClick={() => handleEvaluatePrompt('yes')} className="flex-1 bg-green-500/20 hover:bg-green-500/40 text-green-300 py-1 rounded text-[10px] font-bold border border-green-500/30 transition-colors">Perfect</button>
-                           <button title="Class was right (Mistake)" onClick={() => handleEvaluatePrompt('no')} className="flex-1 bg-red-500/20 hover:bg-red-500/40 text-red-300 py-1 rounded text-[10px] font-bold border border-red-500/30 transition-colors">Mistake</button>
-                         </div>
+                       <span className="font-bold text-sm truncate max-w-[80px]">{session.studentName || 'Student'}</span>
+                     </div>
+                     
+                     {batchState?.activeChildId === session.childId ? (
+                        <div className="flex flex-col gap-[6px] mt-2 w-full" onClick={e => e.stopPropagation()}>
+                          
+                          {/* OVERVIEW OF OBSERVERS */}
+                          <div className="bg-emerald-950/60 rounded-xl p-2 border border-emerald-800/40 shadow-inner">
+                            <p className="text-[8px] text-emerald-300/80 font-bold uppercase tracking-widest mb-1 text-center">Class Observations</p>
+                            <div className="flex justify-evenly items-center w-full px-1">
+                              <span className="text-[10px] font-bold text-green-400 flex items-center gap-1"><CheckCircle size={10}/> {batchState?.currentPromptAnswers?.filter(a => a.answer === 'yes').length || 0}</span>
+                              <span className="text-gray-600">|</span>
+                              <span className="text-[10px] font-bold text-red-400 flex items-center gap-1"><Lock size={10}/> {batchState?.currentPromptAnswers?.filter(a => a.answer === 'no').length || 0}</span>
+                            </div>
+                            
+                            {!batchState?.promptEvaluated ? (
+                              <div className="flex gap-1 mt-1.5">
+                                <button onClick={() => handleEvaluatePrompt('yes')} className="flex-1 bg-green-500/20 hover:bg-green-500/40 text-green-300 py-1 rounded text-[9px] font-black border border-green-500/30 transition-colors uppercase">Perfect</button>
+                                <button onClick={() => handleEvaluatePrompt('no')} className="flex-1 bg-red-500/20 hover:bg-red-500/40 text-red-300 py-1 rounded text-[9px] font-black border border-red-500/30 transition-colors uppercase">Mistake</button>
+                              </div>
+                            ) : (
+                              <div className="text-center text-[9px] font-bold text-emerald-400 mt-1.5 uppercase tracking-widest bg-emerald-900/40 py-0.5 rounded">Evaluated</div>
+                            )}
+                          </div>
+     
+                          <div className="grid grid-cols-2 gap-1 w-full mt-1">
+                            <button onClick={() => setSelectedScore(3)} className={`py-1.5 flex items-center justify-center rounded-lg text-[9px] text-white font-black transition-all ${selectedScore === 3 ? 'bg-green-600 ring-1 ring-white shadow-md' : 'bg-green-500 hover:bg-green-400'}`}>+20 XP</button>
+                            <button onClick={() => setSelectedScore(2)} className={`py-1.5 flex items-center justify-center rounded-lg text-[9px] text-white font-black transition-all ${selectedScore === 2 ? 'bg-amber-600 ring-1 ring-white shadow-md' : 'bg-amber-500 hover:bg-amber-400'}`}>+15 XP</button>
+                            <button onClick={() => setSelectedScore(1)} className={`py-1.5 flex items-center justify-center rounded-lg text-[9px] text-white font-black transition-all ${selectedScore === 1 ? 'bg-orange-600 ring-1 ring-white shadow-md' : 'bg-orange-500 hover:bg-orange-400'}`}>+10 XP</button>
+                            <button onClick={() => setSelectedScore(0)} className={`py-1.5 flex items-center justify-center rounded-lg text-[9px] text-white font-black transition-all ${selectedScore === 0 ? 'bg-red-600 ring-1 ring-white shadow-md' : 'bg-red-500 hover:bg-red-400'}`}>+5 XP</button>
+                          </div>
+     
+                          {selectedScore !== null && (
+                             <button 
+                               onClick={() => {
+                                 handleScoreRecitation(session.childId, session.batchId!, selectedScore);
+                                 setSelectedScore(null);
+                               }}
+                               className="w-full mt-1 bg-white hover:bg-emerald-50 text-emerald-950 py-2 rounded-xl text-[10px] font-black shadow-lg border-2 border-emerald-500 transition-all uppercase tracking-widest active:scale-95"
+                             >
+                               Submit Score
+                             </button>
+                          )}
+                        </div>
                        ) : (
-                         <div className="text-center text-[10px] font-bold text-emerald-400 mt-1 uppercase tracking-widest">Class Evaluated!</div>
+                          <span className="text-[10px] font-bold uppercase tracking-widest text-emerald-500/70 mt-2 bg-emerald-950/50 px-3 py-1 rounded-full border border-emerald-800/30">Observer</span>
                        )}
-                     </div>
-
-                     <div className="flex gap-1 justify-center w-full">
-                       <button title="Perfect (+20 XP)" onClick={() => setSelectedScore(3)} className={`w-12 h-8 flex items-center justify-center rounded-md text-[10px] text-white font-black transition-all ${selectedScore === 3 ? 'bg-green-600 ring-2 ring-white scale-110 shadow-lg' : 'bg-green-500 hover:bg-green-400'}`}>+20 XP</button>
-                       <button title="Minor Mistake (+15 XP)" onClick={() => setSelectedScore(2)} className={`w-12 h-8 flex items-center justify-center rounded-md text-[10px] text-white font-black transition-all ${selectedScore === 2 ? 'bg-amber-600 ring-2 ring-white scale-110 shadow-lg' : 'bg-amber-500 hover:bg-amber-400'}`}>+15 XP</button>
-                       <button title="Multiple Mistakes (+10 XP)" onClick={() => setSelectedScore(1)} className={`w-12 h-8 flex items-center justify-center rounded-md text-[10px] text-white font-black transition-all ${selectedScore === 1 ? 'bg-orange-600 ring-2 ring-white scale-110 shadow-lg' : 'bg-orange-500 hover:bg-orange-400'}`}>+10 XP</button>
-                       <button title="Incorrect (+5 XP)" onClick={() => setSelectedScore(0)} className={`w-12 h-8 flex items-center justify-center rounded-md text-[10px] text-white font-black transition-all ${selectedScore === 0 ? 'bg-red-600 ring-2 ring-white scale-110 shadow-lg' : 'bg-red-500 hover:bg-red-400'}`}>+5 XP</button>
-                     </div>
-
-                     {selectedScore !== null && (
-                        <button 
-                          onClick={() => {
-                            handleScoreRecitation(session.childId, session.batchId!, selectedScore);
-                            setSelectedScore(null);
-                          }}
-                          className="w-full mt-2 bg-white hover:bg-emerald-50 text-emerald-900 py-1.5 rounded-lg text-[10px] font-black shadow-lg border-2 border-emerald-500 transition-all uppercase tracking-widest active:scale-95 flex items-center justify-center gap-1"
-                        >
-                          Submit Turn
-                        </button>
-                     )}
                    </div>
-                  ) : (
-                     <span className="text-[10px] font-bold uppercase tracking-widest opacity-70 mt-1">Observe</span>
-                  )}
-                </div>
-              ))}
-            </div>
-
-            <div className="sticky right-0 flex items-center shrink-0 border-l border-emerald-800/80 pl-4 bg-emerald-900/90 backdrop-blur-md h-full px-2 z-20 shadow-[-10px_0_15px_-5px_rgba(6,78,59,0.5)]">
-               <button 
-                  onClick={() => { if(currentSession.batchId) setConfirmEndClass(currentSession.batchId) }} 
-                  className="bg-red-500 hover:bg-red-400 text-white px-5 py-3 rounded-xl text-sm font-black tracking-wider shadow-[0_4px_15px_rgba(239,68,68,0.4)] transition-all flex items-center gap-2 active:scale-95 whitespace-nowrap"
-               >
-                  <LogOut size={16} /> END CLASS & RESULTS
-               </button>
+                 ))}
+               </div>
             </div>
           </div>
         )}
@@ -784,7 +795,7 @@ const LiveClassRoom: React.FC = () => {
           </div>
         )}
 
-        <div className="relative z-10 flex-1 overflow-y-auto flex flex-col bg-transparent">
+        <div className={`relative z-10 flex-1 overflow-y-auto flex flex-col bg-transparent ${userRole === 'scholar' ? 'pb-72' : ''}`}>
           {!hasPosition && userRole === 'scholar' ? (
             <div className="absolute inset-0 flex items-center justify-center bg-transparent">
               <div className="text-center p-6">

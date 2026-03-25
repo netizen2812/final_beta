@@ -5,10 +5,10 @@ import Batch from './src/models/Batch.js';
 
 dotenv.config();
 
-const MONGO_URI = process.env.MONGODB_URI;
+const MONGO_URI = process.env.MONGO_URI || process.env.MONGODB_URI;
 
 if (!MONGO_URI) {
-    console.error("Missing MONGODB_URI in .env");
+    console.error("Missing MONGO_URI in .env");
     process.exit(1);
 }
 

@@ -339,9 +339,11 @@ const CoreChat: React.FC<CoreChatProps> = ({ madhab, setMadhab, tone: mood, setT
 
       const aiResponse = await getImamResponse(input, madhab, mood, apiHistory, token, convId ?? undefined);
 
-      if (aiResponse === "PAYWALL_TRIGGER") {
-         setMessages(prev => prev.slice(0, -1)); // Remove the user message
+      const responseStr = typeof aiResponse === 'string' ? aiResponse : String(aiResponse);
+      if (responseStr.includes("PAYWALL_TRIGGER") || responseStr.includes("PAYWALLTRIGGER")) {
+         setMessages(prev => prev.filter(m => m.id !== userMessage.id)); // Remove the user message
          setShowLimitModal(true);
+         setIsLoading(false);
          return;
       }
 

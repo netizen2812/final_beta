@@ -2,7 +2,7 @@ import React, { useState, useRef, useEffect, useCallback } from 'react';
 import {
   Send, ChevronDown, CloudRain, Sun, Smile,
   AlertTriangle, SlidersHorizontal, X, Sparkles,
-  ChevronLeft, ChevronRight, Plus
+  ChevronLeft, ChevronRight, Plus, History
 } from 'lucide-react';
 import { Madhab, ChatMessage, Tone, Conversation } from '../types';
 import { getImamResponse } from '../geminiService';
@@ -18,8 +18,8 @@ const API_URL = import.meta.env.VITE_API_URL || "http://localhost:5000";
 // ─── Animated Background ────────────────────────────────────────────────────
 const AnimatedBackground: React.FC = () => (
   <div
-    className="fixed inset-0 pointer-events-none overflow-hidden"
-    style={{ zIndex: 0 }}
+    className="fixed inset-0 pointer-events-none overflow-hidden h-screen w-screen"
+    style={{ zIndex: 0, position: 'fixed' }}
     aria-hidden="true"
   >
     {/* Deep atmospheric base */}
@@ -167,6 +167,7 @@ const CoreChat: React.FC<CoreChatProps> = ({ madhab, setMadhab, tone: mood, setT
   const [input, setInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [showPreferences, setShowPreferences] = useState(false);
+  const [showMobileHistory, setShowMobileHistory] = useState(false);
   const [showLeftPanel, setShowLeftPanel] = useState(true);
   const [showRightPanel, setShowRightPanel] = useState(true);
   const [showLimitModal, setShowLimitModal] = useState(false);
@@ -437,14 +438,31 @@ const CoreChat: React.FC<CoreChatProps> = ({ madhab, setMadhab, tone: mood, setT
                   </div>
                 </div>
 
-                <div className="flex items-center gap-2">
+                <div className="flex items-center gap-1">
                   {!isDesktop && (
-                    <button
-                      onClick={handleNewChat}
-                      className="p-2 hover:bg-white/60 rounded-xl transition-all text-slate-400 hover:text-[#052e16]"
-                    >
-                      <Plus size={18} />
-                    </button>
+                    <>
+                      <button
+                        onClick={() => setShowMobileHistory(true)}
+                        className="p-2 hover:bg-white/60 rounded-xl transition-all text-slate-400 hover:text-[#052e16]"
+                        title={t('chat.history')}
+                      >
+                        <History size={20} />
+                      </button>
+                      <button
+                        onClick={() => setShowPreferences(true)}
+                        className="p-2 hover:bg-white/60 rounded-xl transition-all text-slate-400 hover:text-[#052e16]"
+                        title={t('chat.settings')}
+                      >
+                        <SlidersHorizontal size={20} />
+                      </button>
+                      <button
+                        onClick={handleNewChat}
+                        className="p-2 hover:bg-white/60 rounded-xl transition-all text-slate-400 hover:text-[#052e16]"
+                        title={t('chat.newChat')}
+                      >
+                        <Plus size={22} />
+                      </button>
+                    </>
                   )}
                   {isLargeDesktop && (
                     <button
@@ -454,7 +472,8 @@ const CoreChat: React.FC<CoreChatProps> = ({ madhab, setMadhab, tone: mood, setT
                       <ChevronRight size={18} />
                     </button>
                   )}
-                  {!isLargeDesktop && (
+                  {/* Tablet preference trigger */}
+                  {!isLargeDesktop && isDesktop && (
                     <button
                       onClick={() => setShowPreferences(true)}
                       className="p-2.5 px-4 bg-white/60 backdrop-blur-md hover:bg-emerald-50/50 rounded-full transition-all text-[#052e16] shadow-sm border border-emerald-100/50 flex items-center gap-2"
@@ -524,7 +543,7 @@ const CoreChat: React.FC<CoreChatProps> = ({ madhab, setMadhab, tone: mood, setT
                 : 'fixed bottom-20 left-0 right-0 p-4 bg-gradient-to-t from-white via-white/95 to-transparent z-[60]'}`}>
                 <div className={`flex items-center gap-2 bg-white ${isDesktop ? 'p-2' : 'p-1.5'} rounded-full border border-slate-200 shadow-lg focus-within:border-emerald-400 focus-within:ring-2 focus-within:ring-emerald-400/20 transition-all max-w-3xl mx-auto`}>
                   
-                  {/* Plus Button for Context (Mobile) */}
+                  {/* Settings Button (Mobile) */}
                   {!isDesktop && (
                     <button 
                       onClick={() => setShowPreferences(true)}
@@ -569,6 +588,25 @@ const CoreChat: React.FC<CoreChatProps> = ({ madhab, setMadhab, tone: mood, setT
             tone={mood}
             setTone={setMood}
           />
+        )}
+
+        {/* Mobile History Drawer */}
+        {!isDesktop && showMobileHistory && (
+          <div className="fixed inset-0 z-[250] flex justify-start">
+            <div className="absolute inset-0 bg-[#052e16]/30 backdrop-blur-sm" onClick={() => setShowMobileHistory(false)} />
+            <div className="relative w-[280px] h-full bg-white shadow-2xl animate-in slide-in-from-left duration-300">
+              <LeftContextPanel
+                conversations={conversations}
+                activeConversationId={activeConversationId}
+                isLoading={isHistoryLoading}
+                onSelect={(id) => { handleSelectConversation(id); setShowMobileHistory(false); }}
+                onNewChat={() => { handleNewChat(); setShowMobileHistory(false); }}
+                onTopicClick={(q) => { handleTopicClick(q); setShowMobileHistory(false); }}
+                onDelete={handleDeleteConversation}
+                onClose={() => setShowMobileHistory(false)}
+              />
+            </div>
+          </div>
         )}
 
         {/* Preferences Modal (mobile/tablet) */}

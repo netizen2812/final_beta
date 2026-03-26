@@ -1,5 +1,5 @@
 import React from 'react';
-import { BookOpen, MessageCircle, Heart, Plus, Trash2, MessageSquare } from 'lucide-react';
+import { BookOpen, MessageCircle, Heart, Plus, Trash2, MessageSquare, X } from 'lucide-react';
 import { Conversation } from '../types';
 import { useTranslation } from 'react-i18next';
 
@@ -11,6 +11,7 @@ interface LeftContextPanelProps {
     onNewChat: () => void;
     onTopicClick?: (topic: string) => void;
     onDelete: (id: string) => void;
+    onClose?: () => void;
 }
 
 
@@ -22,6 +23,7 @@ const LeftContextPanel: React.FC<LeftContextPanelProps> = ({
     onNewChat,
     onTopicClick,
     onDelete,
+    onClose,
 }) => {
     const { t } = useTranslation();
 
@@ -33,15 +35,23 @@ const LeftContextPanel: React.FC<LeftContextPanelProps> = ({
 
     return (
         <div className="w-[260px] flex flex-col h-full overflow-hidden bg-white/70 backdrop-blur-md border-r border-slate-100/80">
-            {/* New Chat Button */}
-            <div className="p-4 border-b border-slate-100/80">
+            {/* New Chat Button & Close (Mobile) */}
+            <div className="p-4 border-b border-slate-100/80 flex items-center gap-2">
                 <button
                     onClick={onNewChat}
-                    className="w-full flex items-center justify-center gap-2 px-4 py-3 bg-[#052e16] text-white rounded-2xl text-xs font-black uppercase tracking-widest hover:bg-emerald-900 active:scale-95 transition-all shadow-md shadow-[#052e16]/20"
+                    className="flex-1 flex items-center justify-center gap-2 px-4 py-3 bg-[#052e16] text-white rounded-2xl text-xs font-black uppercase tracking-widest hover:bg-emerald-900 active:scale-95 transition-all shadow-md shadow-[#052e16]/20"
                 >
                     <Plus size={16} />
                     {t('chat.newChat')}
                 </button>
+                {onClose && (
+                    <button 
+                        onClick={onClose}
+                        className="p-3 hover:bg-slate-100 rounded-xl text-slate-400 transition-colors"
+                    >
+                        <X size={20} />
+                    </button>
+                )}
             </div>
 
             <div className="flex-1 overflow-y-auto p-3 space-y-5 no-scrollbar">

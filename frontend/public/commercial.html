@@ -1,0 +1,278 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Tarbiyah Live — IMAM</title>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700;900&family=Inter:wght@400;600;700;900&display=swap" rel="stylesheet">
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  
+  body {
+    font-family: 'Inter', sans-serif;
+    background: #022c22;
+    color: white;
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
+
+  /* ===== ANIMATED BACKGROUND ===== */
+  .bg-wrapper {
+    position: fixed; inset: 0; z-index: 0; overflow: hidden;
+    background: radial-gradient(ellipse at 20% 50%, #064e3b 0%, #022c22 60%, #011f18 100%);
+  }
+  .bg-wrapper::before {
+    content: ''; position: absolute; top: -50%; left: -50%; width: 200%; height: 200%;
+    background: radial-gradient(circle at 30% 40%, rgba(52,211,153,0.08) 0%, transparent 50%),
+                radial-gradient(circle at 80% 60%, rgba(251,191,36,0.05) 0%, transparent 40%);
+    animation: drift 30s ease-in-out infinite alternate;
+  }
+  @keyframes drift { 0% { transform: translate(0,0) rotate(0deg); } 100% { transform: translate(-3%,2%) rotate(3deg); } }
+  @keyframes float { 0% { transform: translateY(110vh) rotate(0deg); opacity: 0; } 15% { opacity: 0.15; } 85% { opacity: 0.15; } 100% { transform: translateY(-15vh) rotate(360deg); opacity: 0; } }
+  .particle { position: absolute; opacity: 0; animation: float linear infinite; }
+  
+  /* ===== LAYOUT ===== */
+  .page { position: relative; z-index: 1; max-width: 440px; margin: 0 auto; padding: 48px 28px 40px; }
+
+  /* ===== BADGE ===== */
+  .badge {
+    display: inline-flex; align-items: center; gap: 6px;
+    background: rgba(16,185,129,0.1); border: 1px solid rgba(16,185,129,0.25);
+    padding: 6px 14px; border-radius: 999px;
+    font-size: 10px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.15em;
+    color: #6ee7b7; margin-bottom: 20px;
+  }
+
+  /* ===== HERO ===== */
+  h1 {
+    font-family: 'Playfair Display', serif;
+    font-size: 38px; font-weight: 900; line-height: 1.15;
+    margin-bottom: 16px;
+  }
+  h1 .highlight {
+    background: linear-gradient(135deg, #34d399, #6ee7b7);
+    -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+  }
+  .subtitle { font-size: 15px; color: rgba(167,243,208,0.6); line-height: 1.7; margin-bottom: 32px; }
+
+  /* ===== PROBLEM STRIP ===== */
+  .problem-strip {
+    background: rgba(239,68,68,0.08); border: 1px solid rgba(239,68,68,0.15);
+    border-radius: 20px; padding: 20px; margin-bottom: 28px;
+  }
+  .problem-strip h3 { font-size: 11px; font-weight: 900; text-transform: uppercase; letter-spacing: 0.2em; color: #fca5a5; margin-bottom: 12px; }
+  .problem-item { display: flex; align-items: flex-start; gap: 10px; margin-bottom: 10px; }
+  .problem-item .x { color: #ef4444; font-weight: 900; font-size: 14px; flex-shrink: 0; margin-top: 1px; }
+  .problem-item p { font-size: 13px; color: rgba(255,255,255,0.5); line-height: 1.5; }
+
+  /* ===== SOLUTION STRIP ===== */
+  .solution-strip {
+    background: rgba(16,185,129,0.06); border: 1px solid rgba(16,185,129,0.15);
+    border-radius: 20px; padding: 20px; margin-bottom: 28px;
+  }
+  .solution-strip h3 { font-size: 11px; font-weight: 900; text-transform: uppercase; letter-spacing: 0.2em; color: #6ee7b7; margin-bottom: 14px; }
+
+  /* ===== STEPS ===== */
+  .step { display: flex; gap: 14px; margin-bottom: 16px; align-items: flex-start; }
+  .step-num {
+    width: 32px; height: 32px; border-radius: 12px; flex-shrink: 0;
+    display: flex; align-items: center; justify-content: center;
+    font-weight: 900; font-size: 13px; color: #022c22;
+  }
+  .step-num.s1 { background: linear-gradient(135deg, #3b82f6, #6366f1); color: white; }
+  .step-num.s2 { background: linear-gradient(135deg, #10b981, #14b8a6); color: white; }
+  .step-num.s3 { background: linear-gradient(135deg, #f59e0b, #f97316); color: white; }
+  .step h4 { font-size: 14px; font-weight: 800; margin-bottom: 2px; }
+  .step p { font-size: 12px; color: rgba(167,243,208,0.45); line-height: 1.5; }
+
+  /* ===== FEATURES ===== */
+  .features { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 28px; }
+  .feat {
+    background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.06);
+    border-radius: 16px; padding: 14px; text-align: center;
+  }
+  .feat .icon { font-size: 22px; margin-bottom: 6px; }
+  .feat h4 { font-size: 11px; font-weight: 800; margin-bottom: 2px; }
+  .feat p { font-size: 10px; color: rgba(167,243,208,0.35); }
+
+  /* ===== DIVIDER ===== */
+  .divider { height: 1px; background: linear-gradient(90deg, transparent, rgba(52,211,153,0.2), transparent); margin: 28px 0; }
+
+  /* ===== PRICING ===== */
+  .pricing-card {
+    background: linear-gradient(145deg, rgba(16,185,129,0.1), rgba(0,0,0,0.3));
+    border: 1px solid rgba(16,185,129,0.2); border-radius: 28px;
+    padding: 32px 24px; text-align: center; margin-bottom: 24px;
+    position: relative; overflow: hidden;
+  }
+  .pricing-card::before {
+    content: ''; position: absolute; top: 0; left: 0; right: 0; height: 3px;
+    background: linear-gradient(90deg, #10b981, #6ee7b7, #fbbf24);
+  }
+  .price { font-family: 'Playfair Display', serif; font-size: 56px; font-weight: 900; }
+  .price span { font-size: 18px; font-weight: 600; color: rgba(167,243,208,0.5); }
+  .price-sub { font-size: 13px; color: rgba(167,243,208,0.4); margin-top: 4px; }
+  
+  .check-list { text-align: left; margin: 20px 0; }
+  .check-item { display: flex; align-items: center; gap: 10px; padding: 8px 0; border-bottom: 1px solid rgba(255,255,255,0.04); }
+  .check-item:last-child { border: none; }
+  .check-item .tick { color: #10b981; font-weight: 900; font-size: 14px; }
+  .check-item span { font-size: 13px; font-weight: 600; color: rgba(255,255,255,0.7); }
+
+  /* ===== CTA ===== */
+  .cta {
+    display: block; width: 100%; padding: 18px;
+    background: linear-gradient(135deg, #10b981, #059669);
+    color: #022c22; border: none; border-radius: 16px;
+    font-family: 'Inter', sans-serif; font-size: 15px; font-weight: 900;
+    text-transform: uppercase; letter-spacing: 0.15em; cursor: pointer;
+    box-shadow: 0 20px 40px rgba(16,185,129,0.3);
+    text-decoration: none; text-align: center;
+  }
+
+  /* ===== FOOTER ===== */
+  .footer { text-align: center; margin-top: 32px; }
+  .footer p { font-size: 11px; color: rgba(167,243,208,0.25); }
+  .footer .brand { font-weight: 900; font-size: 13px; color: rgba(167,243,208,0.4); letter-spacing: 0.3em; margin-bottom: 4px; }
+
+  /* ===== SHARE NOTE ===== */
+  .share-note {
+    text-align: center; margin-top: 20px; padding: 14px;
+    background: rgba(251,191,36,0.06); border: 1px solid rgba(251,191,36,0.12);
+    border-radius: 16px;
+  }
+  .share-note p { font-size: 12px; color: rgba(251,191,36,0.6); font-weight: 600; }
+</style>
+</head>
+<body>
+
+<!-- Animated Background -->
+<div class="bg-wrapper">
+  <script>
+    const icons = ['☪', '🌙', '⭐', '📖', '🕌', '☁️', '🌿', '🍃', '☀️'];
+    const wrapper = document.querySelector('.bg-wrapper');
+    for (let i = 0; i < 30; i++) {
+      const el = document.createElement('div');
+      el.className = 'particle';
+      el.textContent = icons[i % icons.length];
+      el.style.left = Math.random() * 100 + '%';
+      el.style.fontSize = (16 + Math.random() * 28) + 'px';
+      el.style.animationDuration = (50 + Math.random() * 50) + 's';
+      el.style.animationDelay = '-' + (Math.random() * 50) + 's';
+      wrapper.appendChild(el);
+    }
+  </script>
+</div>
+
+<!-- One-Pager Content -->
+<div class="page">
+
+  <!-- Badge -->
+  <div class="badge">✨ Enrollment Open</div>
+
+  <!-- Hero -->
+  <h1>Quran Learning That <span class="highlight">Keeps Your Child Engaged</span></h1>
+  <p class="subtitle">Live scholar-led classes where every child stays active — practicing, observing, and reciting — every single minute.</p>
+
+  <!-- Problem -->
+  <div class="problem-strip">
+    <h3>❌ Typical Quran Classes</h3>
+    <div class="problem-item">
+      <span class="x">✕</span>
+      <p><strong>80% idle time.</strong> In a 1-hour class with 5 kids, your child waits 48 minutes.</p>
+    </div>
+    <div class="problem-item">
+      <span class="x">✕</span>
+      <p><strong>Zero engagement.</strong> When it's not their turn, children zone out completely.</p>
+    </div>
+    <div class="problem-item">
+      <span class="x">✕</span>
+      <p><strong>No visibility.</strong> Parents have no idea how their child is doing.</p>
+    </div>
+  </div>
+
+  <!-- Solution -->
+  <div class="solution-strip">
+    <h3>✅ The IMAM Difference</h3>
+    <div class="step">
+      <div class="step-num s1">1</div>
+      <div>
+        <h4>Practice</h4>
+        <p>Your child reads their assigned ayah independently while a classmate recites.</p>
+      </div>
+    </div>
+    <div class="step">
+      <div class="step-num s2">2</div>
+      <div>
+        <h4>Observe & Engage</h4>
+        <p>Scholar asks: "Was the recitation correct?" Your child taps Yes/No and earns XP.</p>
+      </div>
+    </div>
+    <div class="step">
+      <div class="step-num s3">3</div>
+      <div>
+        <h4>Recite Live</h4>
+        <p>Their turn — recite directly with the scholar who scores Tajweed in real-time.</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- Features -->
+  <div class="features">
+    <div class="feat">
+      <div class="icon">🗺️</div>
+      <h4>Journey Map</h4>
+      <p>16-node progress tracker</p>
+    </div>
+    <div class="feat">
+      <div class="icon">🏆</div>
+      <h4>Leaderboard</h4>
+      <p>Real-time class ranking</p>
+    </div>
+    <div class="feat">
+      <div class="icon">🔥</div>
+      <h4>XP & Streaks</h4>
+      <p>Gamified motivation</p>
+    </div>
+    <div class="feat">
+      <div class="icon">📊</div>
+      <h4>Parent Dashboard</h4>
+      <p>Full progress visibility</p>
+    </div>
+  </div>
+
+  <div class="divider"></div>
+
+  <!-- Pricing -->
+  <div class="pricing-card">
+    <div class="price">₹399<span>/month</span></div>
+    <p class="price-sub">Full access. No hidden fees.</p>
+    
+    <div class="check-list">
+      <div class="check-item"><span class="tick">✓</span><span>16 Live Scholar Sessions / month</span></div>
+      <div class="check-item"><span class="tick">✓</span><span>Small Group Classes (5-8 kids)</span></div>
+      <div class="check-item"><span class="tick">✓</span><span>Interactive Journey of Light</span></div>
+      <div class="check-item"><span class="tick">✓</span><span>XP, Leaderboards & Streaks</span></div>
+      <div class="check-item"><span class="tick">✓</span><span>Real-time Tajweed Correction</span></div>
+      <div class="check-item"><span class="tick">✓</span><span>Parent Progress Dashboard</span></div>
+    </div>
+  </div>
+
+  <!-- CTA -->
+  <a href="https://imam.vercel.app" class="cta">Start Their Journey Now →</a>
+
+  <!-- Share Note -->
+  <div class="share-note">
+    <p>📲 Share this with a parent who wants their child to love Quran</p>
+  </div>
+
+  <!-- Footer -->
+  <div class="footer">
+    <p class="brand">IMAM</p>
+    <p>Tarbiyah Live · Scholar-Guided Quran Learning</p>
+  </div>
+
+</div>
+
+</body>
+</html>

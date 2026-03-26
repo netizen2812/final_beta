@@ -10,7 +10,7 @@ export const createOrder = async (req, res) => {
     if (planType === 'AI_MONTHLY') {
       amount = 79 * 100; // Rs 79 in paise
     } else if (planType === 'TARBIYAH_LIFETIME') {
-      amount = 399 * 100; // Rs 399 in paise
+      amount = 699 * 100; // Rs 699 in paise
     } else {
       return res.status(400).json({ message: 'Invalid plan type' });
     }

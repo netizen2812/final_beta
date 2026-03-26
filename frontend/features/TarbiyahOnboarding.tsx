@@ -253,8 +253,12 @@ export const TarbiyahOnboarding = ({ getToken }: { getToken: any }) => {
             <div className="inline-block bg-black/40 border border-white/10 px-6 py-3 rounded-full text-emerald-300 font-bold uppercase tracking-widest text-sm">
                Simple Pricing, Full Access
             </div>
-            <div className="space-y-4">
-               <div className="text-7xl font-black text-white">₹399<span className="text-2xl text-emerald-100/50">/month</span></div>
+            <div className="space-y-2">
+               <div className="flex items-center justify-center gap-4">
+                  <span className="text-3xl text-emerald-100/30 line-through decoration-rose-500/50">₹999</span>
+                  <div className="text-7xl font-black text-white">₹699<span className="text-2xl text-emerald-100/50">/month</span></div>
+               </div>
+               <p className="text-emerald-400 font-bold text-sm tracking-widest uppercase">Special Discounted Launch Price</p>
                <p className="text-emerald-200/40">Full access to live classes, journey map, and the entire gamification system.</p>
             </div>
             

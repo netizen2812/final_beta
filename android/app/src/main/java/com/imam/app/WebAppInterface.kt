@@ -1,4 +1,4 @@
-package com.faithtech.app
+package com.imam.app
 
 import android.content.ClipData
 import android.content.ClipboardManager

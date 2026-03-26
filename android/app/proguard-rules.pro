@@ -15,6 +15,6 @@
 # Add specific rules if Clerk provides Proguard recommendations
 
 # Keep our JavaScript Interface
--keepclassmembers class com.faithtech.app.WebAppInterface {
+-keepclassmembers class com.imam.app.WebAppInterface {
     @android.webkit.JavascriptInterface <methods>;
 }

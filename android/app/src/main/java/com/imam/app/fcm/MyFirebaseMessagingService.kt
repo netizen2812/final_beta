@@ -1,6 +1,5 @@
-package com.faithtech.app.fcm
+package com.imam.app.fcm
 
-/* Firebase FCM Temporarily Disabled
 import com.google.firebase.messaging.FirebaseMessagingService
 import com.google.firebase.messaging.RemoteMessage
 import android.app.NotificationChannel
@@ -10,14 +9,14 @@ import android.content.Context
 import android.content.Intent
 import android.os.Build
 import androidx.core.app.NotificationCompat
-import com.faithtech.app.MainActivity
-import com.faithtech.app.R
+import com.imam.app.MainActivity
+import com.imam.app.R
 
 class MyFirebaseMessagingService : FirebaseMessagingService() {
 
     override fun onMessageReceived(remoteMessage: RemoteMessage) {
         remoteMessage.notification?.let {
-            sendNotification(it.title ?: "FaithTech", it.body ?: "")
+            sendNotification(it.title ?: "Imam App", it.body ?: "")
         }
     }
 
@@ -43,7 +42,7 @@ class MyFirebaseMessagingService : FirebaseMessagingService() {
 
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             val channel = NotificationChannel(channelId,
-                "FaithTech Notifications",
+                "Imam App Notifications",
                 NotificationManager.IMPORTANCE_DEFAULT)
             notificationManager.createNotificationChannel(channel)
         }
@@ -51,4 +50,3 @@ class MyFirebaseMessagingService : FirebaseMessagingService() {
         notificationManager.notify(0, notificationBuilder.build())
     }
 }
-*/

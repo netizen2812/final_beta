@@ -126,6 +126,11 @@ const App: React.FC = () => {
         // Initialize Analytics
         Analytics.init(user.id, (user.publicMetadata?.role as string) || 'parent', getToken);
 
+        // Sync with Native Android Bridge
+        if ((window as any).Android?.onUserSignIn) {
+          (window as any).Android.onUserSignIn(user.id);
+        }
+
         console.log("User synced with backend ✅");
       } catch (error) {
         console.error("User sync failed ❌", error);

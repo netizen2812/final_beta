@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "723814703734",
+    "project_id": "imam-70bdd",
+    "storage_bucket": "imam-70bdd.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:723814703734:android:2bc0735a4ebde669ab3557",
+        "android_client_info": {
+          "package_name": "com.imam.app"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBnwF9c4JFEPuZDSq9NbzN1JJXuz4vgXPU"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

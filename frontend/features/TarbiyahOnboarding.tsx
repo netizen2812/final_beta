@@ -165,15 +165,14 @@ export const TarbiyahOnboarding = ({ getToken }: { getToken: any }) => {
           <div className="text-center mb-16 space-y-4">
              <p className="text-emerald-400 text-xs font-bold uppercase tracking-[0.3em]">Beyond Just Classes</p>
              <h2 className="text-4xl font-serif font-black text-white">A Complete Learning Ecosystem</h2>
-             <p className="text-emerald-200/50 max-w-xl mx-auto">Every action earns XP. Every session unlocks progress. Your child levels up from "Little Learner" to "Ramadan Champion".</p>
+             <p className="text-emerald-200/50 max-w-xl mx-auto">Every action earns XP. Every session unlocks progress on a beautiful interactive map.</p>
           </div>
           
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
             {[
               { icon: <Map className="text-emerald-400" size={24}/>, title: "Journey of Light Map", desc: "A beautiful 16-node interactive map that tracks live session progress. Each class unlocks the next stage." },
               { icon: <Trophy className="text-amber-400" size={24}/>, title: "Live Leaderboard", desc: "Students compete in real-time. Recitation scores + engagement answers = class ranking after every session." },
-              { icon: <Flame className="text-orange-400" size={24}/>, title: "Streaks & XP System", desc: "Daily streaks, XP for every action, and a 10-level rank system. Kids go from 📚 Little Learner to 🏆 Ramadan Champion." },
-              { icon: <Award className="text-indigo-400" size={24}/>, title: "Badges & Quests", desc: "Unlock 'Early Bird', 'Bookworm', and 'Moon Walker' badges. Complete daily quests like 'Recite Surah Al-Fatiha' for bonus XP." },
+              { icon: <Flame className="text-orange-400" size={24}/>, title: "Streaks & XP System", desc: "Daily streaks, XP for every action. Consistent practice builds momentum and keeps kids coming back." },
             ].map((card, i) => (
               <div key={i} className="bg-white/5 backdrop-blur-md border border-white/10 p-6 rounded-[2rem] hover:bg-white/10 transition-all group">
                 <div className="bg-black/30 w-14 h-14 rounded-2xl flex items-center justify-center mb-5 group-hover:scale-110 transition-transform border border-white/5">
@@ -187,44 +186,7 @@ export const TarbiyahOnboarding = ({ getToken }: { getToken: any }) => {
         </div>
       </section>
 
-      {/* ═══════════════════════════════════════ */}
-      {/* SECTION 5 — VIDEO LESSONS                */}
-      {/* ═══════════════════════════════════════ */}
-      <section className="relative py-32 px-6">
-        <div className="max-w-5xl mx-auto">
-          <div className="text-center mb-16 space-y-4">
-             <p className="text-emerald-400 text-xs font-bold uppercase tracking-[0.3em]">Curated Curriculum</p>
-             <h2 className="text-4xl font-serif font-black text-white">10+ Scholar-Crafted Lessons</h2>
-             <p className="text-emerald-200/50 max-w-xl mx-auto">Each lesson includes a video, interactive MCQ quiz, and XP rewards. Topics span Prophetic stories, Theology, Fiqh, and Islamic manners.</p>
-          </div>
-          
-          <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
-            {[
-              { title: "Welcome to Ramadan", type: "Ramadan", emoji: "🌙" },
-              { title: "The Wise Little Ant", type: "Stories", emoji: "🐜" },
-              { title: "The Crow That Taught", type: "Stories", emoji: "🪶" },
-              { title: "5 Miracles of Isa (AS)", type: "Prophets", emoji: "✨" },
-              { title: "The Shirt of Yusuf (AS)", type: "Stories", emoji: "🏆" },
-              { title: "Think Before You React", type: "Manners", emoji: "❤️" },
-              { title: "The Honoured Family", type: "History", emoji: "☀️" },
-              { title: "The Army of Birds", type: "History", emoji: "☁️" },
-              { title: "Jinns Are Real!", type: "Theology", emoji: "🔥" },
-              { title: "The Moon Split in Two", type: "Prophets", emoji: "🌍" },
-            ].map((lesson, i) => (
-              <div key={i} className="bg-white/5 border border-white/10 rounded-2xl p-4 text-center hover:bg-white/10 transition-all group relative overflow-hidden">
-                <div className="absolute inset-0 bg-gradient-to-b from-white/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity"></div>
-                <div className="text-3xl mb-2 relative z-10">{lesson.emoji}</div>
-                <p className="text-xs font-bold text-white leading-tight relative z-10">{lesson.title}</p>
-                <p className="text-[10px] text-emerald-400/60 uppercase tracking-wider mt-1 relative z-10">{lesson.type}</p>
-              </div>
-            ))}
-          </div>
-          
-          <div className="text-center mt-8">
-            <p className="text-emerald-200/30 text-sm">Each lesson ends with a scored quiz · +50-80 XP per lesson · 3 MCQs with Quranic references</p>
-          </div>
-        </div>
-      </section>
+
 
       {/* ═══════════════════════════════════════ */}
       {/* SECTION 6 — WHAT'S INCLUDED              */}
@@ -243,9 +205,9 @@ export const TarbiyahOnboarding = ({ getToken }: { getToken: any }) => {
                 { text: "Interactive Journey of Light Map", highlight: false },
                 { text: "Real-time Tajweed Correction", highlight: true },
                 { text: "XP, Levels & Leaderboards", highlight: false },
-                { text: "10+ Video Lessons with Quizzes", highlight: false },
+
                 { text: "Observer Engagement System", highlight: true },
-                { text: "Daily Quests & Badge Collection", highlight: false },
+
                 { text: "Streak Tracking & Rewards", highlight: false },
                 { text: "Parent Progress Dashboard", highlight: true },
               ].map((item, i) => (

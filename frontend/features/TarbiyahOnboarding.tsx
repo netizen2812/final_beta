@@ -4,7 +4,9 @@ import {
   Play, Lock, Star, ShieldCheck, Crown, 
   ArrowRight, Users, Check, Sparkles, 
   MessageCircle, Video, TrendingUp,
-  Clock, BookOpen, AlertCircle, Loader2
+  Clock, BookOpen, AlertCircle, Loader2,
+  Trophy, Flame, Target, Zap, Eye, Mic,
+  Award, Map, BarChart2, Heart
 } from 'lucide-react';
 import axios from 'axios';
 import { loadRazorpayScript } from '../utils/razorpay';
@@ -38,7 +40,7 @@ export const TarbiyahOnboarding = ({ getToken }: { getToken: any }) => {
                  ...response,
                  planType: 'TARBIYAH_LIFETIME'
              }, { headers: { Authorization: `Bearer ${token}` } });
-             alert("Welcome! Payment successful. Please wait while an Admin assigns your batch!");
+             alert("Welcome! Payment successful. Your batch will be assigned shortly!");
              window.location.reload();
         },
         theme: { color: "#052e16" }
@@ -56,7 +58,9 @@ export const TarbiyahOnboarding = ({ getToken }: { getToken: any }) => {
     <div className="min-h-screen text-white font-sans selection:bg-emerald-500 relative overflow-x-hidden">
       <MovingBackground />
 
-      {/* SECTION 1 — HERO */}
+      {/* ═══════════════════════════════════════ */}
+      {/* SECTION 1 — HERO                        */}
+      {/* ═══════════════════════════════════════ */}
       <section className="relative min-h-[90vh] flex items-center justify-center pt-24 px-6">
         <div className="max-w-4xl w-full text-center space-y-8 animate-in fade-in slide-in-from-bottom-10 duration-1000">
           <div className="inline-flex items-center gap-2 bg-emerald-500/10 border border-emerald-500/20 px-4 py-2 rounded-full text-emerald-400 text-xs font-bold uppercase tracking-widest mb-4">
@@ -66,7 +70,7 @@ export const TarbiyahOnboarding = ({ getToken }: { getToken: any }) => {
             Quran Learning That <span className="text-transparent bg-clip-text bg-gradient-to-r from-emerald-400 to-teal-300">Keeps Your Child Engaged</span>
           </h1>
           <p className="text-xl md:text-2xl text-emerald-100/70 max-w-2xl mx-auto leading-relaxed">
-            No waiting. No boredom. Continuous learning with live scholar guidance and interactive class journey.
+            Live scholar-led classes. Interactive journey map. XP rewards. A system built so your child never sits idle.
           </p>
           <div className="pt-8">
             <button 
@@ -76,21 +80,31 @@ export const TarbiyahOnboarding = ({ getToken }: { getToken: any }) => {
               Start Learning Now <ArrowRight size={20} />
             </button>
           </div>
+          
+          {/* Floating Stats */}
+          <div className="flex flex-wrap justify-center gap-6 pt-6 opacity-60">
+             <div className="flex items-center gap-2 text-sm"><Users size={16} className="text-emerald-400" /> Small Group Classes</div>
+             <div className="flex items-center gap-2 text-sm"><Trophy size={16} className="text-amber-400" /> XP & Leaderboards</div>
+             <div className="flex items-center gap-2 text-sm"><ShieldCheck size={16} className="text-blue-400" /> Scholar Guided</div>
+          </div>
         </div>
       </section>
 
-      {/* SECTION 2 — THE PROBLEM */}
+      {/* ═══════════════════════════════════════ */}
+      {/* SECTION 2 — THE PROBLEM                  */}
+      {/* ═══════════════════════════════════════ */}
       <section className="relative py-24 px-6 bg-black/20 backdrop-blur-sm">
         <div className="max-w-5xl mx-auto">
           <div className="text-center mb-16">
-             <h2 className="text-3xl font-bold text-white mb-4 italic">Typical Classes Today</h2>
+             <p className="text-emerald-400 text-xs font-bold uppercase tracking-[0.3em] mb-3">The Problem</p>
+             <h2 className="text-3xl md:text-4xl font-serif font-bold text-white mb-4">Typical Quran Classes Today</h2>
              <div className="w-20 h-1 bg-emerald-800 mx-auto rounded-full opacity-50"></div>
           </div>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
             {[
-              { icon: <Clock className="text-orange-400" />, title: "Kids wait for their turn", desc: "Most time is spent listening to others, leading to distraction." },
-              { icon: <AlertCircle className="text-rose-400" />, title: "Passive Learning", desc: "No incentive to pay attention when the scholar isn't speaking to them." },
-              { icon: <TrendingUp className="text-blue-400" rotate={180}/>, title: "Low Engagement", desc: "Traditional group calls often leave children feeling disconnected." }
+              { icon: <Clock className="text-orange-400" size={28}/>, title: "Kids Wait for Their Turn", desc: "In a 1-hour class with 5 students, your child spends 48 minutes just waiting. That's 80% idle time." },
+              { icon: <AlertCircle className="text-rose-400" size={28}/>, title: "Zero Engagement While Observing", desc: "When it's not their turn, children zone out. There's no incentive to listen to classmates recite." },
+              { icon: <TrendingUp className="text-blue-400" size={28}/>, title: "No Tracking or Feedback", desc: "Parents have zero visibility. No reports, no progress tracking, no idea how their child is actually doing." }
             ].map((card, i) => (
               <div key={i} className="bg-white/5 border border-white/10 p-8 rounded-[2rem] hover:bg-white/10 transition-colors group">
                 <div className="bg-black/40 w-16 h-16 rounded-2xl flex items-center justify-center mb-6 group-hover:scale-110 transition-transform">
@@ -104,21 +118,27 @@ export const TarbiyahOnboarding = ({ getToken }: { getToken: any }) => {
         </div>
       </section>
 
-      {/* SECTION 3 — THE IMAM WAY */}
+      {/* ═══════════════════════════════════════ */}
+      {/* SECTION 3 — THE IMAM WAY                 */}
+      {/* ═══════════════════════════════════════ */}
       <section className="relative py-32 px-6">
         <div className="max-w-5xl mx-auto">
           <div className="text-center mb-20 space-y-4">
-             <h2 className="text-4xl font-serif font-black text-white">How IMAM Classes Work</h2>
-             <p className="text-emerald-200/60 max-w-lg mx-auto">Our unique 3-step active classroom ensures every minute is valuable.</p>
+             <p className="text-emerald-400 text-xs font-bold uppercase tracking-[0.3em] mb-3">The IMAM Difference</p>
+             <h2 className="text-4xl font-serif font-black text-white">Every Minute Counts in Our Classroom</h2>
+             <p className="text-emerald-200/60 max-w-lg mx-auto">While one student recites, every other child stays active through our unique 3-step system.</p>
           </div>
           
           <div className="flex flex-col md:flex-row items-stretch gap-4 relative">
-            <div className="hidden md:block absolute top-[2.5rem] left-[15%] right-[15%] h-px bg-white/10 z-0"></div>
+            {/* Connecting line (desktop) */}
+            <div className="hidden md:block absolute top-[3rem] left-[16%] right-[16%] h-px z-0">
+               <div className="w-full h-full bg-gradient-to-r from-blue-500/30 via-emerald-500/30 to-amber-500/30"></div>
+            </div>
             
             {[
-              { step: "1", title: "Practice", desc: "Your child practices assigned ayah while others recite. No idle time.", icon: <BookOpen />, color: "from-blue-500 to-indigo-500" },
-              { step: "2", title: "Engage", desc: "They stay involved by observing and answering prompts from the scholar.", icon: <MessageCircle />, color: "from-emerald-500 to-teal-500" },
-              { step: "3", title: "Recite", desc: "They recite live with scholar and get immediate correction.", icon: <Video />, color: "from-amber-500 to-orange-500" }
+              { step: "1", title: "Practice", desc: "Your child practices their assigned ayah independently while a classmate recites. Built-in Quran reader tracks their position.", icon: <BookOpen />, color: "from-blue-500 to-indigo-500", accent: "text-blue-400" },
+              { step: "2", title: "Observe & Engage", desc: "They listen to the reciter and answer live prompts from the scholar: 'Was the recitation correct?' — earning XP for correct answers.", icon: <Eye />, color: "from-emerald-500 to-teal-500", accent: "text-emerald-400" },
+              { step: "3", title: "Recite Live", desc: "When it's their turn, they recite directly with the scholar who scores their Tajweed in real-time. Scores feed into the class leaderboard.", icon: <Mic />, color: "from-amber-500 to-orange-500", accent: "text-amber-400" }
             ].map((step, i) => (
               <div key={i} className="flex-1 relative z-10">
                 <div className="bg-white/5 backdrop-blur-xl border border-white/10 rounded-[2.5rem] p-10 h-full flex flex-col items-center text-center hover:border-emerald-500/30 transition-all group">
@@ -127,7 +147,7 @@ export const TarbiyahOnboarding = ({ getToken }: { getToken: any }) => {
                          {React.cloneElement(step.icon as any, { size: 32, className: "text-white" })}
                       </div>
                    </div>
-                   <div className="text-xs font-black uppercase tracking-tighter text-emerald-500 mb-2">Step {step.step}</div>
+                   <div className={`text-xs font-black uppercase tracking-tighter ${step.accent} mb-2`}>Step {step.step}</div>
                    <h3 className="text-2xl font-black mb-4">{step.title}</h3>
                    <p className="text-emerald-100/50 leading-relaxed text-sm">{step.desc}</p>
                 </div>
@@ -137,113 +157,159 @@ export const TarbiyahOnboarding = ({ getToken }: { getToken: any }) => {
         </div>
       </section>
 
-      {/* SECTION 4 — WHY IT WORKS */}
+      {/* ═══════════════════════════════════════ */}
+      {/* SECTION 4 — THE ECOSYSTEM (XP / MAP)     */}
+      {/* ═══════════════════════════════════════ */}
       <section className="relative py-24 px-6 bg-[#033c2e]/40 border-y border-white/5">
-        <div className="max-w-5xl mx-auto grid grid-cols-1 md:grid-cols-2 gap-16 items-center">
-           <div>
-              <h2 className="text-4xl font-serif font-black mb-8 leading-tight">Why It Works</h2>
-              <ul className="space-y-6">
-                {[
-                  "No idle time - every student is active throughout the hour.",
-                  "Learn at personal pace - curriculum matches your child's speed.",
-                  "Better retention through active participation.",
-                  "Direct scholar guidance to fix Tajweed mistakes as they happen."
-                ].map((point, i) => (
-                  <li key={i} className="flex gap-4 items-start group">
-                    <div className="bg-emerald-500/20 p-1.5 rounded-lg text-emerald-400 mt-1 group-hover:scale-110 transition-all">
-                      <Check size={18} strokeWidth={3} />
-                    </div>
-                    <span className="text-lg text-emerald-100/80">{point}</span>
-                  </li>
-                ))}
-              </ul>
-           </div>
-           <div className="relative group">
-              <div className="absolute -inset-4 bg-emerald-500/20 blur-3xl opacity-20 group-hover:opacity-40 transition-opacity"></div>
-              <div className="relative bg-black/40 rounded-[3rem] p-4 border border-white/10 aspect-square flex items-center justify-center overflow-hidden">
-                 <div className="absolute inset-0 bg-gradient-to-br from-emerald-500/10 to-transparent"></div>
-                 <Crown size={120} className="text-emerald-500/20 animate-pulse" />
-                 <div className="absolute bottom-10 left-10 right-10 bg-white/10 backdrop-blur-md rounded-2xl p-6 border border-white/20">
-                    <div className="flex gap-2 mb-2">
-                       {[...Array(5)].map((_, i) => <Star key={i} size={14} className="fill-emerald-400 text-emerald-400" />)}
-                    </div>
-                    <p className="text-sm font-medium italic">"My daughter actually looks forward to her Quran time now. She loves seeing the map progress!"</p>
-                 </div>
+        <div className="max-w-5xl mx-auto">
+          <div className="text-center mb-16 space-y-4">
+             <p className="text-emerald-400 text-xs font-bold uppercase tracking-[0.3em]">Beyond Just Classes</p>
+             <h2 className="text-4xl font-serif font-black text-white">A Complete Learning Ecosystem</h2>
+             <p className="text-emerald-200/50 max-w-xl mx-auto">Every action earns XP. Every session unlocks progress. Your child levels up from "Little Learner" to "Ramadan Champion".</p>
+          </div>
+          
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+            {[
+              { icon: <Map className="text-emerald-400" size={24}/>, title: "Journey of Light Map", desc: "A beautiful 16-node interactive map that tracks live session progress. Each class unlocks the next stage." },
+              { icon: <Trophy className="text-amber-400" size={24}/>, title: "Live Leaderboard", desc: "Students compete in real-time. Recitation scores + engagement answers = class ranking after every session." },
+              { icon: <Flame className="text-orange-400" size={24}/>, title: "Streaks & XP System", desc: "Daily streaks, XP for every action, and a 10-level rank system. Kids go from 📚 Little Learner to 🏆 Ramadan Champion." },
+              { icon: <Award className="text-indigo-400" size={24}/>, title: "Badges & Quests", desc: "Unlock 'Early Bird', 'Bookworm', and 'Moon Walker' badges. Complete daily quests like 'Recite Surah Al-Fatiha' for bonus XP." },
+            ].map((card, i) => (
+              <div key={i} className="bg-white/5 backdrop-blur-md border border-white/10 p-6 rounded-[2rem] hover:bg-white/10 transition-all group">
+                <div className="bg-black/30 w-14 h-14 rounded-2xl flex items-center justify-center mb-5 group-hover:scale-110 transition-transform border border-white/5">
+                  {card.icon}
+                </div>
+                <h3 className="text-lg font-bold mb-2">{card.title}</h3>
+                <p className="text-emerald-100/40 leading-relaxed text-sm">{card.desc}</p>
               </div>
-           </div>
+            ))}
+          </div>
         </div>
       </section>
 
-      {/* SECTION 5 — WHAT YOU GET */}
+      {/* ═══════════════════════════════════════ */}
+      {/* SECTION 5 — VIDEO LESSONS                */}
+      {/* ═══════════════════════════════════════ */}
+      <section className="relative py-32 px-6">
+        <div className="max-w-5xl mx-auto">
+          <div className="text-center mb-16 space-y-4">
+             <p className="text-emerald-400 text-xs font-bold uppercase tracking-[0.3em]">Curated Curriculum</p>
+             <h2 className="text-4xl font-serif font-black text-white">10+ Scholar-Crafted Lessons</h2>
+             <p className="text-emerald-200/50 max-w-xl mx-auto">Each lesson includes a video, interactive MCQ quiz, and XP rewards. Topics span Prophetic stories, Theology, Fiqh, and Islamic manners.</p>
+          </div>
+          
+          <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
+            {[
+              { title: "Welcome to Ramadan", type: "Ramadan", emoji: "🌙" },
+              { title: "The Wise Little Ant", type: "Stories", emoji: "🐜" },
+              { title: "The Crow That Taught", type: "Stories", emoji: "🪶" },
+              { title: "5 Miracles of Isa (AS)", type: "Prophets", emoji: "✨" },
+              { title: "The Shirt of Yusuf (AS)", type: "Stories", emoji: "🏆" },
+              { title: "Think Before You React", type: "Manners", emoji: "❤️" },
+              { title: "The Honoured Family", type: "History", emoji: "☀️" },
+              { title: "The Army of Birds", type: "History", emoji: "☁️" },
+              { title: "Jinns Are Real!", type: "Theology", emoji: "🔥" },
+              { title: "The Moon Split in Two", type: "Prophets", emoji: "🌍" },
+            ].map((lesson, i) => (
+              <div key={i} className="bg-white/5 border border-white/10 rounded-2xl p-4 text-center hover:bg-white/10 transition-all group relative overflow-hidden">
+                <div className="absolute inset-0 bg-gradient-to-b from-white/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity"></div>
+                <div className="text-3xl mb-2 relative z-10">{lesson.emoji}</div>
+                <p className="text-xs font-bold text-white leading-tight relative z-10">{lesson.title}</p>
+                <p className="text-[10px] text-emerald-400/60 uppercase tracking-wider mt-1 relative z-10">{lesson.type}</p>
+              </div>
+            ))}
+          </div>
+          
+          <div className="text-center mt-8">
+            <p className="text-emerald-200/30 text-sm">Each lesson ends with a scored quiz · +50-80 XP per lesson · 3 MCQs with Quranic references</p>
+          </div>
+        </div>
+      </section>
+
+      {/* ═══════════════════════════════════════ */}
+      {/* SECTION 6 — WHAT'S INCLUDED              */}
+      {/* ═══════════════════════════════════════ */}
       <section className="relative py-32 px-6">
         <div className="max-w-3xl mx-auto bg-gradient-to-br from-emerald-900/40 to-black/40 backdrop-blur-xl rounded-[3rem] p-12 border border-emerald-500/20 shadow-2xl relative overflow-hidden">
            <div className="absolute top-0 right-0 p-8 opacity-10">
               <Sparkles size={100} />
            </div>
+           <p className="text-emerald-400 text-xs font-bold uppercase tracking-[0.3em] text-center mb-2">Everything You Get</p>
            <h2 className="text-3xl font-black mb-10 text-center uppercase tracking-widest text-[#5deac8]">Tarbiyah Live</h2>
-           <div className="grid grid-cols-1 md:grid-cols-2 gap-y-6 gap-x-12">
+           <div className="grid grid-cols-1 md:grid-cols-2 gap-y-5 gap-x-12">
               {[
-                "16 Live Sessions per month",
-                "Small Group Guided Classes",
-                "Personalized Progression Map",
-                "Real-time Correction",
-                "Interactive Learning System",
-                "XP & Rewards Gamification"
+                { text: "16 Live Scholar Sessions / month", highlight: true },
+                { text: "Small Group Classes (5-8 kids)", highlight: false },
+                { text: "Interactive Journey of Light Map", highlight: false },
+                { text: "Real-time Tajweed Correction", highlight: true },
+                { text: "XP, Levels & Leaderboards", highlight: false },
+                { text: "10+ Video Lessons with Quizzes", highlight: false },
+                { text: "Observer Engagement System", highlight: true },
+                { text: "Daily Quests & Badge Collection", highlight: false },
+                { text: "Streak Tracking & Rewards", highlight: false },
+                { text: "Parent Progress Dashboard", highlight: true },
               ].map((item, i) => (
                 <div key={i} className="flex items-center gap-3">
-                   <div className="w-6 h-6 rounded-full bg-emerald-500/20 flex items-center justify-center text-emerald-400">
+                   <div className={`w-6 h-6 rounded-full flex items-center justify-center shrink-0 ${item.highlight ? 'bg-emerald-500/30 text-emerald-300' : 'bg-emerald-500/15 text-emerald-400/60'}`}>
                       <Check size={14} strokeWidth={4} />
                    </div>
-                   <span className="font-bold text-emerald-50/80">{item}</span>
+                   <span className={`font-bold ${item.highlight ? 'text-white' : 'text-emerald-50/70'}`}>{item.text}</span>
                 </div>
               ))}
            </div>
         </div>
       </section>
 
-      {/* SECTION 6 — TRUST / CLARITY */}
-      <section className="relative py-24 px-6">
-         <div className="max-w-4xl mx-auto flex flex-wrap justify-center gap-12 opacity-80">
-            <div className="flex items-center gap-3">
-               <ShieldCheck size={28} className="text-emerald-400" />
-               <span className="font-medium text-emerald-100">Guided by Scholars</span>
-            </div>
-            <div className="flex items-center gap-3">
-               <TrendingUp size={28} className="text-emerald-400" />
-               <span className="font-medium text-emerald-100">Suitable for Beginners</span>
-            </div>
-            <div className="flex items-center gap-3">
-               <Star size={28} className="text-emerald-400" />
-               <span className="font-medium text-emerald-100">No Fixed Start Point</span>
+      {/* ═══════════════════════════════════════ */}
+      {/* SECTION 7 — TRUST / CLARITY              */}
+      {/* ═══════════════════════════════════════ */}
+      <section className="relative py-20 px-6">
+         <div className="max-w-4xl mx-auto">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+               {[
+                 { icon: <ShieldCheck className="text-emerald-400" size={28}/>, title: "Scholar-Led", desc: "Every session is guided by certified Quran scholars who score recitation live." },
+                 { icon: <Heart className="text-rose-400" size={28}/>, title: "Perfect for Beginners", desc: "No prerequisites. Kids start where they are. The system adapts to their pace." },
+                 { icon: <BarChart2 className="text-blue-400" size={28}/>, title: "Full Parent Visibility", desc: "Track XP, attendance, streaks, weekly activity, and detailed progress reports." },
+               ].map((card, i) => (
+                 <div key={i} className="bg-white/5 border border-white/5 rounded-[2rem] p-8 text-center">
+                    <div className="w-14 h-14 rounded-2xl bg-black/30 flex items-center justify-center mx-auto mb-5 border border-white/5">
+                       {card.icon}
+                    </div>
+                    <h3 className="font-bold text-lg mb-2">{card.title}</h3>
+                    <p className="text-emerald-100/40 text-sm leading-relaxed">{card.desc}</p>
+                 </div>
+               ))}
             </div>
          </div>
       </section>
 
-      {/* SECTION 7 — PRICING */}
+      {/* ═══════════════════════════════════════ */}
+      {/* SECTION 8 — PRICING                      */}
+      {/* ═══════════════════════════════════════ */}
       <section id="pricing" className="relative py-32 px-6">
          <div className="max-w-4xl mx-auto text-center space-y-12">
             <div className="inline-block bg-black/40 border border-white/10 px-6 py-3 rounded-full text-emerald-300 font-bold uppercase tracking-widest text-sm">
-               Simple Transparent Pricing
+               Simple Pricing, Full Access
             </div>
             <div className="space-y-4">
                <div className="text-7xl font-black text-white">₹399<span className="text-2xl text-emerald-100/50">/month</span></div>
-               <p className="text-emerald-200/40">Includes all 16 sessions + Unlimited access to Tarbiyah World</p>
+               <p className="text-emerald-200/40">Full access to live classes, journey map, lessons, and the entire gamification system.</p>
             </div>
             
             <div className="max-w-md mx-auto bg-white/5 p-8 rounded-[2rem] border border-white/10 backdrop-blur-md">
                <div className="space-y-4 mb-8">
-                  <div className="flex justify-between text-sm py-2 border-b border-white/5">
-                     <span className="text-emerald-200/60">Live Classes</span>
-                     <span className="font-bold uppercase tracking-widest">Included</span>
-                  </div>
-                  <div className="flex justify-between text-sm py-2 border-b border-white/5">
-                     <span className="text-emerald-200/60">Curriculum Tracking</span>
-                     <span className="font-bold uppercase tracking-widest">Included</span>
-                  </div>
-                  <div className="flex justify-between text-sm py-2">
-                     <span className="text-emerald-200/60">Rewards & Rewards</span>
-                     <span className="font-bold uppercase tracking-widest">Included</span>
-                  </div>
+                  {[
+                    { label: "16 Live Scholar Sessions", value: "✓" },
+                    { label: "Interactive Journey Map", value: "✓" },
+                    { label: "10+ Video Lessons + Quizzes", value: "✓" },
+                    { label: "XP, Levels & Leaderboards", value: "✓" },
+                    { label: "Parent Dashboard & Reports", value: "✓" },
+                  ].map((row, i) => (
+                    <div key={i} className="flex justify-between text-sm py-2 border-b border-white/5 last:border-b-0">
+                       <span className="text-emerald-200/60">{row.label}</span>
+                       <span className="font-bold text-emerald-400">{row.value}</span>
+                    </div>
+                  ))}
                </div>
                
                <button 
@@ -257,10 +323,13 @@ export const TarbiyahOnboarding = ({ getToken }: { getToken: any }) => {
          </div>
       </section>
 
-      {/* SECTION 8 — FINAL PUSH */}
+      {/* ═══════════════════════════════════════ */}
+      {/* SECTION 9 — FINAL PUSH                   */}
+      {/* ═══════════════════════════════════════ */}
       <section className="relative py-40 px-6 bg-gradient-to-t from-black/80 to-transparent">
          <div className="max-w-3xl mx-auto text-center space-y-12">
-            <h2 className="text-4xl md:text-5xl font-serif font-black">Give your child a better way to learn Quran</h2>
+            <h2 className="text-4xl md:text-5xl font-serif font-black leading-tight">Give your child a Quran learning experience they'll actually look forward to</h2>
+            <p className="text-emerald-200/50 max-w-lg mx-auto">Join the growing community of parents who chose engaged, interactive Quran education over passive waiting.</p>
             <button 
                onClick={handleJoinBatch}
                disabled={isLoading}

@@ -428,34 +428,6 @@ const LiveClassRoom: React.FC = () => {
     return () => clearInterval(interval);
   }, [currentSession?.batchId, fetchLeaderboard]);
 
-  // RENDER: LOCKED STATE
-  if (userRole === 'parent' && accessStatus && !accessStatus.hasAccess) {
-    return (
-      <div className="max-w-4xl mx-auto py-20 text-center space-y-6 animate-in fade-in">
-        <div className="w-24 h-24 bg-slate-100 rounded-full flex items-center justify-center mx-auto text-slate-400">
-          <ShieldCheck size={48} />
-        </div>
-        <h1 className="text-3xl font-serif font-bold text-slate-800">{t('live.sessionsLocked')}</h1>
-        <p className="text-slate-500 max-w-md mx-auto leading-relaxed">
-          Tarbiyah requires a one-time premium lifetime pass for ₹399. You will gain unlimited access to our live scheduled classes, learning journey nodes, and scholar sessions.
-        </p>
-
-        <button
-          onClick={handleRequestAccess}
-          disabled={isLoading}
-          className="bg-gradient-to-br from-[#052e16] to-[#064e3b] text-white px-8 py-4 rounded-2xl font-black uppercase tracking-widest hover:scale-105 active:scale-95 transition-all shadow-[0_10px_30px_rgba(5,46,22,0.3)] flex items-center gap-3 mx-auto"
-        >
-          {isLoading ? <Loader2 className="animate-spin" /> : 
-             <>
-               <Crown size={20} className="text-emerald-400" />
-               Unlock Lifetime Access (₹399)
-             </>
-          }
-        </button>
-      </div>
-    );
-  }
-
   // HANDLERS
   const handleParentStartSession = async () => {
     if (!activeChild) {

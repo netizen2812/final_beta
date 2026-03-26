@@ -255,7 +255,7 @@ export const TarbiyahOnboarding = ({ getToken }: { getToken: any }) => {
             </div>
             <div className="space-y-4">
                <div className="text-7xl font-black text-white">₹399<span className="text-2xl text-emerald-100/50">/month</span></div>
-               <p className="text-emerald-200/40">Full access to live classes, journey map, lessons, and the entire gamification system.</p>
+               <p className="text-emerald-200/40">Full access to live classes, journey map, and the entire gamification system.</p>
             </div>
             
             <div className="max-w-md mx-auto bg-white/5 p-8 rounded-[2rem] border border-white/10 backdrop-blur-md">
@@ -263,7 +263,6 @@ export const TarbiyahOnboarding = ({ getToken }: { getToken: any }) => {
                   {[
                     { label: "16 Live Scholar Sessions", value: "✓" },
                     { label: "Interactive Journey Map", value: "✓" },
-                    { label: "10+ Video Lessons + Quizzes", value: "✓" },
                     { label: "XP, Levels & Leaderboards", value: "✓" },
                     { label: "Parent Dashboard & Reports", value: "✓" },
                   ].map((row, i) => (

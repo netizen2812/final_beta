@@ -126,8 +126,8 @@ const App: React.FC = () => {
         // Initialize Analytics
         Analytics.init(user.id, (user.publicMetadata?.role as string) || 'parent', getToken);
 
-        // Sync with Native Android Bridge
-        if ((window as any).Android?.onUserSignIn) {
+        // Sync with Native Android Bridge (App Mode Only)
+        if (import.meta.env.VITE_APP_MODE === 'app' && (window as any).Android?.onUserSignIn) {
           (window as any).Android.onUserSignIn(user.id);
         }
 
@@ -150,6 +150,8 @@ const App: React.FC = () => {
   useEffect(() => {
     Analytics.trackPageView(activeTab);
   }, [activeTab]);
+
+  const appMode = import.meta.env.VITE_APP_MODE; // 'web' or 'app'
 
   const renderContent = () => {
     switch (activeTab) {
@@ -233,7 +235,7 @@ const App: React.FC = () => {
       <SignedOut>
         <div className="min-h-screen flex flex-col bg-white">
           <div className="flex-1 flex items-center justify-center px-4">
-            <div className="w-full max-w-md">
+            <div className="w-full max-w-md lg:max-w-lg">
               <SignIn
                 appearance={{
                   variables: {
@@ -253,67 +255,193 @@ const App: React.FC = () => {
       {/* 🔐 LOGGED IN APP */}
       <SignedIn>
         <ChildProvider>
-          <div className="min-h-screen flex items-center justify-center bg-slate-100 sm:p-4">
+          {appMode === 'app' ? (
+            /* 📱 APP LAYOUT (MOBILE CONSTRAINED) */
+            <div className="min-h-screen flex items-center justify-center bg-slate-100 sm:p-4">
+              <div
+                className={`h-screen sm:h-[844px] w-full sm:max-w-[390px] flex flex-col bg-white sm:rounded-[48px] sm:shadow-2xl sm:border-[8px] sm:border-slate-900 relative overflow-hidden is-phone-app`}
+              >
+                {/* 🏥 HEADER */}
+                <header
+                  className="absolute top-0 left-0 right-0 h-16 flex items-center justify-between px-6 z-50 bg-white/80 backdrop-blur-xl border-b border-emerald-50/50"
+                >
+                  <div className="flex items-center gap-2">
+                    <img src="/imam_logo.png" alt="Logo" className="h-7 object-contain" />
+                    <h1 className="text-base font-black tracking-tight text-[#052e16]">IMAM</h1>
+                  </div>
+
+                  <div className="flex items-center gap-2">
+                    {/* Global Language Selector */}
+                    <div className="relative">
+                      <button
+                        onClick={() => setShowLangDropdown(!showLangDropdown)}
+                        className="px-2.5 py-1.5 bg-emerald-50/50 rounded-full text-[10px] font-bold text-[#052e16] flex items-center gap-1"
+                      >
+                        <Globe size={12} />
+                        {currentLang.script}
+                      </button>
+                      {showLangDropdown && (
+                        <div className="absolute right-0 top-full mt-2 w-32 bg-white rounded-xl shadow-xl border border-emerald-100 z-[60] overflow-hidden">
+                          {SUPPORTED_LANGUAGES.map(lang => (
+                            <button
+                              key={lang.code}
+                              onClick={() => handleLanguageChange(lang.code)}
+                              className="w-full px-4 py-2 text-left text-[10px] hover:bg-emerald-50"
+                            >
+                              {lang.label}
+                            </button>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                    <UserButton afterSignOutUrl="/" appearance={{ elements: { avatarBox: "h-8 w-8" } }} />
+                  </div>
+                </header>
+
+                {/* 📱 MAIN CONTENT (Scrollable Area) */}
+                <main className="flex-1 overflow-y-auto pt-16 pb-20 no-scrollbar">
+                  {renderContent()}
+                  <Footer />
+                </main>
+
+                {/* 🧭 BOTTOM NAV (Instagram Style) */}
+                <nav className="absolute bottom-0 left-0 right-0 h-20 bg-white/90 backdrop-blur-xl border-t border-emerald-50 flex items-center justify-around px-4 z-50">
+                  {navItems.map((item) => {
+                    const isActive = activeTab === item.id;
+                    return (
+                      <button
+                        key={item.id}
+                        onClick={() => setActiveTab(item.id)}
+                        className={`flex flex-col items-center gap-1 transition-all ${isActive ? "text-[#052e16]" : "text-slate-300"}`}
+                      >
+                        <div className={`p-2 rounded-xl transition-all ${isActive ? "bg-emerald-50 shadow-sm" : ""}`}>
+                          {item.icon}
+                        </div>
+                        <span className="text-[9px] font-bold tracking-tight">{item.label}</span>
+                      </button>
+                    );
+                  })}
+                </nav>
+              </div>
+            </div>
+          ) : (
+            /* 🌐 WEB LAYOUT (RESPONSIVE) */
             <div
-              className={`h-screen sm:h-[844px] w-full sm:max-w-[390px] flex flex-col bg-white sm:rounded-[48px] sm:shadow-2xl sm:border-[8px] sm:border-slate-900 relative overflow-hidden is-phone-app`}
+              className={`min-h-screen flex ${isDesktop ? "flex-row" : "flex-col"
+                } bg-white`}
             >
-              {/* 🏥 HEADER */}
+              {/* HEADER */}
               <header
-                className="absolute top-0 left-0 right-0 h-16 flex items-center justify-between px-6 z-50 bg-white/80 backdrop-blur-xl border-b border-emerald-50/50"
+                className={`fixed top-0 right-0 h-16 flex items-center justify-between px-6 z-[100] transition-all duration-300 ${isDesktop ? "left-64" : "left-0"
+                  }`}
+                style={{
+                  background: 'rgba(255, 255, 255, 0.85)',
+                  backdropFilter: 'blur(12px)',
+                  borderBottom: '1px solid rgba(5,46,22,0.05)',
+                  boxShadow: '0 4px 20px rgba(5,46,22,0.02)',
+                }}
               >
                 <div className="flex items-center gap-2">
-                  <img src="/imam_logo.png" alt="Logo" className="h-7 object-contain" />
-                  <h1 className="text-base font-black tracking-tight text-[#052e16]">IMAM</h1>
+                  <img
+                    src="/imam_logo.png"
+                    alt="Imam Logo"
+                    className="h-8 object-contain"
+                  />
+                  <h1 className="text-lg font-black tracking-tight text-[#052e16]">
+                    IMAM
+                  </h1>
                 </div>
 
-                <div className="flex items-center gap-2">
-                  {/* Global Language Selector */}
+                <div className="flex items-center gap-3">
                   <div className="relative">
                     <button
                       onClick={() => setShowLangDropdown(!showLangDropdown)}
-                      className="px-2.5 py-1.5 bg-emerald-50/50 rounded-full text-[10px] font-bold text-[#052e16] flex items-center gap-1"
+                      className="flex items-center gap-1.5 px-3 py-1.5 bg-white/80 border border-[#052e16]/10 rounded-full hover:bg-emerald-50 transition-all text-sm shadow-sm"
+                      title={t("language.label")}
                     >
-                      <Globe size={12} />
-                      {currentLang.script}
+                      <Globe size={14} className="text-[#052e16]/60" />
+                      <span className="text-xs font-bold text-[#052e16]/70">{currentLang.script}</span>
                     </button>
+
                     {showLangDropdown && (
-                      <div className="absolute right-0 top-full mt-2 w-32 bg-white rounded-xl shadow-xl border border-emerald-100 z-[60] overflow-hidden">
-                        {SUPPORTED_LANGUAGES.map(lang => (
-                          <button
-                            key={lang.code}
-                            onClick={() => handleLanguageChange(lang.code)}
-                            className="w-full px-4 py-2 text-left text-[10px] hover:bg-emerald-50"
-                          >
-                            {lang.label}
-                          </button>
-                        ))}
-                      </div>
+                      <>
+                        <div className="fixed inset-0 z-[150]" onClick={() => setShowLangDropdown(false)} />
+                        <div className="absolute right-0 top-full mt-2 w-44 bg-white rounded-2xl shadow-xl border border-emerald-100 overflow-hidden z-[200]">
+                          {SUPPORTED_LANGUAGES.map((lang) => (
+                            <button
+                              key={lang.code}
+                              onClick={() => handleLanguageChange(lang.code)}
+                              className={`w-full flex items-center gap-3 px-4 py-3 text-left transition-all ${i18n.language === lang.code
+                                ? 'bg-emerald-50 text-[#052e16] font-bold'
+                                : 'text-slate-600 hover:bg-slate-50'
+                                }`}
+                            >
+                              <span className="text-xs font-bold text-[#052e16]/60">{lang.script}</span>
+                              <span className="text-xs font-semibold">{lang.label}</span>
+                            </button>
+                          ))}
+                        </div>
+                      </>
                     )}
                   </div>
-                  <UserButton afterSignOutUrl="/" appearance={{ elements: { avatarBox: "h-8 w-8" } }} />
+
+                  <button
+                    onClick={() => setActiveTab(AppTab.PROFILE)}
+                    className={`h-9 w-9 rounded-full flex items-center justify-center transition-all active:scale-95 ${activeTab === AppTab.PROFILE
+                      ? "bg-[#052e16] text-white"
+                      : "bg-white border border-[#052e16]/10 text-[#052e16]"
+                      }`}
+                  >
+                    <User size={16} />
+                  </button>
+                  <UserButton afterSignOutUrl="/" appearance={{ elements: { avatarBox: "h-9 w-9" } }} />
                 </div>
               </header>
 
-              {/* 📱 MAIN CONTENT (Scrollable Area) */}
-              <main className="flex-1 overflow-y-auto pt-16 pb-20 no-scrollbar">
+              {/* DESKTOP SIDEBAR */}
+              {isDesktop && (
+                <aside className="w-64 h-screen fixed flex flex-col z-[110]"
+                  style={{
+                    background: 'linear-gradient(160deg, rgba(255,255,255,0.97) 0%, rgba(240,253,244,0.95) 100%)',
+                    borderRight: '1px solid rgba(5,46,22,0.07)',
+                    backdropFilter: 'blur(20px)',
+                  }}
+                >
+                  <div className="px-6 pt-7 pb-6">
+                    <div className="flex items-center gap-3">
+                      <img src="/imam_logo.png" alt="Logo" className="h-10" />
+                      <h1 className="text-2xl font-black text-[#052e16]">IMAM</h1>
+                    </div>
+                  </div>
+
+                  <nav className="flex-1 px-3 space-y-1">
+                    {navItems.map((item) => (
+                      <button
+                        key={item.id}
+                        onClick={() => setActiveTab(item.id)}
+                        className={`w-full flex items-center gap-3 px-4 py-3.5 rounded-2xl transition-all ${activeTab === item.id ? 'bg-emerald-50 text-[#052e16] font-bold border' : 'text-slate-400'}`}
+                      >
+                        {item.icon}
+                        <span>{item.label}</span>
+                      </button>
+                    ))}
+                  </nav>
+                </aside>
+              )}
+
+              {/* MAIN CONTENT */}
+              <main className={`flex-1 overflow-y-auto pt-16 pb-24 ${isDesktop ? "ml-64" : ""}`}>
                 {renderContent()}
                 <Footer />
               </main>
 
-              {/* 🧭 BOTTOM NAV (Instagram Style) */}
-              <nav className="absolute bottom-0 left-0 right-0 h-20 bg-white/90 backdrop-blur-xl border-t border-emerald-50 flex items-center justify-around px-4 z-50">
-                {navItems.map((item) => {
-                  const isActive = activeTab === item.id;
-                  return (
+              {/* MOBILE NAV */}
+              {!isDesktop && (
+                <nav className="fixed bottom-0 left-0 right-0 glass-nav h-20 flex items-center justify-around px-2 z-[100]">
+                  {navItems.map((item) => (
                     <button
                       key={item.id}
                       onClick={() => setActiveTab(item.id)}
-                      className={`flex flex-col items-center gap-1 transition-all ${isActive ? "text-[#052e16]" : "text-slate-300"}`}
-                    >
-                      <div className={`p-2 rounded-xl transition-all ${isActive ? "bg-emerald-50 shadow-sm" : ""}`}>
-                        {item.icon}
-                      </div>
-                      <span className="text-[9px] font-bold tracking-tight">{item.label}</span>
                     </button>
                   );
                 })}

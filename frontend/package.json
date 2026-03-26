@@ -5,8 +5,10 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
+    "dev:app": "cross-env VITE_APP_MODE=app vite",
     "lint": "eslint . --ext .js,.jsx,.ts,.tsx --ignore-pattern dist",
     "build": "npm run lint && vite build",
+    "build:app": "cross-env VITE_APP_MODE=app npm run lint && cross-env VITE_APP_MODE=app vite build",
     "preview": "vite preview"
   },
   "dependencies": {

@@ -1,0 +1,49 @@
+/* 📱 Mobile App Scaling Overrides */
+.is-phone-app {
+    font-size: 14px; /* Base app font size */
+}
+.is-phone-app h1 { font-size: 1.5rem !important; }
+.is-phone-app h2 { font-size: 1.25rem !important; }
+.is-phone-app .text-4xl, .is-phone-app .text-5xl, .is-phone-app .text-6xl, .is-phone-app .text-7xl, .is-phone-app .text-8xl { 
+    font-size: 1.75rem !important; 
+    line-height: 1.2 !important;
+}
+.is-phone-app .p-10, .is-phone-app .p-16, .is-phone-app .p-20 { 
+    padding: 1.5rem !important; 
+}
+.is-phone-app .py-20, .is-phone-app .py-32 {
+    padding-top: 2rem !important;
+    padding-bottom: 2rem !important;
+}
+.is-phone-app .gap-8, .is-phone-app .gap-12, .is-phone-app .gap-16 {
+    gap: 1rem !important;
+}
+/* Lock everything to vertical on "phone" layout if needed */
+.is-phone-app .flex-row-mobile-force {
+    flex-direction: column !important;
+}
+
+/* Custom animations for Tarbiyah */
+@keyframes float-calm {
+  0% { transform: translateY(110vh) rotate(0deg); opacity: 0; }
+  20% { opacity: 0.3; } 
+  80% { opacity: 0.3; }
+  100% { transform: translateY(-20vh) rotate(360deg); opacity: 0; }
+}
+.bg-icon-calm {
+  position: absolute;
+  opacity: 0;
+  animation: float-calm linear infinite;
+  will-change: transform;
+}
+@keyframes shimmer {
+  0% { transform: translateX(-100%); }
+  100% { transform: translateX(100%); }
+}
+.no-scrollbar::-webkit-scrollbar { display: none; }
+.no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+
+.arabic-text {
+    font-family: 'Amiri', serif;
+    line-height: 2.2;
+}

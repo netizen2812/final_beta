@@ -11,6 +11,8 @@ import android.webkit.WebChromeClient
 import android.webkit.WebSettings
 import android.webkit.WebView
 import android.webkit.WebViewClient
+import android.content.Intent
+import android.net.Uri
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.content.ContextCompat
@@ -34,6 +36,21 @@ class MainActivity : AppCompatActivity() {
         setupWebView()
         setupSwipeRefresh()
         checkPermissions()
+        handleIntent(intent)
+    }
+
+    override fun onNewIntent(intent: Intent) {
+        super.onNewIntent(intent)
+        setIntent(intent)
+        handleIntent(intent)
+    }
+
+    private fun handleIntent(intent: Intent?) {
+        val appLinkData: Uri? = intent?.data
+        if (appLinkData != null) {
+            // Navigate the WebView to the deep link path
+            binding.webView.loadUrl(appLinkData.toString())
+        }
     }
 
     @SuppressLint("SetJavaScriptEnabled")
@@ -55,6 +72,10 @@ class MainActivity : AppCompatActivity() {
         settings.builtInZoomControls = true
         settings.displayZoomControls = false
 
+        // Custom User Agent to ensure compatibility with Clerk Social Logins
+        val defaultUserAgent = settings.userAgentString
+        settings.userAgentString = "$defaultUserAgent FaithTechApp/1.0"
+
         // Bridge: JavaScript Interface
         webView.addJavascriptInterface(WebAppInterface(this), "Android")
 
@@ -64,6 +85,24 @@ class MainActivity : AppCompatActivity() {
         cookieManager.setAcceptThirdPartyCookies(webView, true)
 
         webView.webViewClient = object : WebViewClient() {
+            override fun shouldOverrideUrlLoading(view: WebView?, url: String?): Boolean {
+                if (url == null) return false
+
+                // If the URL is for our app domain, load it in the WebView
+                if (url.contains("imamapp.co")) {
+                    return false
+                }
+
+                // Handle common protocols (tel, mailto, etc.) or external links
+                return try {
+                    val intent = Intent(Intent.ACTION_VIEW, Uri.parse(url))
+                    startActivity(intent)
+                    true // We handled it
+                } catch (e: Exception) {
+                    false // Let the system handle it
+                }
+            }
+
             override fun onPageFinished(view: WebView?, url: String?) {
                 super.onPageFinished(view, url)
                 binding.swipeRefreshLayout.isRefreshing = false

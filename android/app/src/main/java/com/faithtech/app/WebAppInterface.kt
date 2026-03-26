@@ -11,6 +11,7 @@ import android.os.Vibrator
 import android.os.VibratorManager
 import android.webkit.JavascriptInterface
 import android.widget.Toast
+import androidx.core.app.NotificationManagerCompat
 
 /**
  * Interface to communicate between JavaScript in WebView and Native Android.
@@ -71,5 +72,28 @@ class WebAppInterface(private val mContext: Context) {
     fun openExternalBrowser(url: String) {
         val intent = Intent(Intent.ACTION_VIEW, Uri.parse(url))
         mContext.startActivity(intent)
+    }
+
+    /**
+     * Called when the user signs in on the web side.
+     * Use this to sync userId for FCM or Analytics.
+     */
+    @JavascriptInterface
+    fun onUserSignIn(userId: String) {
+        // Store userId for future use (e.g., associating with FCM token)
+        val prefs = mContext.getSharedPreferences("FaithTechPrefs", Context.MODE_PRIVATE)
+        prefs.edit().putString("userId", userId).apply()
+        // showToast("Signed in as: $userId") // Optional: only for debug
+    }
+
+    @JavascriptInterface
+    fun onUserSignOut() {
+        val prefs = mContext.getSharedPreferences("FaithTechPrefs", Context.MODE_PRIVATE)
+        prefs.edit().remove("userId").apply()
+    }
+
+    @JavascriptInterface
+    fun isNotificationEnabled(): Boolean {
+        return NotificationManagerCompat.from(mContext).areNotificationsEnabled()
     }
 }

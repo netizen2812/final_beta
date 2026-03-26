@@ -63,13 +63,13 @@ const HomeHero: React.FC = () => {
                 </div>
 
                 {/* Reflection Card */}
-                <div className="group relative bg-white/70 backdrop-blur-xl border border-emerald-100/50 p-10 md:p-16 rounded-[4rem] shadow-[0_30px_100px_-20px_rgba(16,185,129,0.08)] transition-all duration-500 hover:shadow-[0_40px_120px_-20px_rgba(16,185,129,0.12)] hover:-translate-y-2">
-                    <div className="absolute -top-6 left-1/2 -translate-x-1/2 bg-[#0D4433] text-white p-4 rounded-full shadow-xl">
-                        <Sparkles size={20} className="animate-pulse" />
+                <div className="group relative bg-white/70 backdrop-blur-xl border border-emerald-100/50 p-6 md:p-10 rounded-[3rem] shadow-[0_20px_80px_-20px_rgba(16,185,129,0.08)] transition-all duration-500 hover:shadow-[0_40px_120px_-20px_rgba(16,185,129,0.12)]">
+                    <div className="absolute -top-5 left-1/2 -translate-x-1/2 bg-[#0D4433] text-white p-3 rounded-full shadow-lg">
+                        <Sparkles size={16} className="animate-pulse" />
                     </div>
 
-                    <div className="space-y-8">
-                        <p className="text-2xl md:text-4xl font-serif text-emerald-950 leading-relaxed italic">
+                    <div className="space-y-6">
+                        <p className="text-xl md:text-3xl font-serif text-emerald-950 leading-relaxed italic">
                             "{t('home.dailyReflectionAyah', { defaultValue: DAILY_REFLECTION.ayah })}"
                         </p>
                         <div className="flex flex-col items-center space-y-2">

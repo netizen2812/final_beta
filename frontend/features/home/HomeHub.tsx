@@ -60,7 +60,7 @@ const HomeHub: React.FC<HomeHubProps> = ({ onNavigate }) => {
             <div className="relative z-10">
                 <HomeHero />
 
-                <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-32 py-20 md:py-32">
+                <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-12 py-10 md:py-20">
                     <FeatureCardsGrid onNavigate={onNavigate} />
 
                     <ProphetsFamilyTree />

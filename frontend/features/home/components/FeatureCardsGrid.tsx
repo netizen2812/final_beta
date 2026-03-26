@@ -27,14 +27,14 @@ const FeatureCard: React.FC<FeatureCardProps> = ({ title, desc, benefit, icon: I
     return (
         <div
             onClick={onFlip}
-            className="relative cursor-pointer h-[420px] md:h-[500px] w-full [perspective:1000px] reveal-on-scroll"
+            className="relative cursor-pointer h-[380px] md:h-[460px] w-full [perspective:1000px] reveal-on-scroll"
         >
             <div
                 className={`relative w-full h-full transition-transform duration-[400ms] ease-in-out [transform-style:preserve-3d] ${isFlipped ? '[transform:rotateY(180deg)]' : ''}`}
             >
                 {/* FRONT SIDE */}
-                <div className={`absolute inset-0 [backface-visibility:hidden] [-webkit-backface-visibility:hidden] [transform:rotateY(0deg)_translateZ(1px)] bg-[#0D4433] rounded-[4rem] border border-white/10 shadow-3xl overflow-hidden flex flex-col items-center text-center p-12 transition-opacity duration-300 ${isFlipped ? 'opacity-0 delay-100' : 'opacity-100 delay-100'}`}>
-                    {/* Background Image Layer */}
+                <div className={`absolute inset-0 [backface-visibility:hidden] [-webkit-backface-visibility:hidden] [transform:rotateY(0deg)_translateZ(1px)] bg-[#0D4433] rounded-[3rem] border border-white/10 shadow-3xl overflow-hidden flex flex-col items-center text-center p-8 transition-opacity duration-300 ${isFlipped ? 'opacity-0 delay-100' : 'opacity-100 delay-100'}`}>
+                    {/* ... image content ... */}
                     <div
                         className="absolute inset-0"
                         style={{
@@ -46,7 +46,7 @@ const FeatureCard: React.FC<FeatureCardProps> = ({ title, desc, benefit, icon: I
                     />
 
                     {/* Creative Organic Icon Overlay */}
-                    <div className="absolute top-12 left-1/2 -translate-x-1/2 flex items-center justify-center">
+                    <div className="absolute top-10 left-1/2 -translate-x-1/2 flex items-center justify-center">
                         <div className="relative">
                             {/* Glowing Auras */}
                             <div className="absolute inset-0 bg-emerald-400 blur-3xl opacity-20" />
@@ -54,16 +54,16 @@ const FeatureCard: React.FC<FeatureCardProps> = ({ title, desc, benefit, icon: I
                             <div className="absolute inset-[-40%] border border-emerald-400/10 rounded-full" />
 
                             {/* The Icon */}
-                            <div className="relative p-6 rounded-full bg-white/5 backdrop-blur-md border border-white/20 text-white shadow-lg">
-                                <Icon size={32} />
+                            <div className="relative p-5 rounded-full bg-white/5 backdrop-blur-md border border-white/20 text-white shadow-lg">
+                                <Icon size={28} />
                             </div>
                         </div>
                     </div>
 
                     {/* Title Container */}
                     <div className="mt-auto relative z-20 w-full flex flex-col items-center">
-                        <div className="h-32 flex flex-col justify-end pb-8">
-                            <h3 className="text-3xl font-black text-white px-2">
+                        <div className="h-28 flex flex-col justify-end pb-6">
+                            <h3 className="text-2xl font-black text-white px-2">
                                 {title}
                             </h3>
                         </div>
@@ -71,11 +71,11 @@ const FeatureCard: React.FC<FeatureCardProps> = ({ title, desc, benefit, icon: I
                 </div>
 
                 {/* BACK SIDE */}
-                <div className={`absolute inset-0 [backface-visibility:hidden] [-webkit-backface-visibility:hidden] [transform:rotateY(180deg)_translateZ(1px)] bg-[#0D4433] rounded-[4rem] border border-white/10 shadow-3xl overflow-hidden flex flex-col items-center justify-center text-center p-8 transition-opacity duration-300 ${!isFlipped ? 'opacity-0 delay-100' : 'opacity-100 delay-100'}`}>
+                <div className={`absolute inset-0 [backface-visibility:hidden] [-webkit-backface-visibility:hidden] [transform:rotateY(180deg)_translateZ(1px)] bg-[#0D4433] rounded-[3rem] border border-white/10 shadow-3xl overflow-hidden flex flex-col items-center justify-center text-center p-8 transition-opacity duration-300 ${!isFlipped ? 'opacity-0 delay-100' : 'opacity-100 delay-100'}`}>
                     <div className="absolute inset-0 bg-gradient-to-t from-emerald-950/90 via-emerald-950/80 to-emerald-900/50" />
 
                     <div className="relative z-20 space-y-6 w-full flex flex-col items-center">
-                        <h3 className="text-2xl font-black text-white px-2">
+                        <h3 className="text-xl font-black text-white px-2">
                             {title}
                         </h3>
                         <p className="text-sm font-medium leading-relaxed max-w-[280px] text-emerald-100/80">

@@ -34,12 +34,12 @@ const ProphetsFamilyTree: React.FC = () => {
 
     return (
         <>
-            <section className="relative w-full bg-white/5 backdrop-blur-sm rounded-[4rem] border border-emerald-50/10 py-32 px-4 shadow-2xl reveal-on-scroll">
+            <section className="relative w-full bg-white/5 backdrop-blur-sm rounded-[3rem] border border-emerald-50/10 py-12 md:py-32 px-4 shadow-2xl reveal-on-scroll">
                 {/* Title Overlay */}
-                <div className="text-center space-y-4 mb-20 pointer-events-none">
+                <div className="text-center space-y-4 mb-10 md:mb-20 pointer-events-none">
                     <div className="w-12 h-1 bg-emerald-100 mx-auto rounded-full" />
-                    <h2 className="text-4xl md:text-6xl font-serif text-emerald-950">{t('home.prophets.title')}</h2>
-                    <p className="text-[10px] font-black uppercase tracking-[0.4em] text-emerald-900/30">{t('home.prophets.subtitle')}</p>
+                    <h2 className="text-2xl md:text-6xl font-serif text-emerald-950">{t('home.prophets.title')}</h2>
+                    <p className="text-[9px] font-black uppercase tracking-[0.4em] text-emerald-900/30">{t('home.prophets.subtitle')}</p>
                 </div>
 
                 {/* The Map Canvas - Now full height and natural scroll with horizontal overflow on mobile */}

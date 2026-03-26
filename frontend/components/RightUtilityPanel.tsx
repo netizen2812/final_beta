@@ -20,7 +20,7 @@ const toneOptions = [
 const GuidanceControlPanel: React.FC<GuidanceControlPanelProps> = ({ madhab, setMadhab, tone, setTone }) => {
     const { t } = useTranslation();
     return (
-        <div className="w-[280px] flex flex-col h-full overflow-hidden bg-white/70 backdrop-blur-md border-l border-slate-100/80">
+        <div className="w-full sm:w-[280px] flex flex-col h-[70vh] sm:h-full overflow-hidden bg-white/90 backdrop-blur-xl border-t sm:border-t-0 sm:border-l border-slate-100/80 rounded-t-[3rem] sm:rounded-t-none animate-in slide-in-from-bottom duration-300">
             {/* Header */}
             <div className="p-5 border-b border-slate-100/80">
                 <h3 className="text-[10px] font-black uppercase tracking-[0.2em] text-[#052e16]">{t('chat.guidanceSettings')}</h3>

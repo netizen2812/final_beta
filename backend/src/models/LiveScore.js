@@ -24,8 +24,8 @@ const liveScoreSchema = new mongoose.Schema({
     }
 }, { timestamps: true });
 
-// Compound index to quickly find scores for a specific class instance
-liveScoreSchema.index({ batchId: 1, sessionId: 1, childId: 1 }, { unique: true });
+// TTL Index: Auto-delete historical scores after 365 days (1 year) to manage storage
+liveScoreSchema.index({ createdAt: 1 }, { expireAfterSeconds: 365 * 24 * 60 * 60 });
 
 const LiveScore = mongoose.model("LiveScore", liveScoreSchema);
 export default LiveScore;

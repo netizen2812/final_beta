@@ -136,15 +136,15 @@ const EmptyState: React.FC<{ onPrompt: (q: string) => void }> = ({ onPrompt }) =
           {t('chat.greetingDesc')}
         </p>
       </div>
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 w-full">
+      <div className="flex overflow-x-auto no-scrollbar gap-2 w-full pb-2 px-2">
         {prompts.map((p, i) => (
           <button
             key={i}
             onClick={() => onPrompt(p.text)}
-            className="flex items-center gap-3 px-4 py-3.5 bg-white/80 backdrop-blur-sm border border-slate-100 rounded-2xl hover:border-emerald-200 hover:bg-emerald-50/50 hover:shadow-md hover:-translate-y-0.5 transition-all duration-200 text-left group"
+            className="flex-shrink-0 flex items-center gap-2 px-5 py-3 bg-white/80 backdrop-blur-sm border border-slate-100 rounded-full hover:border-emerald-200 hover:bg-emerald-50/50 transition-all duration-200 group"
           >
-            <span className="text-lg">{p.emoji}</span>
-            <span className="text-xs font-semibold text-slate-600 group-hover:text-[#052e16] leading-snug">{p.text}</span>
+            <span className="text-base">{p.emoji}</span>
+            <span className="text-[10px] font-bold text-slate-600 group-hover:text-[#052e16] whitespace-nowrap">{p.text}</span>
           </button>
         ))}
       </div>
@@ -179,13 +179,14 @@ const CoreChat: React.FC<CoreChatProps> = ({ madhab, setMadhab, tone: mood, setT
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const { getToken } = useAuth();
 
-  const [isDesktop, setIsDesktop] = useState(window.innerWidth >= 1024);
-  const [isLargeDesktop, setIsLargeDesktop] = useState(window.innerWidth >= 1440);
+  const [isDesktop, setIsDesktop] = useState(window.innerWidth >= 1024 && !document.querySelector('.is-phone-app'));
+  const [isLargeDesktop, setIsLargeDesktop] = useState(window.innerWidth >= 1440 && !document.querySelector('.is-phone-app'));
 
   useEffect(() => {
     const handleResize = () => {
-      setIsDesktop(window.innerWidth >= 1024);
-      setIsLargeDesktop(window.innerWidth >= 1440);
+      const isInsidePhone = !!document.querySelector('.is-phone-app');
+      setIsDesktop(window.innerWidth >= 1024 && !isInsidePhone);
+      setIsLargeDesktop(window.innerWidth >= 1440 && !isInsidePhone);
     };
     window.addEventListener('resize', handleResize);
     return () => window.removeEventListener('resize', handleResize);
@@ -487,7 +488,7 @@ const CoreChat: React.FC<CoreChatProps> = ({ madhab, setMadhab, tone: mood, setT
                     key={groupIdx}
                     className={`flex ${group.role === 'user' ? 'justify-end' : 'justify-start'} ${groupIdx > 0 ? 'mt-5' : ''}`}
                   >
-                    <div className="space-y-2 max-w-[88%]">
+                    <div className="space-y-2 max-w-[92%]">
                       {group.messages.map((msg, msgIdx) => (
                         <div
                           key={msg.id}
@@ -552,7 +553,10 @@ const CoreChat: React.FC<CoreChatProps> = ({ madhab, setMadhab, tone: mood, setT
         {showPreferences && (
           <div className="fixed inset-0 z-[200] flex items-end md:items-center justify-center p-4">
             <div className="absolute inset-0 bg-[#052e16]/30 backdrop-blur-md" onClick={() => setShowPreferences(false)} />
-            <div className="relative w-full max-w-md bg-white rounded-[2.5rem] shadow-2xl border border-emerald-100 p-7 md:p-9 space-y-7 animate-in slide-in-from-bottom duration-300">
+            <div className="relative w-full max-w-md bg-white rounded-t-[3rem] md:rounded-[2.5rem] shadow-2xl border border-emerald-100 p-7 md:p-9 pt-10 md:pt-9 space-y-7 animate-in slide-in-from-bottom duration-300">
+              {/* Drag Handle for Mobile */}
+              <div className="absolute top-4 left-1/2 -translate-x-1/2 w-12 h-1.5 bg-slate-100 rounded-full md:hidden" />
+              
               <div className="flex justify-between items-center">
                 <div>
                   <h3 className="text-sm font-black uppercase tracking-widest text-[#052e16]">{t('chat.sessionSettings')}</h3>

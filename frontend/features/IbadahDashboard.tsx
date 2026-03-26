@@ -871,7 +871,7 @@ const IbadahDashboard: React.FC = () => {
       <div className="absolute bottom-0 left-0 w-full px-4 sm:px-6 lg:px-8 z-20">
         <div className="relative max-w-6xl mx-auto -mb-20 md:-mb-40 lg:-mb-24 group/tracker">
           <div
-            className="bg-white rounded-[2rem] md:rounded-[4rem] p-2.5 sm:p-4 md:p-6 shadow-[0_20px_50px_rgba(0,0,0,0.2)] grid grid-cols-3 sm:grid-cols-5 items-center justify-between gap-1.5 sm:gap-3 md:gap-6 border border-white/50 overflow-x-hidden"
+            className="bg-white rounded-[2rem] md:rounded-[4rem] p-2.5 sm:p-4 md:p-6 shadow-[0_20px_50px_rgba(0,0,0,0.2)] flex md:grid md:grid-cols-5 items-center justify-start md:justify-between gap-3 md:gap-6 border border-white/50 overflow-x-auto no-scrollbar snap-x snap-mandatory px-4 md:px-6"
           >
             {(prayerTimes.length > 0 ? prayerTimes : [{ id: 1, name: 'Fajr', time: '---' }, { id: 2, name: 'Dhuhr', time: '---' }, { id: 3, name: 'Asr', time: '---' }, { id: 4, name: 'Maghrib', time: '---' }, { id: 5, name: 'Isha', time: '---' }] as PrayerTime[]).map((p) => {
               const isCompleted = completedPrayers.includes(p.name);
@@ -880,7 +880,7 @@ const IbadahDashboard: React.FC = () => {
                 <div
                   key={p.id}
                   onClick={() => navigateTo('prayer-guide', p)}
-                  className={`flex flex-col items-center justify-center rounded-[1.5rem] md:rounded-[3rem] transition-all duration-700 cursor-pointer group/prayer relative overflow-hidden h-20 md:h-36 lg:h-28 ${isCompleted ? 'bg-emerald-50 text-emerald-600 opacity-60' : isActive ? 'bg-[#0D4433] text-white shadow-xl scale-100 md:scale-110 z-10' : 'bg-[#F9FAF2]/30 md:bg-transparent text-gray-400 border border-transparent hover:border-emerald-100'}`}
+                  className={`flex flex-col items-center justify-center rounded-[1.5rem] md:rounded-[3rem] transition-all duration-700 cursor-pointer group/prayer relative overflow-hidden h-20 md:h-36 lg:h-28 min-w-[100px] md:min-w-0 flex-shrink-0 snap-center ${isCompleted ? 'bg-emerald-50 text-emerald-600 opacity-60' : isActive ? 'bg-[#0D4433] text-white shadow-xl scale-100 md:scale-110 z-10' : 'bg-[#F9FAF2]/30 md:bg-transparent text-gray-400 border border-transparent hover:border-emerald-100'}`}
                 >
                   <div onClick={(e) => { e.stopPropagation(); togglePrayerCompletion(p.name); }} className={`absolute top-2 right-2 md:top-4 md:right-4 w-4 h-4 md:w-6 md:h-6 rounded-full border-2 flex items-center justify-center transition-all ${isCompleted ? 'bg-emerald-500 border-emerald-500 text-white' : 'border-gray-200 text-transparent'}`}><CheckCircle2 size={10} /></div>
                   <span className={`text-[7px] md:text-[11px] font-black uppercase tracking-widest mb-0.5 md:mb-2 transition-colors ${isActive ? 'text-emerald-400' : 'group-hover/prayer:text-[#0D4433]'}`}>{t(`ibadah.prayers.${p.name}`)}</span>
@@ -900,7 +900,7 @@ const IbadahDashboard: React.FC = () => {
 
       {/* MOBILE FEATURE GRID */}
       <section className="lg:hidden max-w-7xl mx-auto px-4 sm:px-6 mt-32 md:mt-48 space-y-6">
-        <div className="grid grid-cols-2 gap-3 sm:gap-4">
+        <div className="grid grid-cols-2 gap-3 pb-20">
           <FeatureCard
             title={t('ibadah.quran')}
             desc={t('ibadah.listenRead')}

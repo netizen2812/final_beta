@@ -3,12 +3,18 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Imam - Faith Tech Education</title>
+    <title>Imam</title>
     <script src='https://8x8.vc/vpaas-magic-cookie-0ce893506b9c42d388e16bbaf8b0608c/external_api.js' async></script>
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <style>
-        body { font-family: 'Inter', sans-serif; -webkit-tap-highlight-color: transparent; }
+        body { 
+            font-family: 'Inter', sans-serif; 
+            -webkit-tap-highlight-color: transparent; 
+            -webkit-user-select: none; 
+            user-select: none;
+            overscroll-behavior-y: contain;
+        }
         .glass-nav { backdrop-filter: blur(10px); background: rgba(255, 255, 255, 0.85); border-top: 1px solid rgba(0, 0, 0, 0.05); }
         .bg-cream { background-color: #fdfcf0; }
         .text-islamic-green { color: #052e16; }
@@ -52,6 +58,31 @@
         .arabic-text {
             font-family: 'Amiri', serif;
             line-height: 2.2;
+        }
+
+        /* 📱 Mobile App Scaling Overrides */
+        .is-phone-app {
+            font-size: 14px; /* Base app font size */
+        }
+        .is-phone-app h1 { font-size: 1.5rem !important; }
+        .is-phone-app h2 { font-size: 1.25rem !important; }
+        .is-phone-app .text-4xl, .is-phone-app .text-5xl, .is-phone-app .text-6xl, .is-phone-app .text-7xl, .is-phone-app .text-8xl { 
+            font-size: 1.75rem !important; 
+            line-height: 1.2 !important;
+        }
+        .is-phone-app .p-10, .is-phone-app .p-16, .is-phone-app .p-20 { 
+            padding: 1.5rem !important; 
+        }
+        .is-phone-app .py-20, .is-phone-app .py-32 {
+            padding-top: 2rem !important;
+            padding-bottom: 2rem !important;
+        }
+        .is-phone-app .gap-8, .is-phone-app .gap-12, .is-phone-app .gap-16 {
+            gap: 1rem !important;
+        }
+        /* Lock everything to vertical on "phone" layout if needed */
+        .is-phone-app .flex-row-mobile-force {
+            flex-direction: column !important;
         }
     </style>
 <script type="importmap">

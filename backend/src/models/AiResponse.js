@@ -27,8 +27,8 @@ const aiResponseSchema = new mongoose.Schema(
     }
 );
 
-// Compound index for fast cache lookups
-aiResponseSchema.index({ question: 1, language: 1, madhab: 1 });
+// TTL Index: Auto-delete cached responses after 180 days to manage storage
+aiResponseSchema.index({ createdAt: 1 }, { expireAfterSeconds: 180 * 24 * 60 * 60 });
 
 const AiResponse = mongoose.model("AiResponse", aiResponseSchema);
 

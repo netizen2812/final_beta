@@ -11,6 +11,7 @@ import axios from 'axios';
 import { useTranslation } from 'react-i18next';
 import SessionLeaderboard from './SessionLeaderboard';
 import { loadRazorpayScript } from '../utils/razorpay';
+import { TarbiyahOnboarding } from './TarbiyahOnboarding';
 
 // --- DATA & CONSTANTS ---
 const API_BASE = import.meta.env.VITE_API_URL || "http://localhost:5000";
@@ -286,6 +287,10 @@ const KidsView = ({ scrollProgress, activeChild, onJoinLive, currentBatchStatus,
   const maxPercentage = (lastUnlockedIndex / (JOURNEY_STAGES.length - 1)) * 100;
   const currentDraw = scrollProgress * 2.0;
   const fillPercentage = Math.min(currentDraw, maxPercentage);
+
+  if (!hasPremium) {
+     return <TarbiyahOnboarding getToken={getToken} />;
+  }
 
   const handleRequestAccess = async () => {
     setIsLoading(true);

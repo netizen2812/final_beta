@@ -102,7 +102,7 @@ export const TarbiyahOnboarding = ({ getToken }: { getToken: any }) => {
           </div>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
             {[
-              { icon: <Clock className="text-orange-400" size={28}/>, title: "Kids Wait for Their Turn", desc: "In a 1-hour class with 5 students, your child spends 48 minutes just waiting. That's 80% idle time." },
+              { icon: <Clock className="text-orange-400" size={28}/>, title: "Kids Wait for Their Turn", desc: "In a typical group class, your child spends over 70% of the time just waiting. That's most of the session wasted." },
               { icon: <AlertCircle className="text-rose-400" size={28}/>, title: "Zero Engagement While Observing", desc: "When it's not their turn, children zone out. There's no incentive to listen to classmates recite." },
               { icon: <TrendingUp className="text-blue-400" size={28}/>, title: "No Tracking or Feedback", desc: "Parents have zero visibility. No reports, no progress tracking, no idea how their child is actually doing." }
             ].map((card, i) => (

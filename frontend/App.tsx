@@ -140,12 +140,6 @@ const App: React.FC = () => {
     syncUser();
   }, [user, isLoaded]);
 
-  useEffect(() => {
-    const handleResize = () => setIsDesktop(window.innerWidth >= 1024);
-    window.addEventListener("resize", handleResize);
-    return () => window.removeEventListener("resize", handleResize);
-  }, []);
-
   // 📊 Track Tab Changes
   useEffect(() => {
     Analytics.trackPageView(activeTab);
@@ -442,12 +436,16 @@ const App: React.FC = () => {
                     <button
                       key={item.id}
                       onClick={() => setActiveTab(item.id)}
+                      className={`flex flex-col items-center justify-center w-full h-full ${activeTab === item.id ? "text-[#052e16]" : "text-slate-400"}`}
+                    >
+                      {item.icon}
+                      <span className="text-[10px] mt-1 font-bold">{item.label}</span>
                     </button>
-                  );
-                })}
-              </nav>
+                  ))}
+                </nav>
+              )}
             </div>
-          </div>
+          )}
         </ChildProvider>
       </SignedIn>
     </>

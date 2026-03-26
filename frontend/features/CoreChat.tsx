@@ -389,10 +389,12 @@ const CoreChat: React.FC<CoreChatProps> = ({ madhab, setMadhab, tone: mood, setT
     else groupedMessages.push({ messages: [msg], role: msg.role });
   });
 
+  const isAppMode = !!document.querySelector('.is-phone-app');
+
   return (
     <>
       <AnimatedBackground />
-      <div className="relative flex h-[calc(100vh-64px)] w-full gap-0 animate-in fade-in duration-700" style={{ zIndex: 1 }}>
+      <div className={`relative flex ${isAppMode ? 'h-full' : 'h-[calc(100vh-64px)]'} w-full gap-0 animate-in fade-in duration-700`} style={{ zIndex: 1 }}>
 
         {/* Left Panel */}
         {isDesktop && showLeftPanel && (
@@ -409,76 +411,77 @@ const CoreChat: React.FC<CoreChatProps> = ({ madhab, setMadhab, tone: mood, setT
 
         {/* Center Chat Column */}
         <div className="flex-1 flex justify-center overflow-hidden relative">
-          <div className="w-full max-w-[840px] flex flex-col px-4 md:px-8 h-full pb-6 pt-4">
+          <div className={`w-full ${isDesktop ? 'max-w-[840px] px-8 pt-4 pb-6' : 'max-w-full px-0 pt-0 pb-0'} flex flex-col h-full`}>
 
-            {/* Header */}
-            <header className="flex items-center justify-between py-4 shrink-0">
-              <div className="flex items-center gap-3">
-                {isDesktop && (
-                  <button
-                    onClick={() => setShowLeftPanel(!showLeftPanel)}
-                    className="p-2 hover:bg-white/60 rounded-xl transition-all text-slate-400 hover:text-[#052e16]/80"
-                  >
-                    <ChevronLeft size={18} />
-                  </button>
-                )}
-                <div className={`w-10 h-10 ${activeMood.bg} rounded-[1.25rem] flex items-center justify-center ${activeMood.color} border ${activeMood.border} shadow-sm transition-all`}>
-                  {activeMood.icon}
-                </div>
-                <div>
-                  <h2 className="text-lg font-serif font-bold text-[#052e16] leading-tight">{t('chat.title')}</h2>
-                  <div className="flex items-center gap-1.5 mt-0.5">
-                    <div className="w-1.5 h-1.5 bg-emerald-500 rounded-full animate-pulse shadow-[0_0_8px_rgba(16,185,129,0.4)]" />
-                    <span className="text-[9px] font-black uppercase tracking-widest text-[#052e16]/50">{t('chat.statusActive')}</span>
+            {/* Header (Hidden in App Mode as App.tsx has its own) */}
+            {!isAppMode && (
+              <header className="flex items-center justify-between py-4 shrink-0 px-4">
+                <div className="flex items-center gap-3">
+                  {isDesktop && (
+                    <button
+                      onClick={() => setShowLeftPanel(!showLeftPanel)}
+                      className="p-2 hover:bg-white/60 rounded-xl transition-all text-slate-400 hover:text-[#052e16]/80"
+                    >
+                      <ChevronLeft size={18} />
+                    </button>
+                  )}
+                  <div className={`w-10 h-10 ${activeMood.bg} rounded-[1.25rem] flex items-center justify-center ${activeMood.color} border ${activeMood.border} shadow-sm transition-all`}>
+                    {activeMood.icon}
+                  </div>
+                  <div>
+                    <h2 className="text-lg font-serif font-bold text-[#052e16] leading-tight">{t('chat.title')}</h2>
+                    <div className="flex items-center gap-1.5 mt-0.5">
+                      <div className="w-1.5 h-1.5 bg-emerald-500 rounded-full animate-pulse shadow-[0_0_8px_rgba(16,185,129,0.4)]" />
+                      <span className="text-[9px] font-black uppercase tracking-widest text-[#052e16]/50">{t('chat.statusActive')}</span>
+                    </div>
                   </div>
                 </div>
-              </div>
 
-              <div className="flex items-center gap-2">
-                {/* Mobile: new chat button */}
-                {!isDesktop && (
-                  <button
-                    onClick={handleNewChat}
-                    className="p-2 hover:bg-white/60 rounded-xl transition-all text-slate-400 hover:text-[#052e16]"
-                  >
-                    <Plus size={18} />
-                  </button>
-                )}
-                {isLargeDesktop && (
-                  <button
-                    onClick={() => setShowRightPanel(!showRightPanel)}
-                    className="p-2 hover:bg-white/60 rounded-xl transition-all text-slate-400 hover:text-[#052e16]"
-                  >
-                    <ChevronRight size={18} />
-                  </button>
-                )}
-                {/* Mobile/tablet: preferences modal trigger */}
-                {!isLargeDesktop && (
-                  <button
-                    onClick={() => setShowPreferences(true)}
-                    className="p-2.5 px-4 bg-white/60 backdrop-blur-md hover:bg-emerald-50/50 rounded-full transition-all text-[#052e16] shadow-sm border border-emerald-100/50 flex items-center gap-2"
-                  >
-                    <span className="text-[10px] font-black uppercase tracking-widest">{madhab}</span>
-                    <SlidersHorizontal size={13} />
-                  </button>
-                )}
-              </div>
-            </header>
+                <div className="flex items-center gap-2">
+                  {!isDesktop && (
+                    <button
+                      onClick={handleNewChat}
+                      className="p-2 hover:bg-white/60 rounded-xl transition-all text-slate-400 hover:text-[#052e16]"
+                    >
+                      <Plus size={18} />
+                    </button>
+                  )}
+                  {isLargeDesktop && (
+                    <button
+                      onClick={() => setShowRightPanel(!showRightPanel)}
+                      className="p-2 hover:bg-white/60 rounded-xl transition-all text-slate-400 hover:text-[#052e16]"
+                    >
+                      <ChevronRight size={18} />
+                    </button>
+                  )}
+                  {!isLargeDesktop && (
+                    <button
+                      onClick={() => setShowPreferences(true)}
+                      className="p-2.5 px-4 bg-white/60 backdrop-blur-md hover:bg-emerald-50/50 rounded-full transition-all text-[#052e16] shadow-sm border border-emerald-100/50 flex items-center gap-2"
+                    >
+                      <span className="text-[10px] font-black uppercase tracking-widest">{madhab}</span>
+                      <SlidersHorizontal size={13} />
+                    </button>
+                  )}
+                </div>
+              </header>
+            )}
 
-            {/* Chat Container - Locked height, viewport-aware, no outer scroll */}
-            <div className="flex-1 max-h-[80vh] md:max-h-[700px] bg-white/40 backdrop-blur-xl rounded-[2.5rem] border border-white/60 shadow-[0_8px_40px_-10px_rgba(0,0,0,0.03),0_0_30px_rgba(255,255,255,0.6)_inset] overflow-hidden flex flex-col mb-2 relative group transition-all duration-500 hover:shadow-[0_15px_50px_-10px_rgba(5,46,22,0.06),0_0_30px_rgba(255,255,255,0.6)_inset]">
-              {/* Sacred Islamic Geometric Background (Detailed Star Pattern) */}
+            {/* Chat Container */}
+            <div className={`flex-1 flex flex-col overflow-hidden relative transition-all duration-500 ${isDesktop 
+              ? 'bg-white/40 backdrop-blur-xl rounded-[2.5rem] border border-white/60 shadow-[0_8px_40px_-10px_rgba(0,0,0,0.03)] mb-2' 
+              : 'bg-transparent'}`}>
+              
+              {/* Islamic Pattern Background */}
               <div className="absolute inset-0 opacity-[0.04] pointer-events-none"
                 style={{
                   backgroundImage: `url("data:image/svg+xml,%3Csvg width='80' height='80' viewBox='0 0 80 80' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M40 0l10 30 30 10-30 10-10 30-10-30-30-10 30-10z' fill='%23052e16'/%3E%3C/svg%3E")`,
                   backgroundSize: '40px 40px'
                 }}
               />
-              {/* Inner ambient glow with warmer tones */}
-              <div className="absolute inset-0 bg-gradient-to-b from-white/70 via-emerald-50/10 to-white/50 pointer-events-none" />
 
-              <div className="flex-1 overflow-y-auto p-6 md:p-10 space-y-6 no-scrollbar scroll-smooth relative z-10 flex flex-col">
-
+              {/* Message List */}
+              <div className={`flex-1 overflow-y-auto ${isDesktop ? 'p-6 md:p-10' : 'p-4 pt-4 pb-32'} space-y-6 no-scrollbar scroll-smooth relative z-10 flex flex-col`}>
                 {messages.length === 0 && !isLoading && (
                   <EmptyState onPrompt={(q) => setInput(q)} />
                 )}
@@ -488,21 +491,21 @@ const CoreChat: React.FC<CoreChatProps> = ({ madhab, setMadhab, tone: mood, setT
                     key={groupIdx}
                     className={`flex ${group.role === 'user' ? 'justify-end' : 'justify-start'} ${groupIdx > 0 ? 'mt-5' : ''}`}
                   >
-                    <div className="space-y-2 max-w-[92%]">
+                    <div className={`space-y-2 ${isDesktop ? 'max-w-[92%]' : 'max-w-[95%]'}`}>
                       {group.messages.map((msg, msgIdx) => (
                         <div
                           key={msg.id}
-                          className={`animate-in fade-in slide-in-from-bottom-3 duration-300 ${msg.role === 'user'
-                            ? 'p-4 md:p-5 rounded-[1.75rem] rounded-tr-sm bg-gradient-to-br from-[#052e16] to-[#064e3b] text-white shadow-lg shadow-[#052e16]/20'
-                            : 'p-5 md:p-7 rounded-[1.75rem] rounded-tl-sm bg-white/90 backdrop-blur-sm text-slate-800 border border-slate-100/80 shadow-md hover:shadow-lg hover:scale-[1.001] transition-all duration-200'
+                          className={`animate-in fade-in slide-in-from-bottom-2 duration-300 ${msg.role === 'user'
+                            ? 'p-4 md:p-5 rounded-2xl rounded-tr-sm bg-[#052e16] text-white shadow-sm'
+                            : 'p-4 md:p-7 rounded-2xl rounded-tl-sm bg-white/90 backdrop-blur-sm text-slate-800 border border-slate-100 shadow-sm'
                             } `}
                           style={{ animationDelay: `${msgIdx * 30}ms` }}
                         >
                           {msg.role === 'model'
                             ? <FormattedContent content={msg.text} />
-                            : <p className="text-[15px] leading-relaxed font-medium">{msg.text}</p>
+                            : <p className="text-[15px] leading-relaxed">{msg.text}</p>
                           }
-                          <div className={`mt-1 text-[10px] md:text-[11px] font-medium tracking-wide ${msg.role === 'user' ? 'text-white/70 text-right' : 'text-slate-400/90'} `}>
+                          <div className={`mt-1 text-[9px] font-medium opacity-50 ${msg.role === 'user' ? 'text-right' : ''} `}>
                             {msg.timestamp.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                           </div>
                         </div>
@@ -512,28 +515,47 @@ const CoreChat: React.FC<CoreChatProps> = ({ madhab, setMadhab, tone: mood, setT
                 ))}
 
                 {isLoading && <TypingIndicator />}
+                <div ref={messagesEndRef} />
               </div>
 
-              {/* Input Area */}
-              <div className="p-4 md:p-6 bg-white/60 backdrop-blur-md border-t border-slate-100/60 shrink-0">
-                <div className="flex items-center gap-3 bg-white p-2.5 rounded-full border border-slate-200 shadow-md focus-within:border-emerald-400 focus-within:ring-2 focus-within:ring-emerald-400/20 transition-all max-w-3xl mx-auto">
+              {/* Sticky Input Area */}
+              <div className={`shrink-0 ${isDesktop 
+                ? 'p-4 md:p-6 bg-white/60 backdrop-blur-md border-t border-slate-100/60' 
+                : 'fixed bottom-20 left-0 right-0 p-4 bg-gradient-to-t from-white via-white/95 to-transparent z-[60]'}`}>
+                <div className={`flex items-center gap-2 bg-white ${isDesktop ? 'p-2' : 'p-1.5'} rounded-full border border-slate-200 shadow-lg focus-within:border-emerald-400 focus-within:ring-2 focus-within:ring-emerald-400/20 transition-all max-w-3xl mx-auto`}>
+                  
+                  {/* Plus Button for Context (Mobile) */}
+                  {!isDesktop && (
+                    <button 
+                      onClick={() => setShowPreferences(true)}
+                      className="w-10 h-10 flex items-center justify-center text-slate-400 hover:text-[#052e16] transition-colors"
+                    >
+                      <SlidersHorizontal size={20} />
+                    </button>
+                  )}
+
                   <input
                     type="text"
                     placeholder={t('chat.inputPlaceholder')}
                     value={input}
                     onChange={(e) => setInput(e.target.value)}
                     onKeyDown={(e) => e.key === 'Enter' && handleSend()}
-                    className="flex-1 bg-transparent border-none focus:outline-none text-sm px-4 font-medium text-slate-700"
+                    className="flex-1 bg-transparent border-none focus:outline-none text-[15px] px-3 font-medium text-slate-700"
                   />
+                  
                   <button
                     onClick={handleSend}
                     disabled={isLoading || !input.trim()}
-                    className="w-10 h-10 flex items-center justify-center bg-[#052e16] text-white rounded-full hover:scale-105 disabled:opacity-20 transition-all shadow-lg active:scale-95"
+                    className="w-10 h-10 flex items-center justify-center bg-[#052e16] text-white rounded-full hover:scale-105 disabled:opacity-20 transition-all shadow-md active:scale-95"
                   >
-                    <Send size={16} />
+                    <Send size={18} />
                   </button>
                 </div>
-                <p className="text-[8px] text-center mt-2 font-black uppercase tracking-[0.2em] text-slate-400/60">{t('chat.seekKnowledge')}</p>
+                {!isDesktop && (
+                  <p className="text-[7px] text-center mt-2 font-black uppercase tracking-[0.2em] text-slate-400 opacity-60">
+                    {t('chat.seekKnowledge')}
+                  </p>
+                )}
               </div>
             </div>
           </div>

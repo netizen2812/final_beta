@@ -137,7 +137,7 @@ export const TarbiyahOnboarding = ({ getToken }: { getToken: any }) => {
             
             {[
               { step: "1", title: "Practice", desc: "Your child practices their assigned ayah independently while a classmate recites. Built-in Quran reader tracks their position.", icon: <BookOpen />, color: "from-blue-500 to-indigo-500", accent: "text-blue-400" },
-              { step: "2", title: "Observe & Engage", desc: "They listen to the reciter and answer live prompts from the scholar: 'Was the recitation correct?' — earning XP for correct answers.", icon: <Eye />, color: "from-emerald-500 to-teal-500", accent: "text-emerald-400" },
+              { step: "2", title: "Observe & Engage", desc: "While a classmate recites, the scholar asks everyone: 'Did they read it correctly?' Your child taps Yes or No. The scholar then reveals the answer — kids who got it right earn XP. This keeps every child actively listening and judging Tajweed, even when it's not their turn.", icon: <Eye />, color: "from-emerald-500 to-teal-500", accent: "text-emerald-400" },
               { step: "3", title: "Recite Live", desc: "When it's their turn, they recite directly with the scholar who scores their Tajweed in real-time. Scores feed into the class leaderboard.", icon: <Mic />, color: "from-amber-500 to-orange-500", accent: "text-amber-400" }
             ].map((step, i) => (
               <div key={i} className="flex-1 relative z-10">
@@ -268,7 +268,7 @@ export const TarbiyahOnboarding = ({ getToken }: { getToken: any }) => {
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                {[
                  { icon: <ShieldCheck className="text-emerald-400" size={28}/>, title: "Scholar-Led", desc: "Every session is guided by certified Quran scholars who score recitation live." },
-                 { icon: <Heart className="text-rose-400" size={28}/>, title: "Perfect for Beginners", desc: "No prerequisites. Kids start where they are. The system adapts to their pace." },
+                 { icon: <Heart className="text-rose-400" size={28}/>, title: "Every Child, Their Own Pace", desc: "One child could be on Surah Al-Baqarah while another is on Para 15. Each child reads their own assigned ayah independently — no waiting for others to catch up." },
                  { icon: <BarChart2 className="text-blue-400" size={28}/>, title: "Full Parent Visibility", desc: "Track XP, attendance, streaks, weekly activity, and detailed progress reports." },
                ].map((card, i) => (
                  <div key={i} className="bg-white/5 border border-white/5 rounded-[2rem] p-8 text-center">

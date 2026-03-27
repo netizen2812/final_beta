@@ -251,9 +251,9 @@ const App: React.FC = () => {
         <ChildProvider>
           {appMode === 'app' ? (
             /* 📱 APP LAYOUT (MOBILE CONSTRAINED) */
-            <div className="min-h-[100dvh] flex items-center justify-center bg-slate-100 sm:p-4 overflow-hidden">
+            <div className="min-h-[100dvh] flex items-center justify-center bg-slate-100 sm:p-6 lg:p-8 overflow-hidden">
               <div
-                className={`h-[100dvh] sm:h-[844px] w-full sm:max-w-[390px] flex flex-col bg-white sm:rounded-[48px] sm:shadow-2xl sm:border-[8px] sm:border-slate-900 relative overflow-hidden is-phone-app`}
+                className={`h-[100dvh] sm:h-[844px] w-full sm:max-w-xl flex flex-col bg-white sm:rounded-[48px] sm:shadow-2xl sm:border-[8px] sm:border-slate-900 relative overflow-hidden is-phone-app transition-all duration-500`}
               >
                 {/* 🏥 HEADER */}
                 <header

@@ -152,8 +152,8 @@ const FeatureCardsGrid: React.FC<FeatureCardsGridProps> = ({ onNavigate }) => {
         <section id="feature-grid" className="space-y-16 py-20 min-h-[600px]">
             <div className="flex flex-col items-center text-center space-y-4 reveal-on-scroll">
                 <div className="w-12 h-1 bg-emerald-100 rounded-full" />
-                <h2 className="text-3xl md:text-5xl font-serif text-emerald-950">{t('home.primaryExploration')}</h2>
-                <p className="text-xs font-black uppercase tracking-[0.4em] text-emerald-900/40">{t('home.chooseDestination')}</p>
+                <h2 className="text-[clamp(1.75rem,8vw,3rem)] font-serif text-emerald-950 leading-tight">{t('home.primaryExploration')}</h2>
+                <p className="text-[clamp(8px,2vw,11px)] font-black uppercase tracking-[0.4em] text-emerald-900/40">{t('home.chooseDestination')}</p>
             </div>
 
             {/* Desktop Grid / Mobile Scroll */}

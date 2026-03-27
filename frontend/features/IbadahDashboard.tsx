@@ -131,16 +131,16 @@ const TasbihPage = ({ onBack }: { onBack: () => void }) => {
         <div className="bg-white p-12 rounded-[4rem] border border-emerald-50 shadow-2xl flex flex-col items-center space-y-10">
           <div
             onClick={increment}
-            className="w-64 h-64 rounded-full bg-emerald-50 border-[12px] border-white shadow-inner flex flex-col items-center justify-center cursor-pointer active:scale-95 transition-all hover:bg-emerald-100 select-none relative"
+            className="w-[min(70vw,20rem)] h-[min(70vw,20rem)] rounded-full bg-emerald-50 border-[clamp(6px,2vw,12px)] border-white shadow-inner flex flex-col items-center justify-center cursor-pointer active:scale-95 transition-all hover:bg-emerald-100 select-none relative"
           >
             {cycles > 0 && (
-              <div className="absolute -top-5 left-1/2 -translate-x-1/2 flex items-center gap-1.5 px-5 py-1.5 bg-[#0D4433] text-white rounded-full shadow-xl border-[3px] border-emerald-50 animate-bounce">
+              <div className="absolute -top-3 left-1/2 -translate-x-1/2 flex items-center gap-1.5 px-4 py-1.5 bg-[#0D4433] text-white rounded-full shadow-xl border-[2px] border-emerald-50 animate-bounce">
                 <span className="text-sm font-black">{cycles}</span>
                 <span className="text-[10px] uppercase tracking-widest font-bold text-emerald-200">{t('ibadah.cycles', { defaultValue: 'Cycles' })}</span>
               </div>
             )}
-            <span className="text-7xl font-black text-[#0D4433]">{count}</span>
-            <span className="text-xs font-black text-emerald-600/40 mt-2 tracking-[0.2em]">{t('ibadah.tapToCount')}</span>
+            <span className="text-[clamp(3rem,15vw,5rem)] font-black text-[#0D4433]">{count}</span>
+            <span className="text-[clamp(8px,2vw,10px)] font-black text-emerald-600/40 mt-1 tracking-[0.2em]">{t('ibadah.tapToCount')}</span>
           </div>
 
           <div className="flex gap-4">
@@ -271,19 +271,19 @@ const FeatureCard = ({
       <Icon size={120} />
     </div>
 
-    <div className={`w-12 h-12 md:w-16 md:h-16 rounded-2xl flex items-center justify-center mb-4 md:mb-6 border transition-all shadow-sm ${variant === 'dark'
+    <div className={`w-[clamp(2.5rem,8vw,4rem)] h-[clamp(2.5rem,8vw,4rem)] rounded-2xl flex items-center justify-center mb-4 md:mb-6 border transition-all shadow-sm ${variant === 'dark'
       ? 'bg-white/10 border-white/20 text-white group-hover:bg-emerald-500'
       : 'bg-[#FDFCF8] border-emerald-50 text-[#0D4433] group-hover:bg-[#0D4433] group-hover:text-white'
       }`}>
-      <Icon className="w-6 h-6 md:w-8 md:h-8" />
+      <Icon className="w-5 h-5 md:w-8 md:h-8" />
     </div>
 
     <div className="mt-auto relative z-10 space-y-1">
       <div className="flex items-center gap-2">
-        <h3 className={`text-lg md:text-xl font-black ${variant === 'dark' ? 'text-white' : 'text-[#1c2833]'}`}>{title}</h3>
+        <h3 className={`text-[clamp(1rem,4vw,1.25rem)] font-black leading-tight ${variant === 'dark' ? 'text-white' : 'text-[#1c2833]'}`}>{title}</h3>
         {badge && <span className="px-2 py-0.5 bg-emerald-500 text-white text-[8px] font-black uppercase tracking-widest rounded-md animate-pulse">{badge}</span>}
       </div>
-      <p className={`text-[10px] md:text-xs font-medium leading-relaxed ${variant === 'dark' ? 'text-emerald-100/60' : 'text-gray-400'}`}>{desc}</p>
+      <p className={`text-[clamp(10px,2vw,12px)] font-medium leading-relaxed ${variant === 'dark' ? 'text-emerald-100/60' : 'text-gray-400'}`}>{desc}</p>
     </div>
   </div>
 );

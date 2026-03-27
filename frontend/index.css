@@ -1,26 +1,44 @@
-/* 📱 Mobile App Scaling Overrides */
-.is-phone-app {
-    font-size: 14px; /* Base app font size */
+:root {
+  /* Fluid Typography Scale */
+  --font-xs: clamp(0.7rem, 1.5vw, 0.8rem);
+  --font-sm: clamp(0.8rem, 2vw, 0.9rem);
+  --font-base: clamp(0.9rem, 2.5vw, 1rem);
+  --font-lg: clamp(1rem, 3vw, 1.125rem);
+  --font-xl: clamp(1.125rem, 4vw, 1.5rem);
+  --font-2xl: clamp(1.5rem, 5vw, 2.25rem);
+  --font-3xl: clamp(1.8rem, 6vw, 3rem);
+  --font-hero: clamp(2rem, 10vw, 5rem);
+  
+  /* Adaptive Spacing */
+  --space-card: clamp(1rem, 4vw, 2.5rem);
+  --space-section: clamp(2rem, 8vw, 6rem);
 }
-.is-phone-app h1 { font-size: 1.5rem !important; }
-.is-phone-app h2 { font-size: 1.25rem !important; }
-.is-phone-app .text-4xl, .is-phone-app .text-5xl, .is-phone-app .text-6xl, .is-phone-app .text-7xl, .is-phone-app .text-8xl { 
-    font-size: 1.75rem !important; 
+
+/* 📱 Mobile App Adaptive Scaling */
+.is-phone-app {
+    font-size: var(--font-base);
+}
+
+.is-phone-app h1 { font-size: var(--font-2xl) !important; }
+.is-phone-app h2 { font-size: var(--font-xl) !important; }
+.is-phone-app h3 { font-size: var(--font-lg) !important; }
+
+/* Fluid sizing for large utility text without breaking layout */
+.is-phone-app .text-4xl, .is-phone-app .text-5xl, .is-phone-app .text-6xl, .is-phone-app .text-7xl { 
+    font-size: var(--font-2xl) !important; 
     line-height: 1.2 !important;
 }
+
+/* More flexible padding/gap overrides */
 .is-phone-app .p-10, .is-phone-app .p-16, .is-phone-app .p-20 { 
-    padding: 1.5rem !important; 
+    padding: var(--space-card) !important; 
 }
 .is-phone-app .py-20, .is-phone-app .py-32 {
-    padding-top: 2rem !important;
-    padding-bottom: 2rem !important;
+    padding-top: var(--space-section) !important;
+    padding-bottom: var(--space-section) !important;
 }
 .is-phone-app .gap-8, .is-phone-app .gap-12, .is-phone-app .gap-16 {
-    gap: 1rem !important;
-}
-/* Lock everything to vertical on "phone" layout if needed */
-.is-phone-app .flex-row-mobile-force {
-    flex-direction: column !important;
+    gap: clamp(1rem, 3vw, 2.5rem) !important;
 }
 
 /* Custom animations for Tarbiyah */

@@ -54,27 +54,27 @@ const HomeHero: React.FC = () => {
 
                 {/* Calligraphy-style Heading */}
                 <div className="space-y-4">
-                    <div className="text-emerald-900/40 text-4xl md:text-6xl font-serif mb-4 select-none drop-shadow-sm">
+                    <div className="text-emerald-900/40 text-[clamp(2rem,8vw,3.5rem)] font-serif mb-4 select-none drop-shadow-sm">
                         {DAILY_REFLECTION.calligraphy}
                     </div>
-                    <h2 className="text-sm md:text-md font-black tracking-[0.6em] uppercase text-emerald-900/60 drop-shadow-sm">
+                    <h2 className="text-[clamp(0.7rem,3vw,0.85rem)] font-black tracking-[0.6em] uppercase text-emerald-900/60 drop-shadow-sm">
                         {t('home.pathOfEnlightenment')}
                     </h2>
                 </div>
 
                 {/* Reflection Card */}
-                <div className="group relative bg-white/70 backdrop-blur-xl border border-emerald-100/50 p-6 md:p-10 rounded-[3rem] shadow-[0_20px_80px_-20px_rgba(16,185,129,0.08)] transition-all duration-500 hover:shadow-[0_40px_120px_-20px_rgba(16,185,129,0.12)]">
+                <div className="group relative bg-white/70 backdrop-blur-xl border border-emerald-100/50 p-[clamp(1.5rem,5vw,2.5rem)] rounded-[3rem] shadow-[0_20px_80px_-20px_rgba(16,185,129,0.08)] transition-all duration-500 hover:shadow-[0_40px_120px_-20px_rgba(16,185,129,0.12)]">
                     <div className="absolute -top-5 left-1/2 -translate-x-1/2 bg-[#0D4433] text-white p-3 rounded-full shadow-lg">
                         <Sparkles size={16} className="animate-pulse" />
                     </div>
 
                     <div className="space-y-6">
-                        <p className="text-xl md:text-3xl font-serif text-emerald-950 leading-relaxed italic">
+                        <p className="text-[clamp(1.25rem,5vw,1.75rem)] font-serif text-emerald-950 leading-relaxed italic">
                             "{t('home.dailyReflectionAyah', { defaultValue: DAILY_REFLECTION.ayah })}"
                         </p>
                         <div className="flex flex-col items-center space-y-2">
                             <div className="w-12 h-px bg-emerald-200" />
-                            <p className="text-[10px] md:text-xs font-black uppercase tracking-[0.3em] text-emerald-700/60">
+                            <p className="text-[clamp(9px,2vw,11px)] font-black uppercase tracking-[0.3em] text-emerald-700/60">
                                 {t('home.dailyReflectionReference', { defaultValue: DAILY_REFLECTION.reference })}
                             </p>
                         </div>

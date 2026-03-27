@@ -397,6 +397,11 @@ const KidsView = ({ scrollProgress, activeChild, onJoinLive, currentBatchStatus,
             const isCurrent = index === totalClassesPassed && hasActiveSession;
             const isLocked = index > totalClassesPassed || (index === totalClassesPassed && !hasActiveSession);
             const isNextScheduled = index === totalClassesPassed && !hasActiveSession;
+
+            const historicalSession = activeBatch?.pastSessions?.[index];
+            const wasPresent = historicalSession?.attended;
+            const statusLabel = isHistorical ? (wasPresent ? "Completed" : "Absent") : (isCurrent ? "Live Now" : "Scheduled");
+
             return (
               <div key={stage.id} className="flex md:justify-center items-center relative group">
                 <div 
@@ -418,9 +423,9 @@ const KidsView = ({ scrollProgress, activeChild, onJoinLive, currentBatchStatus,
                     {isHistorical ? <CheckCircle size={18} /> : (isCurrent ? <Play size={18} fill="currentColor" /> : <Calendar size={18} />)}
                 </div>
                 <div className={`w-full md:w-[45%] pl-24 md:pl-0 ${index % 2 !== 0 ? 'md:ml-auto md:pl-20' : 'md:mr-auto md:pr-20 md:text-right'}`}>
-                   <div className={`backdrop-blur-xl rounded-[2rem] p-6 border transition-all ${isLocked ? 'bg-white/5 opacity-50 border-white/5' : isCurrent ? 'bg-emerald-500/10 border-emerald-500/40 shadow-[0_0_30px_rgba(16,185,129,0.2)]' : 'bg-white/10 border-white/20 shadow-xl'}`}>
-                      <h4 className={`font-bold text-xl mb-1 ${isCurrent ? 'text-emerald-300' : 'text-white'}`}>{isNextScheduled ? "Scheduled: " + stage.title : stage.title}</h4>
-                      <p className="text-sm text-emerald-200/80">{stage.subtitle}</p>
+                   <div className={`backdrop-blur-xl rounded-[2rem] p-6 border transition-all pointer-events-none ${isLocked ? 'bg-white/5 opacity-50 border-white/5' : isCurrent ? 'bg-emerald-500/10 border-emerald-500/40 shadow-[0_0_30px_rgba(16,185,129,0.2)]' : 'bg-white/10 border-white/20 shadow-xl'}`}>
+                      <div className={`text-[10px] font-black uppercase tracking-widest mb-1 ${isHistorical ? (wasPresent ? 'text-emerald-400' : 'text-red-400') : 'text-emerald-500/60'}`}>{statusLabel}</div>
+                      <h4 className={`font-bold text-xl ${isCurrent ? 'text-emerald-300' : 'text-white'}`}>{stage.title}</h4>
                    </div>
                 </div>
               </div>

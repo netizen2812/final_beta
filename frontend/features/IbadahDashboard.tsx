@@ -824,7 +824,7 @@ const IbadahDashboard: React.FC = () => {
   if (subView === 'hadith') return <HadithPage onBack={goBack} />;
 
   const TrackerSection = () => (
-    <section className={`relative min-h-[60vh] md:min-h-[80vh] lg:min-h-[60vh] flex flex-col items-center justify-center px-6 pb-[10rem] md:pb-[18rem] lg:pb-[12rem] overflow-visible transition-all duration-[2000ms] ${theme.bg}`}>
+    <section className={`relative min-h-[45dvh] md:min-h-[80vh] lg:min-h-[60vh] flex flex-col items-center justify-center px-6 pb-[8rem] md:pb-[18rem] lg:pb-[12rem] overflow-visible transition-all duration-[2000ms] ${theme.bg}`}>
       <div className="absolute inset-0 opacity-20 pointer-events-none">
         {activeHeroTheme === 'isha' && (
           <div className="absolute inset-0">
@@ -835,19 +835,19 @@ const IbadahDashboard: React.FC = () => {
         )}
         <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[150%] h-[150%] bg-[url('https://www.transparenttextures.com/patterns/pinstriped-suit.png')] opacity-20 rotate-12"></div>
       </div>
-      <div className="relative z-10 text-center text-white mb-8 md:mb-24 lg:mb-12 transition-transform duration-700">
-        <div className="mb-4 md:mb-8 lg:mb-4 flex justify-center hover:scale-110 transition-transform cursor-pointer drop-shadow-2xl">
-          {theme.icon}
+      <div className="relative z-10 text-center text-white mb-6 md:mb-24 lg:mb-12 transition-transform duration-700">
+        <div className="mb-2 md:mb-8 lg:mb-4 flex justify-center hover:scale-110 transition-transform cursor-pointer drop-shadow-2xl">
+          <div className="scale-75 md:scale-100">{theme.icon}</div>
         </div>
         <p className="text-[10px] md:text-[12px] font-black tracking-[0.5em] uppercase opacity-80 mb-2 md:mb-4">{t(`ibadah.hero.${activeHeroTheme}`)}</p>
-        <h1 className="text-6xl md:text-[10rem] lg:text-8xl font-light tracking-tighter mb-6 md:mb-10 lg:mb-6 drop-shadow-md">
+        <h1 className="text-[clamp(3.5rem,12vw,6rem)] md:text-[8rem] lg:text-7xl font-light tracking-tighter mb-4 md:mb-10 lg:mb-6 drop-shadow-md">
           {currentTime.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
         </h1>
-        <div className="inline-flex flex-col items-center gap-2">
+        <div className="inline-flex flex-col items-center gap-2 scale-90 md:scale-100">
           <div className="inline-flex items-center gap-3 md:gap-4 px-6 md:px-10 py-3 md:py-4 bg-[#0D4433]/40 backdrop-blur-2xl rounded-full border border-white/30 text-[9px] md:text-[11px] font-black uppercase tracking-[0.3em] shadow-2xl">
             {t('ibadah.next')}: <span className="text-emerald-400">{nextPrayer ? t(`ibadah.prayers.${nextPrayer}`) : t('ibadah.prayer')}</span> <span className="opacity-40">•</span> <span className="text-white">{t('ibadah.guidance')}</span>
           </div>
-          <div className="text-[8px] font-black uppercase tracking-[0.3em] opacity-40 mt-2 flex items-center gap-1.5">
+          <div className="text-[8px] font-black uppercase tracking-[0.3em] opacity-40 mt-1 flex items-center gap-1.5">
             <MapPin size={10} /> {t('ibadah.location')}: {locationMethod}
           </div>
         </div>

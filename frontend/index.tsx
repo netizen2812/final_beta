@@ -17,7 +17,16 @@ console.log("🔐 Clerk Key Loaded:", clerkPubKey.startsWith("pk_test") ? "TEST 
 const root = ReactDOM.createRoot(rootElement);
 root.render(
   <React.StrictMode>
-    <ClerkProvider publishableKey={clerkPubKey}>
+    <ClerkProvider 
+      publishableKey={clerkPubKey}
+      localization={{
+        signIn: {
+          start: {
+            title: "Sign in to Imam",
+          },
+        },
+      }}
+    >
       <App />
     </ClerkProvider>
   </React.StrictMode>,

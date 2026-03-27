@@ -84,11 +84,8 @@ const App: React.FC = () => {
 
   useEffect(() => {
     // Show welcome video once per session - DISABLED for app mode stability
-    // We check both the build flag and the user agent for maximum reliability
-    const isAppBuild = import.meta.env.VITE_APP_MODE === 'app';
-    const isAppUA = navigator.userAgent.includes("ImamApp");
-    
-    if (!isAppBuild && !isAppUA) {
+    const isAppMode = navigator.userAgent.includes("ImamApp");
+    if (!isAppMode) {
       const hasSeenWelcome = sessionStorage.getItem("hasSeenWelcome");
       if (!hasSeenWelcome) {
         setShowWelcome(true);

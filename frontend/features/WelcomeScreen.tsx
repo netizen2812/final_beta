@@ -48,7 +48,7 @@ const WelcomeScreen: React.FC<WelcomeScreenProps> = ({ onComplete }) => {
         };
     }, [showText, onComplete]);
 
-    // Attempt autoplay + Safety Timeout
+    // Attempt autoplay
     useEffect(() => {
         const playVideo = async () => {
             if (videoRef.current) {

@@ -11,6 +11,11 @@ import android.webkit.WebChromeClient
 import android.webkit.WebSettings
 import android.webkit.WebView
 import android.webkit.WebViewClient
+import android.net.http.SslError
+import android.webkit.SslErrorHandler
+import android.webkit.WebResourceError
+import android.webkit.WebResourceRequest
+import android.webkit.WebResourceResponse
 import android.content.Intent
 import android.net.Uri
 import androidx.activity.result.contract.ActivityResultContracts
@@ -18,6 +23,7 @@ import androidx.appcompat.app.AppCompatActivity
 import androidx.core.content.ContextCompat
 import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
 import androidx.swiperefreshlayout.widget.SwipeRefreshLayout
+import android.widget.Toast
 import com.imam.faithtech.databinding.ActivityMainBinding
 
 class MainActivity : AppCompatActivity() {
@@ -74,7 +80,7 @@ class MainActivity : AppCompatActivity() {
 
         // Custom User Agent to ensure compatibility with Clerk Social Logins
         val defaultUserAgent = settings.userAgentString
-        settings.userAgentString = "$defaultUserAgent FaithTechApp/1.0"
+        settings.userAgentString = "$defaultUserAgent ImamApp/1.0"
 
         // Bridge: JavaScript Interface
         webView.addJavascriptInterface(WebAppInterface(this), "Android")
@@ -106,8 +112,29 @@ class MainActivity : AppCompatActivity() {
             override fun onPageFinished(view: WebView?, url: String?) {
                 super.onPageFinished(view, url)
                 binding.swipeRefreshLayout.isRefreshing = false
-                // Flush cookies to persistent storage
                 cookieManager.flush()
+            }
+
+            override fun onReceivedError(view: WebView?, request: WebResourceRequest?, error: WebResourceError?) {
+                super.onReceivedError(view, request, error)
+                if (request?.isForMainFrame == true) {
+                    Toast.makeText(this@MainActivity, "Network Error: ${error?.description}", Toast.LENGTH_LONG).show()
+                }
+            }
+
+            override fun onReceivedHttpError(view: WebView?, request: WebResourceRequest?, errorResponse: WebResourceResponse?) {
+                super.onReceivedHttpError(view, request, errorResponse)
+                if (request?.isForMainFrame == true) {
+                    Toast.makeText(this@MainActivity, "HTTP Error: ${errorResponse?.statusCode}", Toast.LENGTH_LONG).show()
+                }
+            }
+
+            @SuppressLint("WebViewClientOnReceivedSslError")
+            override fun onReceivedSslError(view: WebView?, handler: SslErrorHandler?, error: SslError?) {
+                // WARNING: In production, you should carefully decide whether to proceed or cancel.
+                // For debugging, we show a toast.
+                Toast.makeText(this@MainActivity, "SSL Error: ${error?.toString()}", Toast.LENGTH_LONG).show()
+                handler?.proceed() 
             }
         }
 

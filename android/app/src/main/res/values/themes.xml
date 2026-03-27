@@ -1,6 +1,6 @@
 <resources xmlns:tools="http://schemas.android.com/tools">
     <!-- Base application theme. -->
-    <style name="Theme.FaithTechApp" parent="Theme.Material3.DayNight.NoActionBar">
+    <style name="Theme.ImamApp" parent="Theme.Material3.DayNight.NoActionBar">
         <!-- Customize your light theme here. -->
         <item name="colorPrimary">#052e16</item> <!-- Imam Green -->
     </style>
@@ -9,6 +9,6 @@
         <!-- Set the splash screen background, icon and duration -->
         <item name="windowSplashScreenBackground">#052e16</item> <!-- Imam Green -->
         <item name="windowSplashScreenAnimatedIcon">@drawable/ic_launcher</item>
-        <item name="postSplashScreenTheme">@style/Theme.FaithTechApp</item>
+        <item name="postSplashScreenTheme">@style/Theme.ImamApp</item>
     </style>
 </resources>

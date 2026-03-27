@@ -83,10 +83,13 @@ const App: React.FC = () => {
   const [showWelcome, setShowWelcome] = useState(false);
 
   useEffect(() => {
-    // Show welcome video once per session
-    const hasSeenWelcome = sessionStorage.getItem("hasSeenWelcome");
-    if (!hasSeenWelcome) {
-      setShowWelcome(true);
+    // Show welcome video once per session - DISABLED for app mode stability
+    const isAppMode = import.meta.env.VITE_APP_MODE === 'app';
+    if (!isAppMode) {
+      const hasSeenWelcome = sessionStorage.getItem("hasSeenWelcome");
+      if (!hasSeenWelcome) {
+        setShowWelcome(true);
+      }
     }
   }, []);
 

@@ -81,7 +81,7 @@ class WebAppInterface(private val mContext: Context) {
     @JavascriptInterface
     fun onUserSignIn(userId: String) {
         // Store userId for future use (e.g., associating with FCM token)
-        val prefs = mContext.getSharedPreferences("FaithTechPrefs", Context.MODE_PRIVATE)
+        val prefs = mContext.getSharedPreferences("ImamAppPrefs", Context.MODE_PRIVATE)
         prefs.edit().putString("userId", userId).apply()
         // showToast("Signed in as: $userId") // Optional: only for debug
     }

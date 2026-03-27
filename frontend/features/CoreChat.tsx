@@ -105,10 +105,13 @@ const FormattedContent: React.FC<{ content: string }> = ({ content }) => {
 // ─── Typing Indicator ────────────────────────────────────────────────────────
 const TypingIndicator: React.FC = () => (
   <div className="flex justify-start animate-in fade-in duration-300">
-    <div className="bg-white/80 backdrop-blur-sm px-5 py-3.5 rounded-2xl rounded-tl-none border border-slate-100 flex gap-1.5 items-center shadow-sm">
-      {[0, 150, 300].map((delay) => (
-        <div key={delay} className="w-2 h-2 bg-[#052e16]/40 rounded-full animate-bounce" style={{ animationDelay: `${delay}ms` }} />
-      ))}
+    <div className="bg-white/80 backdrop-blur-sm px-5 py-3.5 rounded-2xl rounded-tl-none border border-slate-100 flex gap-2.5 items-center shadow-sm">
+      <div className="flex gap-1.5 items-center">
+        {[0, 150, 300].map((delay) => (
+          <div key={delay} className="w-1.5 h-1.5 bg-[#052e16]/40 rounded-full animate-bounce" style={{ animationDelay: `${delay}ms` }} />
+        ))}
+      </div>
+      <span className="text-[10px] font-black uppercase tracking-widest text-[#052e16]/40">Thinking</span>
     </div>
   </div>
 );
@@ -183,9 +186,17 @@ const CoreChat: React.FC<CoreChatProps> = ({ madhab, setMadhab, tone: mood, setT
   const [isDesktop, setIsDesktop] = useState(window.innerWidth >= 1024 && !document.querySelector('.is-phone-app'));
   const [isLargeDesktop, setIsLargeDesktop] = useState(window.innerWidth >= 1440 && !document.querySelector('.is-phone-app'));
 
+  const [isKeyboardOpen, setIsKeyboardOpen] = useState(false);
+  const initialHeight = useRef(window.innerHeight);
+
   useEffect(() => {
     const handleResize = () => {
       const isInsidePhone = !!document.querySelector('.is-phone-app');
+      const currentHeight = window.innerHeight;
+      
+      // If height drops more than 150px, keyboard is likely open
+      setIsKeyboardOpen(initialHeight.current - currentHeight > 150);
+      
       setIsDesktop(window.innerWidth >= 1024 && !isInsidePhone);
       setIsLargeDesktop(window.innerWidth >= 1440 && !isInsidePhone);
     };
@@ -395,7 +406,7 @@ const CoreChat: React.FC<CoreChatProps> = ({ madhab, setMadhab, tone: mood, setT
   return (
     <>
       <AnimatedBackground />
-      <div className={`relative flex ${isAppMode ? 'h-full' : 'h-[calc(100vh-64px)]'} w-full gap-0 animate-in fade-in duration-700`} style={{ zIndex: 1 }}>
+      <div className={`relative flex ${isAppMode ? 'h-[100dvh]' : 'h-[calc(100vh-64px)]'} w-full gap-0 animate-in fade-in duration-700 overflow-hidden`} style={{ zIndex: 1 }}>
 
         {/* Left Panel */}
         {isDesktop && showLeftPanel && (
@@ -412,7 +423,7 @@ const CoreChat: React.FC<CoreChatProps> = ({ madhab, setMadhab, tone: mood, setT
 
         {/* Center Chat Column */}
         <div className="flex-1 flex justify-center overflow-hidden relative">
-          <div className={`w-full ${isDesktop ? 'max-w-[840px] px-8 pt-4 pb-6' : 'max-w-full px-0 pt-0 pb-0'} flex flex-col h-full`}>
+          <div className={`w-full ${isDesktop ? 'max-w-[840px] px-8 pt-4 pb-6' : 'max-w-full px-0 pt-0 pb-0'} flex flex-col h-full overscroll-none`}>
 
             {/* Header (Hidden in App Mode as App.tsx has its own) */}
             {!isAppMode && (
@@ -500,7 +511,8 @@ const CoreChat: React.FC<CoreChatProps> = ({ madhab, setMadhab, tone: mood, setT
               />
 
               {/* Message List */}
-              <div className={`flex-1 overflow-y-auto ${isDesktop ? 'p-6 md:p-10' : 'p-4 pt-4 pb-32'} space-y-6 no-scrollbar scroll-smooth relative z-10 flex flex-col`}>
+              <div className={`flex-1 overflow-y-auto ${isDesktop ? 'p-6 md:p-10' : 'p-4 pt-4 pb-32'} space-y-6 no-scrollbar scroll-smooth relative z-10 flex flex-col`}
+                style={{ overscrollBehaviorY: 'contain' }}>
                 {messages.length === 0 && !isLoading && (
                   <EmptyState onPrompt={(q) => setInput(q)} />
                 )}
@@ -510,21 +522,21 @@ const CoreChat: React.FC<CoreChatProps> = ({ madhab, setMadhab, tone: mood, setT
                     key={groupIdx}
                     className={`flex ${group.role === 'user' ? 'justify-end' : 'justify-start'} ${groupIdx > 0 ? 'mt-5' : ''}`}
                   >
-                    <div className={`space-y-2 ${isDesktop ? 'max-w-[92%]' : 'max-w-[95%]'}`}>
+                    <div className={`space-y-3 ${isDesktop ? 'max-w-[85%]' : 'max-w-[92%]'}`}>
                       {group.messages.map((msg, msgIdx) => (
                         <div
                           key={msg.id}
-                          className={`animate-in fade-in slide-in-from-bottom-2 duration-300 ${msg.role === 'user'
-                            ? 'p-4 md:p-5 rounded-2xl rounded-tr-sm bg-[#052e16] text-white shadow-sm'
-                            : 'p-4 md:p-7 rounded-2xl rounded-tl-sm bg-white/90 backdrop-blur-sm text-slate-800 border border-slate-100 shadow-sm'
+                          className={`animate-in fade-in slide-in-from-bottom-2 duration-300 shadow-sm ${msg.role === 'user'
+                            ? 'p-4 md:p-5 rounded-2xl rounded-tr-sm bg-[#052e16] text-white/95'
+                            : 'p-4 md:p-7 rounded-2xl rounded-tl-sm bg-white/95 backdrop-blur-sm text-slate-900 border border-slate-100'
                             } `}
                           style={{ animationDelay: `${msgIdx * 30}ms` }}
                         >
                           {msg.role === 'model'
                             ? <FormattedContent content={msg.text} />
-                            : <p className="text-[15px] leading-relaxed">{msg.text}</p>
+                            : <p className="text-[16px] leading-relaxed font-medium">{msg.text}</p>
                           }
-                          <div className={`mt-1 text-[9px] font-medium opacity-50 ${msg.role === 'user' ? 'text-right' : ''} `}>
+                          <div className={`mt-2 text-[10px] font-bold tracking-tight opacity-40 ${msg.role === 'user' ? 'text-right' : ''} `}>
                             {msg.timestamp.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                           </div>
                         </div>
@@ -540,8 +552,8 @@ const CoreChat: React.FC<CoreChatProps> = ({ madhab, setMadhab, tone: mood, setT
               {/* Sticky Input Area */}
               <div className={`shrink-0 ${isDesktop 
                 ? 'p-4 md:p-6 bg-white/60 backdrop-blur-md border-t border-slate-100/60' 
-                : 'fixed bottom-20 left-0 right-0 p-4 bg-gradient-to-t from-white via-white/95 to-transparent z-[60]'}`}>
-                <div className={`flex items-center gap-2 bg-white ${isDesktop ? 'p-2' : 'p-1.5'} rounded-full border border-slate-200 shadow-lg focus-within:border-emerald-400 focus-within:ring-2 focus-within:ring-emerald-400/20 transition-all max-w-3xl mx-auto`}>
+                : `fixed ${isKeyboardOpen ? 'bottom-2' : 'bottom-20'} left-0 right-0 p-4 pb-6 bg-white/80 backdrop-blur-2xl border-t border-emerald-50/50 z-[60] shadow-[0_-10px_40px_-15px_rgba(0,0,0,0.08)] transition-all duration-300`}`}>
+                <div className={`flex items-center gap-2 bg-white ${isDesktop ? 'p-2' : 'p-1.5'} rounded-full border border-slate-200 shadow-sm focus-within:border-emerald-400 focus-within:ring-4 focus-within:ring-emerald-400/10 transition-all max-w-3xl mx-auto`}>
                   
                   {/* Settings Button (Mobile) */}
                   {!isDesktop && (
@@ -559,7 +571,7 @@ const CoreChat: React.FC<CoreChatProps> = ({ madhab, setMadhab, tone: mood, setT
                     value={input}
                     onChange={(e) => setInput(e.target.value)}
                     onKeyDown={(e) => e.key === 'Enter' && handleSend()}
-                    className="flex-1 bg-transparent border-none focus:outline-none text-[15px] px-3 font-medium text-slate-700"
+                    className="flex-1 bg-transparent border-none focus:outline-none text-[16px] px-3 font-medium text-slate-700"
                   />
                   
                   <button

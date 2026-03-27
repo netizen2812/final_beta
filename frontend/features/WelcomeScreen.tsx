@@ -48,7 +48,7 @@ const WelcomeScreen: React.FC<WelcomeScreenProps> = ({ onComplete }) => {
         };
     }, [showText, onComplete]);
 
-    // Attempt autoplay
+    // Attempt autoplay + Safety Timeout
     useEffect(() => {
         const playVideo = async () => {
             if (videoRef.current) {
@@ -62,6 +62,12 @@ const WelcomeScreen: React.FC<WelcomeScreenProps> = ({ onComplete }) => {
 
         playVideo();
 
+        // Safety Timeout: If video doesn't end or transition in 10 seconds, move to app
+        const safetyTimeout = setTimeout(() => {
+            console.warn("Welcome video safety timeout triggered");
+            onComplete();
+        }, 10000);
+
         // Mobile fallback: Play on first touch if autoplay failed
         const handleTouch = () => {
             if (videoRef.current && videoRef.current.paused) {
@@ -70,8 +76,11 @@ const WelcomeScreen: React.FC<WelcomeScreenProps> = ({ onComplete }) => {
         };
 
         window.addEventListener('touchstart', handleTouch, { once: true });
-        return () => window.removeEventListener('touchstart', handleTouch);
-    }, []);
+        return () => {
+            window.removeEventListener('touchstart', handleTouch);
+            clearTimeout(safetyTimeout);
+        };
+    }, [onComplete]);
 
     return (
         <div className="fixed inset-0 z-[9999] bg-black flex items-center justify-center overflow-hidden">
@@ -119,10 +128,10 @@ const WelcomeScreen: React.FC<WelcomeScreenProps> = ({ onComplete }) => {
                 {hasError ? t('welcome.enterApp') : t('welcome.skip')}
             </button>
 
-            {/* Loading Fallback */}
+            {/* Loading Fallback - Using Imam Green instead of pure black to avoid jarring flash */}
             {!isVideoLoaded && !hasError && (
-                <div className="absolute inset-0 bg-black flex items-center justify-center -z-10">
-                    {/* Static background if needed, currently just black */}
+                <div className="absolute inset-0 bg-[#052e16] flex flex-col items-center justify-center -z-10">
+                    <img src="/imam_logo.png" alt="Logo" className="h-12 mb-4 animate-pulse" />
                 </div>
             )}
         </div>

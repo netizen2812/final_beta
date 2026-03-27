@@ -3,7 +3,7 @@ import {
   BookOpen, Heart, Sun, Cloud, Play, Lock, Sprout, Star, 
   Trophy, Flame, Target, User, Settings, Clock, CheckCircle, 
   TrendingUp, Shield, Award, Moon, Sparkles, Leaf, Book,
-  ChevronLeft, BarChart2, Calendar, Download, Share2, Users, ChevronDown, ShieldCheck, Loader2, Crown, ChevronRight
+  ChevronLeft, BarChart2, Calendar, Download, Share2, Users, ChevronDown, ShieldCheck, Loader2, Crown, ChevronRight, XCircle
 } from 'lucide-react';
 import { PieChart, Pie, Cell, ResponsiveContainer, BarChart, Bar, XAxis, Tooltip as RechartsTooltip } from 'recharts';
 import { useChildContext } from '../contexts/ChildContext';

@@ -373,8 +373,6 @@ const KidsView = ({ scrollProgress, activeChild, onJoinLive, currentBatchStatus,
             </div>
           </div>
         </div>
-        
-        </div>
       </div>
 
       <div className="relative max-w-2xl mx-auto px-4 pb-32">

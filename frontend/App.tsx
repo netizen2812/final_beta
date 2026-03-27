@@ -243,7 +243,7 @@ const App: React.FC = () => {
       {showWelcome && appMode !== 'app' && <WelcomeScreen onComplete={handleVideoEnd} />}
 
       <ChildProvider>
-        {appMode === 'app' ? (
+        {(appMode === 'app' && !isDesktop) ? (
           /* 📱 APP LAYOUT (MOBILE CONSTRAINED) */
           <div className="min-h-[100dvh] flex items-center justify-center bg-slate-100 sm:p-6 lg:p-8 overflow-hidden">
             <div

@@ -126,27 +126,27 @@ const EmptyState: React.FC<{ onPrompt: (q: string) => void }> = ({ onPrompt }) =
     { emoji: '🌙', text: t('chat.promptRamadan') },
   ];
   return (
-    <div className="flex flex-col items-center justify-center h-full px-6 max-w-lg mx-auto text-center space-y-8 animate-in zoom-in-95 duration-700">
-      <div className="relative">
-        <div className="w-24 h-24 bg-gradient-to-br from-emerald-50 to-emerald-100/50 rounded-[2rem] flex items-center justify-center shadow-inner border border-emerald-100">
-          <Sparkles size={44} className="text-[#052e16]/70" />
+    <div className="flex-1 flex flex-col items-center justify-center px-6 max-w-lg mx-auto text-center space-y-6 animate-in zoom-in-95 duration-700 min-h-0">
+      <div className="relative shrink-0">
+        <div className="w-20 h-20 bg-gradient-to-br from-emerald-50 to-emerald-100/50 rounded-[2rem] flex items-center justify-center shadow-inner border border-emerald-100">
+          <Sparkles size={36} className="text-[#052e16]/70" />
         </div>
         <div className="absolute -inset-3 rounded-[2.5rem] border border-emerald-100/60 animate-pulse" />
       </div>
-      <div className="space-y-3">
-        <h3 className="text-3xl font-serif font-bold text-[#052e16]">{t('chat.greeting')}</h3>
-        <p className="text-sm leading-relaxed text-slate-500 max-w-xs mx-auto">
+      <div className="space-y-2 shrink-0">
+        <h3 className="text-2xl font-serif font-bold text-[#052e16]">{t('chat.greeting')}</h3>
+        <p className="text-sm leading-relaxed text-slate-500 max-w-[280px] mx-auto">
           {t('chat.greetingDesc')}
         </p>
       </div>
-      <div className="flex overflow-x-auto no-scrollbar gap-2 w-full pb-2 px-2">
+      <div className="flex flex-wrap justify-center gap-2 w-full pb-2">
         {prompts.map((p, i) => (
           <button
             key={i}
             onClick={() => onPrompt(p.text)}
-            className="flex-shrink-0 flex items-center gap-2 px-5 py-3 bg-white/80 backdrop-blur-sm border border-slate-100 rounded-full hover:border-emerald-200 hover:bg-emerald-50/50 transition-all duration-200 group"
+            className="flex items-center gap-2 px-4 py-2.5 bg-white/80 backdrop-blur-sm border border-slate-100 rounded-full hover:border-emerald-200 hover:bg-emerald-50/50 transition-all duration-200 group"
           >
-            <span className="text-base">{p.emoji}</span>
+            <span className="text-sm">{p.emoji}</span>
             <span className="text-[10px] font-bold text-slate-600 group-hover:text-[#052e16] whitespace-nowrap">{p.text}</span>
           </button>
         ))}
@@ -179,6 +179,15 @@ const CoreChat: React.FC<CoreChatProps> = ({ madhab, setMadhab, tone: mood, setT
   const [conversations, setConversations] = useState<Conversation[]>([]);
   const [activeConversationId, setActiveConversationId] = useState<string | null>(null);
   const [isHistoryLoading, setIsHistoryLoading] = useState(false);
+
+  useEffect(() => {
+    if (showMobileHistory) {
+      document.body.style.overflow = 'hidden';
+    } else {
+      document.body.style.overflow = '';
+    }
+    return () => { document.body.style.overflow = ''; };
+  }, [showMobileHistory]);
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const { getToken } = useAuth();
@@ -511,8 +520,11 @@ const CoreChat: React.FC<CoreChatProps> = ({ madhab, setMadhab, tone: mood, setT
               />
 
               {/* Message List */}
-              <div className={`flex-1 overflow-y-auto ${isDesktop ? 'p-6 md:p-10' : 'p-4 pt-4 pb-32'} space-y-6 no-scrollbar scroll-smooth relative z-10 flex flex-col`}
-                style={{ overscrollBehaviorY: 'contain' }}>
+              <div className={`flex-1 overflow-y-auto ${messages.length > 0 ? (isDesktop ? 'p-6 md:p-10' : 'p-4 pt-4 pb-32') : 'p-4'} space-y-6 no-scrollbar relative z-10 flex flex-col`}
+                style={{ 
+                  overscrollBehavior: 'none',
+                  WebkitOverflowScrolling: 'touch'
+                }}>
                 {messages.length === 0 && !isLoading && (
                   <EmptyState onPrompt={(q) => setInput(q)} />
                 )}

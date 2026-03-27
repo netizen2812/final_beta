@@ -1,4 +1,4 @@
-package com.imam.app
+package com.imam.faithtech
 
 import android.Manifest
 import android.annotation.SuppressLint
@@ -18,7 +18,7 @@ import androidx.appcompat.app.AppCompatActivity
 import androidx.core.content.ContextCompat
 import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
 import androidx.swiperefreshlayout.widget.SwipeRefreshLayout
-import com.faithtech.app.databinding.ActivityMainBinding
+import com.imam.faithtech.databinding.ActivityMainBinding
 
 class MainActivity : AppCompatActivity() {
 

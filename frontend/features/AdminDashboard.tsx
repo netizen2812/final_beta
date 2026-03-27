@@ -8,6 +8,7 @@ import {
     Radio, Calendar, Layers, ChevronDown, ChevronRight, Plus,
     Clock, MessageCircle, BookOpen, Heart
 } from 'lucide-react';
+import ScholarQuranManager from './ScholarQuranManager';
 
 const API_BASE = import.meta.env.VITE_API_URL || "http://localhost:5000";
 
@@ -25,7 +26,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onNavigateToLive }) => 
     const [sessions, setSessions] = useState<any[]>([]);
     const [analytics, setAnalytics] = useState<any>(null);
     const [aiLogs, setAiLogs] = useState<any[]>([]);
-    const [tab, setTab] = useState<'overview' | 'users' | 'batches' | 'sessions' | 'ailogs'>('overview');
+    const [tab, setTab] = useState<'overview' | 'users' | 'batches' | 'sessions' | 'ailogs' | 'quran'>('overview');
     const [error, setError] = useState<string | null>(null);
     const [searchQuery, setSearchQuery] = useState('');
 
@@ -134,6 +135,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onNavigateToLive }) => 
                         { id: 'overview', icon: BarChart2, label: 'Analytics' },
                         { id: 'users', icon: Users, label: 'User Roles' },
                         { id: 'ailogs', icon: MessageCircle, label: 'AI Logs' },
+                        { id: 'quran', icon: BookOpen, label: 'Quran Assignments' },
                     ].map(t => (
                         <button key={t.id} onClick={() => setTab(t.id as any)} className={`px-4 py-2 rounded-lg text-sm font-bold flex items-center gap-2 transition-all ${tab === t.id ? 'bg-emerald-600' : 'hover:bg-white/10 text-emerald-200'}`}>
                             <t.icon size={16} /> {t.label}
@@ -344,6 +346,8 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onNavigateToLive }) => 
                         </div>
                     </div>
                 )}
+
+                {tab === 'quran' && <ScholarQuranManager users={users} />}
 
                 {/* Placeholder for Batches/Sessions (Previously Implemented) */}
                 {(tab === 'batches' || tab === 'sessions') && (

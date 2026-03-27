@@ -20,6 +20,7 @@ import ibadahRoutes from "./routes/ibadahRoutes.js";
 import ibadahQuranRoutes from "./routes/ibadahQuranRoutes.js";
 import analyticsRoutes from "./routes/analyticsRoutes.js";
 import paymentRoutes from "./routes/paymentRoutes.js";
+import quranAssignmentRoutes from "./routes/quranAssignmentRoutes.js";
 
 // Connect to database
 connectDB().then(async () => {
@@ -88,6 +89,7 @@ app.use("/api/ibadah/quran", ibadahQuranRoutes);
 app.use("/api/ibadah", ibadahRoutes);
 app.use("/api/analytics", analyticsRoutes);
 app.use("/api/payment", paymentRoutes);
+app.use("/api/quran/assignments", quranAssignmentRoutes);
 
 console.log("✅ All routes registered:");
 console.log("   - GET /ai-test (OpenRouter Verification)");

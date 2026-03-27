@@ -5,7 +5,7 @@ import {
     addStudentToBatch, removeStudentFromBatch, getBatchSessions, debugBatch, debugAllBatches,
     batchPing, updateBatchProgress, updatePosition, leaveBatch, getBatchActiveParticipants,
     getBatchState, selectTurn, scoreRecitation, scoreParticipation, getLeaderboard,
-    submitPrompt, evaluatePrompt, getScholarBatches, endBatch, getBatchAttendance
+    submitPrompt, evaluatePrompt, getScholarBatches, endBatch, getBatchAttendance, getBatchStudents
 } from "../controller/liveController.js";
 import { requireAuth, isAdmin, isScholar } from "../middleware/authmiddleware.js";
 
@@ -32,6 +32,7 @@ router.post("/update-progress", requireAuth, updateBatchProgress);
 router.post("/update-position", requireAuth, updatePosition);
 router.post("/leave", requireAuth, leaveBatch);
 router.get("/batch/:id/participants", requireAuth, getBatchActiveParticipants);
+router.get("/batch/:id/students", requireAuth, getBatchStudents);
 
 // CLASSROOM STATE & SCORING
 router.get("/batch/:id/state", requireAuth, getBatchState);

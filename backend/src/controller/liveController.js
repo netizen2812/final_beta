@@ -903,3 +903,16 @@ export const endBatch = async (req, res) => {
         res.status(500).json({ message: "Server error", error: error.message, stack: process.env.NODE_ENV !== 'production' ? error.stack : undefined });
     }
 };
+
+// GET /api/live/batch/:id/students
+export const getBatchStudents = async (req, res) => {
+    try {
+        const { id } = req.params;
+        const { default: Batch } = await import("../models/Batch.js");
+        const batch = await Batch.findById(id).populate('students');
+        if (!batch) return res.status(404).json({ message: "Batch not found" });
+        res.json(batch.students || []);
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+};

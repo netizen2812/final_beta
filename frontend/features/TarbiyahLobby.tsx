@@ -374,31 +374,31 @@ const KidsView = ({ scrollProgress, activeChild, onJoinLive, currentBatchStatus,
           </div>
         </div>
         
-        <div onClick={() => setShowQuranPractice(true)} className="mt-6 bg-gradient-to-r from-indigo-900/60 to-purple-900/60 backdrop-blur-xl rounded-3xl p-6 border border-indigo-500/30 cursor-pointer hover:scale-[1.02] transition-all group shadow-2xl relative overflow-hidden">
-             <div className="absolute top-0 right-0 w-32 h-32 bg-indigo-500/20 rounded-full blur-2xl -mr-10 -mt-10" />
-             <div className="flex items-center justify-between relative z-10">
-               <div className="flex items-center gap-4">
-                 <div className="bg-indigo-500/20 p-3 rounded-2xl border border-indigo-400/30 text-indigo-300 group-hover:bg-indigo-500 group-hover:text-white transition-all"><BookOpen size={24} /></div>
-                 <div><h4 className="font-bold text-lg text-white">Quran Practice Homework</h4><p className="text-xs text-indigo-200">Test your knowledge of your assigned Juz!</p></div>
-               </div>
-               <div className="bg-white/10 p-2 rounded-full text-indigo-300"><ChevronRight size={20} /></div>
-             </div>
         </div>
       </div>
 
       <div className="relative max-w-2xl mx-auto px-4 pb-32">
-        <h3 className="text-center font-serif text-3xl font-bold text-white mb-16 flex items-center justify-center gap-4 text-transparent bg-clip-text bg-gradient-to-r from-emerald-200 to-teal-100 italic">Your Journey to Light</h3>
+        <h3 className="text-center font-serif text-3xl font-bold text-white mb-16 flex items-center justify-center gap-4 text-transparent bg-clip-text bg-gradient-to-r from-emerald-200 to-teal-100 italic drop-shadow-[0_0_15px_rgba(16,185,129,0.5)]">Your Journey to Light</h3>
         <div className="absolute top-24 bottom-16 left-[2rem] md:left-1/2 w-1 md:-translate-x-1/2 z-0">
           <svg className="h-full w-full overflow-visible">
+             <defs>
+               <filter id="glow">
+                 <feGaussianBlur stdDeviation="2.5" result="coloredBlur"/>
+                 <feMerge>
+                   <feMergeNode in="coloredBlur"/><feMergeNode in="SourceGraphic"/>
+                 </feMerge>
+               </filter>
+             </defs>
              <line x1="50%" y1="0%" x2="50%" y2="100%" stroke="rgba(255, 255, 255, 0.1)" strokeWidth="2" strokeDasharray="8 8" />
-             <line x1="50%" y1="0%" x2="50%" y2={`${fillPercentage}%`} stroke="#34d399" strokeWidth="4" strokeLinecap="round" />
+             <line x1="50%" y1="0%" x2="50%" y2={`${fillPercentage}%`} stroke="#10b981" strokeWidth="6" strokeLinecap="round" filter="url(#glow)" className="drop-shadow-[0_0_10px_rgba(16,185,129,0.8)]" />
           </svg>
         </div>
         <div className="space-y-24 relative z-10">
           {JOURNEY_STAGES.map((stage, index) => {
             const isHistorical = index < totalClassesPassed;
-            const isCurrent = index === totalClassesPassed;
-            const isLocked = index > totalClassesPassed;
+            const isCurrent = index === totalClassesPassed && hasActiveSession;
+            const isLocked = index > totalClassesPassed || (index === totalClassesPassed && !hasActiveSession);
+            const isNextScheduled = index === totalClassesPassed && !hasActiveSession;
             return (
               <div key={stage.id} className="flex md:justify-center items-center relative group">
                 <div 
@@ -416,12 +416,12 @@ const KidsView = ({ scrollProgress, activeChild, onJoinLive, currentBatchStatus,
                          setShowQuranPractice(true);
                       }
                    }}
-                   className={`absolute left-[2rem] md:left-1/2 -translate-x-1/2 w-14 h-14 rounded-full border-4 border-[#022c22] z-20 flex items-center justify-center shadow-xl transition-all ${isLocked ? 'bg-gray-800 text-gray-500' : isCurrent ? 'bg-emerald-400 text-black scale-110' : 'bg-emerald-600 text-white'}`}>
-                    {isLocked ? <Lock size={18} /> : isCurrent ? <Play size={18} fill="currentColor" /> : <CheckCircle size={18} />}
+                   className={`absolute left-[2rem] md:left-1/2 -translate-x-1/2 w-14 h-14 rounded-full border-4 border-[#022c22] z-20 flex items-center justify-center shadow-xl transition-all ${isLocked ? 'bg-gray-800 text-gray-400' : isCurrent ? 'bg-emerald-400 text-black scale-110 shadow-[0_0_20px_rgba(16,185,129,0.6)] animate-pulse' : 'bg-emerald-600 text-white shadow-[0_0_15px_rgba(16,185,129,0.3)]'}`}>
+                    {isHistorical ? <CheckCircle size={18} /> : (isCurrent ? <Play size={18} fill="currentColor" /> : <Calendar size={18} />)}
                 </div>
                 <div className={`w-full md:w-[45%] pl-24 md:pl-0 ${index % 2 !== 0 ? 'md:ml-auto md:pl-20' : 'md:mr-auto md:pr-20 md:text-right'}`}>
-                   <div className={`backdrop-blur-xl rounded-[2rem] p-6 border transition-all ${isLocked ? 'bg-white/5 opacity-50' : 'bg-white/10 border-white/20 shadow-xl'}`}>
-                      <h4 className="font-bold text-xl text-white mb-1">{stage.title}</h4>
+                   <div className={`backdrop-blur-xl rounded-[2rem] p-6 border transition-all ${isLocked ? 'bg-white/5 opacity-50 border-white/5' : isCurrent ? 'bg-emerald-500/10 border-emerald-500/40 shadow-[0_0_30px_rgba(16,185,129,0.2)]' : 'bg-white/10 border-white/20 shadow-xl'}`}>
+                      <h4 className={`font-bold text-xl mb-1 ${isCurrent ? 'text-emerald-300' : 'text-white'}`}>{isNextScheduled ? "Scheduled: " + stage.title : stage.title}</h4>
                       <p className="text-sm text-emerald-200/80">{stage.subtitle}</p>
                    </div>
                 </div>

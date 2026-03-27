@@ -13,7 +13,7 @@ import SessionLeaderboard from './SessionLeaderboard';
 import { loadRazorpayScript } from '../utils/razorpay';
 import { TarbiyahOnboarding } from './TarbiyahOnboarding';
 import QuranPracticeModule from './QuranPracticeModule';
-import { ScholarQuranManager } from './ScholarQuranManager';
+import ScholarQuranManager from './ScholarQuranManager';
 
 // --- DATA & CONSTANTS ---
 const API_BASE = import.meta.env.VITE_API_URL || "http://localhost:5000";

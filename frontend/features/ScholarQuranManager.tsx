@@ -189,4 +189,4 @@ const ScholarQuranManager: React.FC<ScholarQuranManagerProps> = ({ batchId, batc
     );
 };
 
-export { ScholarQuranManager };
+export default ScholarQuranManager;

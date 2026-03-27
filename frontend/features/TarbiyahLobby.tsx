@@ -407,6 +407,11 @@ const KidsView = ({ scrollProgress, activeChild, onJoinLive, currentBatchStatus,
                          handleRequestAccess();
                       } else if (isCurrent) {
                          setShowJoinChoice(true);
+                      } else if (isHistorical) {
+                         const historicalSession = activeBatch?.pastSessions?.[index];
+                         if (historicalSession?.sessionId) {
+                            setSelectedSessionId(historicalSession.sessionId);
+                         }
                       }
                    }}
                    className={`absolute left-[2rem] md:left-1/2 -translate-x-1/2 w-14 h-14 rounded-full border-4 border-[#022c22] z-20 flex items-center justify-center shadow-xl transition-all ${isLocked ? 'bg-gray-800 text-gray-500' : isCurrent ? 'bg-emerald-400 text-black scale-110' : 'bg-emerald-600 text-white'}`}>

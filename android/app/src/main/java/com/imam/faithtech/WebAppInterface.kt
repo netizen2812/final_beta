@@ -88,8 +88,15 @@ class WebAppInterface(private val mContext: Context) {
 
     @JavascriptInterface
     fun onUserSignOut() {
-        val prefs = mContext.getSharedPreferences("FaithTechPrefs", Context.MODE_PRIVATE)
+        val prefs = mContext.getSharedPreferences("ImamAppPrefs", Context.MODE_PRIVATE)
         prefs.edit().remove("userId").apply()
+    }
+
+    @JavascriptInterface
+    fun logError(error: String) {
+        android.util.Log.e("ImamAppJS", error)
+        // Show as long toast for visibility during debugging
+        Toast.makeText(mContext, "JS Error: $error", Toast.LENGTH_LONG).show()
     }
 
     @JavascriptInterface

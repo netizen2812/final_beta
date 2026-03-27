@@ -7,6 +7,23 @@
     <script src='https://8x8.vc/vpaas-magic-cookie-0ce893506b9c42d388e16bbaf8b0608c/external_api.js' async></script>
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <script>
+        // Global Error Reporting to Native Android
+        window.onerror = function(message, source, lineno, colno, error) {
+            var errorMsg = message + " at " + source + ":" + lineno + ":" + colno;
+            if (window.Android && window.Android.logError) {
+                window.Android.logError(errorMsg);
+            }
+            return false;
+        };
+        // Catch Promise Rejections
+        window.onunhandledrejection = function(event) {
+            var errorMsg = "Unhandled Rejection: " + event.reason;
+            if (window.Android && window.Android.logError) {
+                window.Android.logError(errorMsg);
+            }
+        };
+    </script>
     <style>
         body { 
             font-family: 'Inter', sans-serif; 

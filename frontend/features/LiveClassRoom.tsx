@@ -378,23 +378,33 @@ const LiveClassRoom: React.FC = () => {
     }, POSITION_THROTTLE_MS);
   }, [currentSession, userRole, getToken, user?.id]);
 
-  // Fetch Attendance for Current Batch (Parents only)
+  // Fetch Attendance for Current Batch (Parents only) - Runs whenever activeChild is set to populate Journey map
   useEffect(() => {
     const fetchAttendance = async () => {
-      if (userRole === 'parent' && currentSession?.batchId && currentSession?.childId) {
+      // If we're in a batch or just have an active child, fetch their attendance for the batch context
+      const batchId = currentSession?.batchId || (userRole === 'parent' && scholarBatches?.[0]?._id); // Try to get a batch context
+      
+      if (userRole === 'parent' && activeChild?.id) {
         try {
+          // If we don't have a batchId yet, we'll try to get it from the batches list (parents usually have 1)
+          const effectiveBatchId = currentSession?.batchId || (scholarBatches && scholarBatches.length > 0 ? scholarBatches[0]._id : null);
+          
+          if (!effectiveBatchId) return;
+
           const token = await getToken();
-          const res = await axios.get(`${API_BASE}/api/live/batch/${currentSession.batchId}/attendance?childId=${currentSession.childId}`, {
+          const res = await axios.get(`${API_BASE}/api/live/batch/${effectiveBatchId}/attendance?childId=${activeChild.id}`, {
             headers: { Authorization: `Bearer ${token}` }
           });
           if (res.data.attendedSessionIds) {
             setAttendedSessionIds(res.data.attendedSessionIds);
           }
-        } catch (e) { console.error("Attendance fetch failed", e); }
+        } catch (e) { 
+           console.error("Attendance fetch failed", e); 
+        }
       }
     };
     fetchAttendance();
-  }, [userRole, currentSession?.batchId, currentSession?.childId, getToken]);
+  }, [userRole, currentSession?.batchId, activeChild?.id, getToken, scholarBatches]);
 
   // POLL: Scholar Status (for parent lobby) - Optional, leaving for now
   useEffect(() => {
@@ -984,6 +994,7 @@ const LiveClassRoom: React.FC = () => {
       userRole={userRole}
       scholarBatches={scholarBatches}
       onScholarJoinSession={handleScholarJoinBatch}
+      attendedSessionIds={attendedSessionIds}
     />
   );
 };

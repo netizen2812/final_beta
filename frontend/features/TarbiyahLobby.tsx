@@ -405,22 +405,22 @@ const KidsView = ({ scrollProgress, activeChild, onJoinLive, currentBatchStatus,
             return (
               <div key={stage.id} className="flex md:justify-center items-center relative group">
                 <div 
-                   onClick={() => {
+                   onClick={(e) => {
+                      e.stopPropagation();
                       if (!hasPremium) {
                          handleRequestAccess();
                       } else if (isCurrent) {
                          setShowJoinChoice(true);
-                      } else if (isHistorical) {
-                         const historicalSession = activeBatch?.pastSessions?.[index];
-                         if (historicalSession?.sessionId) {
-                            setSelectedSessionId(historicalSession.sessionId);
-                         }
-                      } else if (isLocked) {
-                         setShowQuranPractice(true);
-                      }
-                   }}
-                   className={`absolute left-[2rem] md:left-1/2 -translate-x-1/2 w-14 h-14 rounded-full border-4 border-[#022c22] z-20 flex items-center justify-center shadow-xl transition-all ${isLocked ? 'bg-gray-800 text-gray-400' : isCurrent ? 'bg-emerald-400 text-black scale-110 shadow-[0_0_20px_rgba(16,185,129,0.6)] animate-pulse' : 'bg-emerald-600 text-white shadow-[0_0_15px_rgba(16,185,129,0.3)]'}`}>
-                    {isHistorical ? <CheckCircle size={18} /> : (isCurrent ? <Play size={18} fill="currentColor" /> : <Calendar size={18} />)}
+                       } else if (isHistorical) {
+                          if (historicalSession?.sessionId) {
+                             setSelectedSessionId(historicalSession.sessionId);
+                          }
+                       } else if (isLocked) {
+                          setShowQuranPractice(true);
+                       }
+                    }}
+                    className={`absolute left-[2rem] md:left-1/2 -translate-x-1/2 w-14 h-14 rounded-full border-4 border-[#022c22] z-20 flex items-center justify-center shadow-xl transition-all cursor-pointer ${isLocked ? 'bg-gray-800 text-gray-400' : isCurrent ? 'bg-emerald-400 text-black scale-110 shadow-[0_0_20px_rgba(16,185,129,0.6)] animate-pulse' : (wasPresent ? 'bg-emerald-600 text-white' : 'bg-red-500/80 text-white')}`}>
+                     {isHistorical ? (wasPresent ? <CheckCircle size={18} /> : <XCircle size={18} />) : (isCurrent ? <Play size={18} fill="currentColor" /> : <Calendar size={18} />)}
                 </div>
                 <div className={`w-full md:w-[45%] pl-24 md:pl-0 ${index % 2 !== 0 ? 'md:ml-auto md:pl-20' : 'md:mr-auto md:pr-20 md:text-right'}`}>
                    <div className={`backdrop-blur-xl rounded-[2rem] p-6 border transition-all pointer-events-none ${isLocked ? 'bg-white/5 opacity-50 border-white/5' : isCurrent ? 'bg-emerald-500/10 border-emerald-500/40 shadow-[0_0_30px_rgba(16,185,129,0.2)]' : 'bg-white/10 border-white/20 shadow-xl'}`}>

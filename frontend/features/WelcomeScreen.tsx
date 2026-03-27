@@ -83,7 +83,7 @@ const WelcomeScreen: React.FC<WelcomeScreenProps> = ({ onComplete }) => {
     }, [onComplete]);
 
     return (
-        <div className="fixed inset-0 z-[9999] bg-black flex items-center justify-center overflow-hidden">
+        <div className="fixed inset-0 z-[9999] bg-[#052e16] flex items-center justify-center overflow-hidden">
 
             {/* 📹 VIDEO BACKGROUND */}
             {!hasError && (

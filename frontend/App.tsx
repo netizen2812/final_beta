@@ -242,8 +242,8 @@ const App: React.FC = () => {
 
   return (
     <>
-      {/* 🎥 WELCOME VIDEO OVERLAY */}
-      {showWelcome && <WelcomeScreen onComplete={handleVideoEnd} />}
+      {/* 🎥 WELCOME VIDEO OVERLAY (Web Only) */}
+      {showWelcome && appMode !== 'app' && <WelcomeScreen onComplete={handleVideoEnd} />}
 
       <ChildProvider>
         {appMode === 'app' ? (

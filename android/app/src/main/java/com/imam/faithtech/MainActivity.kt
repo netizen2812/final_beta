@@ -77,6 +77,14 @@ class MainActivity : AppCompatActivity() {
         settings.setSupportZoom(true)
         settings.builtInZoomControls = true
         settings.displayZoomControls = false
+        
+        // 🌑 Disable Force Dark (Prevent system from messing with our Green/White theme)
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+            settings.forceDark = WebSettings.FORCE_DARK_OFF
+        }
+        
+        // 🧪 Visual Hardening: Ensure WebView base is Imam Green to match splash/fallback
+        webView.setBackgroundColor(android.graphics.Color.parseColor("#052e16"))
 
         // Custom User Agent to ensure compatibility with Clerk Social Logins
         val defaultUserAgent = settings.userAgentString

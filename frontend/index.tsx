@@ -15,6 +15,7 @@ if (!clerkPubKey) {
 }
 console.log("🔐 Clerk Key Loaded:", clerkPubKey.startsWith("pk_test") ? "TEST MODE" : "LIVE MODE");
 const root = ReactDOM.createRoot(rootElement);
+(window as any).__REACT_HYDRATED__ = true;
 root.render(
   <React.StrictMode>
     <ClerkProvider 

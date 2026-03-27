@@ -112,21 +112,21 @@
             <h1 style="font-size: 24px; font-weight: 800; letter-spacing: -0.05em;">LOADING IMAM...</h1>
             <p style="font-size: 12px; opacity: 0.7; margin-top: 10px;">Please wait while we connect to faith...</p>
         </div>
-115:         <script>
-116:             // 🧪 STUCK LOADER RECOVERY
-117:             // If React doesn't mount and clear the fallback loader within 15 seconds,
-118:             // it might be a network glitch or a JS crash. Try one reload.
-120:             setTimeout(function() {
-121:                 var loader = document.getElementById('fallback-loader');
-122:                 if (loader && !window.__REACT_HYDRATED__) {
-123:                     console.log("App seems stuck. Attempting recovery...");
-124:                     if (!sessionStorage.getItem('has_recovered')) {
-125:                         sessionStorage.setItem('has_recovered', 'true');
-126:                         window.location.reload();
-127:                     }
-128:                 }
-129:             }, 15000);
-130:         </script>
+        <script>
+            // 🧪 STUCK LOADER RECOVERY
+            // If React doesn't mount and clear the fallback loader within 15 seconds,
+            // it might be a network glitch or a JS crash. Try one reload.
+            setTimeout(function() {
+                var loader = document.getElementById('fallback-loader');
+                if (loader && !window.__REACT_HYDRATED__) {
+                    console.log("App seems stuck. Attempting recovery...");
+                    if (!sessionStorage.getItem('has_recovered')) {
+                        sessionStorage.setItem('has_recovered', 'true');
+                        window.location.reload();
+                    }
+                }
+            }, 15000);
+        </script>
     </div>
 <script type="module" src="/index.tsx"></script>
 </body>

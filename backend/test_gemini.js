@@ -1,7 +1,13 @@
 import axios from 'axios';
+import dotenv from "dotenv";
+dotenv.config();
 
 const testGemini = async () => {
-    const key = "AIzaSyDDuduvku2U0OPOJRayt7mD6Hc4n01Q3nI";
+    const key = process.env.GEMINI_API_KEY;
+    if (!key) {
+        console.error("❌ No API key found in .env");
+        return;
+    }
     const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${key}`;
     
     try {

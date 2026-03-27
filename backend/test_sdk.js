@@ -1,8 +1,13 @@
 import { GoogleGenerativeAI } from "@google/generative-ai";
+import dotenv from "dotenv";
+dotenv.config();
 
 const testSDKTextOnly = async () => {
-    const key = "AIzaSyArpcreraul4RRXnhn1n8lceEAa-nD00CQ";
-    // Force v1 explicitly if possible, or just default
+    const key = process.env.GEMINI_API_KEY;
+    if (!key) {
+        console.error("❌ No API key found in .env");
+        return;
+    }
     const genAI = new GoogleGenerativeAI(key);
     
     try {

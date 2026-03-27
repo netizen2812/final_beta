@@ -242,6 +242,13 @@ const App: React.FC = () => {
                     card: "shadow-2xl rounded-2xl",
                   },
                 }}
+                localization={{
+                  signIn: {
+                    start: {
+                      title: "Sign in to Imam",
+                    },
+                  },
+                }}
               />
             </div>
           </div>

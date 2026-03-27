@@ -590,11 +590,14 @@ export const getBatchAttendance = async (req, res) => {
         
         const { default: Child } = await import("../models/Child.js");
         const child = await Child.findById(childId).lean();
-        if (!child || !child.attendance) return res.json({ attendedSessionIds: [] });
+        
+        // Correctly navigate to child_progress[0].attendance
+        const progress = child?.child_progress?.[0];
+        if (!progress || !progress.attendance) return res.json({ attendedSessionIds: [] });
 
-        const attendedSessionIds = child.attendance
-            .filter(a => a.type === 'session_complete' && a.details && a.details.batchId === id)
-            .map(a => a.details.sessionId);
+        const attendedSessionIds = progress.attendance
+            .filter(a => a.type === 'session_complete' && a.batchId?.toString() === id)
+            .map(a => a.sessionId);
             
         res.json({ attendedSessionIds });
     } catch(err) { res.status(500).json({ error: err.message }); }

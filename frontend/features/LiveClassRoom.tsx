@@ -381,17 +381,24 @@ const LiveClassRoom: React.FC = () => {
   // Fetch Attendance for Current Batch (Parents only) - Runs whenever activeChild is set to populate Journey map
   useEffect(() => {
     const fetchAttendance = async () => {
-      // If we're in a batch or just have an active child, fetch their attendance for the batch context
-      const batchId = currentSession?.batchId || (userRole === 'parent' && scholarBatches?.[0]?._id); // Try to get a batch context
-      
       if (userRole === 'parent' && activeChild?.id) {
         try {
-          // If we don't have a batchId yet, we'll try to get it from the batches list (parents usually have 1)
-          const effectiveBatchId = currentSession?.batchId || (scholarBatches && scholarBatches.length > 0 ? scholarBatches[0]._id : null);
+          const token = await getToken();
+          let effectiveBatchId = currentSession?.batchId;
+
+          // If no active session, we need to find the batch the child is in to show their journey
+          if (!effectiveBatchId) {
+            const batchRes = await axios.get(`${API_BASE}/api/live/my-sessions`, {
+              headers: { Authorization: `Bearer ${token}` }
+            });
+            const batches = batchRes.data || [];
+            if (batches.length > 0) {
+              effectiveBatchId = batches[0]._id;
+            }
+          }
           
           if (!effectiveBatchId) return;
 
-          const token = await getToken();
           const res = await axios.get(`${API_BASE}/api/live/batch/${effectiveBatchId}/attendance?childId=${activeChild.id}`, {
             headers: { Authorization: `Bearer ${token}` }
           });
@@ -404,7 +411,7 @@ const LiveClassRoom: React.FC = () => {
       }
     };
     fetchAttendance();
-  }, [userRole, currentSession?.batchId, activeChild?.id, getToken, scholarBatches]);
+  }, [userRole, currentSession?.batchId, activeChild?.id, getToken]);
 
   // POLL: Scholar Status (for parent lobby) - Optional, leaving for now
   useEffect(() => {

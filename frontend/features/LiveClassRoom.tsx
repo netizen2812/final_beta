@@ -181,7 +181,7 @@ const LiveClassRoom: React.FC = () => {
             setActiveSessions(mappedSessions);
         }
 
-        if ((data.status === 'ended' || data.status === 'upcoming') && !showLeaderboard) {
+        if (data.status === 'ended' && !showLeaderboard) {
            const lastSession = data.pastSessions?.[data.pastSessions.length - 1];
            if (lastSession) {
              setShowLeaderboard(lastSession.sessionId);
@@ -461,6 +461,8 @@ const LiveClassRoom: React.FC = () => {
       }, {
         headers: { Authorization: `Bearer ${token}` }
       });
+      setShowLeaderboard(false);
+      setLeaderboard(null);
       setCurrentSession(res.data.session);
     } catch (err: any) {
       console.error("Failed to start session", err);
@@ -492,6 +494,8 @@ const LiveClassRoom: React.FC = () => {
         currentPromptAnswers: [],
         promptEvaluated: false
     });
+    setShowLeaderboard(false);
+    setLeaderboard(null);
 
     try {
         const token = await getToken();
@@ -696,9 +700,9 @@ const LiveClassRoom: React.FC = () => {
                   <div className="flex gap-2">
                     <button 
                        onClick={() => setShowAssignModal(true)}
-                       className="bg-indigo-600 hover:bg-indigo-500 text-white px-4 py-1.5 rounded-lg text-xs font-black tracking-wider shadow-[0_2px_10px_rgba(79,70,229,0.4)] transition-all flex items-center gap-1 active:scale-95"
+                       className="bg-[#4f46e5] hover:bg-indigo-500 text-white px-5 py-2 rounded-xl text-xs font-black tracking-widest shadow-[0_4px_15px_rgba(79,70,229,0.4)] transition-all flex items-center gap-2 active:scale-95 border-b-4 border-indigo-800"
                     >
-                       <BookOpen size={12} /> ASSIGN QURAN
+                       <BookOpen size={14} className="animate-bounce" /> ASSIGN PRACTICE
                     </button>
                     <button 
                        onClick={() => setConfirmEndClass(currentSession.batchId!)} 

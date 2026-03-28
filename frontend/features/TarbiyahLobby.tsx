@@ -300,12 +300,21 @@ const KidsView = ({ scrollProgress, activeChild, onJoinLive, currentBatchStatus,
   const progress = activeChild?.child_progress?.[0];
   const activeBatch = batches && batches.length > 0 ? batches[0] : null;
   const [selectedSessionId, setSelectedSessionId] = useState<string | null>(null);
-  const hasActiveSession = activeBatch?.status === 'active' && activeBatch?.pastSessions?.length > 0 && !activeBatch.pastSessions[activeBatch.pastSessions.length - 1].endedAt;
+  
+  // SYNCED LOGIC
+  const activeSessionId = activeBatch?.activeSessionId;
+  const hasActiveSession = !!activeSessionId;
+  const pastSessions = activeBatch?.pastSessions || [];
+  
+  // Find index of currently live session (if any)
+  const currentLiveIndex = hasActiveSession 
+    ? pastSessions.findIndex((s: any) => s.sessionId === activeSessionId)
+    : -1;
+    
+  // Classes passed is number of ALREADY ENDED sessions
+  const totalClassesPassed = pastSessions.filter((s: any) => !!s.endedAt).length;
+  
   const hasPremium = accessStatus?.hasAccess || (batches && batches.length > 0);
-
-  let totalClassesPassed = 0;
-  if (!hasPremium) totalClassesPassed = -1;
-  else if (activeBatch?.pastSessions?.length) totalClassesPassed = hasActiveSession ? activeBatch.pastSessions.length - 1 : activeBatch.pastSessions.length;
 
   const lastUnlockedIndex = Math.max(0, Math.min(totalClassesPassed, 15));
   const maxPercentage = (lastUnlockedIndex / (JOURNEY_STAGES.length - 1)) * 100;
@@ -396,12 +405,12 @@ const KidsView = ({ scrollProgress, activeChild, onJoinLive, currentBatchStatus,
         </div>
         <div className="space-y-24 relative z-10">
           {JOURNEY_STAGES.map((stage, index) => {
-            const isHistorical = index < totalClassesPassed;
-            const isCurrent = index === totalClassesPassed && hasActiveSession;
-            const isUpcoming = index === totalClassesPassed && !hasActiveSession;
-            const isLocked = index > totalClassesPassed;
+            const historicalSession = pastSessions[index];
+            const isHistorical = !!historicalSession?.endedAt;
+            const isCurrent = currentLiveIndex === index;
+            const isUpcoming = !isCurrent && !isHistorical && index === totalClassesPassed;
+            const isLocked = !isCurrent && !isHistorical && index > totalClassesPassed;
 
-            const historicalSession = activeBatch?.pastSessions?.[index];
             const wasPresent = historicalSession && attendedSessionIds.includes(historicalSession.sessionId);
             const statusLabel = isHistorical ? (wasPresent ? "Completed" : "Absent") : (isCurrent ? "Live Now" : "Scheduled");
 
@@ -461,7 +470,18 @@ const ScholarJourneyView = ({ scrollProgress, batches, onJoinSession, initialBat
   const activeBatch = batches.find((b:any) => b._id === selectedBatchId) || batches?.[0];
   const [selectedSessionId, setSelectedSessionId] = useState<string | null>(null);
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
-  const totalClassesPassed = activeBatch?.pastSessions?.length || 0;
+  
+  // SCHOLAR SYNCED LOGIC
+  const activeSessionId = activeBatch?.activeSessionId;
+  const hasActiveSession = !!activeSessionId;
+  const pastSessions = activeBatch?.pastSessions || [];
+  
+  const currentLiveIndex = hasActiveSession 
+    ? pastSessions.findIndex((s: any) => s.sessionId === activeSessionId)
+    : -1;
+    
+  const totalClassesPassed = pastSessions.filter((s: any) => !!s.endedAt).length;
+
   const lastUnlockedIndex = Math.min(totalClassesPassed, 15);
   const maxPercentage = (lastUnlockedIndex / (JOURNEY_STAGES.length - 1)) * 100;
   const currentDraw = scrollProgress * 2.0;
@@ -495,9 +515,10 @@ const ScholarJourneyView = ({ scrollProgress, batches, onJoinSession, initialBat
         </div>
         <div className="grid grid-cols-1 gap-24 relative">
           {JOURNEY_STAGES.map((stage, index) => {
-            const isHistorical = index < totalClassesPassed;
-            const isCurrent = index === totalClassesPassed;
-            const isLocked = index > totalClassesPassed;
+            const historicalSession = pastSessions[index];
+            const isHistorical = !!historicalSession?.endedAt;
+            const isCurrent = currentLiveIndex === index || (!hasActiveSession && index === totalClassesPassed);
+            const isLocked = index > totalClassesPassed && !isCurrent;
             return (
               <div key={stage.id} className="flex md:justify-center items-center relative group">
                 <div onClick={() => isCurrent ? onJoinSession(activeBatch) : null} className={`absolute left-[2rem] md:left-1/2 -translate-x-1/2 w-14 h-14 rounded-full border-4 border-[#022c22] z-20 flex items-center justify-center shadow-xl transition-all ${isLocked ? 'bg-gray-800 text-gray-500' : isCurrent ? 'bg-amber-400 text-amber-900 scale-125' : 'bg-emerald-400 text-emerald-950'}`}>

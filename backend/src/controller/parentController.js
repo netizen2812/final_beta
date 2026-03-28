@@ -52,20 +52,29 @@ export const getDashboardStats = async (req, res) => {
             date: day.date,
         }));
 
-        // Get badge count
-        const badgeCount = await ChildBadge.countDocuments({ child_id: childId });
+        // Get child progress and assignments for deeper KPIs
+        const { default: QuranAssignment } = await import("../models/QuranAssignment.js");
+        const assignments = await QuranAssignment.find({ studentId: childId });
+        
+        const totalRevisions = assignments.reduce((sum, a) => sum + (a.revisionCount || 0), 0);
+        const practicingAssignments = assignments.filter(a => a.practiceCount > 0);
+        const avgPracticeAccuracy = practicingAssignments.length > 0
+            ? practicingAssignments.reduce((sum, a) => sum + (a.practiceScore || 0), 0) / practicingAssignments.length
+            : 0;
 
         // Get child progress
-        const progress = child.child_progress?.[0] || { xp: 0, level: 1, lessons_completed: 0 };
+        const progress = child.child_progress?.[0] || { xp: 0, level: 1, total_sessions_attended: 0 };
 
         res.json({
             stats: {
                 timeThisWeek: `${Math.floor(totalMinutes / 60)}h ${totalMinutes % 60}m`,
                 totalMinutes,
                 lessonsDone: progress.total_sessions_attended || 0,
-                currentXP: progress.xp,
-                currentLevel: progress.level,
-                totalBadges: badgeCount,
+                currentXP: progress.total_xp || 0,
+                currentLevel: progress.level || 1,
+                averageAccuracy: Math.round(avgPracticeAccuracy),
+                totalRevisions: totalRevisions,
+                attendanceRate: Math.round((weeklyActivity.length / 7) * 100),
             },
             topicBreakdown: topicStats,
             weeklyActivity: activityLog,

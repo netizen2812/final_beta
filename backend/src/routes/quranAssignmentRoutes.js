@@ -5,7 +5,8 @@ import {
     updateProgress, 
     markCompleted,
     batchCreateAssignments,
-    getRevisionText
+    getRevisionText,
+    completeRevision
 } from "../controller/QuranAssignmentController.js";
 
 import { requireAuth, isScholar } from "../middleware/authmiddleware.js";
@@ -24,5 +25,6 @@ router.patch("/:assignmentId/complete", isScholar, markCompleted);
 router.get("/child/:childId/active", getActiveAssignment);
 router.get("/juz/:juz/subpart/:subpart", getRevisionText);
 router.patch("/:assignmentId/progress", updateProgress);
+router.post("/:assignmentId/complete-revision", completeRevision);
 
 export default router;

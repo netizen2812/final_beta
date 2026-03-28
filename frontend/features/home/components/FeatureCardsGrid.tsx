@@ -139,6 +139,14 @@ const FeatureCardsGrid: React.FC<FeatureCardsGridProps> = ({ onNavigate }) => {
             tab: AppTab.LIVE
         },
         {
+            title: t('home.quranPractice'),
+            desc: t('home.quranPracticeDesc'),
+            benefit: t('home.gamifiedGrowth'),
+            icon: Target,
+            image: "/images/quran_practice_bg.png",
+            tab: AppTab.LIVE
+        },
+        {
             title: t('home.ibadahTools'),
             desc: t('home.ibadahDesc'),
             benefit: t('home.worshipSupport'),
@@ -158,7 +166,7 @@ const FeatureCardsGrid: React.FC<FeatureCardsGridProps> = ({ onNavigate }) => {
 
             {/* Desktop Grid / Mobile Scroll */}
             <div
-                className="md:grid md:grid-cols-2 lg:grid-cols-3 gap-8 pb-10 flex overflow-x-auto md:overflow-visible no-scrollbar snap-x snap-mandatory px-4 -mx-4 scroll-px-4"
+                className="md:grid md:grid-cols-2 lg:grid-cols-4 gap-8 pb-10 flex overflow-x-auto md:overflow-visible no-scrollbar snap-x snap-mandatory px-4 -mx-4 scroll-px-4"
                 onScroll={(e) => {
                     const el = e.currentTarget;
                     const index = Math.round(el.scrollLeft / (window.innerWidth * 0.85));

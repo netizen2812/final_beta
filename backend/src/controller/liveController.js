@@ -242,8 +242,12 @@ export const joinBatch = async (req, res) => {
 
         // 2. Update Batch Active Participants
         const participantIndex = batch.activeParticipants.findIndex(p => p.childId === childId);
+        let firstJoinToday = false;
 
         if (participantIndex > -1) {
+            if (!batch.activeParticipants[participantIndex].isActive) {
+                firstJoinToday = true;
+            }
             batch.activeParticipants[participantIndex].isActive = true;
             batch.activeParticipants[participantIndex].lastSeen = new Date();
             // Patch older records that might be missing childName from previous versions
@@ -251,6 +255,7 @@ export const joinBatch = async (req, res) => {
                 batch.activeParticipants[participantIndex].childName = childName;
             }
         } else {
+            firstJoinToday = true;
             batch.activeParticipants.push({
                 childId,
                 childName,
@@ -260,6 +265,12 @@ export const joinBatch = async (req, res) => {
             });
         }
         await batch.save();
+
+        // Award Attendance XP (Observe)
+        const { awardXP } = await import("../services/gamificationService.js");
+        if (firstJoinToday) {
+            await awardXP(childId, "participation", { points: 2 });
+        }
         // --- PRESENCE TRACKING END ---
 
         const mockSession = {
@@ -641,7 +652,7 @@ export const scoreRecitation = async (req, res) => {
         if (!batch || !batch.activeSessionId) return res.status(400).json({ message: "Batch not active or found" });
 
         // Enforce strict limit maps
-        const xpAward = Number(score) === 3 ? 20 : Number(score) === 2 ? 15 : Number(score) === 1 ? 10 : 5;
+        const xpAward = Number(score) === 3 ? 10 : Number(score) === 2 ? 7 : Number(score) === 1 ? 5 : 2;
 
         await LiveScore.findOneAndUpdate(
             { batchId: id, sessionId: batch.activeSessionId, childId },
@@ -740,19 +751,15 @@ export const evaluatePrompt = async (req, res) => {
         const correctPromises = correctStudents.map(async (student) => {
             await LiveScore.findOneAndUpdate(
                 { batchId: id, sessionId: batch.activeSessionId, childId: student.childId },
-                { $inc: { participationScore: 3 } },
-                { upsert: true }
-            );
-            return awardXP(student.childId, "participation", { points: 3 });
-        });
-
-        const incorrectPromises = incorrectStudents.map(async (student) => {
-            await LiveScore.findOneAndUpdate(
-                { batchId: id, sessionId: batch.activeSessionId, childId: student.childId },
-                { $inc: { participationScore: 1 } },
+                { $inc: { participationScore: 1 } }, // Correct answer = 1 point
                 { upsert: true }
             );
             return awardXP(student.childId, "participation", { points: 1 });
+        });
+
+        const incorrectPromises = incorrectStudents.map(async (student) => {
+            // Incorrect = 0 XP
+            return Promise.resolve();
         });
 
         await Promise.allSettled([...correctPromises, ...incorrectPromises]);

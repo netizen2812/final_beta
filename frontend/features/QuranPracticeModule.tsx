@@ -9,17 +9,19 @@ const API_BASE = import.meta.env.VITE_API_URL || "http://localhost:5000";
 interface QuranPracticeModuleProps {
     childId: string;
     onComplete?: (score: number) => void;
+    initialMode?: ModuleStep;
 }
 
 type ModuleStep = 'REVISE' | 'PRACTICE' | 'RESULT';
 
-const QuranPracticeModule: React.FC<QuranPracticeModuleProps> = ({ childId, onComplete }) => {
-    const { getToken } = useAuth();
+const QuranPracticeModule: React.FC<QuranPracticeModuleProps> = ({ childId, onComplete, initialMode = 'REVISE' }) => {
+    const { getToken, userId } = useAuth();
     const [loading, setLoading] = useState(true);
     const [assignment, setAssignment] = useState<any>(null);
     const [questions, setQuestions] = useState<any[]>([]);
     const [revisionText, setRevisionText] = useState<any>(null);
-    const [step, setStep] = useState<ModuleStep>('REVISE');
+    const [step, setStep] = useState<ModuleStep>(initialMode);
+    const [xpAwarded, setXpAwarded] = useState(0);
     
     // Practice State
     const [currentIndex, setCurrentIndex] = useState(0);
@@ -92,15 +94,46 @@ const QuranPracticeModule: React.FC<QuranPracticeModuleProps> = ({ childId, onCo
         setStep('RESULT');
         try {
             const token = await getToken();
-            await axios.patch(`${API_BASE}/api/quran/assignments/${assignment._id}/progress`, {
+            const res = await axios.patch(`${API_BASE}/api/quran/assignments/${assignment._id}/progress`, {
                 score: finalScore,
-                questionsAnswered: questions.length
+                totalQuestions: questions.length,
+                userId: userId
             }, {
                 headers: { Authorization: `Bearer ${token}` }
             });
+            
+            if (res.data.xpAwarded) {
+                setXpAwarded(res.data.xpAwarded);
+            }
+
             if (onComplete) onComplete(finalScore);
         } catch (err) {
             console.error("Failed to save progress", err);
+        }
+    };
+
+    const handleRevisionFinish = async () => {
+        try {
+            stopAudio();
+            const token = await getToken();
+            const res = await axios.post(`${API_BASE}/api/quran/assignments/${assignment._id}/complete-revision`, {
+                userId: userId
+            }, {
+                headers: { Authorization: `Bearer ${token}` }
+            });
+
+            if (res.data.xpAwarded) {
+                setXpAwarded(res.data.xpAwarded);
+            }
+
+            if (initialMode === 'REVISE') {
+                setStep('RESULT');
+            } else {
+                setStep('PRACTICE');
+            }
+        } catch (err) {
+            console.error("Failed to complete revision", err);
+            setStep('PRACTICE'); // Move to practice anyway
         }
     };
 
@@ -124,14 +157,25 @@ const QuranPracticeModule: React.FC<QuranPracticeModuleProps> = ({ childId, onCo
                 <Award size={80} className="mx-auto text-yellow-500 animate-bounce" />
                 <div>
                     <h2 className="text-3xl font-serif font-bold">MashaAllah!</h2>
-                    <p className="text-emerald-400 font-mono mt-2 uppercase tracking-widest">Revision & Practice Done</p>
+                    <p className="text-emerald-400 font-mono mt-2 uppercase tracking-widest">
+                        {initialMode === 'REVISE' ? 'Revision Mastery' : 'Revision & Practice Done'}
+                    </p>
                 </div>
+                
+                {xpAwarded > 0 && (
+                    <div className="bg-emerald-500/10 py-4 px-8 rounded-2xl border border-emerald-500/20 inline-block animate-pulse">
+                        <span className="text-2xl font-black text-emerald-400">+{xpAwarded} XP Earned</span>
+                    </div>
+                )}
+
                 <div className="text-6xl font-black font-mono">
-                    {finalPercentage}%
+                    {initialMode === 'REVISE' ? '100%' : `${finalPercentage}%`}
                 </div>
                 <p className="text-emerald-200/70 text-sm max-w-xs mx-auto">
-                    Excellent progress! You got {score} out of {questions.length} questions correct.<br/>
-                    Your scholar is proud of your dedication.
+                    {initialMode === 'REVISE' 
+                        ? "You've completed your revision lesson. Reviewing frequently builds lasting connection."
+                        : `Excellent progress! You got ${score} out of ${questions.length} questions correct. Your scholar is proud.`
+                    }
                 </p>
                 <button 
                     onClick={() => window.location.reload()}
@@ -284,13 +328,11 @@ const QuranPracticeModule: React.FC<QuranPracticeModuleProps> = ({ childId, onCo
 
                 <div className="mt-8 pt-6 border-t border-emerald-100 relative z-10 bg-gradient-to-t from-[#f8faf9] to-transparent p-2">
                     <button 
-                        onClick={async () => {
-                            stopAudio();
-                            setStep('PRACTICE');
-                        }}
-                        className="w-full bg-emerald-500 text-emerald-950 py-5 rounded-[2rem] font-black text-xl hover:bg-emerald-400 hover:scale-[1.01] active:scale-95 transition-all shadow-xl shadow-emerald-500/20 flex items-center justify-center gap-4 group"
+                        onClick={handleRevisionFinish}
+                        className="w-full bg-emerald-900 text-white py-5 rounded-[2rem] font-black text-xl hover:bg-emerald-800 hover:scale-[1.01] active:scale-95 transition-all shadow-xl shadow-emerald-900/20 flex items-center justify-center gap-4 group"
                     >
-                        I'm Ready for Q&A <ArrowRight size={24} className="group-hover:translate-x-2 transition-transform" />
+                        {initialMode === 'REVISE' ? 'Finish Revision' : "I'm Ready for Q&A"} 
+                        <ArrowRight size={24} className="group-hover:translate-x-2 transition-transform" />
                     </button>
                     <p className="text-center text-[11px] text-emerald-600/60 font-bold mt-4 uppercase tracking-[0.2em]">Read and listen deeply. Excellence is found in reflection.</p>
                 </div>

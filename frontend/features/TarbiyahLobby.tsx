@@ -2,7 +2,7 @@ import React, { useState, useEffect, useMemo } from 'react';
 import { 
   BookOpen, Heart, Sun, Cloud, Play, Lock, Sprout, Star, 
   Trophy, Flame, Target, User, Settings, Clock, CheckCircle, 
-  TrendingUp, Shield, Award, Moon, Sparkles, Leaf, Book,
+  TrendingUp, Moon, Sparkles, Leaf, Book,
   ChevronLeft, BarChart2, Calendar, Download, Share2, Users, ChevronDown, ShieldCheck, Loader2, Crown, ChevronRight, XCircle
 } from 'lucide-react';
 import { PieChart, Pie, Cell, ResponsiveContainer, BarChart, Bar, XAxis, Tooltip as RechartsTooltip } from 'recharts';
@@ -116,7 +116,7 @@ export const TarbiyahLobby = ({
   const { activeChild } = useChildContext();
   const [batches, setBatches] = useState<any[]>([]);
   const [accessStatus, setAccessStatus] = useState<any>(null);
-  const [showQuranPractice, setShowQuranPractice] = useState(false);
+  const [showQuranPractice, setShowQuranPractice] = useState<{ active: boolean, mode: 'REVISE' | 'PRACTICE' }>({ active: false, mode: 'REVISE' });
   const [showJoinChoice, setShowJoinChoice] = useState(false);
   const [showScholarManage, setShowScholarManage] = useState<any>(null); // To store batch for scholar managemnt
   const { t } = useTranslation();
@@ -217,7 +217,7 @@ export const TarbiyahLobby = ({
             batches={batches} 
             accessStatus={accessStatus} 
             getToken={getToken} 
-            setShowQuranPractice={setShowQuranPractice}
+            setShowQuranPractice={(mode: 'REVISE' | 'PRACTICE') => setShowQuranPractice({ active: true, mode })}
             setShowJoinChoice={setShowJoinChoice}
             attendedSessionIds={attendedSessionIds}
           />
@@ -226,11 +226,11 @@ export const TarbiyahLobby = ({
         )
       )}
 
-      {showQuranPractice && activeChild && (
+      {showQuranPractice.active && activeChild && (
         <div className="fixed inset-0 z-[110] bg-[#022c22]/95 backdrop-blur-xl flex items-center justify-center p-6 overflow-y-auto">
           <div className="w-full max-w-4xl relative">
-            <button onClick={() => setShowQuranPractice(false)} className="absolute -top-12 right-0 text-white/60 hover:text-white font-bold flex items-center gap-2">✕ Close Practice</button>
-            <QuranPracticeModule childId={activeChild.id} onComplete={() => {}} />
+            <button onClick={() => setShowQuranPractice({ active: false, mode: 'REVISE' })} className="absolute -top-12 right-0 text-white/60 hover:text-white font-bold flex items-center gap-2">✕ Close Practice</button>
+            <QuranPracticeModule childId={activeChild.id} initialMode={showQuranPractice.mode} onComplete={() => {}} />
           </div>
         </div>
       )}
@@ -239,37 +239,61 @@ export const TarbiyahLobby = ({
         <div className="fixed inset-0 z-[120] bg-black/80 backdrop-blur-xl flex items-center justify-center p-6">
            <div className="bg-[#052e16] border border-emerald-500/30 rounded-[2.5rem] p-8 max-w-lg w-full shadow-2xl relative overflow-hidden text-center">
               <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-emerald-500 via-amber-400 to-emerald-500" />
-              <h3 className="text-3xl font-serif font-bold text-white mb-2">Class is LIVE!</h3>
-              <p className="text-emerald-200 mb-8">Choose how you want to participate today</p>
+              <h3 className="text-3xl font-serif font-bold text-white mb-2">Quran Portal</h3>
+              <p className="text-emerald-200 mb-8">Choose your path for today's lesson</p>
               
               <div className="grid grid-cols-1 gap-4">
+                 {/* REVISE MODE */}
                  <button 
-                   onClick={() => { setShowJoinChoice(false); handleJoinLive(); }}
-                   className="flex items-center gap-4 p-5 bg-emerald-500 hover:bg-emerald-400 text-[#022c22] rounded-2xl transition-all group"
+                   onClick={() => { setShowJoinChoice(false); setShowQuranPractice({ active: true, mode: 'REVISE' }); }}
+                   className="flex items-center gap-4 p-5 bg-emerald-100 hover:bg-white text-emerald-950 rounded-2xl transition-all group border-b-4 border-emerald-300"
                  >
-                    <div className="bg-white/20 p-3 rounded-xl"><Users size={24} /></div>
+                    <div className="bg-emerald-900 text-white p-3 rounded-xl shadow-lg"><BookOpen size={24} /></div>
                     <div className="text-left">
-                       <div className="font-bold text-lg">Observe & Participate</div>
-                       <div className="text-xs font-medium opacity-80">Join the live session with the teacher</div>
+                       <div className="font-bold text-lg">Revise Lesson</div>
+                       <div className="text-xs font-medium text-emerald-700">Read & listen to your assigned Juz part</div>
                     </div>
                  </button>
 
+                 {/* PRACTICE MODE */}
                  <button 
-                   onClick={() => { setShowJoinChoice(false); setShowQuranPractice(true); }}
-                   className="flex items-center gap-4 p-5 bg-indigo-600 hover:bg-indigo-500 text-white rounded-2xl transition-all group"
+                   onClick={() => { setShowJoinChoice(false); setShowQuranPractice({ active: true, mode: 'PRACTICE' }); }}
+                   className="flex items-center gap-4 p-5 bg-indigo-600 hover:bg-indigo-500 text-white rounded-2xl transition-all group border-b-4 border-indigo-800"
                  >
-                    <div className="bg-white/20 p-3 rounded-xl"><BookOpen size={24} /></div>
+                    <div className="bg-white/20 p-3 rounded-xl"><Target size={24} /></div>
                     <div className="text-left">
-                       <div className="font-bold text-lg">Practice Assignment</div>
-                       <div className="text-xs font-medium opacity-80">Complete your Juz MCQ curation</div>
+                       <div className="font-bold text-lg">Practice Quiz</div>
+                       <div className="text-xs font-medium opacity-80">Test your knowledge and earn max XP</div>
+                    </div>
+                 </button>
+
+                 {/* OBSERVE MODE (Conditional) */}
+                 <button 
+                   disabled={currentBatchStatus !== 'active'}
+                   onClick={() => { setShowJoinChoice(false); handleJoinLive(); }}
+                   className={`flex items-center gap-4 p-5 rounded-2xl transition-all group border-b-4 ${currentBatchStatus === 'active' 
+                     ? 'bg-amber-500 hover:bg-amber-400 text-amber-950 border-amber-600 shadow-[0_10px_20px_rgba(245,158,11,0.2)]' 
+                     : 'bg-slate-800 text-slate-500 border-slate-900 opacity-60 cursor-not-allowed'}`}
+                 >
+                    <div className={`p-3 rounded-xl ${currentBatchStatus === 'active' ? 'bg-white/20' : 'bg-slate-700'}`}>
+                      <Users size={24} />
+                    </div>
+                    <div className="text-left">
+                       <div className="font-bold text-lg flex items-center gap-2">
+                         Observe Class
+                         {currentBatchStatus === 'active' && <span className="w-2 h-2 bg-red-500 rounded-full animate-ping" />}
+                       </div>
+                       <div className="text-xs font-medium opacity-80">
+                         {currentBatchStatus === 'active' ? 'Join the live session with your teacher' : 'No live session currently active'}
+                       </div>
                     </div>
                  </button>
 
                  <button 
                    onClick={() => setShowJoinChoice(false)}
-                   className="mt-4 text-emerald-400 font-bold py-2"
+                   className="mt-4 text-emerald-400 font-black text-sm uppercase tracking-widest py-2 hover:text-emerald-300 transition-colors"
                  >
-                    Maybe Later
+                    Close Portal
                  </button>
               </div>
            </div>
@@ -599,11 +623,11 @@ const ParentsView = ({ activeChild, getToken }: any) => {
     <div className="pt-32 pb-20 px-4 md:px-8 max-w-6xl mx-auto relative z-10">
        <h1 className="text-4xl md:text-5xl font-serif font-bold text-white mb-2">{activeChild?.name || 'Child'}'s Progress</h1>
        <p className="text-emerald-200 mb-8 text-lg">Monitor growth, set limits, and explore curriculum.</p>
-       <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-10">
-          <div className="bg-white/5 p-6 rounded-3xl border border-white/10 text-center"><div className="text-3xl font-bold text-white mb-2">{dashboardData?.stats?.sessionsAttended || 0}</div><div className="text-emerald-400 text-xs font-bold uppercase tracking-widest">Sessions</div></div>
-          <div className="bg-white/5 p-6 rounded-3xl border border-white/10 text-center"><div className="text-3xl font-bold text-white mb-2">{activeChild?.child_progress?.[0]?.total_xp || 0}</div><div className="text-blue-400 text-xs font-bold uppercase tracking-widest">Total XP</div></div>
-          <div className="bg-white/5 p-6 rounded-3xl border border-white/10 text-center"><div className="text-3xl font-bold text-white mb-2">{activeChild?.child_progress?.[0]?.streak_days || 0}</div><div className="text-amber-500 text-xs font-bold uppercase tracking-widest">Streak Days</div></div>
-       </div>
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-10">
+           <div className="bg-white/5 p-6 rounded-3xl border border-white/10 text-center"><div className="text-3xl font-bold text-white mb-2">{dashboardData?.stats?.totalRevisions || 0}</div><div className="text-emerald-400 text-xs font-bold uppercase tracking-widest">Revisions</div></div>
+           <div className="bg-white/5 p-6 rounded-3xl border border-white/10 text-center"><div className="text-3xl font-bold text-white mb-2">{dashboardData?.stats?.averageAccuracy || 0}%</div><div className="text-blue-400 text-xs font-bold uppercase tracking-widest">Avg. Accuracy</div></div>
+           <div className="bg-white/5 p-6 rounded-3xl border border-white/10 text-center"><div className="text-3xl font-bold text-white mb-2">{dashboardData?.stats?.attendanceRate || 0}%</div><div className="text-amber-500 text-xs font-bold uppercase tracking-widest">Attendance</div></div>
+        </div>
     </div>
   );
 };

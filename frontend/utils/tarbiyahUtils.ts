@@ -1,21 +1,19 @@
 export const RANK_LEVELS = [
-    { level: 1, title: 'Little Learner', minXP: 0, icon: '📚' },
-    { level: 2, title: 'Quran Explorer', minXP: 100, icon: '🔍' },
-    { level: 3, title: 'Story Seeker', minXP: 200, icon: '📜' },
-    { level: 4, title: 'Miracle Learner', minXP: 300, icon: '✨' },
-    { level: 5, title: 'Wise Thinker', minXP: 400, icon: '🧠' },
-    { level: 6, title: "Ka'bah Guardian", minXP: 500, icon: '🕋' },
-    { level: 7, title: 'Anbiya Champion', minXP: 600, icon: '🌟' },
-    { level: 8, title: 'Quranic Scholar', minXP: 700, icon: '🎓' },
-    { level: 9, title: "Prophet's Follower", minXP: 800, icon: '📋' },
-    { level: 10, title: 'Ramadan Champion 🏆', minXP: 900, icon: '🏆' },
+    { level: 1, minXP: 0 },
+    { level: 2, minXP: 5 },
+    { level: 3, minXP: 20 },
+    { level: 4, minXP: 45 },
+    { level: 5, minXP: 80 },
+    { level: 6, minXP: 125 },
+    { level: 7, minXP: 180 },
+    { level: 8, minXP: 245 },
+    { level: 9, minXP: 320 },
+    { level: 10, minXP: 405 },
 ];
 
 export interface Rank {
     level: number;
-    title: string;
     minXP: number;
-    icon: string;
 }
 
 export interface RankCalculationResult {
@@ -36,7 +34,6 @@ export const calculateRank = (totalXP: number): RankCalculationResult => {
     const xp = Math.max(0, totalXP || 0);
 
     // Find current rank (highest rank where minXP <= totalXP)
-    // We reverse to find the highest match first
     const reversedRanks = [...RANK_LEVELS].reverse();
     const currentRank = reversedRanks.find(r => xp >= r.minXP) || RANK_LEVELS[0];
 
@@ -54,7 +51,7 @@ export const calculateRank = (totalXP: number): RankCalculationResult => {
         progressPercent = Math.min(100, Math.max(0, (xpIntoRank / rankSpan) * 100));
     } else {
         // Max rank achieved
-        xpIntoRank = xp - currentRank.minXP; // XP above max rank base
+        xpIntoRank = xp - currentRank.minXP; 
     }
 
     return {
@@ -64,13 +61,4 @@ export const calculateRank = (totalXP: number): RankCalculationResult => {
         xpIntoRank,
         xpToNext
     };
-};
-
-/**
- * Returns the number of badges earned based on rank level.
- * @param {number} rankLevel 
- * @returns {number}
- */
-export const getBadgesCount = (rankLevel: number): number => {
-    return rankLevel;
 };

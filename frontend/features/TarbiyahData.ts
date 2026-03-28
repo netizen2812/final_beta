@@ -243,28 +243,22 @@ export const WEEKLY_ACTIVITY = [
 
 export const COLORS = ['#10b981', '#fbbf24', '#3b82f6', '#f43f5e'];
 
-// Rank Levels System
+// Rank Levels System (Quadratic: 5 * level^2)
 export const RANK_LEVELS = [
-  { level: 1, title: 'Little Learner', minXP: 0, icon: '📚' },
-  { level: 2, title: 'Quran Explorer', minXP: 100, icon: '🔍' },
-  { level: 3, title: 'Story Seeker', minXP: 200, icon: '📜' },
-  { level: 4, title: 'Miracle Learner', minXP: 300, icon: '✨' },
-  { level: 5, title: 'Wise Thinker', minXP: 400, icon: '🧠' },
-  { level: 6, title: "Ka'bah Guardian", minXP: 500, icon: '🕋' },
-  { level: 7, title: 'Anbiya Champion', minXP: 600, icon: '🌟' },
-  { level: 8, title: 'Quranic Scholar', minXP: 700, icon: '🎓' },
-  { level: 9, title: "Prophet's Follower", minXP: 800, icon: '📋' },
-  { level: 10, title: 'Ramadan Champion 🏆', minXP: 900, icon: '🏆' },
+  { level: 1, minXP: 0 },
+  { level: 2, minXP: 5 },
+  { level: 3, minXP: 20 },
+  { level: 4, minXP: 45 },
+  { level: 5, minXP: 80 },
+  { level: 6, minXP: 125 },
+  { level: 7, minXP: 180 },
+  { level: 8, minXP: 245 },
+  { level: 9, minXP: 320 },
+  { level: 10, minXP: 405 },
 ];
 
 export const SCORING_RULES = {
-  CORRECT_1ST_TRY: 10,
-  CORRECT_2ND_TRY: 5,
-  PERFECT_BONUS: 20
+  CORRECT_1ST_TRY: 2,
+  CORRECT_2ND_TRY: 1,
+  PERFECT_BONUS: 1
 };
-
-export const BADGES = [
-  { id: 'b1', emoji: '🌅', name: 'Early Bird', desc: 'Completed a lesson before 8 AM.', progress: 100 },
-  { id: 'b2', emoji: '📚', name: 'Bookworm', desc: 'Finished 5 History lessons.', progress: 60 },
-  { id: 'b3', emoji: '🌙', name: 'Moon Walker', desc: 'Attended a night story session.', progress: 30 },
-];

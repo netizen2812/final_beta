@@ -37,6 +37,10 @@ const quranAssignmentSchema = new mongoose.Schema(
             type: Number,
             default: 0,
         },
+        revisionCount: {
+            type: Number,
+            default: 0,
+        },
         completedAt: {
             type: Date,
             default: null,

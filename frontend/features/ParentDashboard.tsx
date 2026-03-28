@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import {
-  Clock, TrendingUp, CheckCircle, Award, BarChart2, Settings,
-  Loader2, ChevronDown, Save
+  Clock, TrendingUp, CheckCircle, BarChart2, Settings,
+  Loader2, ChevronDown, Save, Users, Star
 } from 'lucide-react';
 import {
   PieChart, Pie, Cell, ResponsiveContainer, BarChart, Bar, XAxis, Tooltip
@@ -179,53 +179,53 @@ const ParentDashboard: React.FC = () => {
               </div>
             </div>
 
-            {/* Lessons Done */}
+            {/* Total Revisions */}
             <div className="bg-white p-6 rounded-[2rem] border border-slate-100 shadow-sm hover:shadow-md transition-shadow">
               <div className="flex items-center gap-3 mb-4">
                 <div className="w-12 h-12 bg-blue-50 rounded-xl flex items-center justify-center">
                   <CheckCircle className="text-blue-600" size={24} />
                 </div>
                 <div>
-                  <p className="text-[9px] font-black uppercase tracking-widest text-slate-400">Lessons Done</p>
+                  <p className="text-[9px] font-black uppercase tracking-widest text-slate-400">Total Revisions</p>
                   <p className="text-2xl font-bold text-slate-800">
-                    {dashboardData.lessonsDone.completed}/{dashboardData.lessonsDone.total}
+                    {dashboardData.stats.totalRevisions}
                   </p>
                 </div>
               </div>
               <div className="text-xs text-slate-500">
-                {dashboardData.lessonsDone.inProgress} in progress
+                Completed Quran parts
               </div>
             </div>
 
-            {/* Current Focus */}
+            {/* Average Accuracy */}
             <div className="bg-white p-6 rounded-[2rem] border border-slate-100 shadow-sm hover:shadow-md transition-shadow">
               <div className="flex items-center gap-3 mb-4">
                 <div className="w-12 h-12 bg-amber-50 rounded-xl flex items-center justify-center">
-                  <TrendingUp className="text-amber-600" size={24} />
+                  <Star className="text-amber-600" size={24} />
                 </div>
                 <div>
-                  <p className="text-[9px] font-black uppercase tracking-widest text-slate-400">Current Focus</p>
-                  <p className="text-sm font-bold text-slate-800">{dashboardData.currentFocus.progress}</p>
+                  <p className="text-[9px] font-black uppercase tracking-widest text-slate-400">Avg. Accuracy</p>
+                  <p className="text-2xl font-bold text-slate-800">{dashboardData.stats.averageAccuracy}%</p>
                 </div>
               </div>
-              <div className="text-xs text-slate-600 font-medium truncate">
-                {dashboardData.currentFocus.lessonTitle}
+              <div className="text-xs text-slate-600 font-medium">
+                Based on recent practices
               </div>
             </div>
 
-            {/* Total Badges */}
+            {/* Attendance Rate */}
             <div className="bg-white p-6 rounded-[2rem] border border-slate-100 shadow-sm hover:shadow-md transition-shadow">
               <div className="flex items-center gap-3 mb-4">
                 <div className="w-12 h-12 bg-purple-50 rounded-xl flex items-center justify-center">
-                  <Award className="text-purple-600" size={24} />
+                  <Users className="text-purple-600" size={24} />
                 </div>
                 <div>
-                  <p className="text-[9px] font-black uppercase tracking-widest text-slate-400">Total Badges</p>
-                  <p className="text-2xl font-bold text-slate-800">{dashboardData.totalBadges.count}</p>
+                  <p className="text-[9px] font-black uppercase tracking-widest text-slate-400">Attendance</p>
+                  <p className="text-2xl font-bold text-slate-800">{dashboardData.stats.attendanceRate}%</p>
                 </div>
               </div>
               <div className="text-xs text-slate-500">
-                Earned from completed lessons
+                Live session participation
               </div>
             </div>
           </div>

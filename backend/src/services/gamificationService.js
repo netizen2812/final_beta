@@ -2,29 +2,14 @@ import Child from "../models/Child.js";
 import ChildActivity from "../models/ChildActivity.js";
 
 export const calculateLevel = (xp) => {
-    // Progressive curve designed for a 16-session monthly batch (~600-720 XP/month)
-    // Target ~4 levels in month 1: Level = floor(sqrt(max(0, xp) / 50)) + 1
+    // Scaled down denominator: Level = floor(sqrt(xp / 5)) + 1
     // L1: 0 XP
-    // L2: 50 XP (quick initial dopamine hit, ~2 sessions)
-    // L3: 200 XP (~1 week)
-    // L4: 450 XP (~2-3 weeks)
-    // L5: 800 XP (~1 month worth of Live classes)
-    // L6: 1250 XP (~1.5 months)
-    // L10: 4050 XP (~6 months)
-    return Math.floor(Math.sqrt(Math.max(0, xp) / 50)) + 1;
-};
-
-const checkBadges = (progress) => {
-    const newBadges = [];
-    const current = new Set(progress.badges || []);
-
-    if (progress.total_sessions_attended >= 1 && !current.has("first_recitation")) newBadges.push("first_recitation");
-    if (progress.total_correct_recitations >= 1 && !current.has("perfect_score")) newBadges.push("perfect_score");
-    if (progress.total_sessions_attended >= 3 && !current.has("consistent_learner")) newBadges.push("consistent_learner");
-    if (progress.total_xp >= 100 && !current.has("rising_star")) newBadges.push("rising_star");
-    if (progress.streak_days >= 3 && !current.has("on_fire")) newBadges.push("on_fire");
-
-    return newBadges;
+    // L2: 5 XP
+    // L3: 20 XP
+    // L4: 45 XP
+    // L5: 80 XP
+    // L10: 405 XP
+    return Math.floor(Math.sqrt(Math.max(0, xp) / 5)) + 1;
 };
 
 const updateStreak = (progress) => {
@@ -55,16 +40,17 @@ const updateStreak = (progress) => {
  * @param {string} childId The MongoDB ID of the child.
  * @param {string} action "recitation", "participation", or "session_complete".
  * @param {Object} data Context data like { score: 3 } or { points: 5 }.
- * @returns {Object} { xpGained, newLevel, newBadges earned today }
+ * @returns {Object} { xpGained, newLevel }
  */
 export const awardXP = async (childId, action, data = {}) => {
     try {
+        const { default: Child } = await import("../models/Child.js");
         const child = await Child.findById(childId);
         if (!child) throw new Error("Child not found");
 
         if (!child.child_progress || child.child_progress.length === 0) {
             child.child_progress = [{
-                total_xp: 0, level: 1, badges: [], streak_days: 0, 
+                total_xp: 0, level: 1, streak_days: 0, 
                 last_active_date: null, total_sessions_attended: 0, total_correct_recitations: 0
             }];
         }
@@ -76,19 +62,22 @@ export const awardXP = async (childId, action, data = {}) => {
         updateStreak(progress);
 
         if (action === "recitation") {
-            const { score, rawScore } = data; 
-            xpGained = score || 0;
+            const { score } = data; 
+            // Score 3=10, 2=7, 1=5, 0=2
+            xpGained = score || 2;
 
-            if (rawScore === 3 || score >= 30) {
+            if (score >= 10) { // Mapping the raw points if passed directly
                 progress.total_correct_recitations += 1;
+            } else if (score >= 7) {
+                 progress.total_correct_recitations += 1;
             }
         } 
         else if (action === "participation") {
-            const { points } = data; // +5, +2
-            xpGained = points || 2;
+            const { points } = data; 
+            xpGained = points || 1;
         } 
         else if (action === "session_complete") {
-            xpGained = 10;
+            xpGained = 2; // Scaled down from 10
             progress.total_sessions_attended += 1;
             
             const { batchId, sessionId, duration } = data;
@@ -109,6 +98,7 @@ export const awardXP = async (childId, action, data = {}) => {
             try {
                 const today = new Date();
                 today.setHours(0, 0, 0, 0);
+                const { default: ChildActivity } = await import("../models/ChildActivity.js");
                 await ChildActivity.findOneAndUpdate(
                     { child_id: childId, date: today },
                     {
@@ -117,7 +107,6 @@ export const awardXP = async (childId, action, data = {}) => {
                             sessions_attended: 1,
                         },
                         $set: {
-                            // Optionally tag topics 
                             "topics_studied.Live Class": duration || 45
                         }
                     },
@@ -134,25 +123,18 @@ export const awardXP = async (childId, action, data = {}) => {
         const oldLevel = progress.level;
         progress.level = calculateLevel(progress.total_xp);
 
-        // Check Badges
-        const newBadges = checkBadges(progress);
-        if (newBadges.length > 0) {
-            progress.badges = [...(progress.badges || []), ...newBadges];
-        }
-
         child.markModified('child_progress');
         await child.save();
 
         return {
             xpGained,
             newLevel: progress.level > oldLevel ? progress.level : null,
-            newBadges: newBadges.length > 0 ? newBadges : null,
             total_xp: progress.total_xp,
             level: progress.level,
             streak: progress.streak_days
         };
     } catch (err) {
         console.error("Error awarding XP:", err);
-        return { xpGained: 0, newLevel: null, newBadges: null };
+        return { xpGained: 0, newLevel: null };
     }
 };

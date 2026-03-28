@@ -1,6 +1,7 @@
 import QuranAssignment from "../models/QuranAssignment.js";
 import JuzSubpart from "../models/JuzSubpart.js";
 import QuranQuestion from "../models/QuranQuestion.js";
+import User from "../models/User.js";
 
 /**
  * Assign a subpart to a student (child).
@@ -78,19 +79,57 @@ export const getActiveAssignment = async (req, res) => {
 export const updateProgress = async (req, res) => {
     try {
         const { assignmentId } = req.params;
-        const { score, questionsAnswered } = req.body;
+        const { score, totalQuestions, userId } = req.body;
 
         const assignment = await QuranAssignment.findById(assignmentId);
         if (!assignment) return res.status(404).json({ message: "Assignment not found" });
 
+        // Update assignment stats
         assignment.practiceScore = score;
-        // Simple heuristic: if score is high, mark as 'practicing' or 'completed' if criteria met
+        assignment.practiceCount = (assignment.practiceCount || 0) + 1;
+        
         if (score >= 80) {
             assignment.status = 'practicing';
         }
 
+        // Calculate XP: max 5 XP based on accuracy
+        const { awardXP } = await import("../services/gamificationService.js");
+        const accuracy = score / 100;
+        const xpToAward = accuracy >= 0.8 ? 5 : accuracy >= 0.5 ? 3 : accuracy >= 0.3 ? 2 : 1;
+
+        const xpResult = await awardXP(assignment.studentId, "participation", { points: xpToAward });
+
         await assignment.save();
-        res.status(200).json(assignment);
+        res.status(200).json({ assignment, xpResult });
+    } catch (error) {
+        res.status(500).json({ message: error.message });
+    }
+};
+
+/**
+ * Record revision completion and award XP.
+ */
+export const completeRevision = async (req, res) => {
+    try {
+        const { assignmentId } = req.params;
+
+        const assignment = await QuranAssignment.findById(assignmentId);
+        if (!assignment) return res.status(404).json({ message: "Assignment not found" });
+
+        // Increment revision count
+        assignment.revisionCount = (assignment.revisionCount || 0) + 1;
+        
+        // Award Gamification XP for Revision (1 XP per completion)
+        const { awardXP } = await import("../services/gamificationService.js");
+        const xpToAward = 1;
+        const xpResult = await awardXP(assignment.studentId, "participation", { points: xpToAward });
+
+        await assignment.save();
+        res.status(200).json({ 
+            message: `Revision #${assignment.revisionCount} completed`, 
+            revisionCount: assignment.revisionCount,
+            xpResult 
+        });
     } catch (error) {
         res.status(500).json({ message: error.message });
     }

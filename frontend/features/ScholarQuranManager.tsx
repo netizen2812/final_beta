@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import { BookOpen, User, Calendar, CheckCircle, Clock, ChevronRight, Users, Info } from 'lucide-react';
 import { useAuth } from '@clerk/clerk-react';
+import { QURAN_METADATA } from '../quranMetadata';
 
 const API_BASE = import.meta.env.VITE_API_URL || "http://localhost:5000";
 
@@ -154,9 +155,15 @@ const ScholarQuranManager: React.FC<ScholarQuranManagerProps> = ({ batchId, batc
                                     onChange={(e) => setSubpart(parseInt(e.target.value))}
                                     className="w-full bg-black/40 text-white p-4 rounded-2xl border border-emerald-500/20 focus:ring-2 focus:ring-emerald-500 outline-none transition-all"
                                 >
-                                    {[...Array(15)].map((_, i) => (
-                                        <option key={i+1} value={i+1} className="bg-[#052e16]">Part {i+1}</option>
-                                    ))}
+                                    {[...Array(15)].map((_, i) => {
+                                        const partNum = i + 1;
+                                        const metadata = QURAN_METADATA[juz]?.find(m => m.part === partNum);
+                                        return (
+                                            <option key={partNum} value={partNum} className="bg-[#052e16]">
+                                                Part {partNum}: {metadata?.label || 'Loading...'}
+                                            </option>
+                                        );
+                                    })}
                                 </select>
                             </div>
                         </div>

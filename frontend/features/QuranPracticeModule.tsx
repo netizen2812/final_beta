@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import { BookOpen, CheckCircle2, XCircle, ChevronRight, Award, HelpCircle, AlignCenter, ArrowRight } from 'lucide-react';
 import { useAuth } from '@clerk/clerk-react';
+import { QURAN_METADATA } from '../quranMetadata';
 
 const API_BASE = import.meta.env.VITE_API_URL || "http://localhost:5000";
 
@@ -136,7 +137,9 @@ const QuranPracticeModule: React.FC<QuranPracticeModuleProps> = ({ childId, onCo
                         <div className="bg-emerald-100 p-2 rounded-xl text-emerald-600"><BookOpen size={20} /></div>
                         <div>
                             <h3 className="font-bold text-slate-800">Revision Mode</h3>
-                            <p className="text-[10px] text-slate-400 uppercase font-black tracking-widest">Juz {assignment.juz} • Subpart {assignment.subpart}</p>
+                            <p className="text-[10px] text-slate-400 uppercase font-black tracking-widest">
+                                Juz {assignment.juz} • {QURAN_METADATA[assignment.juz]?.find(m => m.part === assignment.subpart)?.label || `Part ${assignment.subpart}`}
+                            </p>
                         </div>
                     </div>
                 </div>
@@ -185,7 +188,9 @@ const QuranPracticeModule: React.FC<QuranPracticeModuleProps> = ({ childId, onCo
                 <div className="flex items-center gap-2">
                     <div className="bg-emerald-100 p-2 rounded-lg text-emerald-700"><CheckCircle2 size={18} /></div>
                     <div>
-                        <div className="text-[10px] font-black uppercase tracking-widest text-slate-400">Juz {assignment.juz} • Part {assignment.subpart}</div>
+                        <div className="text-[10px] font-black uppercase tracking-widest text-slate-400">
+                            Juz {assignment.juz} • {QURAN_METADATA[assignment.juz]?.find(m => m.part === assignment.subpart)?.label || `Part ${assignment.subpart}`}
+                        </div>
                         <div className="text-sm font-bold text-slate-800">Practice Q&A</div>
                     </div>
                 </div>

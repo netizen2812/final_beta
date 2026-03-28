@@ -18,6 +18,7 @@ import axios from 'axios';
 import { useAuth, useUser } from '@clerk/clerk-react';
 import { useTranslation } from 'react-i18next';
 import { TarbiyahLobby } from './TarbiyahLobby';
+import ScholarQuranManager from './ScholarQuranManager';
 
 const POSITION_THROTTLE_MS = 500;
 
@@ -88,6 +89,7 @@ const LiveClassRoom: React.FC = () => {
   const [showLeaderboard, setShowLeaderboard] = useState<boolean | string>(false);
   const [attendedSessionIds, setAttendedSessionIds] = useState<string[]>([]);
   const [confirmEndClass, setConfirmEndClass] = useState<string | null>(null);
+  const [showAssignModal, setShowAssignModal] = useState(false);
 
   // Determine Role & Check Access
   useEffect(() => {
@@ -691,12 +693,20 @@ const LiveClassRoom: React.FC = () => {
                   <span className="text-[10px] font-bold text-emerald-400 uppercase tracking-widest flex items-center gap-2">
                      <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" /> Live Monitoring
                   </span>
-                  <button 
-                     onClick={() => setConfirmEndClass(currentSession.batchId!)} 
-                     className="bg-red-500 hover:bg-red-400 text-white px-4 py-1.5 rounded-lg text-xs font-black tracking-wider shadow-[0_2px_10px_rgba(239,68,68,0.4)] transition-all flex items-center gap-1 active:scale-95"
-                  >
-                     <LogOut size={12} /> END CLASS & RESULTS
-                  </button>
+                  <div className="flex gap-2">
+                    <button 
+                       onClick={() => setShowAssignModal(true)}
+                       className="bg-indigo-600 hover:bg-indigo-500 text-white px-4 py-1.5 rounded-lg text-xs font-black tracking-wider shadow-[0_2px_10px_rgba(79,70,229,0.4)] transition-all flex items-center gap-1 active:scale-95"
+                    >
+                       <BookOpen size={12} /> ASSIGN QURAN
+                    </button>
+                    <button 
+                       onClick={() => setConfirmEndClass(currentSession.batchId!)} 
+                       className="bg-red-500 hover:bg-red-400 text-white px-4 py-1.5 rounded-lg text-xs font-black tracking-wider shadow-[0_2px_10px_rgba(239,68,68,0.4)] transition-all flex items-center gap-1 active:scale-95"
+                    >
+                       <LogOut size={12} /> END CLASS & RESULTS
+                    </button>
+                  </div>
                </div>
 
                {/* Student Horizontal Scroll Frame */}
@@ -791,6 +801,23 @@ const LiveClassRoom: React.FC = () => {
             <LogOut size={16} /> {t('live.exit')}
           </button>
         </div>
+
+        {/* Assignment Modal */}
+        {showAssignModal && currentSession?.batchId && (
+          <div className="fixed inset-0 z-[6000] bg-[#022c22]/95 backdrop-blur-2xl flex items-center justify-center p-4 overflow-y-auto">
+            <div className="w-full max-w-5xl bg-black/40 border border-emerald-500/20 rounded-[3rem] p-1 shadow-2xl relative">
+              <button 
+                onClick={() => setShowAssignModal(false)} 
+                className="absolute -top-12 right-4 text-white hover:text-emerald-400 font-bold flex items-center gap-2"
+              >
+                ✕ Close Assignments
+              </button>
+              <div className="p-6 md:p-8">
+                <ScholarQuranManager batchId={currentSession.batchId} batchName="Current Class" />
+              </div>
+            </div>
+          </div>
+        )}
 
         {/* Floating Student Gamification Status */}
         {userRole === 'parent' && activeChild && (

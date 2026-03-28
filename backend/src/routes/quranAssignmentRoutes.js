@@ -8,14 +8,19 @@ import {
     getRevisionText
 } from "../controller/QuranAssignmentController.js";
 
+import { requireAuth, isScholar } from "../middleware/authmiddleware.js";
+
 const router = express.Router();
 
-// Scholar routes
-router.post("/assign", createAssignment);
-router.post("/batch-assign", batchCreateAssignments);
-router.patch("/:assignmentId/complete", markCompleted);
+// Apply auth to all routes
+router.use(requireAuth);
 
-// Student/Child routes
+// Scholar routes (Restricted to Scholar/Admin)
+router.post("/assign", isScholar, createAssignment);
+router.post("/batch-assign", isScholar, batchCreateAssignments);
+router.patch("/:assignmentId/complete", isScholar, markCompleted);
+
+// Student/Child routes (Requires Auth, but parents/children can access)
 router.get("/child/:childId/active", getActiveAssignment);
 router.get("/juz/:juz/subpart/:subpart", getRevisionText);
 router.patch("/:assignmentId/progress", updateProgress);

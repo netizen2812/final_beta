@@ -181,13 +181,10 @@ const LiveClassRoom: React.FC = () => {
             setActiveSessions(mappedSessions);
         }
 
+        // SCHOLAR SYNC: Trigger results on explicit 'ended' status
         if (data.status === 'ended' && !showLeaderboard) {
            const lastSession = data.pastSessions?.[data.pastSessions.length - 1];
-           if (lastSession) {
-             setShowLeaderboard(lastSession.sessionId);
-           } else {
-             setShowLeaderboard(true);
-           }
+           setShowLeaderboard(lastSession ? lastSession.sessionId : true);
         }
       } catch (err) {
         console.error("Batch state poll error", err);
@@ -263,8 +260,13 @@ const LiveClassRoom: React.FC = () => {
             }
         }
 
-        if ((res.data.status === 'ended' || res.data.status === 'upcoming') && !showLeaderboard) {
-          setShowLeaderboard(true);
+        // STUDENT SYNC: Robust session transition detection
+        const isSessionFinished = (res.data.status === 'ended' || res.data.status === 'upcoming');
+        const isNewSessionStarted = res.data.activeSessionId && res.data.activeSessionId !== currentSession?._id;
+
+        if ((isSessionFinished || isNewSessionStarted) && !showLeaderboard) {
+            // Force results for the session we were just in
+            setShowLeaderboard(currentSession?._id || true);
         }
       } catch(e) {}
     };
@@ -272,7 +274,7 @@ const LiveClassRoom: React.FC = () => {
     fetchState();
     const interval = setInterval(fetchState, 3000); // 3s poll for state sync
     return () => clearInterval(interval);
-  }, [currentSession?.batchId, currentSession?.childId, userRole, getToken, showLeaderboard]);
+  }, [currentSession?.batchId, currentSession?._id, userRole, getToken, showLeaderboard]);
 
 
   const checkAccess = async () => {
@@ -423,10 +425,14 @@ const LiveClassRoom: React.FC = () => {
   }, [userRole, currentSession, accessStatus]);
 
   // CLASSROOM HOOKS (Must be before any early returns)
-  const fetchLeaderboard = useCallback(async (batchId: string) => {
+  const fetchLeaderboard = useCallback(async (batchId: string, sessionId?: string) => {
     try {
       const token = await getToken();
-      const res = await axios.get(`${API_BASE}/api/live/batch/${batchId}/leaderboard`, {
+      const url = sessionId && sessionId !== "true" && typeof sessionId === 'string' 
+        ? `${API_BASE}/api/live/batch/${batchId}/leaderboard?sessionId=${sessionId}`
+        : `${API_BASE}/api/live/batch/${batchId}/leaderboard`;
+        
+      const res = await axios.get(url, {
         headers: { Authorization: `Bearer ${token}` }
       });
       setLeaderboard(res.data.leaderboard || []);
@@ -436,16 +442,19 @@ const LiveClassRoom: React.FC = () => {
   useEffect(() => {
     if (!currentSession?.batchId) return;
     
+    // If showLeaderboard is a string (sessionId), use it!
+    const targetSessionId = typeof showLeaderboard === 'string' ? showLeaderboard : undefined;
+    
     // Initial fetch
-    fetchLeaderboard(currentSession.batchId);
+    fetchLeaderboard(currentSession.batchId, targetSessionId);
     
     // Poll every 15s to keep waiting room updated
     const interval = setInterval(() => {
-      fetchLeaderboard(currentSession.batchId!);
+      fetchLeaderboard(currentSession.batchId!, targetSessionId);
     }, 15000);
     
     return () => clearInterval(interval);
-  }, [currentSession?.batchId, fetchLeaderboard]);
+  }, [currentSession?.batchId, showLeaderboard, fetchLeaderboard]);
 
   // HANDLERS
   const handleParentStartSession = async () => {

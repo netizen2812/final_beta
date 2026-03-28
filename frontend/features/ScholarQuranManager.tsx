@@ -16,10 +16,15 @@ const ScholarQuranManager: React.FC<ScholarQuranManagerProps> = ({ batchId, batc
     const [students, setStudents] = useState<any[]>([]);
     const [selectedChild, setSelectedChild] = useState<any>(null);
     const [juz, setJuz] = useState(1);
-    const [subpart, setSubpart] = useState(1);
+    const [selectedSubparts, setSelectedSubparts] = useState<number[]>([]);
     const [loading, setLoading] = useState(false);
     const [message, setMessage] = useState('');
     const [isBatchMode, setIsBatchMode] = useState(false);
+
+    useEffect(() => {
+        // Reset selection when Juz changes
+        setSelectedSubparts([]);
+    }, [juz]);
 
     useEffect(() => {
         const fetchStudents = async () => {
@@ -35,14 +40,25 @@ const ScholarQuranManager: React.FC<ScholarQuranManagerProps> = ({ batchId, batc
         fetchStudents();
     }, [batchId, getToken]);
 
+    const toggleSubpart = (num: number) => {
+        setSelectedSubparts(prev => 
+            prev.includes(num) ? prev.filter(n => n !== num) : [...prev, num].sort((a, b) => a - b)
+        );
+    };
+
+    const selectAll = () => setSelectedSubparts([...Array(15)].map((_, i) => i + 1));
+    const clearAll = () => setSelectedSubparts([]);
+
     const handleAssign = async () => {
         if (!isBatchMode && !selectedChild) return alert("Select a student first");
+        if (selectedSubparts.length === 0) return alert("Select at least one subpart");
+        
         setLoading(true);
         try {
             const token = await getToken();
             const payload = isBatchMode 
-                ? { batchId, juz, subpart }
-                : { childId: selectedChild._id, juz, subpart };
+                ? { batchId, juz, subparts: selectedSubparts }
+                : { childId: selectedChild._id, juz, subparts: selectedSubparts };
 
             const endpoint = isBatchMode 
                 ? `${API_BASE}/api/quran/assignments/batch-assign`
@@ -52,7 +68,8 @@ const ScholarQuranManager: React.FC<ScholarQuranManagerProps> = ({ batchId, batc
                 headers: { Authorization: `Bearer ${token}` }
             });
             
-            setMessage(`✅ ${isBatchMode ? 'Batch' : 'Successfully'} assigned Juz ${juz} Part ${subpart}`);
+            setMessage(`✅ ${isBatchMode ? 'Batch' : 'Successfully'} assigned Juz ${juz} Parts: ${selectedSubparts.join(', ')}`);
+            setSelectedSubparts([]); // Reset after success
             setTimeout(() => setMessage(''), 3000);
         } catch (err: any) {
             alert(err.response?.data?.message || "Assignment failed");
@@ -135,45 +152,62 @@ const ScholarQuranManager: React.FC<ScholarQuranManagerProps> = ({ batchId, batc
                              </div>
                         )}
 
-                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+                        <div className="space-y-6">
                             <div className="space-y-3">
-                                <label className="text-xs font-bold text-emerald-300 uppercase tracking-widest ml-1">Select Juz</label>
-                                <select 
-                                    value={juz} 
-                                    onChange={(e) => setJuz(parseInt(e.target.value))}
-                                    className="w-full bg-black/40 text-white p-4 rounded-2xl border border-emerald-500/20 focus:ring-2 focus:ring-emerald-500 outline-none transition-all"
-                                >
+                                <label className="text-xs font-bold text-emerald-300 uppercase tracking-widest ml-1">Step 1: Select Juz</label>
+                                <div className="flex flex-wrap gap-2">
                                     {[...Array(30)].map((_, i) => (
-                                        <option key={i+1} value={i+1} className="bg-[#052e16]">Juz {i+1}</option>
+                                        <button
+                                            key={i+1}
+                                            onClick={() => setJuz(i+1)}
+                                            className={`px-4 py-2 rounded-xl text-sm font-bold transition-all border ${juz === i+1 ? 'bg-emerald-500 border-emerald-400 text-[#022c22] shadow-lg' : 'bg-black/40 border-emerald-500/10 text-emerald-100 hover:border-emerald-500/30'}`}
+                                        >
+                                            Juz {i+1}
+                                        </button>
                                     ))}
-                                </select>
+                                </div>
                             </div>
-                            <div className="space-y-3">
-                                <label className="text-xs font-bold text-emerald-300 uppercase tracking-widest ml-1">Select Subpart (1-15)</label>
-                                <select 
-                                    value={subpart} 
-                                    onChange={(e) => setSubpart(parseInt(e.target.value))}
-                                    className="w-full bg-black/40 text-white p-4 rounded-2xl border border-emerald-500/20 focus:ring-2 focus:ring-emerald-500 outline-none transition-all"
-                                >
+
+                            <div className="space-y-4">
+                                <div className="flex items-center justify-between">
+                                    <label className="text-xs font-bold text-emerald-300 uppercase tracking-widest ml-1">Step 2: Select Subparts (1-15)</label>
+                                    <div className="flex gap-2">
+                                        <button onClick={selectAll} className="text-[10px] bg-emerald-500/20 text-emerald-300 px-2 py-1 rounded-md hover:bg-emerald-500/30 transition-all font-bold uppercase tracking-tighter">Select All</button>
+                                        <button onClick={clearAll} className="text-[10px] bg-red-500/20 text-red-300 px-2 py-1 rounded-md hover:bg-red-500/30 transition-all font-bold uppercase tracking-tighter">Clear</button>
+                                    </div>
+                                </div>
+                                <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-3">
                                     {[...Array(15)].map((_, i) => {
                                         const partNum = i + 1;
                                         const metadata = QURAN_METADATA[juz]?.find(m => m.part === partNum);
+                                        const isSelected = selectedSubparts.includes(partNum);
                                         return (
-                                            <option key={partNum} value={partNum} className="bg-[#052e16]">
-                                                Part {partNum}: {metadata?.label || 'Loading...'}
-                                            </option>
+                                            <button 
+                                                key={partNum} 
+                                                onClick={() => toggleSubpart(partNum)}
+                                                className={`p-3 rounded-2xl border transition-all text-left flex flex-col gap-1 relative overflow-hidden group ${isSelected ? 'bg-emerald-500 border-emerald-400 text-[#022c22] shadow-lg scale-[1.02]' : 'bg-black/40 border-white/5 text-emerald-100 hover:border-emerald-500/30'}`}
+                                            >
+                                                <div className="flex items-center justify-between">
+                                                    <span className={`text-[10px] font-black ${isSelected ? 'text-[#022c22]/70' : 'text-emerald-500/70'}`}>PART {partNum}</span>
+                                                    {isSelected && <div className="bg-[#022c22] text-emerald-400 rounded-full p-0.5"><CheckCircle size={10} /></div>}
+                                                </div>
+                                                <div className={`text-xs font-bold leading-tight line-clamp-2 ${isSelected ? 'text-[#022c22]' : 'text-white'}`}>
+                                                    {metadata?.label || `Part ${partNum}`}
+                                                </div>
+                                                {!isSelected && <div className="absolute inset-0 bg-emerald-500/0 group-hover:bg-emerald-500/5 transition-all" />}
+                                            </button>
                                         );
                                     })}
-                                </select>
+                                </div>
                             </div>
                         </div>
 
                         <button
                             onClick={handleAssign}
-                            disabled={loading || (!isBatchMode && !selectedChild)}
+                            disabled={loading || (!isBatchMode && !selectedChild) || selectedSubparts.length === 0}
                             className="w-full bg-emerald-500 hover:bg-emerald-400 text-[#022c22] py-5 rounded-2xl font-black text-lg transition-all flex items-center justify-center gap-3 shadow-[0_0_20px_rgba(16,185,129,0.3)] disabled:opacity-30 disabled:grayscale"
                         >
-                            {loading ? 'Propagating...' : isBatchMode ? 'Finalize Batch Assignment' : 'Confirm & Assign'}
+                            {loading ? 'Propagating...' : isBatchMode ? `Assign ${selectedSubparts.length} Parts to Batch` : `Confirm & Assign ${selectedSubparts.length} Parts`}
                         </button>
 
                         {message && (
@@ -185,8 +219,8 @@ const ScholarQuranManager: React.FC<ScholarQuranManagerProps> = ({ batchId, batc
                         <div className="pt-6 border-t border-emerald-500/10 flex items-start gap-3">
                             <Info className="text-emerald-500 flex-shrink-0" size={18} />
                             <p className="text-xs text-emerald-400/60 leading-relaxed italic">
-                                Curation notice: AI-generated questions for Juz {juz} Part {subpart} will be available instantly for the assigned students. 
-                                Progress tracking will begin as soon as they start practicing.
+                                Curation notice: AI-generated questions for the {selectedSubparts.length || 'selected'} selected parts of Juz {juz} will be available instantly for the assigned students. 
+                                Separate assignments will be created for each subpart.
                             </p>
                         </div>
                     </div>

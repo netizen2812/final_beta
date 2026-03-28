@@ -7,21 +7,46 @@ import QuranQuestion from "../models/QuranQuestion.js";
  */
 export const createAssignment = async (req, res) => {
     try {
-        const { childId, juz, subpart, dueDate } = req.body;
+        const { childId, juz, subpart, subparts, dueDate } = req.body;
+        const scholarId = req.user?._id;
 
-        // Verify subpart exists
-        const subpartMeta = await JuzSubpart.findOne({ juz, subpart });
-        if (!subpartMeta) return res.status(404).json({ message: "Juz Subpart metadata not found" });
+        if (!scholarId) {
+            return res.status(401).json({ message: "Scholar ID not found in request" });
+        }
 
-        const assignment = new QuranAssignment({
-            childId,
-            juz,
-            subpart,
-            dueDate: dueDate || new Date(Date.now() + 7 * 24 * 60 * 60 * 1000) // Default 1 week
-        });
+        // Determine subparts to assign: accept either a single number or an array
+        const subpartList = Array.isArray(subparts) ? subparts : (subpart !== undefined ? [subpart] : []);
+        if (subpartList.length === 0) {
+            return res.status(400).json({ message: "No subpart(s) provided" });
+        }
+        
+        // Verify all subparts exist for the given Juz
+        const juzDoc = await JuzSubpart.findOne({ juz });
+        if (!juzDoc) {
+            return res.status(404).json({ message: `Juz ${juz} metadata not found` });
+        }
+        const availableParts = juzDoc.parts.map(p => p.partNum);
+        const missing = subpartList.filter(sp => !availableParts.includes(sp));
 
-        await assignment.save();
-        res.status(201).json({ message: "Assignment created successfully", assignment });
+        if (missing.length) {
+            return res.status(404).json({ message: `Subpart(s) not found for Juz ${juz}: ${missing.join(', ')}` });
+        }
+
+        // Create assignments for each subpart
+        const assignments = await Promise.all(
+            subpartList.map(async (sp) => {
+                const assignment = new QuranAssignment({
+                    studentId: childId,
+                    scholarId,
+                    juz,
+                    subpart: sp,
+                    dueDate: dueDate || new Date(Date.now() + 7 * 24 * 60 * 60 * 1000)
+                });
+                await assignment.save();
+                return assignment;
+            })
+        );
+        res.status(201).json({ message: "Assignments created successfully", assignments });
     } catch (error) {
         res.status(500).json({ message: error.message });
     }
@@ -33,7 +58,7 @@ export const createAssignment = async (req, res) => {
 export const getActiveAssignment = async (req, res) => {
     try {
         const { childId } = req.params;
-        const assignment = await QuranAssignment.findOne({ childId, status: { $ne: 'Completed' } })
+        const assignment = await QuranAssignment.findOne({ studentId: childId, status: { $ne: 'completed' } })
             .sort({ createdAt: -1 });
 
         if (!assignment) return res.status(200).json(null);
@@ -59,11 +84,9 @@ export const updateProgress = async (req, res) => {
         if (!assignment) return res.status(404).json({ message: "Assignment not found" });
 
         assignment.practiceScore = score;
-        assignment.questionsAnswered = (assignment.questionsAnswered || 0) + (questionsAnswered || 0);
-        
-        // Simple heuristic: if score is high and they answered enough, mark as 'Practiced'
+        // Simple heuristic: if score is high, mark as 'practicing' or 'completed' if criteria met
         if (score >= 80) {
-            assignment.status = 'Practiced';
+            assignment.status = 'practicing';
         }
 
         await assignment.save();
@@ -82,7 +105,7 @@ export const markCompleted = async (req, res) => {
         const assignment = await QuranAssignment.findById(assignmentId);
         if (!assignment) return res.status(404).json({ message: "Assignment not found" });
 
-        assignment.status = 'Completed';
+        assignment.status = 'completed';
         assignment.completedAt = new Date();
         await assignment.save();
         res.status(200).json(assignment);
@@ -96,30 +119,56 @@ export const markCompleted = async (req, res) => {
  */
 export const batchCreateAssignments = async (req, res) => {
     try {
-        const { batchId, juz, subpart, dueDate } = req.body;
-        const { default: Batch } = await import("../models/Batch.js");
+        const { batchId, juz, subpart, subparts, dueDate } = req.body;
+        const scholarId = req.user?._id;
 
+        if (!scholarId) {
+            return res.status(401).json({ message: "Scholar ID not found in request" });
+        }
+
+        const { default: Batch } = await import("../models/Batch.js");
         const batch = await Batch.findById(batchId);
         if (!batch) return res.status(404).json({ message: "Batch not found" });
 
+        // Determine subparts list
+        const subpartList = Array.isArray(subparts) ? subparts : (subpart !== undefined ? [subpart] : []);
+        if (subpartList.length === 0) {
+            return res.status(400).json({ message: "No subpart(s) provided" });
+        }
+        
+        // Verify all subparts exist for the given Juz
+        const juzDoc = await JuzSubpart.findOne({ juz });
+        if (!juzDoc) {
+            return res.status(404).json({ message: `Juz ${juz} metadata not found` });
+        }
+        const availableParts = juzDoc.parts.map(p => p.partNum);
+        const missing = subpartList.filter(sp => !availableParts.includes(sp));
+
+        if (missing.length) {
+            return res.status(404).json({ message: `Subpart(s) not found for Juz ${juz}: ${missing.join(', ')}` });
+        }
+        
         const calculatedDueDate = dueDate || new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
-
-        const assignments = await Promise.all(batch.students.map(async (childId) => {
-            return await QuranAssignment.findOneAndUpdate(
-                { childId, juz, subpart },
-                { 
-                    status: 'assigned', 
-                    dueDate: calculatedDueDate,
-                    practiceScore: 0,
-                    completedAt: null 
-                },
-                { upsert: true, new: true }
-            );
-        }));
-
-        res.status(201).json({ 
-            message: `Successfully assigned Juz ${juz} Part ${subpart} to ${assignments.length} students`, 
-            assignments 
+        // Create assignments for each child and each subpart
+        const assignments = [];
+        for (const childId of batch.students) {
+            for (const sp of subpartList) {
+                const assign = await QuranAssignment.findOneAndUpdate(
+                    { studentId: childId, scholarId, juz, subpart: sp },
+                    {
+                        status: 'assigned',
+                        dueDate: calculatedDueDate,
+                        practiceScore: 0,
+                        completedAt: null
+                    },
+                    { upsert: true, new: true }
+                );
+                assignments.push(assign);
+            }
+        }
+        res.status(201).json({
+            message: `Successfully assigned Juz ${juz} Part(s) ${subpartList.join(', ')} to ${batch.students.length} students`,
+            assignments
         });
     } catch (error) {
         res.status(500).json({ message: error.message });

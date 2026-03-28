@@ -4,16 +4,16 @@ import QuranQuestion from "../models/QuranQuestion.js";
 /**
  * Fetches authentic verses and translations from Al-Quran Cloud API.
  */
-const fetchJuzFromApi = async (juzNum) => {
+const fetchJuzFromApi = async (juzNum, edition = "en.sahih") => {
     try {
-        console.log(`📖 Fetching authentic text for Juz ${juzNum}...`);
-        const response = await axios.get(`https://api.alquran.cloud/v1/juz/${juzNum}/en.sahih`);
+        console.log(`📖 Fetching authentic text for Juz ${juzNum} [${edition}]...`);
+        const response = await axios.get(`https://api.alquran.cloud/v1/juz/${juzNum}/${edition}`);
         if (response.data.code === 200) {
             return response.data.data.ayahs;
         }
-        throw new Error("Failed to fetch Quran data");
+        throw new Error(`Failed to fetch Quran data for edition ${edition}`);
     } catch (error) {
-        console.error("❌ Al-Quran Cloud API Error:", error.message);
+        console.error(`❌ Al-Quran Cloud API Error [${edition}]:`, error.message);
         throw error;
     }
 };
@@ -86,7 +86,7 @@ const getFallbackQuestions = (juz, subpart) => {
         },
         {
             question: `What is the recommended attitude when reflecting on Part ${subpart}?`,
-            options: ["Speed reading", "Deep contemplation (Tadabbur)", "Just listening", "Technical analysis"],
+            options: ["Speed reading", "Deep contemplation (Tadabbur)", "Deep contemplation", "Technical analysis"],
             correctAnswer: 1,
             explanation: "Tadabbur is the divine command for every researcher of the Quran."
         }
@@ -101,8 +101,8 @@ const generateQuestionsForSubpart = async (juz, subpart, subpartMetadata, quranA
     try {
         const GEMINI_URL = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${quranApiKey}`;
         
-        // 1. Fetch text from authentic Al-Quran API
-        const allAyahs = await fetchJuzFromApi(juz);
+        // 1. Fetch text from authentic Al-Quran API (using English for context)
+        const allAyahs = await fetchJuzFromApi(juz, "en.sahih");
         const totalAyahs = allAyahs.length;
         const ayahsPerPart = Math.ceil(totalAyahs / 15);
         const startIdx = (subpart - 1) * ayahsPerPart;
@@ -157,23 +157,41 @@ const generateQuestionsForSubpart = async (juz, subpart, subpartMetadata, quranA
 
 /**
  * Fetches specific ayahs for a Juz subpart for revision.
+ * Returns combined Arabic, Translation, and Audio.
  */
 const getJuzText = async (juzNum, subpart) => {
     try {
-        const allAyahs = await fetchJuzFromApi(juzNum);
-        const totalAyahs = allAyahs.length;
+        console.log(`🌀 Fetching revision content for Juz ${juzNum}, Subpart ${subpart}...`);
+        
+        // Fetch all 3 editions in parallel for efficiency
+        const [arabicRes, transRes, audioRes] = await Promise.all([
+            fetchJuzFromApi(juzNum, "quran-uthmani"),
+            fetchJuzFromApi(juzNum, "en.sahih"),
+            fetchJuzFromApi(juzNum, "ar.alafasy")
+        ]);
+
+        const totalAyahs = arabicRes.length;
         const ayahsPerPart = Math.ceil(totalAyahs / 15);
         const startIdx = (subpart - 1) * ayahsPerPart;
         const endIdx = Math.min(startIdx + ayahsPerPart, totalAyahs);
         
+        const subpartArabic = arabicRes.slice(startIdx, endIdx);
+        const subpartTrans = transRes.slice(startIdx, endIdx);
+        const subpartAudio = audioRes.slice(startIdx, endIdx);
+
+        // Combine into a unified structure compatible with QuranPage.tsx
+        const combinedAyahs = subpartArabic.map((ayah, i) => ({
+            number: ayah.numberInSurah,
+            surah: ayah.surah.englishName,
+            text: ayah.text,
+            translation: subpartTrans[i]?.text || "",
+            audio: subpartAudio[i]?.audio || ""
+        }));
+
         return {
             juz: juzNum,
             subpart,
-            ayahs: allAyahs.slice(startIdx, endIdx).map(a => ({
-                number: a.numberInSurah,
-                surah: a.surah.englishName,
-                text: a.text
-            }))
+            ayahs: combinedAyahs
         };
     } catch (error) {
         console.error("Error fetching revision text:", error.message);

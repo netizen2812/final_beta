@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
-import { BookOpen, CheckCircle2, XCircle, ChevronRight, Award, HelpCircle, AlignCenter, ArrowRight } from 'lucide-react';
+import { BookOpen, CheckCircle2, XCircle, ChevronRight, Award, HelpCircle, AlignCenter, ArrowRight, Play, Pause, Volume2, RotateCcw } from 'lucide-react';
 import { useAuth } from '@clerk/clerk-react';
 import { QURAN_METADATA } from '../quranMetadata';
 
@@ -25,6 +25,20 @@ const QuranPracticeModule: React.FC<QuranPracticeModuleProps> = ({ childId, onCo
     const [currentIndex, setCurrentIndex] = useState(0);
     const [selectedOption, setSelectedOption] = useState<number | null>(null);
     const [score, setScore] = useState(0);
+
+    // Audio State
+    const [playingAyah, setPlayingAyah] = useState<number | null>(null);
+    const [audio, setAudio] = useState<HTMLAudioElement | null>(null);
+    const [isPlayingAll, setIsPlayingAll] = useState(false);
+
+    useEffect(() => {
+        return () => {
+            if (audio) {
+                audio.pause();
+                audio.src = '';
+            }
+        };
+    }, [audio]);
 
     useEffect(() => {
         fetchAssignment();
@@ -129,51 +143,156 @@ const QuranPracticeModule: React.FC<QuranPracticeModuleProps> = ({ childId, onCo
         );
     }
 
+    const playAyah = (url: string, index: number) => {
+        if (audio) {
+            audio.pause();
+            if (playingAyah === index) {
+                setPlayingAyah(null);
+                setIsPlayingAll(false);
+                return;
+            }
+        }
+        
+        const newAudio = new Audio(url);
+        setAudio(newAudio);
+        setPlayingAyah(index);
+        newAudio.play();
+        
+        newAudio.onended = () => {
+            setPlayingAyah(null);
+            if (isPlayingAll && index < revisionText.ayahs.length - 1) {
+                playAyah(revisionText.ayahs[index + 1].audio, index + 1);
+            } else {
+                setIsPlayingAll(false);
+            }
+        };
+    };
+
+    const stopAudio = () => {
+        if (audio) {
+            audio.pause();
+            setPlayingAyah(null);
+            setIsPlayingAll(false);
+        }
+    };
+
     if (step === 'REVISE') {
+        const metadata = QURAN_METADATA[assignment.juz]?.find((m: any) => m.part === assignment.subpart);
+        
         return (
-            <div className="bg-white p-8 rounded-[3rem] shadow-xl border border-slate-100 max-w-2xl mx-auto flex flex-col h-[700px]">
-                <div className="flex justify-between items-center mb-6">
-                    <div className="flex items-center gap-3">
-                        <div className="bg-emerald-100 p-2 rounded-xl text-emerald-600"><BookOpen size={20} /></div>
-                        <div>
-                            <h3 className="font-bold text-slate-800">Revision Mode</h3>
-                            <p className="text-[10px] text-slate-400 uppercase font-black tracking-widest">
-                                Juz {assignment.juz} • {QURAN_METADATA[assignment.juz]?.find(m => m.part === assignment.subpart)?.label || `Part ${assignment.subpart}`}
-                            </p>
+            <div className="bg-[#f8faf9] p-4 md:p-8 rounded-[3rem] shadow-2xl border border-emerald-100 max-w-4xl mx-auto flex flex-col h-[85vh] relative overflow-hidden">
+                {/* Background Decoration */}
+                <div className="absolute top-0 right-0 w-64 h-64 bg-emerald-500/5 rounded-full blur-3xl -mr-32 -mt-32" />
+                <div className="absolute bottom-0 left-0 w-64 h-64 bg-emerald-500/5 rounded-full blur-3xl -ml-32 -mb-32" />
+
+                <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-8 relative z-10 px-2">
+                    <div className="flex items-center gap-4">
+                        <div className="bg-emerald-900 text-emerald-100 p-3 rounded-2xl shadow-lg shadow-emerald-900/20">
+                            <BookOpen size={24} />
                         </div>
+                        <div>
+                            <h3 className="text-2xl font-serif font-bold text-emerald-950 leading-tight">Revision Mode</h3>
+                            <div className="flex items-center gap-2 mt-1">
+                                <span className="px-2 py-0.5 bg-emerald-100 text-emerald-800 text-[10px] font-black rounded-md uppercase tracking-wider border border-emerald-200">
+                                    Juz {assignment.juz}
+                                </span>
+                                <span className="text-emerald-600/60 font-medium text-sm">
+                                    {metadata?.label || `Part ${assignment.subpart}`}
+                                </span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div className="flex items-center gap-2">
+                        {isPlayingAll ? (
+                            <button 
+                                onClick={stopAudio}
+                                className="flex items-center gap-2 px-5 py-2.5 bg-red-100 text-red-700 rounded-full font-bold text-sm hover:bg-red-200 transition-all shadow-sm border border-red-200"
+                            >
+                                <Pause size={16} fill="currentColor" /> Stop Audio
+                            </button>
+                        ) : (
+                            <button 
+                                onClick={() => {
+                                    setIsPlayingAll(true);
+                                    if (revisionText?.ayahs?.length > 0) {
+                                        playAyah(revisionText.ayahs[0].audio, 0);
+                                    }
+                                }}
+                                className="flex items-center gap-2 px-5 py-2.5 bg-emerald-900 text-white rounded-full font-bold text-sm hover:bg-emerald-800 transition-all shadow-lg shadow-emerald-900/20 border border-emerald-800"
+                            >
+                                <Play size={16} fill="currentColor" /> Listen All
+                            </button>
+                        )}
                     </div>
                 </div>
 
-                <div className="flex-1 overflow-y-auto px-4 py-6 bg-slate-50/50 rounded-3xl border border-slate-100 custom-scrollbar space-y-8">
-                    {revisionText?.ayahs?.map((a: any, i: number) => (
-                        <div key={i} className="text-center group">
-                            <div className="text-3xl font-serif leading-loose text-slate-800 mb-2 drop-shadow-sm select-none" dir="rtl">
-                                {a.text}
-                                <span className="inline-flex items-center justify-center w-8 h-8 rounded-full border border-emerald-500/20 text-xs text-emerald-600 mr-2 font-sans font-black">
-                                    {a.number}
-                                </span>
+                <div className="flex-1 overflow-y-auto px-2 md:px-6 py-4 custom-scrollbar space-y-8 relative z-10">
+                    {revisionText?.ayahs?.map((a: any, i: number) => {
+                        const isActive = playingAyah === i;
+                        return (
+                            <div 
+                                key={i} 
+                                className={`group p-8 rounded-[2.5rem] transition-all duration-500 border ${isActive ? 'bg-emerald-50 border-emerald-200 shadow-xl scale-[1.01]' : 'bg-white border-slate-100 hover:border-emerald-100 hover:shadow-md'}`}
+                            >
+                                <div className="flex flex-col gap-6">
+                                    <div className="flex justify-between items-start gap-4">
+                                        <button 
+                                            onClick={() => playAyah(a.audio, i)}
+                                            className={`p-3 rounded-full transition-all ${isActive ? 'bg-emerald-500 text-white shadow-lg rotate-12' : 'bg-slate-50 text-slate-400 group-hover:bg-emerald-100 group-hover:text-emerald-600'}`}
+                                        >
+                                            {isActive ? <Pause size={20} fill="currentColor" /> : <Volume2 size={20} />}
+                                        </button>
+                                        
+                                        <div className="flex flex-col items-end gap-1">
+                                            <span className="px-3 py-1 bg-slate-50 text-slate-400 text-[10px] font-black rounded-lg border border-slate-100 uppercase tracking-tighter">
+                                                {a.surah} : {a.number}
+                                            </span>
+                                        </div>
+                                    </div>
+
+                                    <div className="space-y-6 text-center md:text-right">
+                                        <p 
+                                            className={`text-3xl md:text-5xl font-serif leading-[2] md:leading-[1.8] text-right transition-colors ${isActive ? 'text-[#0D4433]' : 'text-slate-800'}`} 
+                                            dir="rtl"
+                                        >
+                                            {a.text}
+                                            <span className={`inline-flex items-center justify-center w-10 h-10 rounded-xl border-2 mx-4 text-sm font-sans font-black transition-all ${isActive ? 'border-emerald-500 bg-emerald-500 text-white' : 'border-emerald-100 text-emerald-600'}`}>
+                                                {a.number}
+                                            </span>
+                                        </p>
+                                        
+                                        <p className={`text-lg md:text-xl font-medium leading-relaxed transition-colors text-left border-l-4 pl-6 ${isActive ? 'text-emerald-900 border-emerald-500' : 'text-slate-400 border-slate-100'}`}>
+                                            {a.translation}
+                                        </p>
+                                    </div>
+                                </div>
                             </div>
-                            <div className="text-xs text-emerald-600/60 font-medium italic opacity-0 group-hover:opacity-100 transition-opacity">
-                                {a.surah}
-                            </div>
-                        </div>
-                    ))}
+                        );
+                    })}
+                    
                     {(!revisionText || !revisionText.ayahs) && (
-                        <div className="flex flex-col items-center justify-center h-full text-slate-400 gap-4 opacity-50 italic">
-                            <BookOpen size={40} />
-                            <p>Loading text for your revision...</p>
+                        <div className="flex flex-col items-center justify-center h-full text-slate-400 gap-6 opacity-80 py-20">
+                            <div className="w-20 h-20 border-4 border-emerald-100 border-t-emerald-500 rounded-full animate-spin" />
+                            <div className="text-center">
+                                <p className="font-bold text-lg text-emerald-950">Generating your revision sanctum...</p>
+                                <p className="text-sm mt-1">Fetching authentic text and audio</p>
+                            </div>
                         </div>
                     )}
                 </div>
 
-                <div className="mt-8">
+                <div className="mt-8 pt-6 border-t border-emerald-100 relative z-10 bg-gradient-to-t from-[#f8faf9] to-transparent p-2">
                     <button 
-                        onClick={() => setStep('PRACTICE')}
-                        className="w-full bg-[#022c22] text-white py-5 rounded-2xl font-black text-lg hover:bg-emerald-900 transition-all shadow-xl flex items-center justify-center gap-3 group"
+                        onClick={async () => {
+                            stopAudio();
+                            setStep('PRACTICE');
+                        }}
+                        className="w-full bg-emerald-500 text-emerald-950 py-5 rounded-[2rem] font-black text-xl hover:bg-emerald-400 hover:scale-[1.01] active:scale-95 transition-all shadow-xl shadow-emerald-500/20 flex items-center justify-center gap-4 group"
                     >
-                        I'm Ready for Q&A <ArrowRight size={20} className="group-hover:translate-x-1 transition-transform" />
+                        I'm Ready for Q&A <ArrowRight size={24} className="group-hover:translate-x-2 transition-transform" />
                     </button>
-                    <p className="text-center text-[10px] text-slate-400 font-bold mt-4 uppercase tracking-tighter">Read at your own pace. Click above when you're ready to test your knowledge.</p>
+                    <p className="text-center text-[11px] text-emerald-600/60 font-bold mt-4 uppercase tracking-[0.2em]">Read and listen deeply. Excellence is found in reflection.</p>
                 </div>
             </div>
         );

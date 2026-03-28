@@ -128,7 +128,7 @@ const LiveClassRoom: React.FC = () => {
     };
     fetchBatches();
     // Poll every 10s for new batches
-    const interval = setInterval(fetchBatches, 10000);
+    const interval = setInterval(fetchBatches, 3000); // Faster polling for scholar sync
     return () => clearInterval(interval);
   }, [userRole, getToken]);
 

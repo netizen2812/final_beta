@@ -278,27 +278,26 @@ export const TarbiyahLobby = ({
                     </div>
                  </button>
 
-                 {/* OBSERVE MODE (Conditional) */}
-                 <button 
-                   disabled={currentBatchStatus !== 'active'}
-                   onClick={() => { setShowJoinChoice(false); handleJoinLive(); }}
-                   className={`flex items-center gap-4 p-5 rounded-2xl transition-all group border-b-4 ${currentBatchStatus === 'active' 
-                     ? 'bg-amber-500 hover:bg-amber-400 text-amber-950 border-amber-600 shadow-[0_10px_20px_rgba(245,158,11,0.2)]' 
-                     : 'bg-slate-800 text-slate-500 border-slate-900 opacity-60 cursor-not-allowed'}`}
-                 >
-                    <div className={`p-3 rounded-xl ${currentBatchStatus === 'active' ? 'bg-white/20' : 'bg-slate-700'}`}>
-                      <Users size={24} />
-                    </div>
-                    <div className="text-left">
-                       <div className="font-bold text-lg flex items-center gap-2">
-                         {currentBatchStatus === 'active' ? 'Join the live session' : 'Waiting for Scholar'}
-                         {currentBatchStatus === 'active' && <span className="w-2 h-2 bg-red-500 rounded-full animate-ping" />}
+                 {/* JOIN/OBSERVE LIVE (Only if Active) */}
+                 {currentBatchStatus === 'active' && (
+                    <button 
+                      onClick={() => { setShowJoinChoice(false); handleJoinLive(); }}
+                      className="flex items-center gap-4 p-5 rounded-2xl transition-all group border-b-4 bg-amber-500 hover:bg-amber-400 text-amber-950 border-amber-600 shadow-[0_10px_20px_rgba(245,158,11,0.2)]"
+                    >
+                       <div className="bg-white/20 p-3 rounded-xl">
+                         <Users size={24} />
                        </div>
-                       <div className="text-xs font-medium opacity-80">
-                         {currentBatchStatus === 'active' ? 'Enter the class with your teacher' : 'The session will start once the scholar joins'}
+                       <div className="text-left">
+                          <div className="font-bold text-lg flex items-center gap-2">
+                            Join the live session
+                            <span className="w-2 h-2 bg-red-500 rounded-full animate-ping" />
+                          </div>
+                          <div className="text-xs font-medium opacity-80">
+                            Enter the class with your teacher
+                          </div>
                        </div>
-                    </div>
-                 </button>
+                    </button>
+                 )}
 
                  <button 
                    onClick={() => setShowJoinChoice(false)}

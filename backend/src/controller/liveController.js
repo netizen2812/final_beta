@@ -585,12 +585,28 @@ export const getBatchState = async (req, res) => {
             }
         }
 
+        // FETCH REQUESTING CHILD'S CURRENT SESSION SCORE (For Real-time UI feedback)
+        const { childId } = req.query;
+        let currentScore = 0;
+        if (childId && batch.activeSessionId) {
+            const { default: LiveScore } = await import("../models/LiveScore.js");
+            const scoreDoc = await LiveScore.findOne({ 
+                batchId: id, 
+                sessionId: batch.activeSessionId, 
+                childId 
+            });
+            if (scoreDoc) {
+                currentScore = (scoreDoc.recitationScore || 0) + (scoreDoc.participationScore || 0);
+            }
+        }
+
         res.json({
             activeChildId: batch.activeChildId,
             activeSessionId: batch.activeSessionId,
             status: batch.status,
             activeSurah,
             activeAyah,
+            currentScore,
             currentPromptAnswers: batch.currentPromptAnswers || [],
             promptEvaluated: batch.promptEvaluated || false,
             activeParticipants: batch.activeParticipants || [],

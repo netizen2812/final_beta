@@ -90,6 +90,8 @@ const LiveClassRoom: React.FC = () => {
   const [attendedSessionIds, setAttendedSessionIds] = useState<string[]>([]);
   const [confirmEndClass, setConfirmEndClass] = useState<string | null>(null);
   const [showAssignModal, setShowAssignModal] = useState(false);
+  const [currentSessionScore, setCurrentSessionScore] = useState<number>(0);
+  const { triggerRewardAnimation } = useChildContext();
 
   // Determine Role & Check Access
   useEffect(() => {
@@ -236,9 +238,20 @@ const LiveClassRoom: React.FC = () => {
     const fetchState = async () => {
       try {
         const token = await getToken();
-        const res = await axios.get(`${API_BASE}/api/live/batch/${currentSession.batchId}/state`, {
+        const res = await axios.get(`${API_BASE}/api/live/batch/${currentSession.batchId}/state?childId=${currentSession.childId}`, {
            headers: { Authorization: `Bearer ${token}` }
         });
+        
+        // HEARTBEAT SYNC: XP Rewards / Animations
+        if (res.data.currentScore > currentSessionScore) {
+          const diff = res.data.currentScore - currentSessionScore;
+          triggerRewardAnimation(diff);
+          setCurrentSessionScore(res.data.currentScore);
+        } else if (res.data.currentScore < currentSessionScore) {
+           // If session reset/new session, just sync without animation
+           setCurrentSessionScore(res.data.currentScore);
+        }
+
         setBatchState({
           activeChildId: res.data.activeChildId || null,
           activeSessionId: res.data.activeSessionId || null,
@@ -763,10 +776,10 @@ const LiveClassRoom: React.FC = () => {
                           </div>
      
                           <div className="grid grid-cols-2 gap-1 w-full mt-1">
-                            <button onClick={() => setSelectedScore(3)} className={`py-1.5 flex items-center justify-center rounded-lg text-[9px] text-white font-black transition-all ${selectedScore === 3 ? 'bg-green-600 ring-1 ring-white shadow-md' : 'bg-green-500 hover:bg-green-400'}`}>+20 XP</button>
-                            <button onClick={() => setSelectedScore(2)} className={`py-1.5 flex items-center justify-center rounded-lg text-[9px] text-white font-black transition-all ${selectedScore === 2 ? 'bg-amber-600 ring-1 ring-white shadow-md' : 'bg-amber-500 hover:bg-amber-400'}`}>+15 XP</button>
-                            <button onClick={() => setSelectedScore(1)} className={`py-1.5 flex items-center justify-center rounded-lg text-[9px] text-white font-black transition-all ${selectedScore === 1 ? 'bg-orange-600 ring-1 ring-white shadow-md' : 'bg-orange-500 hover:bg-orange-400'}`}>+10 XP</button>
-                            <button onClick={() => setSelectedScore(0)} className={`py-1.5 flex items-center justify-center rounded-lg text-[9px] text-white font-black transition-all ${selectedScore === 0 ? 'bg-red-600 ring-1 ring-white shadow-md' : 'bg-red-500 hover:bg-red-400'}`}>+5 XP</button>
+                            <button onClick={() => setSelectedScore(3)} className={`py-1.5 flex items-center justify-center rounded-lg text-[9px] text-white font-black transition-all ${selectedScore === 3 ? 'bg-green-600 ring-1 ring-white shadow-md' : 'bg-green-500 hover:bg-green-400'}`}>+10 XP</button>
+                            <button onClick={() => setSelectedScore(2)} className={`py-1.5 flex items-center justify-center rounded-lg text-[9px] text-white font-black transition-all ${selectedScore === 2 ? 'bg-amber-600 ring-1 ring-white shadow-md' : 'bg-amber-500 hover:bg-amber-400'}`}>+7 XP</button>
+                            <button onClick={() => setSelectedScore(1)} className={`py-1.5 flex items-center justify-center rounded-lg text-[9px] text-white font-black transition-all ${selectedScore === 1 ? 'bg-orange-600 ring-1 ring-white shadow-md' : 'bg-orange-500 hover:bg-orange-400'}`}>+5 XP</button>
+                            <button onClick={() => setSelectedScore(0)} className={`py-1.5 flex items-center justify-center rounded-lg text-[9px] text-white font-black transition-all ${selectedScore === 0 ? 'bg-red-600 ring-1 ring-white shadow-md' : 'bg-red-500 hover:bg-red-400'}`}>+2 XP</button>
                           </div>
      
                           {(selectedScore !== null || promptDecision !== null) && (

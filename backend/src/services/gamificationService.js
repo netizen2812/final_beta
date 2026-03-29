@@ -75,7 +75,7 @@ export const awardXP = async (childId, action, data = {}) => {
         } 
         else if (action === "participation") {
             const { points } = data; 
-            xpGained = points || 1;
+            xpGained = points || 2;
             activityType = "Lesson Revision";
             activityDuration = 5; // Default revision time
         } 

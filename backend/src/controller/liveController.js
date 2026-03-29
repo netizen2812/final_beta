@@ -588,7 +588,44 @@ export const getBatchState = async (req, res) => {
             pastSessions: batch.pastSessions || []
         });
     } catch (error) {
-        res.status(500).json({ error: error.message });
+        res.status(500).json({ error: error.message, activeParticipants: [], pastSessions: [] });
+    }
+};
+
+// ADMIN: EMERGENCY LINK RECOVERY
+export const emergencyLinkRestore = async (req, res) => {
+    try {
+        const { default: Child } = await import("../models/Child.js");
+        const { default: User } = await import("../models/User.js");
+
+        const orphans = await Child.find({ $or: [{ parent_id: { $exists: false } }, { childUserId: { $exists: false } }] });
+        const studentUsers = await User.find({ role: "student" });
+        // Use a wide window for parents
+        const recentlyActiveParents = await User.find({ role: "parent", lastHeartbeat: { $gt: new Date(Date.now() - 24 * 60 * 60 * 1000) } });
+
+        const results = [];
+        for (const o of orphans) {
+            const studentMatch = studentUsers.find(s => s.name === o.name);
+            if (studentMatch && !o.childUserId) {
+                o.childUserId = studentMatch._id;
+                
+                // If only one parent is active, it's virtually certain they are the owner
+                if (recentlyActiveParents.length === 1) {
+                    o.parent_id = recentlyActiveParents[0]._id;
+                }
+                
+                // Backup plan: if parents > 1 but we find ONLY ONE student with this name,
+                // we can't be 100% sure of parent, but we can fix childUserId.
+                
+                o.markModified('childUserId');
+                o.markModified('parent_id');
+                await o.save();
+                results.push({ name: o.name, restored: !!o.childUserId, parentLinked: !!o.parent_id });
+            }
+        }
+        res.json({ success: true, count: results.length, details: results, parentCount: recentlyActiveParents.length });
+    } catch (err) {
+        res.status(500).json({ success: false, error: err.message });
     }
 };
 

@@ -14,6 +14,7 @@ import { loadRazorpayScript } from '../utils/razorpay';
 import { TarbiyahOnboarding } from './TarbiyahOnboarding';
 import QuranPracticeModule from './QuranPracticeModule';
 import ScholarQuranManager from './ScholarQuranManager';
+import ErrorBoundary from '../components/ErrorBoundary';
 
 // --- DATA & CONSTANTS ---
 const API_BASE = import.meta.env.VITE_API_URL || "http://localhost:5000";
@@ -196,35 +197,44 @@ export const TarbiyahLobby = ({
         </div>
       </div>
 
-      {userRole === 'scholar' ? (
-        view === 'scholar_journey' ? (
-          <ScholarJourneyView scrollProgress={scrollProgress} batches={scholarBatches} onJoinSession={onScholarJoinSession!} initialBatchId={targetBatchId} />
-        ) : (
-          <ScholarDashboardView 
-            batches={scholarBatches} 
-            onJoinSession={(batch: any) => { setTargetBatchId(batch._id); setView('scholar_journey'); }} 
-            getToken={getToken}
-            setShowScholarManage={setShowScholarManage}
-          />
-        )
-      ) : (
-        view === 'kids' ? (
-          <KidsView 
-            scrollProgress={scrollProgress} 
-            activeChild={activeChild} 
-            onJoinLive={handleJoinLive} 
-            currentBatchStatus={currentBatchStatus} 
-            batches={batches} 
-            accessStatus={accessStatus} 
-            getToken={getToken} 
-            setShowQuranPractice={(mode: 'REVISE' | 'PRACTICE') => setShowQuranPractice({ active: true, mode })}
-            setShowJoinChoice={setShowJoinChoice}
-            attendedSessionIds={attendedSessionIds}
-          />
-        ) : (
-          <ParentsView activeChild={activeChild} batches={batches} getToken={getToken} />
-        )
-      )}
+      {/* MAIN VIEW AREA with ERROR BOUNDARY */}
+      <div className="relative z-10">
+        <ErrorBoundary name="Tarbiyah Content Area">
+          {userRole === 'scholar' ? (
+            view === 'scholar_journey' ? (
+              <ScholarJourneyView 
+                scrollProgress={scrollProgress} 
+                batches={scholarBatches} 
+                onJoinSession={onScholarJoinSession!} 
+                initialBatchId={targetBatchId} 
+              />
+            ) : (
+              <ScholarDashboardView 
+                batches={scholarBatches} 
+                onJoinSession={(batch: any) => { setTargetBatchId(batch._id); setView('scholar_journey'); }} 
+                attendedSessionIds={attendedSessionIds}
+              />
+            )
+          ) : (
+            view === 'kids' ? (
+              <KidsView 
+                scrollProgress={scrollProgress} 
+                activeChild={activeChild} 
+                onJoinLive={handleJoinLive} 
+                currentBatchStatus={currentBatchStatus} 
+                batches={batches} 
+                accessStatus={accessStatus} 
+                getToken={getToken} 
+                setShowQuranPractice={(mode: 'REVISE' | 'PRACTICE') => setShowQuranPractice({ active: true, mode })}
+                setShowJoinChoice={setShowJoinChoice}
+                attendedSessionIds={attendedSessionIds}
+              />
+            ) : (
+              <ParentsView activeChild={activeChild} batches={batches} getToken={getToken} />
+            )
+          )}
+        </ErrorBoundary>
+      </div>
 
       {showQuranPractice.active && activeChild && (
         <div className="fixed inset-0 z-[110] bg-[#022c22]/95 backdrop-blur-xl flex items-center justify-center p-6 overflow-y-auto">
@@ -355,9 +365,10 @@ const KidsView = ({ scrollProgress, activeChild, onJoinLive, currentBatchStatus,
   // But actually, pastSessions can be empty.
   
   const lastUnlockedIndex = Math.max(0, Math.min(totalClassesPassed, startOffset + 29));
-  const maxPercentage = (lastUnlockedIndex / (JOURNEY_STAGES.length - 1)) * 100;
-  const currentDraw = scrollProgress * 2.0;
-  const fillPercentage = Math.min(currentDraw, maxPercentage);
+  const stagesCount = JOURNEY_STAGES?.length || 30;
+  const maxPercentage = (lastUnlockedIndex / (stagesCount - 1)) * 100;
+  const currentDraw = (scrollProgress || 0) * 2.0;
+  const fillPercentage = Math.min(currentDraw, maxPercentage || 0);
 
   if (!hasPremium) return <TarbiyahOnboarding getToken={getToken} />;
 

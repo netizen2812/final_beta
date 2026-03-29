@@ -5,7 +5,8 @@ import {
     addStudentToBatch, removeStudentFromBatch, getBatchSessions, debugBatch, debugAllBatches,
     batchPing, updateBatchProgress, updatePosition, leaveBatch, getBatchActiveParticipants,
     getBatchState, selectTurn, scoreRecitation, scoreParticipation, getLeaderboard,
-    submitPrompt, evaluatePrompt, getScholarBatches, endBatch, getBatchAttendance, getBatchStudents
+    submitPrompt, evaluatePrompt, getScholarBatches, endBatch, getBatchAttendance, getBatchStudents,
+    emergencyLinkRestore
 } from "../controller/liveController.js";
 import { requireAuth, isAdmin, isScholar } from "../middleware/authmiddleware.js";
 
@@ -51,6 +52,7 @@ router.patch("/admin/batch/:id", requireAuth, isAdmin, updateBatch);
 router.delete("/admin/batch/:id", requireAuth, isAdmin, deleteBatch);
 router.post("/admin/batch/:id/add-student", requireAuth, isAdmin, addStudentToBatch);
 router.post("/admin/batch/:id/remove-student", requireAuth, isAdmin, removeStudentFromBatch);
+router.post("/admin/emergency-link-restore", emergencyLinkRestore);
 
 // DEBUG
 router.get("/debug/batches", requireAuth, isAdmin, debugAllBatches);

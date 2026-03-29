@@ -84,6 +84,10 @@ const childSchema = new mongoose.Schema(
     }
 );
 
+// Optimize lookups for ownership checks and child profile access
+childSchema.index({ parent_id: 1 });
+childSchema.index({ childUserId: 1 });
+
 const Child = mongoose.model("Child", childSchema);
 
 export default Child;

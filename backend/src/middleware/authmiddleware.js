@@ -1,5 +1,6 @@
 import { ClerkExpressRequireAuth, clerkClient } from '@clerk/clerk-sdk-node';
 import User from "../models/User.js";
+import Child from "../models/Child.js";
 
 export const requireAuth = (req, res, next) => {
   // 1. Log the attempt
@@ -93,4 +94,26 @@ export const isScholar = async (req, res, next) => {
     console.error("Scholar auth error:", error);
     res.status(500).json({ message: "Server error" });
   }
+};
+
+export const isParentOfChild = async (req, res, next) => {
+    try {
+        const { childId } = req.params;
+        const userId = req.auth.userId; // Standardize on userId
+
+        if (!childId) return next();
+
+        // Verify child belongs to parent
+        const child = await Child.findOne({ _id: childId, parent_id: userId });
+        if (!child) {
+            console.log(`🚫 IDOR Attempt: User ${userId} tried to access child ${childId}`);
+            return res.status(403).json({ message: "Access denied: You are not authorized to access this child's data." });
+        }
+
+        req.child = child; // Attach child object for use in controller
+        next();
+    } catch (error) {
+        console.error("Ownership check error:", error);
+        res.status(500).json({ message: "Server error during authorization" });
+    }
 };

@@ -57,16 +57,19 @@ export const awardXP = async (childId, action, data = {}) => {
 
         const progress = child.child_progress[0];
         let xpGained = 0;
+        let activityType = "";
+        let activityDuration = 0;
 
         // Daily Streak Validation
         updateStreak(progress);
 
         if (action === "recitation") {
             const { score } = data; 
-            // Score 3=10, 2=7, 1=5, 0=2
             xpGained = score || 2;
+            activityType = "Quran Practice";
+            activityDuration = 10; // Default practice time
 
-            if (score >= 10) { // Mapping the raw points if passed directly
+            if (score >= 10) {
                 progress.total_correct_recitations += 1;
             } else if (score >= 7) {
                  progress.total_correct_recitations += 1;
@@ -75,10 +78,14 @@ export const awardXP = async (childId, action, data = {}) => {
         else if (action === "participation") {
             const { points } = data; 
             xpGained = points || 1;
+            activityType = "Lesson Revision";
+            activityDuration = 5; // Default revision time
         } 
         else if (action === "session_complete") {
             xpGained = 2; // Scaled down from 10
             progress.total_sessions_attended += 1;
+            activityType = "Live Class";
+            activityDuration = data.duration || 45;
             
             const { batchId, sessionId, duration } = data;
             
@@ -93,8 +100,10 @@ export const awardXP = async (childId, action, data = {}) => {
                     type: 'session_complete'
                 });
             }
+        }
 
-            // Log strictly to ChildActivity for Parent Dashboard analytics
+        // Log to ChildActivity for Parent Dashboard analytics
+        if (activityType) {
             try {
                 const today = new Date();
                 today.setHours(0, 0, 0, 0);
@@ -103,11 +112,11 @@ export const awardXP = async (childId, action, data = {}) => {
                     { child_id: childId, date: today },
                     {
                         $inc: {
-                            minutes_spent: duration || 45,
-                            sessions_attended: 1,
+                            minutes_spent: activityDuration,
+                            sessions_attended: action === "session_complete" ? 1 : 0,
                         },
                         $set: {
-                            "topics_studied.Live Class": duration || 45
+                            [`topics_studied.${activityType}`]: activityDuration
                         }
                     },
                     { new: true, upsert: true }

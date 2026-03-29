@@ -1,16 +1,15 @@
 import React, { useState, useEffect } from 'react';
 import {
   Clock, TrendingUp, CheckCircle, BarChart2, Settings,
-  Loader2, ChevronDown, Save, Users, Star
+  Loader2, ChevronDown, Save, Users, Star, Flame, Calendar,
+  BookOpen, PlayCircle, GraduationCap
 } from 'lucide-react';
 import {
   PieChart, Pie, Cell, ResponsiveContainer, BarChart, Bar, XAxis, Tooltip
 } from 'recharts';
 import { useChildContext } from '../contexts/ChildContext';
-import { tarbiyahService, ParentDashboardData } from '../services/tarbiyahService';
+import { tarbiyahService, ParentDashboardData, DetailedActivity } from '../services/tarbiyahService';
 import { useAuth } from '@clerk/clerk-react';
-
-
 
 const ParentDashboard: React.FC = () => {
   const { children, loading: childrenLoading } = useChildContext();
@@ -108,6 +107,13 @@ const ParentDashboard: React.FC = () => {
     min: dashboardData.activityLog.minutes[idx]
   })) : [];
 
+  const getActivityIcon = (topic: string) => {
+    if (topic.includes('Practice')) return <PlayCircle size={14} className="text-emerald-500" />;
+    if (topic.includes('Revision')) return <BookOpen size={14} className="text-blue-500" />;
+    if (topic.includes('Class')) return <GraduationCap size={14} className="text-purple-500" />;
+    return <CheckCircle size={14} className="text-slate-400" />;
+  };
+
   return (
     <div className="min-h-screen pb-20 space-y-8">
       {/* Header with Child Selector */}
@@ -159,7 +165,7 @@ const ParentDashboard: React.FC = () => {
       {!loading && !error && dashboardData && (
         <>
           {/* Stat Cards */}
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {/* Time This Week */}
             <div className="bg-white p-6 rounded-[2rem] border border-slate-100 shadow-sm hover:shadow-md transition-shadow">
               <div className="flex items-center gap-3 mb-4">
@@ -179,8 +185,44 @@ const ParentDashboard: React.FC = () => {
               </div>
             </div>
 
-            {/* Total Revisions */}
+            {/* Current Streak */}
             <div className="bg-white p-6 rounded-[2rem] border border-slate-100 shadow-sm hover:shadow-md transition-shadow">
+              <div className="flex items-center gap-3 mb-4">
+                <div className="w-12 h-12 bg-orange-50 rounded-xl flex items-center justify-center">
+                  <Flame className="text-orange-600" size={24} />
+                </div>
+                <div>
+                  <p className="text-[9px] font-black uppercase tracking-widest text-slate-400">Current Streak</p>
+                  <p className="text-2xl font-bold text-slate-800">
+                    {dashboardData.stats.streak} Days
+                  </p>
+                </div>
+              </div>
+              <div className="text-xs text-slate-500">
+                Consecutive days active
+              </div>
+            </div>
+
+            {/* Attendance Rate */}
+            <div className="bg-white p-6 rounded-[2rem] border border-slate-100 shadow-sm hover:shadow-md transition-shadow">
+              <div className="flex items-center gap-3 mb-4">
+                <div className="w-12 h-12 bg-purple-50 rounded-xl flex items-center justify-center">
+                  <Users className="text-purple-600" size={24} />
+                </div>
+                <div>
+                  <p className="text-[9px] font-black uppercase tracking-widest text-slate-400">Activity Level</p>
+                  <p className="text-2xl font-bold text-slate-800">{dashboardData.stats.attendanceRate}%</p>
+                </div>
+              </div>
+              <div className="text-xs text-slate-500">
+                Active days this week
+              </div>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+             {/* Total Revisions */}
+             <div className="bg-white p-6 rounded-[2rem] border border-slate-100 shadow-sm hover:shadow-md transition-shadow">
               <div className="flex items-center gap-3 mb-4">
                 <div className="w-12 h-12 bg-blue-50 rounded-xl flex items-center justify-center">
                   <CheckCircle className="text-blue-600" size={24} />
@@ -209,23 +251,23 @@ const ParentDashboard: React.FC = () => {
                 </div>
               </div>
               <div className="text-xs text-slate-600 font-medium">
-                Based on recent practices
+                Based on practice sessions
               </div>
             </div>
 
-            {/* Attendance Rate */}
+            {/* Active Days */}
             <div className="bg-white p-6 rounded-[2rem] border border-slate-100 shadow-sm hover:shadow-md transition-shadow">
               <div className="flex items-center gap-3 mb-4">
-                <div className="w-12 h-12 bg-purple-50 rounded-xl flex items-center justify-center">
-                  <Users className="text-purple-600" size={24} />
+                <div className="w-12 h-12 bg-slate-50 rounded-xl flex items-center justify-center">
+                  <Calendar className="text-slate-600" size={24} />
                 </div>
                 <div>
-                  <p className="text-[9px] font-black uppercase tracking-widest text-slate-400">Attendance</p>
-                  <p className="text-2xl font-bold text-slate-800">{dashboardData.stats.attendanceRate}%</p>
+                  <p className="text-[9px] font-black uppercase tracking-widest text-slate-400">Total Days Active</p>
+                  <p className="text-2xl font-bold text-slate-800">{dashboardData.stats.activeDays}</p>
                 </div>
               </div>
               <div className="text-xs text-slate-500">
-                Live session participation
+                Lifetime learning journey
               </div>
             </div>
           </div>
@@ -234,7 +276,7 @@ const ParentDashboard: React.FC = () => {
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
             {/* Topic Breakdown */}
             <div className="bg-white p-8 rounded-[3rem] shadow-sm border border-slate-100">
-              <h3 className="font-bold text-slate-800 text-sm mb-6">Topic Breakdown</h3>
+              <h3 className="font-bold text-slate-800 text-sm mb-6">Learning Focus</h3>
               {topicData.length > 0 ? (
                 <div className="h-64">
                   <ResponsiveContainer width="100%" height="100%">
@@ -259,7 +301,7 @@ const ParentDashboard: React.FC = () => {
                     {topicData.map((item, idx) => (
                       <div key={idx} className="flex items-center gap-2">
                         <div className="w-3 h-3 rounded-full" style={{ backgroundColor: item.fill }} />
-                        <span className="text-xs text-slate-600 font-medium">{item.name}: {item.value}</span>
+                        <span className="text-xs text-slate-600 font-medium">{item.name}: {item.value}m</span>
                       </div>
                     ))}
                   </div>
@@ -271,7 +313,7 @@ const ParentDashboard: React.FC = () => {
               )}
             </div>
 
-            {/* Activity Log */}
+            {/* Weekly Activity Bar Chart */}
             <div className="bg-white p-8 rounded-[3rem] shadow-sm border border-slate-100">
               <div className="flex justify-between items-center mb-6">
                 <h3 className="font-bold text-slate-800 text-sm">Weekly Activity</h3>
@@ -297,6 +339,52 @@ const ParentDashboard: React.FC = () => {
                 </ResponsiveContainer>
               </div>
             </div>
+          </div>
+
+          {/* Detailed Activity Log */}
+          <div className="bg-white p-8 rounded-[3rem] shadow-sm border border-slate-100">
+             <div className="flex items-center justify-between mb-8">
+                <div>
+                  <h3 className="font-bold text-slate-800 text-lg">Daily Activity Log</h3>
+                  <p className="text-xs text-slate-400 mt-1">Detailed breakdown of learning tasks by day</p>
+                </div>
+             </div>
+
+             <div className="space-y-4">
+                {dashboardData.detailedActivity.length > 0 ? (
+                  dashboardData.detailedActivity.slice().reverse().map((day, dIdx) => (
+                    <div key={dIdx} className="border-b border-slate-50 pb-4 last:border-0 last:pb-0">
+                      <div className="flex items-center justify-between mb-3">
+                        <div className="flex items-center gap-2">
+                          <p className="text-sm font-bold text-slate-700">
+                            {new Date(day.date).toLocaleDateString('en-US', { weekday: 'long', month: 'short', day: 'numeric' })}
+                          </p>
+                          {day.sessions > 0 && (
+                            <span className="px-2 py-0.5 bg-emerald-50 text-emerald-700 text-[10px] font-bold rounded-full border border-emerald-100">
+                              {day.sessions} Class
+                            </span>
+                          )}
+                        </div>
+                        <p className="text-xs font-bold text-slate-400">{day.minutes} total minutes</p>
+                      </div>
+                      
+                      <div className="flex flex-wrap gap-2">
+                        {Object.entries(day.topics).map(([topic, min], tIdx) => (
+                          <div key={tIdx} className="flex items-center gap-2 bg-slate-50 px-3 py-1.5 rounded-xl border border-slate-100">
+                            {getActivityIcon(topic)}
+                            <span className="text-[11px] font-medium text-slate-600">{topic}: </span>
+                            <span className="text-[11px] font-bold text-slate-800">{min}m</span>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  ))
+                ) : (
+                  <div className="py-10 text-center text-slate-400">
+                    <p className="text-sm">No detailed activity recorded for this period</p>
+                  </div>
+                )}
+             </div>
           </div>
 
           {/* Settings & Controls */}

@@ -79,25 +79,12 @@ export const createChild = async (req, res) => {
 export const updateChild = async (req, res) => {
     try {
         const { childId } = req.params;
-        const userId = req.auth.userId;
         const updates = req.body;
+        const child = req.child; // Provided by isParentOfChild middleware
 
-        // Find user by clerkId to get MongoDB _id
-        const user = await User.findOne({ clerkId: userId });
-        if (!user) {
-            return res.status(404).json({ message: "User not found" });
-        }
-
-        // Verify child belongs to parent and update
-        const child = await Child.findOneAndUpdate(
-            { _id: childId, parent_id: user._id },
-            { $set: updates },
-            { new: true }
-        );
-
-        if (!child) {
-            return res.status(404).json({ message: "Child not found" });
-        }
+        // Update child
+        Object.assign(child, updates);
+        await child.save();
 
         res.json(child);
     } catch (error) {
@@ -110,30 +97,15 @@ export const updateChild = async (req, res) => {
 export const deleteChild = async (req, res) => {
     try {
         const { childId } = req.params;
-        const userId = req.auth.userId;
-
-        // Find user by clerkId to get MongoDB _id
-        const user = await User.findOne({ clerkId: userId });
-        if (!user) {
-            return res.status(404).json({ message: "User not found" });
-        }
-
-        // Verify child belongs to parent and delete
-        const child = await Child.findOneAndDelete({
-            _id: childId,
-            parent_id: user._id,
-        });
-
-        if (!child) {
-            return res.status(404).json({ message: "Child not found" });
-        }
+        const child = req.child; // Provided by isParentOfChild middleware
 
         // Delete associated User document if it exists (for the child)
         if (child.childUserId) {
             await User.findByIdAndDelete(child.childUserId);
-
-            // Child document handles gamification stats natively
         }
+
+        // Delete the child document
+        await Child.findByIdAndDelete(childId);
 
         res.json({ message: "Child deleted successfully" });
     } catch (error) {
@@ -146,20 +118,8 @@ export const deleteChild = async (req, res) => {
 export const updateProgress = async (req, res) => {
     try {
         const { childId } = req.params;
-        const userId = req.auth.userId;
         const { xp, level, lessons_completed } = req.body;
-
-        // Find user by clerkId to get MongoDB _id
-        const user = await User.findOne({ clerkId: userId });
-        if (!user) {
-            return res.status(404).json({ message: "User not found" });
-        }
-
-        // Verify child belongs to parent
-        const child = await Child.findOne({ _id: childId, parent_id: user._id });
-        if (!child) {
-            return res.status(404).json({ message: "Child not found" });
-        }
+        const child = req.child; // Provided by isParentOfChild middleware
 
         // Update progress
         if (!child.child_progress || child.child_progress.length === 0) {

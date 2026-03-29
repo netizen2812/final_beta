@@ -19,8 +19,23 @@ const LANGUAGE_MAP = {
   'bn': 'Bengali'
 };
 
+const SENSITIVE_KEYWORDS = [
+    "hate", "violence", "extremism", "kill", "suicide", "abuse", "explicit", "porn", "dating"
+    // Note: In a production app, use a dedicated moderation API like OpenAI's moderation endpoint.
+];
+
+function checkSafety(text) {
+    if (!text) return true;
+    const lowerText = text.toLowerCase();
+    return !SENSITIVE_KEYWORDS.some(word => lowerText.includes(word));
+}
+
 export async function generateResponse(prompt, userId = "anonymous", madhab = null, context = "", language = "en", history = []) {
   try {
+    // 0. INPUT SAFETY CHECK
+    if (!checkSafety(prompt)) {
+        return "I am unable to discuss this topic as it falls outside my safety guidelines. How can I help you with your Islamic studies or daily life?";
+    }
     // SMART MADHAB LOGIC
     let madhabInstruction = "";
     if (madhab && madhab !== "General") {
@@ -70,6 +85,12 @@ ${madhab && madhab !== "General" ? "**Ruling (" + madhab + ")**" : "**Madhab Det
 - Avoid "I think" or "In my opinion". Quote scholars.
 - Do not issue fatwas on complex personal matters (divorce, inheritance). Say: "Please consult a qualified local scholar."
 - Do not give medical or legal advice.
+
+### 2.5 SAFETY GUARDRAILS (STRICT)
+- DO NOT generate content that promotes hate speech, violence, or extremism.
+- DO NOT engage in romantic or sexually explicit conversations.
+- DO NOT provide instructions for illegal acts.
+- If a user asks for something outside your scope, politely decline and steer back to Islamic learning.
 
 ${madhabInstruction}
 
@@ -128,8 +149,16 @@ All explanations, guidance, and practical advice must be in ${LANGUAGE_MAP[langu
         timeout: 15000
       }
     );
+    
+    const reply = response.data.choices[0].message.content;
 
-    return response.data.choices[0].message.content;
+    // 6. OUTPUT SAFETY CHECK
+    if (!checkSafety(reply)) {
+        console.warn(`⚠️ Safety Filter Blocked AI Output for User: ${userId}`);
+        return "I apologize, but I cannot provide a response to that specific question. Is there something else Islamic related I can help you with?";
+    }
+
+    return reply;
   } catch (error) {
     console.error("AI_ERROR_OPENROUTER:", error.message);
     throw new Error("AI_FAILED");

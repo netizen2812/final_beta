@@ -8,13 +8,7 @@ import User from "../models/User.js";
 export const getDashboardStats = async (req, res) => {
     try {
         const { childId } = req.params;
-        const userId = req.auth.sub;
-
-        // Verify child belongs to parent
-        const child = await Child.findOne({ _id: childId, parent_id: userId });
-        if (!child) {
-            return res.status(404).json({ message: "Child not found" });
-        }
+        const child = req.child; // Provided by isParentOfChild middleware
 
         // Get last 7 days of activity
         const sevenDaysAgo = new Date();
@@ -63,7 +57,10 @@ export const getDashboardStats = async (req, res) => {
             : 0;
 
         // Get child progress
-        const progress = child.child_progress?.[0] || { xp: 0, level: 1, total_sessions_attended: 0 };
+        const progress = child.child_progress?.[0] || { xp: 0, level: 1, total_sessions_attended: 0, streak_days: 0 };
+
+        // Calculate total active days (all time)
+        const totalActiveDays = await ChildActivity.countDocuments({ child_id: childId });
 
         res.json({
             stats: {
@@ -75,9 +72,17 @@ export const getDashboardStats = async (req, res) => {
                 averageAccuracy: Math.round(avgPracticeAccuracy),
                 totalRevisions: totalRevisions,
                 attendanceRate: Math.round((weeklyActivity.length / 7) * 100),
+                streak: progress.streak_days || 0,
+                activeDays: totalActiveDays
             },
             topicBreakdown: topicStats,
             weeklyActivity: activityLog,
+            detailedActivity: weeklyActivity.map(day => ({
+                date: day.date,
+                minutes: day.minutes_spent,
+                sessions: day.sessions_attended,
+                topics: Object.fromEntries(day.topics_studied || new Map())
+            })),
             child: {
                 name: child.name,
                 age: child.age,
@@ -93,13 +98,7 @@ export const getDashboardStats = async (req, res) => {
 export const getSettings = async (req, res) => {
     try {
         const { childId } = req.params;
-        const userId = req.auth.sub;
-
-        // Verify child belongs to parent
-        const child = await Child.findOne({ _id: childId, parent_id: userId });
-        if (!child) {
-            return res.status(404).json({ message: "Child not found" });
-        }
+        const child = req.child; // Provided by isParentOfChild middleware
 
         // Get or create settings
         let settings = await ChildSettings.findOne({ child_id: childId });
@@ -118,14 +117,8 @@ export const getSettings = async (req, res) => {
 export const updateSettings = async (req, res) => {
     try {
         const { childId } = req.params;
-        const userId = req.auth.sub;
         const updates = req.body;
-
-        // Verify child belongs to parent
-        const child = await Child.findOne({ _id: childId, parent_id: userId });
-        if (!child) {
-            return res.status(404).json({ message: "Child not found" });
-        }
+        const child = req.child; // Provided by isParentOfChild middleware
 
         // Update or create settings
         const settings = await ChildSettings.findOneAndUpdate(
@@ -145,13 +138,7 @@ export const updateSettings = async (req, res) => {
 export const getBadges = async (req, res) => {
     try {
         const { childId } = req.params;
-        const userId = req.auth.sub;
-
-        // Verify child belongs to parent
-        const child = await Child.findOne({ _id: childId, parent_id: userId });
-        if (!child) {
-            return res.status(404).json({ message: "Child not found" });
-        }
+        const child = req.child; // Provided by isParentOfChild middleware
 
         const badges = await ChildBadge.find({ child_id: childId }).sort({ earned_at: -1 });
 
@@ -166,13 +153,7 @@ export const getBadges = async (req, res) => {
 export const getReportCard = async (req, res) => {
     try {
         const { childId } = req.params;
-        const userId = req.auth.sub;
-
-        // Verify child belongs to parent
-        const child = await Child.findOne({ _id: childId, parent_id: userId });
-        if (!child) {
-            return res.status(404).json({ message: "Child not found" });
-        }
+        const child = req.child; // Provided by isParentOfChild middleware
 
         // Get last 7 days of activity
         const sevenDaysAgo = new Date();
@@ -274,13 +255,7 @@ export const logActivity = async (req, res) => {
     try {
         const { childId } = req.params;
         const { minutes_spent, sessions_attended, topics_studied } = req.body;
-        const userId = req.auth.sub;
-
-        // Verify child belongs to parent
-        const child = await Child.findOne({ _id: childId, parent_id: userId });
-        if (!child) {
-            return res.status(404).json({ message: "Child not found" });
-        }
+        const child = req.child; // Provided by isParentOfChild middleware
 
         // Get today's date (start of day)
         const today = new Date();

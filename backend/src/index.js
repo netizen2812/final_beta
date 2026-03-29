@@ -1,6 +1,9 @@
 import express from "express";
 import cors from "cors";
 import dotenv from "dotenv";
+import helmet from "helmet";
+import compression from "compression";
+import rateLimit from "express-rate-limit";
 dotenv.config();
 
 import connectDB from "./config/db.js";
@@ -54,7 +57,26 @@ app.use(cors({
   },
   credentials: true
 }));
+app.use(helmet());
+app.use(compression());
 app.use(express.json());
+
+// Rate Limiting
+const generalLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  max: 100, // Limit each IP to 100 requests per windowMs
+  message: "Too many requests from this IP, please try again later"
+});
+
+const aiLimiter = rateLimit({
+  windowMs: 1 * 60 * 1000, // 1 minute
+  max: 5, // Limit each IP to 5 requests per minute (as requested)
+  message: "AI rate limit reached. Please wait a minute before asking another question."
+});
+
+app.use("/api/", generalLimiter);
+app.use("/api/chat", aiLimiter);
+app.use("/ai-test", aiLimiter);
 
 // Debug: Log all incoming requests
 app.use((req, res, next) => {

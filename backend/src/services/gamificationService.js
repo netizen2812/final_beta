@@ -111,7 +111,7 @@ export const awardXP = async (childId, action, data = {}) => {
                     {
                         $inc: {
                             minutes_spent: activityDuration,
-                            sessions_attended: action === "session_complete" ? 1 : 0,
+                            sessions_attended: (action === "session_complete" || action === "participation") ? 1 : 0,
                         },
                         $set: {
                             [`topics_studied.${activityType}`]: activityDuration

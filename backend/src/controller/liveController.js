@@ -607,7 +607,7 @@ export const getBatchAttendance = async (req, res) => {
         if (!progress || !progress.attendance) return res.json({ attendedSessionIds: [] });
 
         const attendedSessionIds = progress.attendance
-            .filter(a => a.type === 'session_complete' && a.batchId?.toString() === id)
+            .filter(a => a.batchId?.toString() === id)
             .map(a => a.sessionId);
             
         res.json({ attendedSessionIds });

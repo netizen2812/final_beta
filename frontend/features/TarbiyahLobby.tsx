@@ -340,7 +340,21 @@ const KidsView = ({ scrollProgress, activeChild, onJoinLive, currentBatchStatus,
   
   const hasPremium = accessStatus?.hasAccess || (batches && batches.length > 0);
 
-  const lastUnlockedIndex = Math.max(0, Math.min(totalClassesPassed, 29));
+  // WINDOWED JOURNEY LOGIC:
+  // Instead of always showing index 0..29, we show a 30-node window.
+  // We want to center the "current/next" session in the view if the batch is old.
+  const WINDOW_SIZE = 30;
+  let startOffset = 0;
+  
+  if (totalClassesPassed >= 20) {
+    // If they've passed many classes, start shifting the window (keeping current progress visible)
+    startOffset = Math.max(0, totalClassesPassed - 15);
+  }
+  
+  // Ensure we don't slide past what the UI can handle if pastSessions is small
+  // But actually, pastSessions can be empty.
+  
+  const lastUnlockedIndex = Math.max(0, Math.min(totalClassesPassed, startOffset + 29));
   const maxPercentage = (lastUnlockedIndex / (JOURNEY_STAGES.length - 1)) * 100;
   const currentDraw = scrollProgress * 2.0;
   const fillPercentage = Math.min(currentDraw, maxPercentage);
@@ -428,14 +442,22 @@ const KidsView = ({ scrollProgress, activeChild, onJoinLive, currentBatchStatus,
           </svg>
         </div>
         <div className="space-y-24 relative z-10">
-          {JOURNEY_STAGES.map((stage, index) => {
+          {Array.from({ length: WINDOW_SIZE }).map((_, i) => {
+            const index = startOffset + i;
+            
+            // Dynamic stage info based on index
+            const stageTitle = `Live Session ${index + 1}`;
+            const themeIndex = index % 5; // Cycle through themes
+            
             const historicalSession = pastSessions[index];
-            const isHistorical = !!historicalSession?.endedAt;
-            const isCurrent = currentLiveIndex === index;
-            const isUpcoming = !isCurrent && !isHistorical && index === totalClassesPassed;
+            const isActive = hasActiveSession && historicalSession?.sessionId === activeSessionId;
+            const isCurrent = (hasActiveSession && isActive) || (!hasActiveSession && index === totalClassesPassed);
+            
+            const isHistorical = !!historicalSession?.endedAt || (index < totalClassesPassed);
+            const isUpcoming = !isCurrent && !isHistorical && index >= totalClassesPassed;
             const isLocked = !isCurrent && !isHistorical && index > totalClassesPassed;
 
-            const wasPresent = historicalSession && attendedSessionIds.includes(historicalSession.sessionId);
+            const wasPresent = historicalSession && attendedSessionIds.some((id: string) => id.toString() === historicalSession.sessionId?.toString());
             const statusLabel = isHistorical ? (wasPresent ? "Completed" : "Absent") : (isCurrent ? "Live Now" : "Scheduled");
 
             const handleNodeClick = (e: React.MouseEvent) => {
@@ -454,7 +476,7 @@ const KidsView = ({ scrollProgress, activeChild, onJoinLive, currentBatchStatus,
             };
 
             return (
-              <div key={stage.id} className="flex md:justify-center items-center relative group">
+              <div key={index} className="flex md:justify-center items-center relative group">
                 {/* INTERACTIVE NODE */}
                 <div 
                    onClick={handleNodeClick}
@@ -469,7 +491,7 @@ const KidsView = ({ scrollProgress, activeChild, onJoinLive, currentBatchStatus,
                 >
                    <div className={`backdrop-blur-xl rounded-[2rem] p-6 border transition-all active:scale-95 ${isLocked ? 'bg-white/5 opacity-50 border-white/5' : isCurrent ? 'bg-emerald-500/10 border-emerald-500/40 shadow-[0_0_30px_rgba(16,185,129,0.2)] scroll-mt-20' : isUpcoming ? 'bg-emerald-500/10 border-emerald-500/40' : 'bg-white/10 border-white/20 shadow-xl hover:bg-white/20'}`}>
                       <div className={`text-[10px] font-black uppercase tracking-widest mb-1 ${isHistorical ? (wasPresent ? 'text-emerald-400' : 'text-red-400') : isCurrent ? 'text-emerald-500/60' : 'text-emerald-300'}`}>{statusLabel}</div>
-                      <h4 className={`font-bold text-xl ${isCurrent ? 'text-emerald-300' : 'text-white'}`}>{stage.title}</h4>
+                      <h4 className={`font-bold text-xl ${isCurrent ? 'text-emerald-300' : 'text-white'}`}>{stageTitle}</h4>
                    </div>
                 </div>
               </div>

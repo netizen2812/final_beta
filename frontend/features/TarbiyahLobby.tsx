@@ -279,7 +279,7 @@ export const TarbiyahLobby = ({
                  </button>
 
                  {/* JOIN/OBSERVE LIVE (Only if Active) */}
-                 {currentBatchStatus === 'active' && (
+                 {batches.some((b: any) => b.status === 'active' && b.activeSessionId) && (
                     <button 
                       onClick={() => { setShowJoinChoice(false); handleJoinLive(); }}
                       className="flex items-center gap-4 p-5 rounded-2xl transition-all group border-b-4 bg-amber-500 hover:bg-amber-400 text-amber-950 border-amber-600 shadow-[0_10px_20px_rgba(245,158,11,0.2)]"

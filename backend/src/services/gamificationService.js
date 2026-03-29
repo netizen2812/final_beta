@@ -2,14 +2,12 @@ import Child from "../models/Child.js";
 import ChildActivity from "../models/ChildActivity.js";
 
 export const calculateLevel = (xp) => {
-    // Scaled down denominator: Level = floor(sqrt(xp / 5)) + 1
+    // 100 XP per level
     // L1: 0 XP
-    // L2: 5 XP
-    // L3: 20 XP
-    // L4: 45 XP
-    // L5: 80 XP
-    // L10: 405 XP
-    return Math.floor(Math.sqrt(Math.max(0, xp) / 5)) + 1;
+    // L2: 100 XP
+    // L3: 200 XP
+    // ...
+    return Math.floor(Math.max(0, xp) / 100) + 1;
 };
 
 const updateStreak = (progress) => {

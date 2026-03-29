@@ -270,6 +270,32 @@ const ParentDashboard: React.FC = () => {
                 Lifetime learning journey
               </div>
             </div>
+
+            {/* Progression */}
+            <div className="bg-[#052e16] p-6 rounded-[2rem] shadow-xl text-white">
+              <div className="flex items-center gap-3 mb-4">
+                <div className="w-12 h-12 bg-white/10 rounded-xl flex items-center justify-center">
+                  <GraduationCap className="text-emerald-400" size={24} />
+                </div>
+                <div>
+                  <p className="text-[9px] font-black uppercase tracking-widest text-emerald-300/60">Scholar Progression</p>
+                  <p className="text-2xl font-bold">Level {dashboardData.stats.currentLevel}</p>
+                </div>
+              </div>
+              
+              <div className="space-y-2">
+                <div className="flex justify-between text-[10px] font-bold uppercase tracking-wider">
+                  <span>{dashboardData.stats.currentXP % 100} / 100 XP</span>
+                  <span className="text-emerald-400">Next Level</span>
+                </div>
+                <div className="h-2 bg-white/10 rounded-full overflow-hidden">
+                  <div 
+                    className="h-full bg-emerald-400 transition-all duration-1000"
+                    style={{ width: `${dashboardData.stats.currentXP % 100}%` }}
+                  />
+                </div>
+              </div>
+            </div>
           </div>
 
           {/* Charts Row */}

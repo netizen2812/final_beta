@@ -72,12 +72,18 @@ export const TarbiyahOnboarding = ({ getToken }: { getToken: any }) => {
           <p className="text-xl md:text-2xl text-emerald-100/70 max-w-2xl mx-auto leading-relaxed">
             Live scholar-led classes. Interactive journey map. XP rewards. A system built so your child never sits idle.
           </p>
-          <div className="pt-8">
+          <div className="pt-8 flex flex-wrap justify-center gap-4">
             <button 
               onClick={() => document.getElementById('pricing')?.scrollIntoView({ behavior: 'smooth' })}
-              className="bg-emerald-500 hover:bg-emerald-400 text-[#022c22] px-10 py-5 rounded-2xl font-black uppercase tracking-widest transition-all hover:scale-105 active:scale-95 shadow-[0_20px_50px_rgba(16,185,129,0.3)] flex items-center gap-3 mx-auto"
+              className="bg-emerald-500 hover:bg-emerald-400 text-[#022c22] px-10 py-5 rounded-2xl font-black uppercase tracking-widest transition-all hover:scale-105 active:scale-95 shadow-[0_20px_50px_rgba(16,185,129,0.3)] flex items-center gap-3"
             >
               Start Learning Now <ArrowRight size={20} />
+            </button>
+            <button 
+              onClick={() => document.getElementById('faqs')?.scrollIntoView({ behavior: 'smooth' })}
+              className="bg-white/10 hover:bg-white/20 text-white border border-white/20 px-10 py-5 rounded-2xl font-black uppercase tracking-widest transition-all hover:scale-105 active:scale-95 flex items-center gap-3 backdrop-blur-md"
+            >
+              Learn More / FAQs <MessageCircle size={20} />
             </button>
           </div>
           
@@ -302,6 +308,55 @@ export const TarbiyahOnboarding = ({ getToken }: { getToken: any }) => {
             >
                {isLoading ? <Loader2 className="animate-spin" /> : "Start Their Journey Now"}
             </button>
+         </div>
+      </section>
+
+      {/* ═══════════════════════════════════════ */}
+      {/* SECTION 10 — FAQs                        */}
+      {/* ═══════════════════════════════════════ */}
+      <section id="faqs" className="relative py-32 px-6 border-t border-white/5 bg-black/10">
+         <div className="max-w-4xl mx-auto">
+            <div className="text-center mb-16 space-y-4">
+               <p className="text-emerald-400 text-xs font-bold uppercase tracking-[0.3em]">Common Questions</p>
+               <h2 className="text-4xl font-serif font-black text-white">Everything You Need to Know</h2>
+            </div>
+            
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+               {[
+                 {
+                   q: "What is the mission of Tarbiyah?",
+                   a: "We aim to solve the 'waiting problem' in Quran classes. Instead of sitting idle for 40 minutes waiting for their turn, children stay engaged 100% of the session through our unique active observation system."
+                 },
+                 {
+                   q: "What does a typical session look like?",
+                   a: "Each session follows a 4-step flow: **Revise** (review previous ayahs), **Practice** (independent study), **Observe** (earn XP by judging classmates' Tajweed), and **Recite** (live 1-on-1 with a scholar)."
+                 },
+                 {
+                   q: "How does the XP and Leveling work?",
+                   a: "Students earn XP for correct recitations and active engagement as an observer. Levels are designed to be achievable and rewarding—hitting 100 XP triggers a level-up, keeping motivation high."
+                 },
+                 {
+                   q: "Why are the batches so small?",
+                   a: "We limit batches to 5-8 students. this ensures every child gets multiple chances to recite live while maintaining a social environment that encourages friendly competition."
+                 },
+                 {
+                   q: "Can I track my child's progress?",
+                   a: "Yes! Every parent gets a dedicated dashboard showing live stats, attendance, Tajweed accuracy scores, and weekly progress reports."
+                 },
+                 {
+                   q: "Is it suitable for beginners?",
+                   a: "Absolutely. We have scholars trained for all levels, from Qaida to advanced Hifdh. Each child progresses at their own individual pace on their personal journey map."
+                 }
+               ].map((faq, i) => (
+                 <div key={i} className="bg-white/5 border border-white/10 p-8 rounded-[2rem] hover:border-emerald-500/30 transition-all">
+                    <h3 className="text-lg font-bold text-emerald-400 mb-4 flex gap-3">
+                       <HelpCircle size={18} className="shrink-0 mt-1" />
+                       {faq.q}
+                    </h3>
+                    <p className="text-emerald-100/50 text-sm leading-relaxed" dangerouslySetInnerHTML={{ __html: faq.a.replace(/\*\*(.*?)\*\*/g, '<strong class="text-emerald-300">$1</strong>') }} />
+                 </div>
+               ))}
+            </div>
          </div>
       </section>
 

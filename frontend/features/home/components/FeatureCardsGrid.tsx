@@ -41,7 +41,7 @@ const FeatureCard: React.FC<FeatureCardProps> = ({ title, desc, benefit, icon: I
                             backgroundImage: `url(${image})`,
                             backgroundSize: 'cover',
                             backgroundPosition: 'center',
-                            opacity: 0.3
+                            opacity: 0.6
                         }}
                     />
 
@@ -136,14 +136,6 @@ const FeatureCardsGrid: React.FC<FeatureCardsGridProps> = ({ onNavigate }) => {
             benefit: t('home.structuredGrowth'),
             icon: Feather,
             image: "/images/tarbiyah.png",
-            tab: AppTab.LIVE
-        },
-        {
-            title: t('home.quranPractice'),
-            desc: t('home.quranPracticeDesc'),
-            benefit: t('home.gamifiedGrowth'),
-            icon: Target,
-            image: "/images/quran_practice_bg.png",
             tab: AppTab.LIVE
         },
         {

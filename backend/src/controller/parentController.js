@@ -64,9 +64,6 @@ export const getDashboardStats = async (req, res) => {
 
         res.json({
             stats: {
-                timeThisWeek: `${Math.floor(totalMinutes / 60)}h ${totalMinutes % 60}m`,
-                totalMinutes,
-                lessonsDone: progress.total_sessions_attended || 0,
                 currentXP: progress.total_xp || 0,
                 currentLevel: progress.level || 1,
                 averageAccuracy: Math.round(avgPracticeAccuracy),
@@ -74,6 +71,11 @@ export const getDashboardStats = async (req, res) => {
                 attendanceRate: Math.round((weeklyActivity.length / 7) * 100),
                 streak: progress.streak_days || 0,
                 activeDays: totalActiveDays
+            },
+            timeThisWeek: {
+                total: `${Math.floor(totalMinutes / 60)}h ${totalMinutes % 60}m`,
+                percentChange: "+0%", // Default if no previous week
+                comparisonText: "vs last week"
             },
             topicBreakdown: topicStats,
             weeklyActivity: activityLog,

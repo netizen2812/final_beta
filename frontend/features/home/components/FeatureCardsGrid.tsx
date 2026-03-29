@@ -33,7 +33,7 @@ const FeatureCard: React.FC<FeatureCardProps> = ({ title, desc, benefit, icon: I
                 className={`relative w-full h-full transition-transform duration-[400ms] ease-in-out [transform-style:preserve-3d] ${isFlipped ? '[transform:rotateY(180deg)]' : ''}`}
             >
                 {/* FRONT SIDE */}
-                <div className={`absolute inset-0 [backface-visibility:hidden] [-webkit-backface-visibility:hidden] [transform:rotateY(0deg)_translateZ(1px)] bg-[#0D4433] rounded-[3rem] border border-white/10 shadow-3xl overflow-hidden flex flex-col items-center text-center p-8 transition-opacity duration-300 ${isFlipped ? 'opacity-0 delay-100' : 'opacity-100 delay-100'}`}>
+                <div className={`absolute inset-0 [backface-visibility:hidden] [-webkit-backface-visibility:hidden] [transform:rotateY(0deg)_translateZ(1px)] bg-[#0D4433] rounded-[3rem] border border-white/10 shadow-3xl overflow-hidden flex flex-col items-center justify-end text-center p-8 transition-opacity duration-300 ${isFlipped ? 'opacity-0 delay-100' : 'opacity-100 delay-100'}`}>
                     {/* ... image content ... */}
                     <div
                         className="absolute inset-0"
@@ -158,7 +158,7 @@ const FeatureCardsGrid: React.FC<FeatureCardsGridProps> = ({ onNavigate }) => {
 
             {/* Desktop Grid / Mobile Scroll */}
             <div
-                className="md:grid md:grid-cols-2 lg:grid-cols-4 gap-8 pb-10 flex overflow-x-auto md:overflow-visible no-scrollbar snap-x snap-mandatory px-4 -mx-4 scroll-px-4"
+                className="md:grid md:grid-cols-2 lg:grid-cols-3 gap-8 pb-10 flex overflow-x-auto md:overflow-visible no-scrollbar snap-x snap-mandatory px-4 -mx-4 scroll-px-4"
                 onScroll={(e) => {
                     const el = e.currentTarget;
                     const index = Math.round(el.scrollLeft / (window.innerWidth * 0.85));

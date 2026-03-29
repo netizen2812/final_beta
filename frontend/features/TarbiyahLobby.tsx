@@ -27,7 +27,7 @@ const GENERATE_STAGES = () => {
     { type: 'Stories', icon: <Moon size={24} />, color: 'bg-indigo-500/20 text-indigo-300 border-indigo-500/50' },
   ];
 
-  return Array.from({ length: 16 }).map((_, i) => {
+  return Array.from({ length: 30 }).map((_, i) => {
     const theme = themes[i % themes.length];
     return {
       id: i + 1,
@@ -340,7 +340,7 @@ const KidsView = ({ scrollProgress, activeChild, onJoinLive, currentBatchStatus,
   
   const hasPremium = accessStatus?.hasAccess || (batches && batches.length > 0);
 
-  const lastUnlockedIndex = Math.max(0, Math.min(totalClassesPassed, 15));
+  const lastUnlockedIndex = Math.max(0, Math.min(totalClassesPassed, 29));
   const maxPercentage = (lastUnlockedIndex / (JOURNEY_STAGES.length - 1)) * 100;
   const currentDraw = scrollProgress * 2.0;
   const fillPercentage = Math.min(currentDraw, maxPercentage);
@@ -506,7 +506,7 @@ const ScholarJourneyView = ({ scrollProgress, batches, onJoinSession, initialBat
     
   const totalClassesPassed = pastSessions.filter((s: any) => !!s.endedAt).length;
 
-  const lastUnlockedIndex = Math.min(totalClassesPassed, 15);
+  const lastUnlockedIndex = Math.min(totalClassesPassed, 29);
   const maxPercentage = (lastUnlockedIndex / (JOURNEY_STAGES.length - 1)) * 100;
   const currentDraw = scrollProgress * 2.0;
   const fillPercentage = Math.min(currentDraw, maxPercentage);

@@ -14,6 +14,8 @@ interface ChildContextType {
   setActiveChild: (id: string) => void;
   incrementProgress: (childId: string, xpGain: number) => void;
   refreshChildren: () => Promise<void>;
+  lastReward: { amount: number, id: number } | null;
+  triggerRewardAnimation: (amount: number) => void;
 }
 
 const ChildContext = createContext<ChildContextType | undefined>(undefined);
@@ -25,6 +27,7 @@ export const ChildProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   const [childrenList, setChildrenList] = useState<Child[]>([]);
   const [activeChildId, setActiveChildId] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
+  const [lastReward, setLastReward] = useState<{ amount: number; id: number } | null>(null);
   const { getToken } = useAuth(); // Need auth for API calls
 
   // Load from Backend on Mount
@@ -106,7 +109,15 @@ export const ChildProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     }
   };
 
+  const triggerRewardAnimation = (amount: number) => {
+    setLastReward({ amount, id: Date.now() });
+    // Reset after some time just in case, though XPRewardEffect should watch for id changes
+  };
+
   const incrementProgress = async (childId: string, xpGain: number) => {
+    // Show animation locally immediately
+    triggerRewardAnimation(xpGain);
+    
     // Optimistic Update for XP only
     let newProgressState = { xp: 0, level: 1 };
 
@@ -155,7 +166,9 @@ export const ChildProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       deleteChild,
       setActiveChild,
       incrementProgress,
-      refreshChildren
+      refreshChildren,
+      lastReward,
+      triggerRewardAnimation
     }}>
       {children}
     </ChildContext.Provider>

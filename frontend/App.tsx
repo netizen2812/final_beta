@@ -13,6 +13,7 @@ import HomeHub from "./features/home/HomeHub";
 import Privacy from "./pages/Privacy";
 import Terms from "./pages/Terms";
 import Footer from "./components/Footer";
+import XPRewardEffect from "./components/XPRewardEffect";
 import { User, Settings, Radio, Home, Globe } from "lucide-react";
 
 import {
@@ -243,6 +244,7 @@ const App: React.FC = () => {
       {showWelcome && appMode !== 'app' && <WelcomeScreen onComplete={handleVideoEnd} />}
 
       <ChildProvider>
+        <XPRewardEffect />
         {(appMode === 'app' && !isDesktop) ? (
           /* 📱 APP LAYOUT (MOBILE CONSTRAINED) */
           <div className="min-h-[100dvh] flex items-center justify-center bg-slate-100 sm:p-6 lg:p-8 overflow-hidden">

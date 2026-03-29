@@ -176,7 +176,7 @@ export const TarbiyahOnboarding = ({ getToken }: { getToken: any }) => {
           
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
             {[
-              { icon: <Map className="text-emerald-400" size={24}/>, title: "Journey of Light Map", desc: "A beautiful 16-node interactive map that tracks live session progress. Each class unlocks the next stage." },
+              { icon: <Map className="text-emerald-400" size={24}/>, title: "Journey of Light Map", desc: "A beautiful 30-node interactive map that tracks live session progress. Each class unlocks the next stage." },
               { icon: <Trophy className="text-amber-400" size={24}/>, title: "Live Leaderboard", desc: "Students compete in real-time. Recitation scores + engagement answers = class ranking after every session." },
               { icon: <Flame className="text-orange-400" size={24}/>, title: "Streaks & XP System", desc: "Daily streaks, XP for every action. Consistent practice builds momentum and keeps kids coming back." },
             ].map((card, i) => (
@@ -206,7 +206,7 @@ export const TarbiyahOnboarding = ({ getToken }: { getToken: any }) => {
            <h2 className="text-3xl font-black mb-10 text-center uppercase tracking-widest text-[#5deac8]">Tarbiyah Live</h2>
            <div className="grid grid-cols-1 md:grid-cols-2 gap-y-5 gap-x-12">
               {[
-                { text: "16 Live Scholar Sessions / month", highlight: true },
+                { text: "30 Live Scholar Sessions / month", highlight: true },
                 { text: "Small Group Classes (5-8 kids)", highlight: false },
                 { text: "Interactive Journey of Light Map", highlight: false },
                 { text: "Real-time Tajweed Correction", highlight: true },
@@ -271,7 +271,7 @@ export const TarbiyahOnboarding = ({ getToken }: { getToken: any }) => {
             <div className="max-w-md mx-auto bg-white/5 p-8 rounded-[2rem] border border-white/10 backdrop-blur-md">
                <div className="space-y-4 mb-8">
                   {[
-                    { label: "16 Live Scholar Sessions", value: "✓" },
+                    { label: "30 Live Scholar Sessions", value: "✓" },
                     { label: "Interactive Journey Map", value: "✓" },
                     { label: "XP, Levels & Leaderboards", value: "✓" },
                     { label: "Parent Dashboard & Reports", value: "✓" },
@@ -325,7 +325,7 @@ export const TarbiyahOnboarding = ({ getToken }: { getToken: any }) => {
                {[
                  {
                    q: "What is the mission of Tarbiyah?",
-                   a: "We aim to solve the 'waiting problem' in Quran classes. Instead of sitting idle for 40 minutes waiting for their turn, children stay engaged 100% of the session through our unique active observation system."
+                   a: "Our mission is to provide quality education through an engaging class environment where every student stays active and involved throughout the session using our unique learning ecosystem."
                  },
                  {
                    q: "What does a typical session look like?",

@@ -114,7 +114,7 @@ export const TarbiyahLobby = ({
   );
   const [targetBatchId, setTargetBatchId] = useState<string | null>(null);
   const [scrollProgress, setScrollProgress] = useState(0);
-  const { activeChild } = useChildContext();
+  const { activeChild, children: childrenList } = useChildContext();
   const [batches, setBatches] = useState<any[]>([]);
   const [accessStatus, setAccessStatus] = useState<any>(null);
   const [showQuranPractice, setShowQuranPractice] = useState<{ active: boolean, mode: 'REVISE' | 'PRACTICE' }>({ active: false, mode: 'REVISE' });
@@ -228,6 +228,7 @@ export const TarbiyahLobby = ({
                 setShowQuranPractice={(mode: 'REVISE' | 'PRACTICE') => setShowQuranPractice({ active: true, mode })}
                 setShowJoinChoice={setShowJoinChoice}
                 attendedSessionIds={attendedSessionIds}
+                childrenList={childrenList}
               />
             ) : (
               <ParentsView activeChild={activeChild} batches={batches} getToken={getToken} />
@@ -290,11 +291,11 @@ export const TarbiyahLobby = ({
                     </div>
                     <div className="text-left">
                        <div className="font-bold text-lg flex items-center gap-2">
-                         Observe Class
+                         {currentBatchStatus === 'active' ? 'Join the live session' : 'Waiting for Scholar'}
                          {currentBatchStatus === 'active' && <span className="w-2 h-2 bg-red-500 rounded-full animate-ping" />}
                        </div>
                        <div className="text-xs font-medium opacity-80">
-                         {currentBatchStatus === 'active' ? 'Join the live session with your teacher' : 'No live session currently active'}
+                         {currentBatchStatus === 'active' ? 'Enter the class with your teacher' : 'The session will start once the scholar joins'}
                        </div>
                     </div>
                  </button>
@@ -329,7 +330,7 @@ export const TarbiyahLobby = ({
   );
 };
 
-const KidsView = ({ scrollProgress, activeChild, onJoinLive, currentBatchStatus, batches, accessStatus, getToken, setShowQuranPractice, setShowJoinChoice, attendedSessionIds = [] }: any) => {
+const KidsView = ({ scrollProgress, activeChild, onJoinLive, currentBatchStatus, batches, accessStatus, getToken, setShowQuranPractice, setShowJoinChoice, attendedSessionIds = [], childrenList = [] }: any) => {
   const [isLoading, setIsLoading] = useState(false);
   const progress = activeChild?.child_progress?.[0];
   const activeBatch = batches && batches.length > 0 ? batches[0] : null;
@@ -370,7 +371,10 @@ const KidsView = ({ scrollProgress, activeChild, onJoinLive, currentBatchStatus,
   const currentDraw = (scrollProgress || 0) * 2.0;
   const fillPercentage = Math.min(currentDraw, maxPercentage || 0);
 
-  if (!hasPremium) return <TarbiyahOnboarding getToken={getToken} />;
+  // Entry Guard: If not paid OR (is paid but no child profile exists)
+  if (!hasPremium || (accessStatus?.hasAccess && (!childrenList || childrenList.length === 0))) {
+    return <TarbiyahOnboarding getToken={getToken} isPaid={accessStatus?.hasAccess} />;
+  }
 
   const handleRequestAccess = async () => {
     setIsLoading(true);
@@ -503,7 +507,9 @@ const KidsView = ({ scrollProgress, activeChild, onJoinLive, currentBatchStatus,
                   className={`w-full md:w-[45%] pl-24 md:pl-0 cursor-pointer group/card ${index % 2 !== 0 ? 'md:ml-auto md:pl-20' : 'md:mr-auto md:pr-20 md:text-right'}`}
                 >
                    <div className={`backdrop-blur-xl rounded-[2rem] p-6 border transition-all active:scale-95 ${isLocked ? 'bg-white/5 opacity-50 border-white/5' : isCurrent ? 'bg-emerald-500/10 border-emerald-500/40 shadow-[0_0_30px_rgba(16,185,129,0.2)] scroll-mt-20' : isUpcoming ? 'bg-emerald-500/10 border-emerald-500/40' : 'bg-white/10 border-white/20 shadow-xl hover:bg-white/20'}`}>
-                      <div className={`text-[10px] font-black uppercase tracking-widest mb-1 ${isHistorical ? (wasPresent ? 'text-emerald-400' : 'text-red-400') : isCurrent ? 'text-emerald-500/60' : 'text-emerald-300'}`}>{statusLabel}</div>
+                      <div className={`text-[10px] font-black uppercase tracking-widest mb-1 ${isHistorical ? (wasPresent ? 'text-emerald-400' : 'text-red-400') : isCurrent ? 'text-emerald-500/60' : 'text-emerald-300'}`}>
+                      {isCurrent && currentBatchStatus === 'waiting' ? 'Class Scheduled' : statusLabel}
+                    </div>
                       <h4 className={`font-bold text-xl ${isCurrent ? 'text-emerald-300' : 'text-white'}`}>{stageTitle}</h4>
                    </div>
                 </div>

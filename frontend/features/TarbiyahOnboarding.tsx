@@ -6,16 +6,123 @@ import {
   MessageCircle, Video, TrendingUp,
   Clock, BookOpen, AlertCircle, Loader2,
   Trophy, Flame, Target, Zap, Eye, Mic,
-  Award, Map, BarChart2, Heart, HelpCircle
+  Award, Map, BarChart2, Heart, HelpCircle, User
 } from 'lucide-react';
 import axios from 'axios';
 import { loadRazorpayScript } from '../utils/razorpay';
 import { MovingBackground } from './TarbiyahLobby';
 
+import { useChildContext } from '../contexts/ChildContext';
+
 const API_BASE = import.meta.env.VITE_API_URL || "http://localhost:5000";
 
-export const TarbiyahOnboarding = ({ getToken }: { getToken: any }) => {
+export const TarbiyahOnboarding = ({ getToken, isPaid = false }: { getToken: any, isPaid?: boolean }) => {
   const [isLoading, setIsLoading] = useState(false);
+  const { addChild } = useChildContext();
+  
+  // Profile Creation State
+  const [profile, setProfile] = useState({
+    name: '',
+    age: '',
+    gender: 'Boy',
+    learning_level: 'Beginner'
+  });
+
+  const handleCreateProfile = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!profile.name || !profile.age) return alert("Please fill in all fields");
+    
+    setIsLoading(true);
+    try {
+      await addChild({
+        name: profile.name,
+        age: parseInt(profile.age),
+        gender: profile.gender as any,
+        learning_level: profile.learning_level
+      });
+      // Context handles state update and navigation back to lobby via activeChild change
+    } catch (err) {
+      alert("Failed to create profile. Please try again.");
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  if (isPaid) {
+    return (
+      <div className="min-h-screen text-white font-sans selection:bg-emerald-500 relative flex items-center justify-center p-6">
+        <MovingBackground />
+        <div className="max-w-md w-full bg-[#052e16]/80 backdrop-blur-xl border border-emerald-500/30 rounded-[2.5rem] p-10 shadow-2xl relative animate-in fade-in zoom-in duration-500">
+          <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-emerald-500 via-amber-400 to-emerald-500" />
+          <div className="text-center mb-10">
+            <div className="w-20 h-20 bg-emerald-500/20 rounded-3xl flex items-center justify-center mx-auto mb-6 border border-emerald-500/30">
+              <User size={40} className="text-emerald-400" />
+            </div>
+            <h2 className="text-3xl font-serif font-black mb-2">Create Profile</h2>
+            <p className="text-emerald-200/60">Let's set up your child's journey</p>
+          </div>
+
+          <form onSubmit={handleCreateProfile} className="space-y-6">
+            <div className="space-y-2">
+              <label className="text-xs font-bold uppercase tracking-widest text-emerald-400 ml-2">Child's Name</label>
+              <input 
+                type="text" 
+                value={profile.name}
+                onChange={(e) => setProfile(prev => ({ ...prev, name: e.target.value }))}
+                placeholder="Enter name"
+                className="w-full bg-black/40 border border-white/10 rounded-2xl px-6 py-4 focus:outline-none focus:border-emerald-500/50 transition-all font-bold"
+              />
+            </div>
+
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <label className="text-xs font-bold uppercase tracking-widest text-emerald-400 ml-2">Age</label>
+                <input 
+                  type="number" 
+                  value={profile.age}
+                  onChange={(e) => setProfile(prev => ({ ...prev, age: e.target.value }))}
+                  placeholder="Age"
+                  className="w-full bg-black/40 border border-white/10 rounded-2xl px-6 py-4 focus:outline-none focus:border-emerald-500/50 transition-all font-bold"
+                />
+              </div>
+              <div className="space-y-2">
+                <label className="text-xs font-bold uppercase tracking-widest text-emerald-400 ml-2">Gender</label>
+                <select 
+                  value={profile.gender}
+                  onChange={(e) => setProfile(prev => ({ ...prev, gender: e.target.value }))}
+                  className="w-full bg-black/40 border border-white/10 rounded-2xl px-6 py-4 focus:outline-none focus:border-emerald-500/50 transition-all font-bold appearance-none"
+                >
+                  <option value="Boy">Boy</option>
+                  <option value="Girl">Girl</option>
+                </select>
+              </div>
+            </div>
+
+            <div className="space-y-2">
+              <label className="text-xs font-bold uppercase tracking-widest text-emerald-400 ml-2">Learning Level</label>
+              <select 
+                value={profile.learning_level}
+                onChange={(e) => setProfile(prev => ({ ...prev, learning_level: e.target.value }))}
+                className="w-full bg-black/40 border border-white/10 rounded-2xl px-6 py-4 focus:outline-none focus:border-emerald-500/50 transition-all font-bold appearance-none"
+              >
+                <option value="Beginner">Beginner (Qaida)</option>
+                <option value="Intermediate">Intermediate (Para 1-15)</option>
+                <option value="Advanced">Advanced (Hifdh)</option>
+              </select>
+            </div>
+
+            <button 
+              type="submit"
+              disabled={isLoading}
+              className="w-full bg-emerald-500 hover:bg-emerald-400 text-[#022c22] py-5 rounded-2xl font-black uppercase tracking-widest transition-all hover:scale-[1.02] shadow-[0_15px_40px_rgba(16,185,129,0.3)] flex items-center justify-center gap-3 mt-8"
+            >
+              {isLoading ? <Loader2 className="animate-spin" /> : <>Start Journey <ArrowRight size={20} /></>}
+            </button>
+          </form>
+        </div>
+      </div>
+    );
+  }
 
   const handleJoinBatch = async () => {
     setIsLoading(true);

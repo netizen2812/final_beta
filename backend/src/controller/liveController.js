@@ -229,6 +229,14 @@ export const joinBatch = async (req, res) => {
         const batch = await Batch.findById(id);
         if (!batch) return res.status(404).json({ success: false, message: "Batch not found" });
 
+        // Ensure session is actually active (Scholar has joined)
+        if (batch.status !== 'active') {
+            return res.status(403).json({ 
+                success: false, 
+                message: "Waiting for scholar to start session. Please stay in the lobby!" 
+            });
+        }
+
         // Verify Enrollment
         const isEnrolled = batch.students.map(s => s.toString()).includes(childId);
         if (!isEnrolled) {

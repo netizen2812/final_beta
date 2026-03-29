@@ -1,4 +1,5 @@
 import User from "../models/User.js";
+import Child from "../models/Child.js";
 import { calculateLevel } from "../services/gamificationService.js";
 
 // GET /api/child - Get all children for logged-in parent

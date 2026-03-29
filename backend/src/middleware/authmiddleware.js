@@ -103,8 +103,12 @@ export const isParentOfChild = async (req, res, next) => {
 
         if (!childId) return next();
 
+        // Find parent user by clerkId to get MongoDB _id for ownership check
+        const parentUser = await User.findOne({ clerkId: userId });
+        if (!parentUser) return res.status(404).json({ message: "Parent user not found" });
+
         // Verify child belongs to parent
-        const child = await Child.findOne({ _id: childId, parent_id: userId });
+        const child = await Child.findOne({ _id: childId, parent_id: parentUser._id });
         if (!child) {
             console.log(`🚫 IDOR Attempt: User ${userId} tried to access child ${childId}`);
             return res.status(403).json({ message: "Access denied: You are not authorized to access this child's data." });

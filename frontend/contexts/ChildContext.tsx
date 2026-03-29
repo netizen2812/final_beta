@@ -71,6 +71,7 @@ export const ChildProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       if (!activeChildId) setActiveChildId(newChild.id);
     } catch (error) {
       console.error("Failed to add child", error);
+      throw error;
     }
   };
 

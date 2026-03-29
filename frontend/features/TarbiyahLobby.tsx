@@ -457,7 +457,9 @@ const KidsView = ({ scrollProgress, activeChild, onJoinLive, currentBatchStatus,
             const isUpcoming = !isCurrent && !isHistorical && index >= totalClassesPassed;
             const isLocked = !isCurrent && !isHistorical && index > totalClassesPassed;
 
-            const wasPresent = historicalSession && attendedSessionIds.some((id: string) => id.toString() === historicalSession.sessionId?.toString());
+            const wasPresent = historicalSession && Array.isArray(attendedSessionIds) && attendedSessionIds.some((id: any) => 
+               id && historicalSession.sessionId && String(id) === String(historicalSession.sessionId)
+            );
             const statusLabel = isHistorical ? (wasPresent ? "Completed" : "Absent") : (isCurrent ? "Live Now" : "Scheduled");
 
             const handleNodeClick = (e: React.MouseEvent) => {

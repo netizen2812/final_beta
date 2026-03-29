@@ -608,7 +608,8 @@ export const getBatchAttendance = async (req, res) => {
 
         const attendedSessionIds = progress.attendance
             .filter(a => a.batchId?.toString() === id)
-            .map(a => a.sessionId);
+            .map(a => a.sessionId)
+            .filter(sid => !!sid); // Emergency Hotfix: filter out nulls
             
         res.json({ attendedSessionIds });
     } catch(err) { res.status(500).json({ error: err.message }); }

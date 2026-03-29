@@ -6,7 +6,7 @@ import {
   MessageCircle, Video, TrendingUp,
   Clock, BookOpen, AlertCircle, Loader2,
   Trophy, Flame, Target, Zap, Eye, Mic,
-  Award, Map, BarChart2, Heart
+  Award, Map, BarChart2, Heart, HelpCircle
 } from 'lucide-react';
 import axios from 'axios';
 import { loadRazorpayScript } from '../utils/razorpay';

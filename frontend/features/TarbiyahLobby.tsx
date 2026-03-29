@@ -465,8 +465,9 @@ const KidsView = ({ scrollProgress, activeChild, onJoinLive, currentBatchStatus,
             const themeIndex = index % 5; // Cycle through themes
             
             const historicalSession = pastSessions[index];
-            const isActive = hasActiveSession && historicalSession?.sessionId === activeSessionId;
-            const isCurrent = (hasActiveSession && isActive) || (!hasActiveSession && index === totalClassesPassed);
+            const isActuallyLive = hasActiveSession && historicalSession?.sessionId === activeSessionId;
+            const isNextTarget = !hasActiveSession && index === totalClassesPassed;
+            const isCurrent = isActuallyLive || isNextTarget;
             
             const isHistorical = !!historicalSession?.endedAt || (index < totalClassesPassed);
             const isUpcoming = !isCurrent && !isHistorical && index >= totalClassesPassed;
@@ -497,8 +498,8 @@ const KidsView = ({ scrollProgress, activeChild, onJoinLive, currentBatchStatus,
                 {/* INTERACTIVE NODE */}
                 <div 
                    onClick={handleNodeClick}
-                   className={`absolute left-[2rem] md:left-1/2 -translate-x-1/2 w-14 h-14 rounded-full border-4 border-[#022c22] z-20 flex items-center justify-center shadow-xl transition-all cursor-pointer hover:scale-110 active:scale-95 ${isLocked ? 'bg-gray-800 text-gray-400' : isCurrent ? 'bg-emerald-400 text-black scale-110 shadow-[0_0_20px_rgba(16,185,129,0.6)] animate-pulse' : isUpcoming ? 'bg-emerald-800 text-emerald-300 border-emerald-500/30' : (wasPresent ? 'bg-emerald-600 text-white' : 'bg-red-500/80 text-white')}`}>
-                     {isHistorical ? (wasPresent ? <CheckCircle size={18} /> : <XCircle size={18} />) : (isCurrent ? <Play size={18} fill="currentColor" /> : <Calendar size={18} />)}
+                   className={`absolute left-[2rem] md:left-1/2 -translate-x-1/2 w-14 h-14 rounded-full border-4 border-[#022c22] z-20 flex items-center justify-center shadow-xl transition-all cursor-pointer hover:scale-110 active:scale-95 ${isLocked ? 'bg-gray-800 text-gray-400' : isActuallyLive ? 'bg-emerald-400 text-black scale-110 shadow-[0_0_20px_rgba(16,185,129,0.6)] animate-pulse' : isNextTarget ? 'bg-emerald-500/20 text-emerald-300 border-emerald-500/40' : isUpcoming ? 'bg-emerald-800 text-emerald-300 border-emerald-500/30' : (wasPresent ? 'bg-emerald-600 text-white' : 'bg-red-500/80 text-white')}`}>
+                     {isHistorical ? (wasPresent ? <CheckCircle size={18} /> : <XCircle size={18} />) : (isActuallyLive ? <Play size={18} fill="currentColor" /> : isNextTarget ? <Clock size={18} /> : <Calendar size={18} />)}
                 </div>
 
                 {/* INTERACTIVE CARD */}
@@ -507,8 +508,8 @@ const KidsView = ({ scrollProgress, activeChild, onJoinLive, currentBatchStatus,
                   className={`w-full md:w-[45%] pl-24 md:pl-0 cursor-pointer group/card ${index % 2 !== 0 ? 'md:ml-auto md:pl-20' : 'md:mr-auto md:pr-20 md:text-right'}`}
                 >
                    <div className={`backdrop-blur-xl rounded-[2rem] p-6 border transition-all active:scale-95 ${isLocked ? 'bg-white/5 opacity-50 border-white/5' : isCurrent ? 'bg-emerald-500/10 border-emerald-500/40 shadow-[0_0_30px_rgba(16,185,129,0.2)] scroll-mt-20' : isUpcoming ? 'bg-emerald-500/10 border-emerald-500/40' : 'bg-white/10 border-white/20 shadow-xl hover:bg-white/20'}`}>
-                      <div className={`text-[10px] font-black uppercase tracking-widest mb-1 ${isHistorical ? (wasPresent ? 'text-emerald-400' : 'text-red-400') : isCurrent ? 'text-emerald-500/60' : 'text-emerald-300'}`}>
-                      {isCurrent && currentBatchStatus === 'waiting' ? 'Class Scheduled' : statusLabel}
+                      <div className={`text-[10px] font-black uppercase tracking-widest mb-1 ${isHistorical ? (wasPresent ? 'text-emerald-400' : 'text-red-400') : isActuallyLive ? 'text-emerald-500/60' : 'text-emerald-300'}`}>
+                        {isActuallyLive ? 'Live Now' : (isNextTarget ? 'Class Scheduled' : statusLabel)}
                     </div>
                       <h4 className={`font-bold text-xl ${isCurrent ? 'text-emerald-300' : 'text-white'}`}>{stageTitle}</h4>
                    </div>

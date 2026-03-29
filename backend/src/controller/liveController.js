@@ -72,7 +72,7 @@ export const createBatch = async (req, res) => {
             scholar,
             schedule: schedule || {},
             level: level || 'Beginner',
-            status: status || 'active'
+            status: status || 'upcoming'
         });
 
         res.status(201).json(batch);
@@ -336,6 +336,7 @@ export const getMySessions = async (req, res) => {
             scholarName: b.scholar?.name || 'Assigned Scholar',
             schedule: b.schedule,
             isBatch: true, // Flag to distinguish from individual sessions
+            activeSessionId: b.activeSessionId, 
             pastSessions: b.pastSessions || [], // Needed by TarbiyahLobby to unlock Journey nodes
             activeParticipants: b.activeParticipants || []
         }));

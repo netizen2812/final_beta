@@ -831,15 +831,13 @@ const LiveClassRoom: React.FC = () => {
         {/* Assignment Modal */}
         {showAssignModal && currentSession?.batchId && (
           <div className="fixed inset-0 z-[6000] bg-[#022c22]/95 backdrop-blur-2xl flex items-center justify-center p-4 overflow-y-auto">
-            <div className="w-full max-w-5xl bg-black/40 border border-emerald-500/20 rounded-[3rem] p-1 shadow-2xl relative">
-              <button 
-                onClick={() => setShowAssignModal(false)} 
-                className="absolute -top-12 right-4 text-white hover:text-emerald-400 font-bold flex items-center gap-2"
-              >
-                ✕ Close Assignments
-              </button>
-              <div className="p-6 md:p-8">
-                <ScholarQuranManager batchId={currentSession.batchId} batchName="Current Class" />
+            <div className="w-full max-w-5xl bg-black/40 border border-emerald-500/20 rounded-[3rem] p-4 shadow-2xl relative">
+              <div className="p-2">
+                <ScholarQuranManager 
+                  batchId={currentSession.batchId} 
+                  batchName="Current Class" 
+                  onClose={() => setShowAssignModal(false)}
+                />
               </div>
             </div>
           </div>

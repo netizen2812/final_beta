@@ -9,9 +9,10 @@ const API_BASE = import.meta.env.VITE_API_URL || "http://localhost:5000";
 interface ScholarQuranManagerProps {
     batchId?: string;
     batchName?: string;
+    onClose?: () => void;
 }
 
-const ScholarQuranManager: React.FC<ScholarQuranManagerProps> = ({ batchId, batchName }) => {
+const ScholarQuranManager: React.FC<ScholarQuranManagerProps> = ({ batchId, batchName, onClose }) => {
     const { getToken } = useAuth();
     const [students, setStudents] = useState<any[]>([]);
     const [selectedChild, setSelectedChild] = useState<any>(null);
@@ -82,12 +83,22 @@ const ScholarQuranManager: React.FC<ScholarQuranManagerProps> = ({ batchId, batc
         <div className="flex flex-col gap-6 max-w-5xl mx-auto">
             {/* Header Info */}
             <div className="bg-emerald-900/40 p-6 rounded-3xl border border-emerald-500/20 flex flex-col md:flex-row md:items-center justify-between gap-4">
-                <div>
-                    <h2 className="text-2xl font-serif font-bold text-white flex items-center gap-3">
-                        <BookOpen className="text-emerald-400" />
-                        {batchName || 'Quran Management'}
-                    </h2>
-                    <p className="text-emerald-200/70 text-sm mt-1">Manage practice assignments for your students</p>
+                <div className="flex items-center gap-4">
+                    {onClose && (
+                        <button 
+                            onClick={onClose}
+                            className="bg-emerald-950/80 hover:bg-emerald-900 text-emerald-400 p-2.5 rounded-full border border-emerald-800/50 transition-all active:scale-90"
+                        >
+                            <ChevronRight className="rotate-180" size={24} />
+                        </button>
+                    )}
+                    <div>
+                        <h2 className="text-2xl font-serif font-bold text-white flex items-center gap-3">
+                            <BookOpen className="text-emerald-400" />
+                            {batchName || 'Quran Management'}
+                        </h2>
+                        <p className="text-emerald-200/70 text-sm mt-1">Manage practice assignments for your students</p>
+                    </div>
                 </div>
                 <button 
                   onClick={() => setIsBatchMode(!isBatchMode)}

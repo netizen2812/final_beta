@@ -519,10 +519,21 @@ const KidsView = ({ scrollProgress, activeChild, onJoinLive, currentBatchStatus,
         </div>
       </div>
       {selectedSessionId && activeBatch && (
-         <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
-           <div className="bg-white rounded-3xl w-full max-w-4xl max-h-[90vh] overflow-hidden flex flex-col shadow-2xl">
-             <div className="flex justify-end p-2 bg-slate-100"><button onClick={() => setSelectedSessionId(null)} className="text-slate-400 hover:text-slate-600 p-2">✕ Close</button></div>
-             <div className="flex-1 overflow-y-auto relative h-[600px]"><SessionLeaderboard batchId={activeBatch._id} sessionId={selectedSessionId} onClose={() => setSelectedSessionId(null)} /></div>
+         <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-in fade-in">
+           <div className="bg-[#022c22] border border-emerald-500/30 rounded-[2.5rem] w-full max-w-4xl max-h-[90vh] overflow-hidden flex flex-col shadow-2xl relative">
+             <div className="flex justify-between items-center px-8 py-4 bg-emerald-950/50 border-b border-emerald-800/40">
+               <h3 className="font-serif text-xl font-bold text-white">Class Achievements</h3>
+               <button onClick={() => setSelectedSessionId(null)} className="bg-emerald-800 hover:bg-emerald-700 text-white px-5 py-2 rounded-xl text-xs font-bold uppercase tracking-widest flex items-center gap-2 transition-all active:scale-95">
+                 <ChevronLeft size={16} /> Back to Journey
+               </button>
+             </div>
+             <div className="flex-1 overflow-y-auto relative h-[600px]">
+               <SessionLeaderboard 
+                 batchId={activeBatch._id} 
+                 sessionId={selectedSessionId} 
+                 onClose={() => setSelectedSessionId(null)} 
+               />
+             </div>
            </div>
          </div>
       )}
@@ -600,6 +611,25 @@ const ScholarJourneyView = ({ scrollProgress, batches, onJoinSession, initialBat
           })}
         </div>
       </div>
+      {selectedSessionId && activeBatch && (
+         <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-in fade-in">
+           <div className="bg-[#022c22] border border-emerald-500/30 rounded-[2.5rem] w-full max-w-4xl max-h-[90vh] overflow-hidden flex flex-col shadow-2xl relative">
+             <div className="flex justify-between items-center px-8 py-4 bg-emerald-950/50 border-b border-emerald-800/40">
+               <h3 className="font-serif text-xl font-bold text-white">Class Achievements</h3>
+               <button onClick={() => setSelectedSessionId(null)} className="bg-emerald-800 hover:bg-emerald-700 text-white px-5 py-2 rounded-xl text-xs font-bold uppercase tracking-widest flex items-center gap-2 transition-all active:scale-95">
+                 <ChevronLeft size={16} /> Back to Journey
+               </button>
+             </div>
+             <div className="flex-1 overflow-y-auto relative h-[600px]">
+               <SessionLeaderboard 
+                 batchId={activeBatch._id} 
+                 sessionId={selectedSessionId} 
+                 onClose={() => setSelectedSessionId(null)} 
+               />
+             </div>
+           </div>
+         </div>
+      )}
     </div>
   );
 };

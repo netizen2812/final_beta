@@ -105,12 +105,14 @@ const QuranPracticeModule: React.FC<QuranPracticeModuleProps> = ({
                 headers: { Authorization: `Bearer ${token}` }
             });
             
-            if (res.data.xpAwarded && triggerRewardAnimation) {
-                triggerRewardAnimation(res.data.xpAwarded);
+            const xpReward = res.data.xpResult?.xpGained || 0;
+            if (xpReward > 0 && triggerRewardAnimation) {
+                triggerRewardAnimation(xpReward);
             }
 
             if (onComplete) onComplete(finalScore);
-            if (onClose) onClose();
+            // Slight delay so the animation/sound can start before the modal unmounts
+            setTimeout(() => { if (onClose) onClose(); }, 200);
         } catch (err) {
             console.error("Failed to save progress", err);
             if (onClose) onClose();
@@ -127,12 +129,13 @@ const QuranPracticeModule: React.FC<QuranPracticeModuleProps> = ({
                 headers: { Authorization: `Bearer ${token}` }
             });
 
-            if (res.data.xpAwarded && triggerRewardAnimation) {
-                triggerRewardAnimation(res.data.xpAwarded);
+            const xpReward = res.data.xpResult?.xpGained || 0;
+            if (xpReward > 0 && triggerRewardAnimation) {
+                triggerRewardAnimation(xpReward);
             }
 
             if (initialMode === 'REVISE') {
-                if (onClose) onClose();
+                setTimeout(() => { if (onClose) onClose(); }, 200);
             } else {
                 setStep('PRACTICE');
             }

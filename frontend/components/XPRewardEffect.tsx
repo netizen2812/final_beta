@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import { Sparkles, Star } from 'lucide-react';
 import { useChildContext } from '../contexts/ChildContext';
 
@@ -45,8 +46,8 @@ const XPRewardEffect: React.FC = () => {
 
   if (particles.length === 0 && showTotal === null) return null;
 
-  return (
-    <div className="fixed inset-0 pointer-events-none z-[9999] overflow-hidden">
+  return createPortal(
+    <div className="fixed inset-0 pointer-events-none z-[1000000] overflow-hidden">
       <style>{`
         @keyframes xp-fly {
           0% {
@@ -109,7 +110,8 @@ const XPRewardEffect: React.FC = () => {
           <Star size={24} fill="currentColor" />
         </div>
       ))}
-    </div>
+    </div>,
+    document.body
   );
 };
 

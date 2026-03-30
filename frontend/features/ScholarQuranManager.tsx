@@ -72,7 +72,7 @@ const ScholarQuranManager: React.FC<ScholarQuranManagerProps> = ({ batchId, batc
             setSelectedSubparts([]); // Reset after success
             setTimeout(() => setMessage(''), 3000);
         } catch (err: any) {
-            alert(err.response?.data?.message || "Assignment failed");
+            alert(err.response?.data?.message || err.message || "Assignment failed");
         } finally {
             setLoading(false);
         }

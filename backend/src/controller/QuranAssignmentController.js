@@ -47,8 +47,11 @@ export const createAssignment = async (req, res) => {
                 return assignment;
             })
         );
+        console.log(`✨ Successfully created ${assignments.length} assignments for student ${childId}`);
         res.status(201).json({ message: "Assignments created successfully", assignments });
     } catch (error) {
+        console.error("❌ createAssignment Error:", error.message);
+        if (error.errors) console.error("Validation Details:", JSON.stringify(error.errors, null, 2));
         res.status(500).json({ message: error.message });
     }
 };
@@ -205,11 +208,14 @@ export const batchCreateAssignments = async (req, res) => {
                 assignments.push(assign);
             }
         }
+        console.log(`✨ Successfully assigned Juz ${juz} Parts: ${subpartList.join(', ')} to ${batch.students.length} students`);
         res.status(201).json({
             message: `Successfully assigned Juz ${juz} Part(s) ${subpartList.join(', ')} to ${batch.students.length} students`,
             assignments
         });
     } catch (error) {
+        console.error("❌ batchCreateAssignments Error:", error.message);
+        if (error.errors) console.error("Validation Details:", JSON.stringify(error.errors, null, 2));
         res.status(500).json({ message: error.message });
     }
 };

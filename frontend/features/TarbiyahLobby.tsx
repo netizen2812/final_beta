@@ -114,7 +114,7 @@ export const TarbiyahLobby = ({
   );
   const [targetBatchId, setTargetBatchId] = useState<string | null>(null);
   const [scrollProgress, setScrollProgress] = useState(0);
-  const { activeChild, children: childrenList } = useChildContext();
+  const { activeChild, children: childrenList, triggerRewardAnimation } = useChildContext();
   const [batches, setBatches] = useState<any[]>([]);
   const [accessStatus, setAccessStatus] = useState<any>(null);
   const [showQuranPractice, setShowQuranPractice] = useState<{ active: boolean, mode: 'REVISE' | 'PRACTICE' }>({ active: false, mode: 'REVISE' });
@@ -241,7 +241,13 @@ export const TarbiyahLobby = ({
         <div className="fixed inset-0 z-[110] bg-[#022c22]/95 backdrop-blur-xl flex items-center justify-center p-6 overflow-y-auto">
           <div className="w-full max-w-4xl relative">
             <button onClick={() => setShowQuranPractice({ active: false, mode: 'REVISE' })} className="absolute -top-12 right-0 text-white/60 hover:text-white font-bold flex items-center gap-2">✕ Close Practice</button>
-            <QuranPracticeModule childId={activeChild.id} initialMode={showQuranPractice.mode} onComplete={() => {}} />
+            <QuranPracticeModule 
+              childId={activeChild.id} 
+              initialMode={showQuranPractice.mode} 
+              onClose={() => setShowQuranPractice({ active: false, mode: 'REVISE' })}
+              triggerRewardAnimation={triggerRewardAnimation}
+              onComplete={() => {}} 
+            />
           </div>
         </div>
       )}

@@ -9,12 +9,16 @@ const API_BASE = import.meta.env.VITE_API_URL || "http://localhost:5000";
 interface QuranPracticeModuleProps {
     childId: string;
     onComplete?: (score: number) => void;
+    onClose?: () => void;
+    triggerRewardAnimation?: (amount: number) => void;
     initialMode?: ModuleStep;
 }
 
 type ModuleStep = 'REVISE' | 'PRACTICE' | 'RESULT';
 
-const QuranPracticeModule: React.FC<QuranPracticeModuleProps> = ({ childId, onComplete, initialMode = 'REVISE' }) => {
+const QuranPracticeModule: React.FC<QuranPracticeModuleProps> = ({ 
+    childId, onComplete, onClose, triggerRewardAnimation, initialMode = 'REVISE' 
+}) => {
     const { getToken, userId } = useAuth();
     const [loading, setLoading] = useState(true);
     const [assignment, setAssignment] = useState<any>(null);
@@ -104,6 +108,9 @@ const QuranPracticeModule: React.FC<QuranPracticeModuleProps> = ({ childId, onCo
             
             if (res.data.xpAwarded) {
                 setXpAwarded(res.data.xpAwarded);
+                if (triggerRewardAnimation) {
+                    triggerRewardAnimation(res.data.xpAwarded);
+                }
             }
 
             if (onComplete) onComplete(finalScore);
@@ -124,6 +131,9 @@ const QuranPracticeModule: React.FC<QuranPracticeModuleProps> = ({ childId, onCo
 
             if (res.data.xpAwarded) {
                 setXpAwarded(res.data.xpAwarded);
+                if (triggerRewardAnimation) {
+                    triggerRewardAnimation(res.data.xpAwarded);
+                }
             }
 
             if (initialMode === 'REVISE') {
@@ -178,10 +188,10 @@ const QuranPracticeModule: React.FC<QuranPracticeModuleProps> = ({ childId, onCo
                     }
                 </p>
                 <button 
-                    onClick={() => window.location.reload()}
+                    onClick={() => onClose ? onClose() : window.location.reload()}
                     className="w-full py-4 bg-emerald-500 rounded-2xl font-bold hover:bg-emerald-400 transition-all text-[#022c22] shadow-[0_10px_30px_rgba(16,185,129,0.3)]"
                 >
-                    Back to Lobby
+                    Back to Journey of Light
                 </button>
             </div>
         );

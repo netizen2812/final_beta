@@ -92,6 +92,7 @@ const LiveClassRoom: React.FC = () => {
   const [showAssignModal, setShowAssignModal] = useState(false);
   const [currentSessionScore, setCurrentSessionScore] = useState<number>(0);
   const { triggerRewardAnimation } = useChildContext();
+  const lastSeenScoreRef = useRef<number | null>(null);
 
   // Determine Role & Check Access
   useEffect(() => {
@@ -243,13 +244,21 @@ const LiveClassRoom: React.FC = () => {
         });
         
         // HEARTBEAT SYNC: XP Rewards / Animations
-        if (res.data.currentScore > currentSessionScore) {
-          const diff = res.data.currentScore - currentSessionScore;
+        const newScore = res.data.currentScore || 0;
+        
+        if (lastSeenScoreRef.current === null) {
+          // Initial sync - don't trigger animation
+          lastSeenScoreRef.current = newScore;
+          setCurrentSessionScore(newScore);
+        } else if (newScore > lastSeenScoreRef.current) {
+          const diff = newScore - lastSeenScoreRef.current;
           triggerRewardAnimation(diff);
-          setCurrentSessionScore(res.data.currentScore);
-        } else if (res.data.currentScore < currentSessionScore) {
-           // If session reset/new session, just sync without animation
-           setCurrentSessionScore(res.data.currentScore);
+          lastSeenScoreRef.current = newScore;
+          setCurrentSessionScore(newScore);
+        } else if (newScore < lastSeenScoreRef.current) {
+          // Reset if score was reset
+          lastSeenScoreRef.current = newScore;
+          setCurrentSessionScore(newScore);
         }
 
         setBatchState({

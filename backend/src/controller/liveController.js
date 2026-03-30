@@ -178,6 +178,19 @@ export const removeStudentFromBatch = async (req, res) => {
     }
 };
 
+// ADMIN/SCHOLAR: GET /api/live/batch/:id/students - List students in a batch
+export const getBatchStudents = async (req, res) => {
+    try {
+        const { id } = req.params;
+        const { default: Batch } = await import("../models/Batch.js");
+        const batch = await Batch.findById(id).populate('students', 'name parent_id');
+        if (!batch) return res.status(404).json({ message: "Batch not found" });
+        res.json(batch.students || []);
+    } catch (error) {
+        res.status(500).json({ error: error.message });
+    }
+};
+
 // SCHOLAR: GET /api/live/batch/:id/sessions - Get active student sessions for a batch
 export const getBatchSessions = async (req, res) => {
     try {

@@ -16,6 +16,7 @@ interface ChildContextType {
   refreshChildren: () => Promise<void>;
   lastReward: { amount: number, id: number } | null;
   triggerRewardAnimation: (amount: number) => void;
+  updateLocalProgress: (childId: string, xpGain: number) => void;
 }
 
 const ChildContext = createContext<ChildContextType | undefined>(undefined);
@@ -115,13 +116,10 @@ export const ChildProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     // Reset after some time just in case, though XPRewardEffect should watch for id changes
   };
 
-  const incrementProgress = async (childId: string, xpGain: number) => {
+  const updateLocalProgress = (childId: string, xpGain: number) => {
     // Show animation locally immediately
     triggerRewardAnimation(xpGain);
     
-    // Optimistic Update for XP only
-    let newProgressState = { xp: 0, level: 1 };
-
     setChildrenList(prev => prev.map(c => {
       if (c.id !== childId) return c;
       const prog = c.child_progress?.[0] || { xp: 0, total_xp: 0, level: 1, lessons_completed: 0 };
@@ -129,29 +127,37 @@ export const ChildProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       const newXp = currentXp + xpGain;
       const newLevel = Math.floor(newXp / 1000) + 1;
 
-      const updatedChild = {
+      return {
         ...c,
         child_progress: [{
           ...prog,
           total_xp: newXp,
           xp: newXp,
           level: newLevel,
-          // Do NOT increment lessons_completed here blindly. Rely on backend.
           last_activity: new Date().toISOString()
         }]
       };
-
-      newProgressState = { xp: newXp, level: newLevel };
-      return updatedChild;
     }));
+  };
 
+  const incrementProgress = async (childId: string, xpGain: number) => {
+    // Show animation locally immediately
+    updateLocalProgress(childId, xpGain);
+    
     // Sync XP/Level with Backend (but NOT lessons_completed)
     try {
-      // We only send XP and Level. We do NOT send lessons_completed to avoid overwriting backend's count.
-      // Note: check if updateProgress backend handles partial updates.
-      // The backend uses: children.child_progress[0].lessons_completed = lessons_completed !== undefined ? ...
-      // So if we omit it, it keeps existing value. Perfect.
-      await childService.updateProgress(childId, { ...newProgressState, lessons_completed: undefined } as any, getToken);
+      // Optimistic state is already updated via updateLocalProgress, 
+      // but we need the state for the sync call if handled separately.
+      // Actually, since updateLocalProgress is called synchronously above, 
+      // the state in setChildrenList will update eventually. 
+      // We'll calculate the sync payload directly to be safe.
+      const child = childrenList.find(c => c.id === childId);
+      const prog = child?.child_progress?.[0] || { xp: 0, total_xp: 0, level: 1 };
+      const currentXp = prog.total_xp !== undefined ? prog.total_xp : (prog.xp || 0);
+      const newXp = currentXp + xpGain;
+      const newLevel = Math.floor(newXp / 1000) + 1;
+
+      await childService.updateProgress(childId, { xp: newXp, level: newLevel, lessons_completed: undefined } as any, getToken);
     } catch (error) {
       console.error("Failed to sync progress", error);
     }
@@ -169,7 +175,8 @@ export const ChildProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       incrementProgress,
       refreshChildren,
       lastReward,
-      triggerRewardAnimation
+      triggerRewardAnimation,
+      updateLocalProgress
     }}>
       {children}
     </ChildContext.Provider>

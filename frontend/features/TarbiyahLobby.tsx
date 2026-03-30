@@ -114,7 +114,7 @@ export const TarbiyahLobby = ({
   );
   const [targetBatchId, setTargetBatchId] = useState<string | null>(null);
   const [scrollProgress, setScrollProgress] = useState(0);
-  const { activeChild, children: childrenList, triggerRewardAnimation } = useChildContext();
+  const { activeChild, children: childrenList, updateLocalProgress } = useChildContext();
   const [batches, setBatches] = useState<any[]>([]);
   const [accessStatus, setAccessStatus] = useState<any>(null);
   const [showQuranPractice, setShowQuranPractice] = useState<{ active: boolean, mode: 'REVISE' | 'PRACTICE' }>({ active: false, mode: 'REVISE' });
@@ -245,7 +245,7 @@ export const TarbiyahLobby = ({
               childId={activeChild.id} 
               initialMode={showQuranPractice.mode} 
               onClose={() => setShowQuranPractice({ active: false, mode: 'REVISE' })}
-              triggerRewardAnimation={triggerRewardAnimation}
+              updateLocalProgress={updateLocalProgress}
               onComplete={() => {}} 
             />
           </div>

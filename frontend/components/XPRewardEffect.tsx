@@ -56,17 +56,18 @@ const XPRewardEffect: React.FC = () => {
           }
           20% {
             opacity: 1;
-            transform: translate(0, -20px) scale(1.2);
+            transform: translate(0, -40px) scale(1.5);
           }
           100% {
-            transform: translate(calc(-40vw + 20px), -65vh) scale(0.5);
+            transform: translate(calc(-40vw + 20px), -75vh) scale(0.3);
             opacity: 0;
           }
         }
         @keyframes xp-reveal {
-          0% { transform: scale(0.5); opacity: 0; }
-          50% { transform: scale(1.2); opacity: 1; }
-          100% { transform: scale(1); opacity: 0; }
+          0% { transform: translate(-50%, -50%) scale(0.5); opacity: 0; filter: blur(10px); }
+          30% { transform: translate(-50%, -50%) scale(1.3); opacity: 1; filter: blur(0); }
+          70% { transform: translate(-50%, -50%) scale(1.1); opacity: 1; }
+          100% { transform: translate(-50%, -50%) scale(1); opacity: 0; }
         }
         .xp-particle {
           position: absolute;
@@ -80,8 +81,7 @@ const XPRewardEffect: React.FC = () => {
           position: absolute;
           left: 50%;
           top: 50%;
-          transform: translate(-50%, -50%);
-          font-family: serif;
+          font-family: 'Outfit', sans-serif;
           font-weight: 900;
           font-size: 4rem;
           color: #10b981;

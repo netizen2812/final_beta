@@ -10,14 +10,14 @@ interface QuranPracticeModuleProps {
     childId: string;
     onComplete?: (score: number) => void;
     onClose?: () => void;
-    triggerRewardAnimation?: (amount: number) => void;
+    updateLocalProgress?: (childId: string, amount: number) => void;
     initialMode?: ModuleStep;
 }
 
 type ModuleStep = 'REVISE' | 'PRACTICE' | 'RESULT';
 
 const QuranPracticeModule: React.FC<QuranPracticeModuleProps> = ({ 
-    childId, onComplete, onClose, triggerRewardAnimation, initialMode = 'REVISE' 
+    childId, onComplete, onClose, updateLocalProgress, initialMode = 'REVISE' 
 }) => {
     const { getToken, userId } = useAuth();
     const [loading, setLoading] = useState(true);
@@ -106,13 +106,13 @@ const QuranPracticeModule: React.FC<QuranPracticeModuleProps> = ({
             });
             
             const xpReward = res.data.xpResult?.xpGained || 0;
-            if (xpReward > 0 && triggerRewardAnimation) {
-                triggerRewardAnimation(xpReward);
+            if (xpReward > 0 && updateLocalProgress) {
+                updateLocalProgress(childId, xpReward);
             }
 
             if (onComplete) onComplete(finalScore);
-            // Slight delay so the animation/sound can start before the modal unmounts
-            setTimeout(() => { if (onClose) onClose(); }, 200);
+            // Increased delay so the animation/sound can be perceived before the modal unmounts
+            setTimeout(() => { if (onClose) onClose(); }, 800);
         } catch (err) {
             console.error("Failed to save progress", err);
             if (onClose) onClose();
@@ -130,12 +130,12 @@ const QuranPracticeModule: React.FC<QuranPracticeModuleProps> = ({
             });
 
             const xpReward = res.data.xpResult?.xpGained || 0;
-            if (xpReward > 0 && triggerRewardAnimation) {
-                triggerRewardAnimation(xpReward);
+            if (xpReward > 0 && updateLocalProgress) {
+                updateLocalProgress(childId, xpReward);
             }
 
             if (initialMode === 'REVISE') {
-                setTimeout(() => { if (onClose) onClose(); }, 200);
+                setTimeout(() => { if (onClose) onClose(); }, 800);
             } else {
                 setStep('PRACTICE');
             }

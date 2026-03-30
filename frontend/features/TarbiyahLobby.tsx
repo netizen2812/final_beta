@@ -104,17 +104,19 @@ export const TarbiyahLobby = ({
   userRole = 'parent',
   scholarBatches = [],
   onScholarJoinSession,
-  attendedSessionIds = []
+  attendedSessionIds = [],
+  isAdmin = false
 }: { 
   getToken: any, 
   onJoinSession: (s: any) => void,
   userRole?: 'parent' | 'scholar',
   scholarBatches?: any[],
   onScholarJoinSession?: (b: any) => void,
-  attendedSessionIds?: string[]
+  attendedSessionIds?: string[],
+  isAdmin?: boolean
 }) => {
   const [view, setView] = useState<'kids' | 'parent' | 'scholar_journey' | 'scholar_dashboard'>(
-     userRole === 'scholar' ? 'scholar_journey' : 'kids'
+     isAdmin ? 'kids' : (userRole === 'scholar' ? 'scholar_journey' : 'kids')
   );
   const [targetBatchId, setTargetBatchId] = useState<string | null>(null);
   const [scrollProgress, setScrollProgress] = useState(0);
@@ -186,7 +188,14 @@ export const TarbiyahLobby = ({
       <div className="fixed top-20 left-0 w-full z-40 px-4 py-3 pointer-events-none">
         <div className="max-w-5xl mx-auto flex justify-center md:justify-end items-start mt-2 md:mt-0">
           <div className="pointer-events-auto bg-black/40 backdrop-blur-md rounded-full p-1 shadow-lg border border-white/10 inline-flex ring-1 ring-white/5">
-            {userRole === 'scholar' ? (
+            {isAdmin ? (
+              <>
+                <button onClick={() => setView('kids')} className={`px-4 py-2 rounded-full text-[10px] font-bold transition-all ${view === 'kids' ? 'bg-emerald-600 text-white shadow-[0_0_15px_rgba(16,185,129,0.5)]' : 'text-emerald-200 hover:text-white'}`}>Map</button>
+                <button onClick={() => setView('parent')} className={`px-4 py-2 rounded-full text-[10px] font-bold transition-all ${view === 'parent' ? 'bg-indigo-600 text-white shadow-[0_0_15px_rgba(79,70,229,0.5)]' : 'text-indigo-200 hover:text-white'}`}>Parent</button>
+                <button onClick={() => setView('scholar_journey')} className={`px-4 py-2 rounded-full text-[10px] font-bold transition-all ${view === 'scholar_journey' ? 'bg-amber-600 text-white shadow-[0_0_15px_rgba(245,158,11,0.5)]' : 'text-amber-200 hover:text-white'}`}>Journey</button>
+                <button onClick={() => setView('scholar_dashboard')} className={`px-4 py-2 rounded-full text-[10px] font-bold transition-all ${view === 'scholar_dashboard' ? 'bg-rose-600 text-white shadow-[0_0_15px_rgba(225,29,72,0.5)]' : 'text-rose-200 hover:text-white'}`}>Scholar</button>
+              </>
+            ) : userRole === 'scholar' ? (
               <>
                 <button onClick={() => setView('scholar_journey')} className={`px-6 py-2 rounded-full text-xs font-bold transition-all ${view === 'scholar_journey' ? 'bg-emerald-600 text-white shadow-[0_0_15px_rgba(16,185,129,0.5)]' : 'text-emerald-200 hover:text-white'}`}>Class Journey</button>
                 <button onClick={() => setView('scholar_dashboard')} className={`px-6 py-2 rounded-full text-xs font-bold transition-all ${view === 'scholar_dashboard' ? 'bg-indigo-600 text-white shadow-[0_0_15px_rgba(79,70,229,0.5)]' : 'text-indigo-200 hover:text-white'}`}>Scholar Dashboard</button>
@@ -204,42 +213,49 @@ export const TarbiyahLobby = ({
       {/* MAIN VIEW AREA with ERROR BOUNDARY */}
       <div className="relative z-10">
         <ErrorBoundary name="Tarbiyah Content Area">
-          {userRole === 'scholar' ? (
-            view === 'scholar_journey' ? (
-              <ScholarJourneyView 
-                scrollProgress={scrollProgress} 
-                batches={scholarBatches} 
-                onJoinSession={onScholarJoinSession!} 
-                initialBatchId={targetBatchId} 
-              />
-            ) : (
-              <ScholarDashboardView 
-                batches={scholarBatches} 
-                onJoinSession={(batch: any) => { setTargetBatchId(batch._id); setView('scholar_journey'); }} 
-                attendedSessionIds={attendedSessionIds}
-                setShowScholarManage={setShowScholarManage}
-              />
-            )
-          ) : (
-            view === 'kids' ? (
-              <KidsView 
-                scrollProgress={scrollProgress} 
-                activeChild={activeChild} 
-                onJoinLive={handleJoinLive} 
-                currentBatchStatus={currentBatchStatus} 
-                batches={batches} 
-                accessStatus={accessStatus} 
-                getToken={getToken} 
-                setShowQuranPractice={(mode: 'REVISE' | 'PRACTICE') => setShowQuranPractice({ active: true, mode })}
-                setShowJoinChoice={setShowJoinChoice}
-                attendedSessionIds={attendedSessionIds}
-                childrenList={childrenList}
-                userRole={userRole}
-              />
-            ) : (
-              <ParentsView activeChild={activeChild} batches={batches} getToken={getToken} />
-            )
-          )}
+          {(() => {
+            // Priority: Scholar-specific views
+            if (view === 'scholar_journey') {
+              return (
+                <ScholarJourneyView 
+                  scrollProgress={scrollProgress} 
+                  batches={scholarBatches} 
+                  onJoinSession={onScholarJoinSession!} 
+                  initialBatchId={targetBatchId} 
+                />
+              );
+            }
+            if (view === 'scholar_dashboard') {
+              return (
+                <ScholarDashboardView 
+                  batches={scholarBatches} 
+                  onJoinSession={(batch: any) => { setTargetBatchId(batch._id); setView('scholar_journey'); }} 
+                  attendedSessionIds={attendedSessionIds}
+                  setShowScholarManage={setShowScholarManage}
+                />
+              );
+            }
+            // User-facing views
+            if (view === 'kids') {
+              return (
+                <KidsView 
+                  scrollProgress={scrollProgress} 
+                  activeChild={activeChild} 
+                  onJoinLive={handleJoinLive} 
+                  currentBatchStatus={currentBatchStatus} 
+                  batches={batches} 
+                  accessStatus={accessStatus} 
+                  getToken={getToken} 
+                  setShowQuranPractice={(mode: 'REVISE' | 'PRACTICE') => setShowQuranPractice({ active: true, mode })}
+                  setShowJoinChoice={setShowJoinChoice}
+                  attendedSessionIds={attendedSessionIds}
+                  childrenList={childrenList}
+                  userRole={userRole}
+                />
+              );
+            }
+            return <ParentsView activeChild={activeChild} batches={batches} getToken={getToken} />;
+          })()}
         </ErrorBoundary>
       </div>
 

@@ -100,16 +100,23 @@ const LiveClassRoom: React.FC = () => {
     const email = user?.primaryEmailAddress?.emailAddress?.toLowerCase();
 
     // Dynamic Role Check (Dashboard assigned) OR Hardcoded Fallback
-    const isScholar = role === 'scholar' || role === 'admin' || 
-                      ["scholar1.imam@gmail.com", "sarthakjuneja1999@gmail.com", "huzaifbarkati0@gmail.com", "abhi.nebhani@gmail.com"].includes(email || "");
+    const isScholarOnly = email === "scholar1.imam@gmail.com";
+    const isRootAdmin = ["sarthakjuneja1999@gmail.com", "huzaifbarkati0@gmail.com", "abhi.nebhani@gmail.com"].includes(email || "");
+    const isAdminRole = role === 'admin' || isRootAdmin;
+    const isScholarRole = role === 'scholar' || isScholarOnly;
 
-    if (isScholar) {
+    if (isScholarRole) {
       setUserRole('scholar');
     } else {
       setUserRole('parent');
       checkAccess();
     }
+    
+    // We'll pass an extra prop to TarbiyahLobby to allow Admins to see all views
+    setTarbiyahIsAdmin(isAdminRole);
   }, [user, getToken]);
+
+  const [tarbiyahIsAdmin, setTarbiyahIsAdmin] = useState(false);
 
   // SCHOLAR DASHBOARD STATE
   const [scholarBatches, setScholarBatches] = useState<any[]>([]);
@@ -1063,6 +1070,7 @@ const LiveClassRoom: React.FC = () => {
       scholarBatches={scholarBatches}
       onScholarJoinSession={handleScholarJoinBatch}
       attendedSessionIds={attendedSessionIds}
+      isAdmin={tarbiyahIsAdmin}
     />
   );
 };

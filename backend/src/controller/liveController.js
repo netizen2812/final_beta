@@ -690,29 +690,6 @@ export const emergencyLinkRestore = async (req, res) => {
     }
 };
 
-// GET /api/live/batch/:id/attendance?childId=...
-export const getBatchAttendance = async (req, res) => {
-    try {
-        const { id } = req.params;
-        const { childId } = req.query;
-        if (!childId) return res.json({ attendedSessionIds: [] });
-        
-        const { default: Child } = await import("../models/Child.js");
-        const child = await Child.findById(childId).lean();
-        
-        // Correctly navigate to child_progress[0].attendance
-        const progress = child?.child_progress?.[0];
-        if (!progress || !progress.attendance) return res.json({ attendedSessionIds: [] });
-
-        const attendedSessionIds = progress.attendance
-            .filter(a => a.batchId?.toString() === id)
-            .map(a => a.sessionId)
-            .filter(sid => !!sid); // Emergency Hotfix: filter out nulls
-            
-        res.json({ attendedSessionIds });
-    } catch(err) { res.status(500).json({ error: err.message }); }
-};
-
 // POST /api/live/batch/:id/select-turn
 export const selectTurn = async (req, res) => {
     try {

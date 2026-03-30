@@ -15,7 +15,7 @@ export const getDashboardStats = async (req, res) => {
         sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
 
         const weeklyActivity = await ChildActivity.find({
-            child_id: childId,
+            child_id: child._id,
             date: { $gte: sevenDaysAgo },
         }).sort({ date: 1 });
 
@@ -48,7 +48,7 @@ export const getDashboardStats = async (req, res) => {
 
         // Get child progress and assignments for deeper KPIs
         const { default: QuranAssignment } = await import("../models/QuranAssignment.js");
-        const assignments = await QuranAssignment.find({ studentId: childId });
+        const assignments = await QuranAssignment.find({ studentId: child._id });
         
         const totalRevisions = assignments.reduce((sum, a) => sum + (a.revisionCount || 0), 0);
         const practicingAssignments = assignments.filter(a => a.practiceCount > 0);
@@ -56,11 +56,20 @@ export const getDashboardStats = async (req, res) => {
             ? practicingAssignments.reduce((sum, a) => sum + (a.practiceScore || 0), 0) / practicingAssignments.length
             : 0;
 
-        // Get child progress
-        const progress = child.child_progress?.[0] || { xp: 0, level: 1, total_sessions_attended: 0, streak_days: 0 };
+        // Get child progress and completion
+        const progress = child.child_progress?.[0] || { 
+            xp: 0, 
+            level: 1, 
+            total_sessions_attended: 0, 
+            streak_days: 0,
+            completed_quran_parts: [] 
+        };
+
+        const totalCompletedParts = progress.completed_quran_parts?.length || 0;
+        const completionRate = Math.round((totalCompletedParts / 450) * 100);
 
         // Calculate total active days (all time)
-        const totalActiveDays = await ChildActivity.countDocuments({ child_id: childId });
+        const totalActiveDays = await ChildActivity.countDocuments({ child_id: child._id });
 
         res.json({
             stats: {
@@ -70,7 +79,8 @@ export const getDashboardStats = async (req, res) => {
                 totalRevisions: totalRevisions,
                 attendanceRate: Math.round((weeklyActivity.length / 7) * 100),
                 streak: progress.streak_days || 0,
-                activeDays: totalActiveDays
+                activeDays: totalActiveDays,
+                completionRate: completionRate
             },
             timeThisWeek: {
                 total: `${Math.floor(totalMinutes / 60)}h ${totalMinutes % 60}m`,
@@ -281,6 +291,33 @@ export const logActivity = async (req, res) => {
         res.json(activity);
     } catch (error) {
         console.error("Log activity error:", error);
+        res.status(500).json({ message: "Server error" });
+    }
+};
+
+/**
+ * Bulk update Quran subpart completions for a child.
+ * POST /api/parent/completion/:childId
+ */
+export const bulkUpdateCompletion = async (req, res) => {
+    try {
+        const { childId } = req.params;
+        const { parts } = req.body; // Array of strings like ["J1P1", "J1P2"]
+        const child = req.child;
+
+        if (!Array.isArray(parts)) {
+            return res.status(400).json({ message: "Invalid parts data" });
+        }
+
+        // Update the child's progress (index 0)
+        await Child.updateOne(
+            { _id: child._id, "child_progress.0": { $exists: true } },
+            { $set: { "child_progress.0.completed_quran_parts": parts } }
+        );
+
+        res.json({ message: "Progress updated successfully", count: parts.length });
+    } catch (error) {
+        console.error("Bulk update error:", error);
         res.status(500).json({ message: "Server error" });
     }
 };

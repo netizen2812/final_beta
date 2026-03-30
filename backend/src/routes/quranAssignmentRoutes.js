@@ -6,10 +6,11 @@ import {
     markCompleted,
     batchCreateAssignments,
     getRevisionText,
-    completeRevision
+    completeRevision,
+    getBatchAssignmentsStatus
 } from "../controller/QuranAssignmentController.js";
 
-import { requireAuth, isScholar } from "../middleware/authmiddleware.js";
+import { requireAuth, isScholar, isParentOfChild } from "../middleware/authmiddleware.js";
 
 const router = express.Router();
 
@@ -20,6 +21,7 @@ router.use(requireAuth);
 router.post("/assign", isScholar, createAssignment);
 router.post("/batch-assign", isScholar, batchCreateAssignments);
 router.patch("/:assignmentId/complete", isScholar, markCompleted);
+router.get("/batch/:batchId", isScholar, getBatchAssignmentsStatus); 
 
 // Student/Child routes (Requires Auth, but parents/children can access)
 router.get("/child/:childId/active", getActiveAssignment);

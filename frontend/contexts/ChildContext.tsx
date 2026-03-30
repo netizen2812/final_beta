@@ -125,7 +125,7 @@ export const ChildProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       const prog = c.child_progress?.[0] || { xp: 0, total_xp: 0, level: 1, lessons_completed: 0 };
       const currentXp = prog.total_xp !== undefined ? prog.total_xp : (prog.xp || 0);
       const newXp = currentXp + xpGain;
-      const newLevel = Math.floor(newXp / 1000) + 1;
+      const newLevel = Math.floor(newXp / 100) + 1;
 
       return {
         ...c,
@@ -155,7 +155,7 @@ export const ChildProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       const prog = child?.child_progress?.[0] || { xp: 0, total_xp: 0, level: 1 };
       const currentXp = prog.total_xp !== undefined ? prog.total_xp : (prog.xp || 0);
       const newXp = currentXp + xpGain;
-      const newLevel = Math.floor(newXp / 1000) + 1;
+      const newLevel = Math.floor(newXp / 100) + 1;
 
       await childService.updateProgress(childId, { xp: newXp, level: newLevel, lessons_completed: undefined } as any, getToken);
     } catch (error) {

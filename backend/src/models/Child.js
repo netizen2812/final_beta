@@ -35,7 +35,11 @@ const childProgressSchema = new mongoose.Schema({
         date: { type: Date, default: Date.now },
         status: { type: String, enum: ['present', 'absent', 'late'], default: 'present' },
         type: { type: String } // e.g. 'session_complete'
-    }]
+    }],
+    completed_quran_parts: {
+        type: [String],
+        default: [],
+    }
 });
 
 const childSchema = new mongoose.Schema(

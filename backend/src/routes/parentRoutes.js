@@ -6,6 +6,7 @@ import {
     getBadges,
     getReportCard,
     logActivity,
+    bulkUpdateCompletion,
 } from "../controller/parentController.js";
 import { requireAuth, isParentOfChild } from "../middleware/authmiddleware.js";
 
@@ -18,5 +19,6 @@ router.put("/settings/:childId", requireAuth, isParentOfChild, updateSettings);
 router.get("/badges/:childId", requireAuth, isParentOfChild, getBadges);
 router.get("/report/:childId", requireAuth, isParentOfChild, getReportCard);
 router.post("/activity/:childId", requireAuth, isParentOfChild, logActivity);
+router.post("/completion/:childId", requireAuth, isParentOfChild, bulkUpdateCompletion);
 
 export default router;

@@ -3,9 +3,13 @@ import {
   BookOpen, Heart, Sun, Cloud, Play, Lock, Sprout, Star, 
   Trophy, Flame, Target, User, Settings, Clock, CheckCircle, 
   TrendingUp, Moon, Sparkles, Leaf, Book,
-  ChevronLeft, BarChart2, Calendar, Download, Share2, Users, ChevronDown, ShieldCheck, Loader2, Crown, ChevronRight, XCircle
+  ChevronLeft, BarChart2, Calendar, Download, Share2, Users, ChevronDown, ShieldCheck, Loader2, Crown, ChevronRight, XCircle,
+  Activity, Users2, PieChart as PieChartIcon
 } from 'lucide-react';
-import { PieChart, Pie, Cell, ResponsiveContainer, BarChart, Bar, XAxis, Tooltip as RechartsTooltip } from 'recharts';
+import { 
+  PieChart, Pie, Cell, ResponsiveContainer, BarChart, Bar, XAxis, YAxis, CartesianGrid, 
+  Tooltip as RechartsTooltip 
+} from 'recharts';
 import { useChildContext } from '../contexts/ChildContext';
 import axios from 'axios';
 import { useTranslation } from 'react-i18next';
@@ -435,7 +439,7 @@ const KidsView = ({ scrollProgress, activeChild, onJoinLive, currentBatchStatus,
               <div className="relative pt-1">
                 <div className="flex mb-2 items-center justify-between"><span className="text-xs font-bold inline-block text-emerald-300 tracking-wider">{progress?.total_xp || 0} XP</span></div>
                 <div className="overflow-hidden h-4 mb-4 text-xs flex rounded-full bg-black/40 border border-white/5">
-                  <div style={{ width: `${Math.min(((progress?.total_xp || 0) % 1000) / 10, 100)}%` }} className="shadow-none flex flex-col text-center whitespace-nowrap text-white justify-center bg-gradient-to-r from-emerald-500 via-teal-400 to-emerald-300 transition-all duration-1000 relative overflow-hidden">
+                  <div style={{ width: `${(progress?.total_xp || 0) % 100}%` }} className="shadow-none flex flex-col text-center whitespace-nowrap text-white justify-center bg-gradient-to-r from-emerald-500 via-teal-400 to-emerald-300 transition-all duration-1000 relative overflow-hidden">
                     <div className="absolute inset-0 bg-white/30 w-full" style={{animation: 'shimmer 2s infinite'}}></div>
                   </div>
                 </div>
@@ -680,31 +684,337 @@ const ScholarDashboardView = ({ batches, onJoinSession, setShowScholarManage }: 
 const ParentsView = ({ activeChild, getToken }: any) => {
   const [dashboardData, setDashboardData] = useState<any>(null);
   const [globalLeaderboard, setGlobalLeaderboard] = useState<any[]>([]);
+  const [showSetupModal, setShowSetupModal] = useState(false);
+
+  const fetchData = async () => {
+    if (!activeChild?.id) return;
+    try {
+      const token = await getToken();
+      const [dash, board] = await Promise.all([
+        axios.get(`${API_BASE}/api/parent/dashboard/${activeChild.id}`, { headers: { Authorization: `Bearer ${token}` } }),
+        axios.get(`${API_BASE}/api/live/global-leaderboard`, { headers: { Authorization: `Bearer ${token}` } })
+      ]);
+      setDashboardData(dash.data);
+      setGlobalLeaderboard(board.data.leaderboard || []);
+    } catch (err) {}
+  };
+
   useEffect(() => {
-    const fetchData = async () => {
-      if (!activeChild?.id) return;
-      try {
-        const token = await getToken();
-        const [dash, board] = await Promise.all([
-          axios.get(`${API_BASE}/api/parent/dashboard/${activeChild.id}`, { headers: { Authorization: `Bearer ${token}` } }),
-          axios.get(`${API_BASE}/api/live/global-leaderboard`, { headers: { Authorization: `Bearer ${token}` } })
-        ]);
-        setDashboardData(dash.data);
-        setGlobalLeaderboard(board.data.leaderboard || []);
-      } catch (err) {}
-    };
     fetchData();
   }, [activeChild, getToken]);
 
+  const completionRate = dashboardData?.stats?.completionRate || 0;
+  
+  const pieData = [
+    { name: 'Completed', value: completionRate, color: '#10b981' },
+    { name: 'Remaining', value: 100 - completionRate, color: 'rgba(255,255,255,0.05)' }
+  ];
+
   return (
     <div className="pt-32 pb-20 px-4 md:px-8 max-w-6xl mx-auto relative z-10">
-       <h1 className="text-4xl md:text-5xl font-serif font-bold text-white mb-2">{activeChild?.name || 'Child'}'s Progress</h1>
-       <p className="text-emerald-200 mb-8 text-lg">Monitor growth, set limits, and explore curriculum.</p>
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-10">
-           <div className="bg-white/5 p-6 rounded-3xl border border-white/10 text-center"><div className="text-3xl font-bold text-white mb-2">{dashboardData?.stats?.totalRevisions || 0}</div><div className="text-emerald-400 text-xs font-bold uppercase tracking-widest">Revisions</div></div>
-           <div className="bg-white/5 p-6 rounded-3xl border border-white/10 text-center"><div className="text-3xl font-bold text-white mb-2">{dashboardData?.stats?.averageAccuracy || 0}%</div><div className="text-blue-400 text-xs font-bold uppercase tracking-widest">Avg. Accuracy</div></div>
-           <div className="bg-white/5 p-6 rounded-3xl border border-white/10 text-center"><div className="text-3xl font-bold text-white mb-2">{dashboardData?.stats?.attendanceRate || 0}%</div><div className="text-amber-500 text-xs font-bold uppercase tracking-widest">Attendance</div></div>
+       {/* SVG Filter for Glowing Effect */}
+       <svg width="0" height="0" className="absolute">
+         <defs>
+           <filter id="glow">
+             <feGaussianBlur stdDeviation="3" result="coloredBlur" />
+             <feMerge>
+               <feMergeNode in="coloredBlur" />
+               <feMergeNode in="SourceGraphic" />
+             </feMerge>
+           </filter>
+         </defs>
+       </svg>
+
+       <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 mb-12">
+          <div>
+            <h1 className="text-4xl md:text-5xl font-serif font-bold text-white mb-2">{activeChild?.name || 'Child'}'s Progress</h1>
+            <p className="text-emerald-200 text-lg opacity-80">Monitor growth, set limits, and explore curriculum.</p>
+          </div>
+          <button 
+            onClick={() => setShowSetupModal(true)}
+            className="bg-white/10 hover:bg-white/20 text-white px-8 py-4 rounded-2xl border border-white/20 font-bold flex items-center gap-3 transition-all active:scale-95 group shadow-xl"
+          >
+            <Settings className="text-emerald-400 group-hover:rotate-90 transition-transform duration-500" size={20} />
+            Setup Quran Progress
+          </button>
+       </div>
+
+       {/* KEY STATS */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-12">
+           <div className="bg-white/5 backdrop-blur-md p-8 rounded-[2rem] border border-white/10 shadow-2xl relative overflow-hidden group">
+              <div className="absolute top-0 right-0 w-24 h-24 bg-emerald-500/5 rounded-full blur-3xl -mr-8 -mt-8" />
+              <div className="text-emerald-400 text-xs font-black uppercase tracking-[0.2em] mb-4 flex items-center gap-2">
+                <Trophy size={14} /> Total XP
+              </div>
+              <div className="text-5xl font-black text-white mb-2">{dashboardData?.stats?.currentXP || 0}</div>
+              <div className="text-emerald-200/50 text-xs font-medium italic">Level {dashboardData?.stats?.currentLevel || 1} Achieved</div>
+           </div>
+
+           <div className="bg-white/5 backdrop-blur-md p-8 rounded-[2rem] border border-white/10 shadow-2xl relative overflow-hidden group">
+              <div className="absolute top-0 right-0 w-24 h-24 bg-blue-500/5 rounded-full blur-3xl -mr-8 -mt-8" />
+              <div className="text-blue-400 text-xs font-black uppercase tracking-[0.2em] mb-4 flex items-center gap-2">
+                <Target size={14} /> Avg. Accuracy
+              </div>
+              <div className="text-5xl font-black text-white mb-2">{dashboardData?.stats?.averageAccuracy || 0}%</div>
+              <div className="text-blue-200/50 text-xs font-medium italic">Based on last 10 practice sessions</div>
+           </div>
+
+           <div className="bg-white/5 backdrop-blur-md p-8 rounded-[2rem] border border-white/10 shadow-2xl relative overflow-hidden group">
+              <div className="absolute top-0 right-0 w-24 h-24 bg-amber-500/5 rounded-full blur-3xl -mr-8 -mt-8" />
+              <div className="text-amber-500 text-xs font-black uppercase tracking-[0.2em] mb-4 flex items-center gap-2">
+                <Activity size={14} /> Attendance
+              </div>
+              <div className="text-5xl font-black text-white mb-2">{dashboardData?.stats?.attendanceRate || 0}%</div>
+              <div className="text-amber-200/50 text-xs font-medium italic">{dashboardData?.stats?.streak || 0} Day Current Streak</div>
+           </div>
         </div>
+
+        {/* VISUAL ANALYTICS */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-12">
+           {/* GLOWING PIE CHART */}
+           <div className="bg-white/5 backdrop-blur-md p-8 rounded-[2.5rem] border border-white/10 shadow-2xl">
+              <div className="flex items-center justify-between mb-8">
+                <h3 className="font-serif text-2xl font-bold text-white flex items-center gap-3">
+                   <div className="p-2 bg-emerald-500/10 rounded-xl"><PieChartIcon className="text-emerald-400" size={20} /></div>
+                   Quran Completion
+                </h3>
+                <div className="bg-emerald-500/20 text-emerald-300 px-4 py-1.5 rounded-full text-sm font-bold border border-emerald-500/30">
+                  {completionRate}% Complete
+                </div>
+              </div>
+              
+              <div className="h-64 relative">
+                <ResponsiveContainer width="100%" height="100%">
+                  <PieChart>
+                    <Pie
+                      data={pieData}
+                      cx="50%"
+                      cy="50%"
+                      innerRadius={80}
+                      outerRadius={100}
+                      paddingAngle={0}
+                      dataKey="value"
+                      stroke="none"
+                    >
+                      {pieData.map((entry, index) => (
+                        <Cell 
+                          key={`cell-${index}`} 
+                          fill={entry.color} 
+                          filter={index === 0 ? 'url(#glow)' : 'none'}
+                          style={{ transition: 'all 1s ease' }}
+                        />
+                      ))}
+                    </Pie>
+                  </PieChart>
+                </ResponsiveContainer>
+                <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
+                   <div className="text-4xl font-black text-white">{completionRate}%</div>
+                   <div className="text-[10px] font-bold text-emerald-400/60 uppercase tracking-widest mt-1">Overall Progress</div>
+                </div>
+              </div>
+              <div className="mt-8 pt-6 border-t border-white/5 grid grid-cols-2 gap-4">
+                 <div className="bg-black/20 p-4 rounded-2xl border border-white/5">
+                    <div className="text-2xl font-bold text-white">{(completionRate / 100 * 30).toFixed(1)}</div>
+                    <div className="text-[10px] font-bold text-emerald-400 uppercase tracking-wider">Juz Completed</div>
+                 </div>
+                 <div className="bg-black/20 p-4 rounded-2xl border border-white/5">
+                    <div className="text-2xl font-bold text-white">{(completionRate / 100 * 450).toFixed(0)}</div>
+                    <div className="text-[10px] font-bold text-emerald-400 uppercase tracking-wider">Parts Mastered</div>
+                 </div>
+              </div>
+           </div>
+
+           {/* WEEKLY ACTIVITY BAR CHART */}
+           <div className="bg-white/5 backdrop-blur-md p-8 rounded-[2.5rem] border border-white/10 shadow-2xl">
+              <div className="flex items-center justify-between mb-8">
+                <h3 className="font-serif text-2xl font-bold text-white flex items-center gap-3">
+                   <div className="p-2 bg-indigo-500/10 rounded-xl"><TrendingUp className="text-indigo-400" size={20} /></div>
+                   Engagement
+                </h3>
+                <div className="text-indigo-200/50 text-xs font-medium">Last 7 Days</div>
+              </div>
+              <div className="h-64">
+                <ResponsiveContainer width="100%" height="100%">
+                  <BarChart data={dashboardData?.weeklyActivity || []}>
+                    <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="rgba(255,255,255,0.05)" />
+                    <XAxis 
+                      dataKey="day" 
+                      axisLine={false} 
+                      tickLine={false} 
+                      tick={{fill: 'rgba(255,255,255,0.4)', fontSize: 12, fontWeight: 'bold'}} 
+                      dy={10}
+                    />
+                    <YAxis 
+                      axisLine={false} 
+                      tickLine={false} 
+                      tick={{fill: 'rgba(255,255,255,0.2)', fontSize: 10}} 
+                    />
+                    <RechartsTooltip 
+                      cursor={{fill: 'rgba(255,255,255,0.05)'}}
+                      contentStyle={{
+                        backgroundColor: '#052e16',
+                        borderRadius: '16px',
+                        border: '1px solid rgba(16,185,129,0.3)',
+                        boxShadow: '0 10px 30px rgba(0,0,0,0.5)',
+                        color: 'white'
+                      }}
+                    />
+                    <Bar 
+                      dataKey="min" 
+                      fill="url(#barGradient)" 
+                      radius={[6, 6, 0, 0]} 
+                      barSize={30}
+                    >
+                      <defs>
+                        <linearGradient id="barGradient" x1="0" y1="0" x2="0" y2="1">
+                          <stop offset="0%" stopColor="#10b981" />
+                          <stop offset="100%" stopColor="#6366f1" />
+                        </linearGradient>
+                      </defs>
+                    </Bar>
+                  </BarChart>
+                </ResponsiveContainer>
+              </div>
+              <div className="mt-8 flex items-center gap-4 bg-indigo-500/10 p-5 rounded-2xl border border-indigo-500/20">
+                 <div className="bg-indigo-500/20 p-2.5 rounded-xl"><Clock className="text-indigo-400" size={18} /></div>
+                 <div>
+                    <div className="text-sm font-bold text-white">Total Engagement Time</div>
+                    <div className="text-xl font-black text-indigo-300">{dashboardData?.timeThisWeek?.total || "0h 0m"}</div>
+                 </div>
+              </div>
+           </div>
+        </div>
+
+        {/* SETUP QURAN PROGRESS MODAL */}
+        {showSetupModal && (
+          <SetupQuranProgress 
+            childId={activeChild?.id} 
+            getToken={getToken} 
+            onClose={() => setShowSetupModal(false)}
+            onSuccess={() => { setShowSetupModal(false); fetchData(); }}
+            initialParts={dashboardData?.stats?.completed_quran_parts || []}
+          />
+        )}
+    </div>
+  );
+};
+
+const SetupQuranProgress = ({ childId, getToken, onClose, onSuccess, initialParts = [] }: any) => {
+  const [selectedJuz, setSelectedJuz] = useState(1);
+  const [completedParts, setCompletedParts] = useState<string[]>(initialParts);
+  const [saving, setSaving] = useState(false);
+
+  const togglePart = (part: string) => {
+    setCompletedParts(prev => 
+      prev.includes(part) ? prev.filter(p => p !== part) : [...prev, part]
+    );
+  };
+
+  const toggleJuz = (j: number) => {
+    const juzParts = [...Array(15)].map((_, i) => `J${j}P${i + 1}`);
+    const allSet = juzParts.every(p => completedParts.includes(p));
+    if (allSet) {
+      setCompletedParts(prev => prev.filter(p => !juzParts.includes(p)));
+    } else {
+      setCompletedParts(prev => [...new Set([...prev, ...juzParts])]);
+    }
+  };
+
+  const handleSave = async () => {
+    setSaving(true);
+    try {
+      const token = await getToken();
+      await axios.post(`${API_BASE}/api/parent/completion/${childId}`, 
+        { parts: completedParts },
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+      onSuccess();
+    } catch (err) {
+      alert("Failed to save progress");
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  return (
+    <div className="fixed inset-0 z-[150] bg-black/80 backdrop-blur-xl flex items-center justify-center p-4">
+       <div className="bg-[#022c22] border border-emerald-500/30 rounded-[3rem] w-full max-w-4xl max-h-[90vh] overflow-hidden flex flex-col shadow-2xl relative">
+          <div className="p-8 border-b border-white/5 bg-emerald-950/50 flex justify-between items-center">
+             <div>
+                <h3 className="text-3xl font-serif font-bold text-white">Quran Progress Setup</h3>
+                <p className="text-emerald-200/60 text-sm mt-1">Mark the parts your child has already completed in the past.</p>
+             </div>
+             <div className="bg-emerald-500/20 text-emerald-400 px-6 py-2 rounded-xl border border-emerald-500/30 font-black">
+                {completedParts.length} / 450 Parts Done
+             </div>
+          </div>
+          
+          <div className="flex-1 flex overflow-hidden">
+             {/* Juz Selector */}
+             <div className="w-1/4 overflow-y-auto border-r border-white/5 p-4 space-y-2 custom-scrollbar">
+                {[...Array(30)].map((_, i) => {
+                   const j = i + 1;
+                   const juzParts = [...Array(15)].map((_, pi) => `J${j}P${pi + 1}`);
+                   const doneCount = juzParts.filter(p => completedParts.includes(p)).length;
+                   return (
+                      <button 
+                        key={j}
+                        onClick={() => setSelectedJuz(j)}
+                        className={`w-full p-4 rounded-3xl transition-all border flex flex-col gap-1 items-start relative overflow-hidden group ${selectedJuz === j ? 'bg-emerald-600 border-white/20 text-white shadow-lg scale-95' : 'bg-white/5 border-white/5 text-emerald-100 hover:bg-white/10'}`}
+                      >
+                         <div className="flex items-center justify-between w-full">
+                            <span className="font-bold">Juz {j}</span>
+                            {doneCount === 15 && <CheckCircle size={14} className="text-white" />}
+                         </div>
+                         <div className="text-[10px] opacity-60 font-black">{doneCount}/15 Parts</div>
+                         {doneCount > 0 && doneCount < 15 && (
+                           <div className="absolute bottom-0 left-0 h-1 bg-white/20" style={{width: `${(doneCount/15)*100}%`}}></div>
+                         )}
+                      </button>
+                   );
+                })}
+             </div>
+
+             {/* Subparts Selector */}
+             <div className="flex-1 overflow-y-auto p-8 custom-scrollbar bg-black/20">
+                <div className="flex justify-between items-center mb-8">
+                   <h4 className="text-2xl font-bold text-white">Juz {selectedJuz} Subparts</h4>
+                   <button 
+                    onClick={() => toggleJuz(selectedJuz)}
+                    className="text-xs font-black uppercase tracking-widest bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-400 px-4 py-2 rounded-xl transition-all border border-emerald-500/20"
+                   >
+                     Toggle Entire Juz
+                   </button>
+                </div>
+                <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+                   {[...Array(15)].map((_, i) => {
+                      const partCode = `J${selectedJuz}P${i + 1}`;
+                      const isDone = completedParts.includes(partCode);
+                      return (
+                        <button 
+                          key={partCode}
+                          onClick={() => togglePart(partCode)}
+                          className={`p-6 rounded-[2rem] border transition-all text-left flex flex-col gap-2 relative group ${isDone ? 'bg-emerald-500 border-emerald-400 text-[#022c22] shadow-lg' : 'bg-white/5 border-white/5 text-emerald-100 hover:bg-white/10'}`}
+                        >
+                           <div className="text-[10px] font-black uppercase tracking-widest opacity-60">Part {i+1}</div>
+                           <div className="font-bold flex justify-between items-center">
+                              {isDone ? 'COMPLETED' : 'PENDING'}
+                              {isDone ? <CheckCircle size={18} fill="currentColor" opacity="0.4" /> : <div className="w-5 h-5 rounded-full border border-white/20" />}
+                           </div>
+                        </button>
+                      );
+                   })}
+                </div>
+             </div>
+          </div>
+
+          <div className="p-8 border-t border-white/5 flex gap-4 bg-emerald-950/20">
+             <button onClick={onClose} className="flex-1 bg-white/5 hover:bg-white/10 text-white font-bold py-4 rounded-2xl border border-white/10 transition-all">Cancel</button>
+             <button onClick={handleSave} disabled={saving} className="flex-[2] bg-emerald-500 hover:bg-emerald-400 text-[#022c22] font-black py-4 rounded-2xl shadow-xl transition-all disabled:opacity-50">
+               {saving ? 'UPDATING PROGRESS...' : 'SAVE QURANIC JOURNEY'}
+             </button>
+          </div>
+       </div>
     </div>
   );
 };

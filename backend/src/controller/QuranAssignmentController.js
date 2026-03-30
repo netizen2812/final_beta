@@ -150,7 +150,38 @@ export const markCompleted = async (req, res) => {
         assignment.status = 'completed';
         assignment.completedAt = new Date();
         await assignment.save();
+
+        // Sync with Child's completed_quran_parts
+        const { default: Child } = await import("../models/Child.js");
+        const partCode = `J${assignment.juz}P${assignment.subpart}`;
+        
+        await Child.updateOne(
+            { _id: assignment.studentId, "child_progress.0": { $exists: true } },
+            { $addToSet: { "child_progress.0.completed_quran_parts": partCode } }
+        );
+
         res.status(200).json(assignment);
+    } catch (error) {
+        res.status(500).json({ message: error.message });
+    }
+};
+
+/**
+ * Get all active assignments for students in a batch (for Scholar tracking).
+ */
+export const getBatchAssignmentsStatus = async (req, res) => {
+    try {
+        const { batchId } = req.params;
+        const { default: Batch } = await import("../models/Batch.js");
+        const batch = await Batch.findById(batchId);
+        if (!batch) return res.status(404).json({ message: "Batch not found" });
+
+        const assignments = await QuranAssignment.find({
+            studentId: { $in: batch.students },
+            status: { $ne: 'completed' }
+        }).populate('studentId', 'name');
+
+        res.status(200).json(assignments);
     } catch (error) {
         res.status(500).json({ message: error.message });
     }

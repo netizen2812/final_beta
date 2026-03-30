@@ -217,6 +217,7 @@ export const TarbiyahLobby = ({
                 batches={scholarBatches} 
                 onJoinSession={(batch: any) => { setTargetBatchId(batch._id); setView('scholar_journey'); }} 
                 attendedSessionIds={attendedSessionIds}
+                setShowScholarManage={setShowScholarManage}
               />
             )
           ) : (

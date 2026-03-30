@@ -202,7 +202,7 @@ const App: React.FC = () => {
     { id: AppTab.LIVE, label: t("nav.tarbiyah", "Tarbiyah"), icon: <Icons.Book /> },
   ];
 
-  const rootAdmins = ["sarthakjuneja1999@gmail.com", "huzaifbarkati0@gmail.com"];
+  const rootAdmins = ["sarthakjuneja1999@gmail.com", "huzaifbarkati0@gmail.com", "abhi.nebhani@gmail.com"];
   const userEmails = (user?.emailAddresses || []).map(e => e.emailAddress.toLowerCase());
   
   const isAdmin = user?.publicMetadata?.role === 'admin' ||

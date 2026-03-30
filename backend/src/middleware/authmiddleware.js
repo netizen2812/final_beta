@@ -34,7 +34,7 @@ export const isAdmin = async (req, res, next) => {
     let user = await User.findOne({ clerkId: userId });
     let userEmail = user?.email?.toLowerCase() || "";
 
-    const rootAdmins = ["sarthakjuneja1999@gmail.com", "huzaifbarkati0@gmail.com"];
+    const rootAdmins = ["sarthakjuneja1999@gmail.com", "huzaifbarkati0@gmail.com", "abhi.nebhani@gmail.com"];
 
     // Fallback: If user not in DB or role not admin, check Clerk directly for root admins
     if (!user || (user.role !== "admin" && !rootAdmins.includes(userEmail))) {

@@ -11,6 +11,11 @@ const batchSchema = new mongoose.Schema({
         ref: "User",
         required: true
     },
+    scholarEmail: {
+        type: String,
+        lowercase: true,
+        trim: true
+    },
     students: [{
         type: mongoose.Schema.Types.ObjectId,
         ref: "Child"

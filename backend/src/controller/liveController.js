@@ -58,7 +58,7 @@ export const getSession = async (req, res) => {
 // ADMIN: POST /api/live/admin/batch - Create new batch
 export const createBatch = async (req, res) => {
     try {
-        const { name, schedule, scholar, level, status } = req.body;
+        let { name, schedule, scholar, level, status } = req.body;
 
         // Basic validation
         if (!name || !scholar) {
@@ -66,6 +66,16 @@ export const createBatch = async (req, res) => {
         }
 
         const { default: Batch } = await import("../models/Batch.js");
+
+        // --- RESOLVE SCHOLAR EMAIL TO ID ---
+        if (typeof scholar === 'string' && scholar.includes('@')) {
+            const resolvedScholar = await User.findOne({ email: scholar.toLowerCase() });
+            if (resolvedScholar) {
+                scholar = resolvedScholar._id;
+            } else {
+                return res.status(404).json({ message: `Scholar with email ${scholar} not found` });
+            }
+        }
 
         const batch = await Batch.create({
             name,
@@ -102,6 +112,14 @@ export const updateBatch = async (req, res) => {
         const { id } = req.params;
         const updates = req.body;
         const { default: Batch } = await import("../models/Batch.js");
+
+        // --- RESOLVE SCHOLAR EMAIL TO ID IN UPDATES ---
+        if (updates.scholar && typeof updates.scholar === 'string' && updates.scholar.includes('@')) {
+            const resolvedScholar = await User.findOne({ email: updates.scholar.toLowerCase() });
+            if (resolvedScholar) {
+                updates.scholar = resolvedScholar._id;
+            }
+        }
 
         const batch = await Batch.findByIdAndUpdate(id, { $set: updates }, { new: true });
         if (!batch) return res.status(404).json({ message: "Batch not found" });
@@ -308,10 +326,14 @@ export const getMySessions = async (req, res) => {
         const { default: Batch } = await import("../models/Batch.js");
         let batches = [];
 
-        if (user.role === 'scholar') {
+        if (user.role === 'scholar' || user.role === 'admin') {
             // Scholar: Find batches assigned to them
+            // Fallback: If scholar ID is not used, could look by email string but preferred to resolve on creation
             batches = await Batch.find({
-                scholar: user._id,
+                $or: [
+                    { scholar: user._id },
+                    { scholarEmail: user.email } // Add email search if admin stores email (optional fallback)
+                ],
                 status: { $ne: 'archived' }
             }).sort({ createdAt: -1 });
 

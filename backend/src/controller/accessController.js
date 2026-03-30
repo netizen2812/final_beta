@@ -34,7 +34,11 @@ export const getAccessStatus = async (req, res) => {
         const userId = req.auth.userId;
         const user = await User.findOne({ clerkId: userId });
 
-        const hasAccess = user?.features?.liveAccess || false;
+        const rootAdmins = ["sarthakjuneja1999@gmail.com", "huzaifbarkati0@gmail.com", "abhi.nebhani@gmail.com"];
+        const userEmail = user?.email?.toLowerCase() || "";
+        const isRootAdmin = rootAdmins.includes(userEmail);
+
+        const hasAccess = user?.features?.liveAccess || isRootAdmin || false;
         const pendingReq = await AccessRequest.findOne({ userId, status: "pending" });
 
         res.json({

@@ -100,7 +100,8 @@ const LiveClassRoom: React.FC = () => {
     const email = user?.primaryEmailAddress?.emailAddress?.toLowerCase();
 
     // Dynamic Role Check (Dashboard assigned) OR Hardcoded Fallback
-    const isScholar = role === 'scholar' || role === 'admin' || email === "scholar1.imam@gmail.com" || email === "abhi.nebhani@gmail.com";
+    const isScholar = role === 'scholar' || role === 'admin' || 
+                      ["scholar1.imam@gmail.com", "sarthakjuneja1999@gmail.com", "huzaifbarkati0@gmail.com", "abhi.nebhani@gmail.com"].includes(email || "");
 
     if (isScholar) {
       setUserRole('scholar');

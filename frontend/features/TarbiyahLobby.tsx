@@ -234,6 +234,7 @@ export const TarbiyahLobby = ({
                 setShowJoinChoice={setShowJoinChoice}
                 attendedSessionIds={attendedSessionIds}
                 childrenList={childrenList}
+                userRole={userRole}
               />
             ) : (
               <ParentsView activeChild={activeChild} batches={batches} getToken={getToken} />
@@ -340,7 +341,7 @@ export const TarbiyahLobby = ({
   );
 };
 
-const KidsView = ({ scrollProgress, activeChild, onJoinLive, currentBatchStatus, batches, accessStatus, getToken, setShowQuranPractice, setShowJoinChoice, attendedSessionIds = [], childrenList = [] }: any) => {
+const KidsView = ({ scrollProgress, activeChild, onJoinLive, currentBatchStatus, batches, accessStatus, getToken, setShowQuranPractice, setShowJoinChoice, attendedSessionIds = [], childrenList = [], userRole = 'parent' }: any) => {
   const [isLoading, setIsLoading] = useState(false);
   const progress = activeChild?.child_progress?.[0];
   const activeBatch = batches && batches.length > 0 ? batches[0] : null;
@@ -359,7 +360,7 @@ const KidsView = ({ scrollProgress, activeChild, onJoinLive, currentBatchStatus,
   // Classes passed is number of ALREADY ENDED sessions
   const totalClassesPassed = pastSessions.filter((s: any) => !!s.endedAt).length;
   
-  const hasPremium = accessStatus?.hasAccess || (batches && batches.length > 0);
+  const hasPremium = accessStatus?.hasAccess || (batches && batches.length > 0) || userRole === 'scholar';
 
   // WINDOWED JOURNEY LOGIC:
   // Instead of always showing index 0..29, we show a 30-node window.
@@ -382,7 +383,9 @@ const KidsView = ({ scrollProgress, activeChild, onJoinLive, currentBatchStatus,
   const fillPercentage = Math.min(currentDraw, maxPercentage || 0);
 
   // Entry Guard: If not paid OR (is paid but no child profile exists)
-  if (!hasPremium || (accessStatus?.hasAccess && (!childrenList || childrenList.length === 0))) {
+  // Admins skip this block if they have the 'scholar' (which includes admin) userRole
+  const isAdminOrScholar = userRole === 'scholar';
+  if (!isAdminOrScholar && (!hasPremium || (accessStatus?.hasAccess && (!childrenList || childrenList.length === 0)))) {
     return <TarbiyahOnboarding getToken={getToken} isPaid={accessStatus?.hasAccess} />;
   }
 

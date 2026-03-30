@@ -103,7 +103,8 @@ const LiveClassRoom: React.FC = () => {
     const isScholarOnly = email === "scholar1.imam@gmail.com";
     const isRootAdmin = ["sarthakjuneja1999@gmail.com", "huzaifbarkati0@gmail.com", "abhi.nebhani@gmail.com"].includes(email || "");
     const isAdminRole = role === 'admin' || isRootAdmin;
-    const isScholarRole = role === 'scholar' || isScholarOnly;
+    // Admins are effectively scholars for data sync purposes
+    const isScholarRole = role === 'scholar' || isScholarOnly || isAdminRole;
 
     if (isScholarRole) {
       setUserRole('scholar');
@@ -123,7 +124,7 @@ const LiveClassRoom: React.FC = () => {
 
   // Fetch Scholar's Batches (Once on mount)
   useEffect(() => {
-    if (userRole !== 'scholar') return;
+    if (userRole !== 'scholar' && !tarbiyahIsAdmin) return;
     const fetchBatches = async () => {
       try {
         const token = await getToken();
@@ -141,7 +142,7 @@ const LiveClassRoom: React.FC = () => {
     // Poll every 10s for new batches
     const interval = setInterval(fetchBatches, 3000); // Faster polling for scholar sync
     return () => clearInterval(interval);
-  }, [userRole, getToken]);
+  }, [userRole, getToken, tarbiyahIsAdmin]);
 
   useEffect(() => {
     if (userRole !== 'scholar' || !currentSession?.batchId) return;

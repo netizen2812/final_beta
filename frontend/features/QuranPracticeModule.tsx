@@ -95,7 +95,6 @@ const QuranPracticeModule: React.FC<QuranPracticeModuleProps> = ({
 
     const handleFinish = async () => {
         const finalScore = Math.round((score / questions.length) * 100);
-        setStep('RESULT');
         try {
             const token = await getToken();
             const res = await axios.patch(`${API_BASE}/api/quran/assignments/${assignment._id}/progress`, {
@@ -106,16 +105,15 @@ const QuranPracticeModule: React.FC<QuranPracticeModuleProps> = ({
                 headers: { Authorization: `Bearer ${token}` }
             });
             
-            if (res.data.xpAwarded) {
-                setXpAwarded(res.data.xpAwarded);
-                if (triggerRewardAnimation) {
-                    triggerRewardAnimation(res.data.xpAwarded);
-                }
+            if (res.data.xpAwarded && triggerRewardAnimation) {
+                triggerRewardAnimation(res.data.xpAwarded);
             }
 
             if (onComplete) onComplete(finalScore);
+            if (onClose) onClose();
         } catch (err) {
             console.error("Failed to save progress", err);
+            if (onClose) onClose();
         }
     };
 
@@ -129,21 +127,19 @@ const QuranPracticeModule: React.FC<QuranPracticeModuleProps> = ({
                 headers: { Authorization: `Bearer ${token}` }
             });
 
-            if (res.data.xpAwarded) {
-                setXpAwarded(res.data.xpAwarded);
-                if (triggerRewardAnimation) {
-                    triggerRewardAnimation(res.data.xpAwarded);
-                }
+            if (res.data.xpAwarded && triggerRewardAnimation) {
+                triggerRewardAnimation(res.data.xpAwarded);
             }
 
             if (initialMode === 'REVISE') {
-                setStep('RESULT');
+                if (onClose) onClose();
             } else {
                 setStep('PRACTICE');
             }
         } catch (err) {
             console.error("Failed to complete revision", err);
-            setStep('PRACTICE'); // Move to practice anyway
+            if (initialMode === 'REVISE' && onClose) onClose();
+            else setStep('PRACTICE');
         }
     };
 
@@ -159,43 +155,7 @@ const QuranPracticeModule: React.FC<QuranPracticeModuleProps> = ({
         );
     }
 
-    if (step === 'RESULT') {
-        const finalPercentage = Math.round((score / questions.length) * 100);
-        return (
-            <div className="p-10 text-center bg-[#022c22] text-white rounded-[3rem] shadow-2xl space-y-6 relative overflow-hidden">
-                <div className="absolute top-0 right-0 w-32 h-32 bg-emerald-500/10 rounded-full blur-3xl -mr-10 -mt-10" />
-                <Award size={80} className="mx-auto text-yellow-500 animate-bounce" />
-                <div>
-                    <h2 className="text-3xl font-serif font-bold">MashaAllah!</h2>
-                    <p className="text-emerald-400 font-mono mt-2 uppercase tracking-widest">
-                        {initialMode === 'REVISE' ? 'Revision Mastery' : 'Revision & Practice Done'}
-                    </p>
-                </div>
-                
-                {xpAwarded > 0 && (
-                    <div className="bg-emerald-500/10 py-4 px-8 rounded-2xl border border-emerald-500/20 inline-block animate-pulse">
-                        <span className="text-2xl font-black text-emerald-400">+{xpAwarded} XP Earned</span>
-                    </div>
-                )}
-
-                <div className="text-6xl font-black font-mono">
-                    {initialMode === 'REVISE' ? '100%' : `${finalPercentage}%`}
-                </div>
-                <p className="text-emerald-200/70 text-sm max-w-xs mx-auto">
-                    {initialMode === 'REVISE' 
-                        ? "You've completed your revision lesson. Reviewing frequently builds lasting connection."
-                        : `Excellent progress! You got ${score} out of ${questions.length} questions correct. Your scholar is proud.`
-                    }
-                </p>
-                <button 
-                    onClick={() => onClose ? onClose() : window.location.reload()}
-                    className="w-full py-4 bg-emerald-500 rounded-2xl font-bold hover:bg-emerald-400 transition-all text-[#022c22] shadow-[0_10px_30px_rgba(16,185,129,0.3)]"
-                >
-                    Back to Journey of Light
-                </button>
-            </div>
-        );
-    }
+    // REMOVED RESULT STEP BLOCK PER USER REQUEST
 
     const playAyah = (url: string, index: number) => {
         if (audio) {

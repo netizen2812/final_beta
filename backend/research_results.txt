@@ -1,0 +1,18 @@
+User Found: {
+  "id": "69a5f2509a254c9a65e2fe64",
+  "name": "Mohammed Huzaif Barkati",
+  "email": "190030028.alum23@iitdh.ac.in",
+  "features": {
+    "liveAccess": false,
+    "aiPremiumUntil": null
+  }
+}
+Children: [
+  {
+    "id": "69ca5eb272687d211b704e04",
+    "name": "Hafeez"
+  }
+]
+Target Child ID: 69ca5eb272687d211b704e04
+Available Batches:
+- ID: 699786283fddf2345971a2aa, Name: Batch 1, Scholar: Mualim

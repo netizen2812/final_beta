@@ -54,7 +54,8 @@ const batchSchema = new mongoose.Schema({
     pastSessions: [{
         sessionId: String,
         startedAt: { type: Date, default: Date.now },
-        endedAt: Date
+        endedAt: Date,
+        attendedChildren: [{ type: mongoose.Schema.Types.ObjectId, ref: "Child" }]
     }],
     currentPromptAnswers: [{
         childId: String,

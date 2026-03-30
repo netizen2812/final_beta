@@ -37,7 +37,6 @@ const GENERATE_STAGES = () => {
     return {
       id: i + 1,
       title: `Live Session ${i + 1}`,
-      subtitle: `Mastering ${theme.type}`,
       ...theme
     };
   });
@@ -105,6 +104,7 @@ export const TarbiyahLobby = ({
   scholarBatches = [],
   onScholarJoinSession,
   attendedSessionIds = [],
+  attendanceHistory = [],
   isAdmin = false
 }: { 
   getToken: any, 
@@ -113,10 +113,11 @@ export const TarbiyahLobby = ({
   scholarBatches?: any[],
   onScholarJoinSession?: (b: any) => void,
   attendedSessionIds?: string[],
+  attendanceHistory?: any[],
   isAdmin?: boolean
 }) => {
   const [view, setView] = useState<'kids' | 'parent' | 'scholar_journey' | 'scholar_dashboard'>(
-     isAdmin ? 'kids' : (userRole === 'scholar' ? 'scholar_journey' : 'kids')
+     isAdmin ? 'kids' : (userRole === 'scholar' ? 'scholar_dashboard' : 'kids')
   );
   const [targetBatchId, setTargetBatchId] = useState<string | null>(null);
   const [scrollProgress, setScrollProgress] = useState(0);
@@ -192,8 +193,16 @@ export const TarbiyahLobby = ({
               <>
                 <button onClick={() => setView('kids')} className={`px-4 py-2 rounded-full text-[10px] font-bold transition-all ${view === 'kids' ? 'bg-emerald-600 text-white shadow-[0_0_15px_rgba(16,185,129,0.5)]' : 'text-emerald-200 hover:text-white'}`}>Map</button>
                 <button onClick={() => setView('parent')} className={`px-4 py-2 rounded-full text-[10px] font-bold transition-all ${view === 'parent' ? 'bg-indigo-600 text-white shadow-[0_0_15px_rgba(79,70,229,0.5)]' : 'text-indigo-200 hover:text-white'}`}>Parent</button>
-                <button onClick={() => setView('scholar_journey')} className={`px-4 py-2 rounded-full text-[10px] font-bold transition-all ${view === 'scholar_journey' ? 'bg-amber-600 text-white shadow-[0_0_15px_rgba(245,158,11,0.5)]' : 'text-amber-200 hover:text-white'}`}>Journey</button>
-                <button onClick={() => setView('scholar_dashboard')} className={`px-4 py-2 rounded-full text-[10px] font-bold transition-all ${view === 'scholar_dashboard' ? 'bg-rose-600 text-white shadow-[0_0_15px_rgba(225,29,72,0.5)]' : 'text-rose-200 hover:text-white'}`}>Scholar</button>
+                <div className="w-px h-6 bg-white/10 mx-1" />
+                <button 
+                   onClick={() => setView(view.startsWith('scholar') ? 'kids' : 'scholar_dashboard')} 
+                   className={`px-4 py-2 rounded-full text-[10px] font-bold transition-all ${view.startsWith('scholar') ? 'bg-amber-600 text-white shadow-[0_0_15px_rgba(245,158,11,0.5)]' : 'bg-white/5 text-amber-200 hover:bg-white/10'}`}
+                >
+                  <ShieldCheck size={12} className="inline mr-1" /> Scholar Mode
+                </button>
+                {view.startsWith('scholar') && (
+                  <button onClick={() => setView('scholar_journey')} className={`px-4 py-2 rounded-full text-[10px] font-bold transition-all ${view === 'scholar_journey' ? 'bg-emerald-600 text-white shadow-[0_0_15px_rgba(16,185,129,0.5)]' : 'text-emerald-200 hover:text-white ml-1'}`}>Class Flow</button>
+                )}
               </>
             ) : userRole === 'scholar' ? (
               <>
@@ -249,6 +258,7 @@ export const TarbiyahLobby = ({
                   setShowQuranPractice={(mode: 'REVISE' | 'PRACTICE') => setShowQuranPractice({ active: true, mode })}
                   setShowJoinChoice={setShowJoinChoice}
                   attendedSessionIds={attendedSessionIds}
+                  attendanceHistory={attendanceHistory}
                   childrenList={childrenList}
                   userRole={userRole}
                 />
@@ -348,7 +358,11 @@ export const TarbiyahLobby = ({
                     ✕ Close Portal
                 </button>
                 <div className="p-6 md:p-8">
-                    <ScholarQuranManager batchId={showScholarManage._id} batchName={showScholarManage.name} />
+                    <ScholarQuranManager 
+                        batchId={showScholarManage._id} 
+                        batchName={showScholarManage.name} 
+                        onClose={() => setShowScholarManage(null)}
+                    />
                 </div>
             </div>
          </div>
@@ -357,7 +371,7 @@ export const TarbiyahLobby = ({
   );
 };
 
-const KidsView = ({ scrollProgress, activeChild, onJoinLive, currentBatchStatus, batches, accessStatus, getToken, setShowQuranPractice, setShowJoinChoice, attendedSessionIds = [], childrenList = [], userRole = 'parent' }: any) => {
+const KidsView = ({ scrollProgress, activeChild, onJoinLive, currentBatchStatus, batches, accessStatus, getToken, setShowQuranPractice, setShowJoinChoice, attendedSessionIds = [], attendanceHistory = [], childrenList = [], userRole = 'parent' }: any) => {
   const [isLoading, setIsLoading] = useState(false);
   const progress = activeChild?.child_progress?.[0];
   const activeBatch = batches && batches.length > 0 ? batches[0] : null;
@@ -466,6 +480,28 @@ const KidsView = ({ scrollProgress, activeChild, onJoinLive, currentBatchStatus,
               </div>
             </div>
           </div>
+          
+          {/* Recent Attendance Summary (User Request: Show status of last 4 classes) */}
+          {attendanceHistory.length > 0 && (
+            <div className="mt-6 pt-6 border-t border-white/5">
+                <div className="flex items-center justify-between mb-4">
+                    <h3 className="text-[10px] font-black uppercase tracking-widest text-emerald-300/60">Class History (Recent 4)</h3>
+                    <div className="flex gap-1">
+                        {attendanceHistory.slice(0, 4).reverse().map((session: any, idx: number) => (
+                            <div key={session.sessionId} className="group relative">
+                                <div className={`w-8 h-8 rounded-lg flex items-center justify-center border transition-all ${session.attended ? 'bg-emerald-500/20 border-emerald-500/30 text-emerald-400' : 'bg-red-500/20 border-red-500/30 text-red-400 opacity-60'}`}>
+                                    {session.attended ? <CheckCircle size={14} /> : <XCircle size={14} />}
+                                </div>
+                                {/* Hover tooltip: session starting date */}
+                                <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-2 py-1 bg-black text-[8px] text-white rounded opacity-0 group-hover:opacity-100 whitespace-nowrap pointer-events-none transition-opacity">
+                                    Session {attendanceHistory.length - (idx)} • {new Date(session.startedAt).toLocaleDateString()}
+                                </div>
+                            </div>
+                        ))}
+                    </div>
+                </div>
+            </div>
+          )}
         </div>
       </div>
 
@@ -588,8 +624,15 @@ const ScholarJourneyView = ({ scrollProgress, batches, onJoinSession, initialBat
     
   const totalClassesPassed = pastSessions.filter((s: any) => !!s.endedAt).length;
 
-  const lastUnlockedIndex = Math.min(totalClassesPassed, 29);
-  const maxPercentage = (lastUnlockedIndex / (JOURNEY_STAGES.length - 1)) * 100;
+  const WINDOW_SIZE = 30;
+  let startOffset = 0;
+  if (totalClassesPassed >= 20) {
+    startOffset = Math.max(0, totalClassesPassed - 15);
+  }
+
+  const lastUnlockedIndex = Math.max(0, Math.min(totalClassesPassed, startOffset + 29));
+  const stagesCount = 30; // Consistent with KidsView
+  const maxPercentage = (lastUnlockedIndex / (stagesCount - 1)) * 100;
   const currentDraw = scrollProgress * 2.0;
   const fillPercentage = Math.min(currentDraw, maxPercentage);
 
@@ -620,20 +663,27 @@ const ScholarJourneyView = ({ scrollProgress, batches, onJoinSession, initialBat
           <div className="w-full bg-emerald-400 transition-all origin-top" style={{ height: `${fillPercentage}%` }} />
         </div>
         <div className="grid grid-cols-1 gap-24 relative">
-          {JOURNEY_STAGES.map((stage, index) => {
+          {Array.from({ length: WINDOW_SIZE }).map((_, i) => {
+            const index = startOffset + i;
+            const stageTitle = `Live Session ${index + 1}`;
+            
             const historicalSession = pastSessions[index];
-            const isHistorical = !!historicalSession?.endedAt;
-            const isCurrent = currentLiveIndex === index || (!hasActiveSession && index === totalClassesPassed);
+            const isHistorical = !!historicalSession?.endedAt || (index < totalClassesPassed);
+            const isActuallyLive = hasActiveSession && historicalSession?.sessionId === activeSessionId;
+            const isCurrent = isActuallyLive || (!hasActiveSession && index === totalClassesPassed);
             const isLocked = index > totalClassesPassed && !isCurrent;
+
             return (
-              <div key={stage.id} className="flex md:justify-center items-center relative group">
-                <div onClick={() => isCurrent ? onJoinSession(activeBatch) : null} className={`absolute left-[2rem] md:left-1/2 -translate-x-1/2 w-14 h-14 rounded-full border-4 border-[#022c22] z-20 flex items-center justify-center shadow-xl transition-all ${isLocked ? 'bg-gray-800 text-gray-500' : isCurrent ? 'bg-amber-400 text-amber-900 scale-125' : 'bg-emerald-400 text-emerald-950'}`}>
-                  {isLocked ? <Lock size={20} /> : isCurrent ? <Play size={20} fill="currentColor" /> : <CheckCircle size={20} />}
+              <div key={index} className="flex md:justify-center items-center relative group">
+                <div onClick={() => isCurrent ? onJoinSession(activeBatch) : null} className={`absolute left-[2rem] md:left-1/2 -translate-x-1/2 w-14 h-14 rounded-full border-4 border-[#022c22] z-20 flex items-center justify-center shadow-xl transition-all ${isLocked ? 'bg-gray-800 text-gray-500' : isCurrent ? 'bg-amber-400 text-amber-900 scale-125 cursor-pointer shadow-[0_0_20px_rgba(245,158,11,0.4)] animate-pulse' : 'bg-emerald-400 text-emerald-950'}`}>
+                  {isLocked ? <Lock size={20} /> : isActuallyLive ? <Play size={20} fill="currentColor" /> : isCurrent ? <Play size={20} fill="currentColor" className="opacity-50" /> : <CheckCircle size={20} />}
                 </div>
                 <div className={`w-full md:w-[45%] ${index % 2 === 0 ? 'md:mr-auto ml-20 md:pr-16 text-left md:text-right' : 'md:ml-auto ml-20 md:pl-16 text-left'}`}>
-                   <div className={`bg-white/5 backdrop-blur-xl p-6 rounded-3xl border ${isCurrent ? 'border-amber-400/50 shadow-xl' : isLocked ? 'opacity-50 border-white/5' : 'border-emerald-500/30'}`}>
-                      <h3 className="font-serif text-2xl font-bold text-white mb-1">{stage.title}</h3>
-                      <p className="text-sm text-emerald-200/70">{stage.subtitle}</p>
+                   <div className={`bg-white/5 backdrop-blur-xl p-6 rounded-3xl border transition-all ${isCurrent ? 'border-amber-400/50 shadow-xl bg-amber-400/5' : isLocked ? 'opacity-50 border-white/5' : 'border-emerald-500/30 hover:bg-white/10'}`}>
+                      <h3 className="font-serif text-2xl font-bold text-white mb-1">{stageTitle}</h3>
+                      <div className={`text-[10px] font-black uppercase tracking-widest ${isLocked ? 'text-gray-500' : isCurrent ? 'text-amber-400' : 'text-emerald-400'}`}>
+                        {isActuallyLive ? 'Live Now' : (isCurrent ? 'Next Class' : isHistorical ? 'Session Completed' : 'Upcoming')}
+                      </div>
                    </div>
                 </div>
               </div>

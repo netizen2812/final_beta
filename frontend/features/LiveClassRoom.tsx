@@ -88,6 +88,7 @@ const LiveClassRoom: React.FC = () => {
   const [leaderboard, setLeaderboard] = useState<any[] | null>(null);
   const [showLeaderboard, setShowLeaderboard] = useState<boolean | string>(false);
   const [attendedSessionIds, setAttendedSessionIds] = useState<string[]>([]);
+  const [attendanceHistory, setAttendanceHistory] = useState<any[]>([]);
   const [confirmEndClass, setConfirmEndClass] = useState<string | null>(null);
   const [showAssignModal, setShowAssignModal] = useState(false);
   const [currentSessionScore, setCurrentSessionScore] = useState<number>(0);
@@ -434,11 +435,16 @@ const LiveClassRoom: React.FC = () => {
           
           if (!effectiveBatchId) return;
 
-          const res = await axios.get(`${API_BASE}/api/live/batch/${effectiveBatchId}/attendance?childId=${activeChild.id}`, {
+          const res = await axios.get(`${API_BASE}/api/live/batch/${effectiveBatchId}/attendance/${activeChild.id}`, {
             headers: { Authorization: `Bearer ${token}` }
           });
-          if (res.data.attendedSessionIds) {
-            setAttendedSessionIds(res.data.attendedSessionIds);
+          
+          if (Array.isArray(res.data)) {
+            setAttendanceHistory(res.data);
+            const attendedIds = res.data
+              .filter((session: any) => session.attended)
+              .map((session: any) => session.sessionId);
+            setAttendedSessionIds(attendedIds);
           }
         } catch (e) { 
            console.error("Attendance fetch failed", e); 
@@ -1071,6 +1077,7 @@ const LiveClassRoom: React.FC = () => {
       scholarBatches={scholarBatches}
       onScholarJoinSession={handleScholarJoinBatch}
       attendedSessionIds={attendedSessionIds}
+      attendanceHistory={attendanceHistory}
       isAdmin={tarbiyahIsAdmin}
     />
   );

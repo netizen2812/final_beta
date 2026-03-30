@@ -315,6 +315,19 @@ const BatchManager = ({ token }: { token: any }) => {
         }
     };
 
+    const handleForceEnd = async (batchId: string) => {
+        if (!confirm("EMERGENCY: Force reset this batch session? This clears active participants and resets status to upcoming.")) return;
+        try {
+            const t = await token();
+            await axios.post(`${API_BASE}/api/live/admin/batch/${batchId}/force-end`, {}, {
+                headers: { Authorization: `Bearer ${t}` }
+            });
+            fetchBatches();
+        } catch (err) {
+            alert("Force end failed");
+        }
+    };
+
     return (
         <div className="space-y-6">
             <button onClick={() => setShowCreate(!showCreate)} className="bg-[#052e16] text-white px-4 py-2 rounded-lg font-bold flex items-center gap-2">
@@ -362,6 +375,15 @@ const BatchManager = ({ token }: { token: any }) => {
                             <p className="text-sm text-slate-500 mt-1"> Scholar: {b.scholar?.name || 'Unknown'}</p>
                         </div>
                         <div className="flex gap-2">
+                            {b.status === 'active' && (
+                                <button 
+                                    onClick={() => handleForceEnd(b._id)} 
+                                    title="Emergency Stop"
+                                    className="text-red-400 hover:text-red-600 p-2 bg-red-50 rounded-lg transition-colors"
+                                >
+                                    <StopCircle size={18} />
+                                </button>
+                            )}
                             <button onClick={() => openManage(b)} className="text-slate-400 hover:text-blue-500 p-2"><Users size={18} /></button>
                             <button onClick={() => deleteBatch(b._id)} className="text-slate-400 hover:text-red-500 p-2"><Trash2 size={18} /></button>
                         </div>
@@ -430,9 +452,14 @@ const BatchManager = ({ token }: { token: any }) => {
                                           Let's trigger a populate on backend.
                                        */}
                                     {selectedBatch.students?.map((s: any) => (
-                                        <div key={s._id || s} className="flex justify-between items-center bg-slate-50 p-2 rounded">
-                                            <span className="text-xs font-bold">{typeof s === 'object' ? s.name : 'Student ID: ' + s}</span>
-                                            <button onClick={() => removeStudent(typeof s === 'object' ? s._id : s)} className="text-red-400 hover:text-red-600"><Trash2 size={14} /></button>
+                                        <div key={s._id || s} className="flex flex-col bg-slate-50 p-3 rounded-lg border border-slate-100 group">
+                                            <div className="flex justify-between items-center">
+                                                <span className="text-xs font-bold text-slate-800">{s.name || 'Unknown Student'}</span>
+                                                <button onClick={() => removeStudent(s._id || s)} className="text-red-300 hover:text-red-600 transition-colors">
+                                                    <Trash2 size={14} />
+                                                </button>
+                                            </div>
+                                            {s.email && <div className="text-[10px] text-slate-400 font-medium">{s.email}</div>}
                                         </div>
                                     ))}
                                 </div>

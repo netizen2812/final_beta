@@ -98,7 +98,7 @@ export const getAdminBatches = async (req, res) => {
         const { default: Batch } = await import("../models/Batch.js");
         const batches = await Batch.find({}).sort({ createdAt: -1 })
             .populate('scholar', 'name email')
-            .populate('students', 'name email'); // Populate students for Admin UI
+            .populate('students', 'name email'); // Populate students with name and email for Admin UI
         res.json(batches);
     } catch (error) {
         console.error("Get admin batches error:", error);
@@ -219,7 +219,13 @@ export const startBatch = async (req, res) => {
             status: 'active',
             activeSessionId,
             activeChildId: null,
-            $push: { pastSessions: { sessionId: activeSessionId, startedAt: new Date() } }
+            $push: { 
+                pastSessions: { 
+                    sessionId: activeSessionId, 
+                    startedAt: new Date(),
+                    attendedChildren: [] // Initial empty attendance list
+                } 
+            }
         });
         res.json({ message: "Batch started", activeSessionId });
     } catch (error) {
@@ -290,6 +296,14 @@ export const joinBatch = async (req, res) => {
                 isActive: true
             });
         }
+        // 3. Record Permanent Attendance (If session is active)
+        if (batch.activeSessionId) {
+            const currentSession = batch.pastSessions.find(s => s.sessionId === batch.activeSessionId);
+            if (currentSession && !currentSession.attendedChildren.includes(childId)) {
+                currentSession.attendedChildren.push(childId);
+            }
+        }
+
         await batch.save();
 
         // Award Attendance XP (Observe)
@@ -999,15 +1013,45 @@ export const endBatch = async (req, res) => {
     }
 };
 
-// GET /api/live/batch/:id/students
-export const getBatchStudents = async (req, res) => {
+// GET /api/live/batch/:id/attendance/:childId - Get attendance history for a child
+export const getBatchAttendance = async (req, res) => {
     try {
-        const { id } = req.params;
+        const { id, childId } = req.params;
         const { default: Batch } = await import("../models/Batch.js");
-        const batch = await Batch.findById(id).populate('students');
+        const batch = await Batch.findById(id);
         if (!batch) return res.status(404).json({ message: "Batch not found" });
-        res.json(batch.students || []);
+
+        // Map past sessions to their attendance status for this child
+        const history = (batch.pastSessions || []).map(session => ({
+            sessionId: session.sessionId,
+            startedAt: session.startedAt,
+            endedAt: session.endedAt,
+            attended: session.attendedChildren?.map(s => s.toString()).includes(childId) || false
+        })).sort((a,b) => new Date(b.startedAt).getTime() - new Date(a.startedAt).getTime());
+
+        res.json(history);
     } catch (err) {
         res.status(500).json({ error: err.message });
     }
 };
+
+// ADMIN: POST /api/live/admin/batch/:id/force-end - Emergency reset
+export const forceEndBatch = async (req, res) => {
+    try {
+        const { id } = req.params;
+        const { default: Batch } = await import("../models/Batch.js");
+        const batch = await Batch.findById(id);
+        if (!batch) return res.status(404).json({ message: "Batch not found" });
+
+        batch.status = 'upcoming';
+        batch.activeSessionId = null;
+        batch.activeChildId = null;
+        batch.activeParticipants = [];
+        await batch.save();
+
+        res.json({ message: "Batch force-reset to upcoming status" });
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+};
+

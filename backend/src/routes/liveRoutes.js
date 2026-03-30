@@ -6,7 +6,7 @@ import {
     batchPing, updateBatchProgress, updatePosition, leaveBatch, getBatchActiveParticipants,
     getBatchState, selectTurn, scoreRecitation, scoreParticipation, getLeaderboard,
     submitPrompt, evaluatePrompt, getScholarBatches, endBatch, getBatchAttendance, getBatchStudents,
-    emergencyLinkRestore
+    emergencyLinkRestore, forceEndBatch
 } from "../controller/liveController.js";
 import { requireAuth, isAdmin, isScholar } from "../middleware/authmiddleware.js";
 
@@ -37,7 +37,7 @@ router.get("/batch/:id/students", requireAuth, getBatchStudents);
 
 // CLASSROOM STATE & SCORING
 router.get("/batch/:id/state", requireAuth, getBatchState);
-router.get("/batch/:id/attendance", requireAuth, getBatchAttendance);
+router.get("/batch/:id/attendance/:childId", requireAuth, getBatchAttendance);
 router.post("/batch/:id/select-turn", requireAuth, isScholar, selectTurn);
 router.post("/batch/:id/score-recitation", requireAuth, isScholar, scoreRecitation);
 router.post("/batch/:id/score-participation", requireAuth, scoreParticipation);
@@ -52,6 +52,7 @@ router.patch("/admin/batch/:id", requireAuth, isAdmin, updateBatch);
 router.delete("/admin/batch/:id", requireAuth, isAdmin, deleteBatch);
 router.post("/admin/batch/:id/add-student", requireAuth, isAdmin, addStudentToBatch);
 router.post("/admin/batch/:id/remove-student", requireAuth, isAdmin, removeStudentFromBatch);
+router.post("/admin/batch/:id/force-end", requireAuth, isAdmin, forceEndBatch);
 router.post("/admin/emergency-link-restore", emergencyLinkRestore);
 
 // DEBUG

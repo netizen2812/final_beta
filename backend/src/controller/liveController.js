@@ -339,8 +339,11 @@ export const joinBatch = async (req, res) => {
         // 3. Record Permanent Attendance (If session is active)
         if (batch.activeSessionId) {
             const currentSession = batch.pastSessions.find(s => s.sessionId === batch.activeSessionId);
-            if (currentSession && !currentSession.attendedChildren.includes(childId)) {
-                currentSession.attendedChildren.push(childId);
+            if (currentSession) {
+                const attendedChildIds = currentSession.attendedChildren.map(id => id.toString());
+                if (!attendedChildIds.includes(childId.toString())) {
+                    currentSession.attendedChildren.push(childId);
+                }
             }
         }
 
@@ -1000,31 +1003,46 @@ export const endBatch = async (req, res) => {
 
         const durationMinutes = 45; 
         
-        // Ensure participants who joined get completion XP
-        if (batch.activeParticipants) {
-            for (const p of batch.activeParticipants) {
-                if (p.isActive) {
-                    try { 
-                        await awardXP(p.childId, "session_complete", { sessionId: batch.activeSessionId, batchId: id });
-                    } catch (err) { }
-                }
-            }
-        }
-
-        // Mark the historical session as ended
+        // 1. Mark the historical session as ended
+        let sessionToReward = null;
         if (batch.activeSessionId) {
             batch.pastSessions = batch.pastSessions || [];
             const sessionIndex = batch.pastSessions.findIndex(s => s.sessionId === batch.activeSessionId);
             if (sessionIndex > -1) {
                 batch.pastSessions[sessionIndex].endedAt = new Date();
-                batch.markModified('pastSessions'); // Crucial fix: notify Mongoose that the mixed sub-array changed
+                sessionToReward = batch.pastSessions[sessionIndex];
+                batch.markModified('pastSessions'); 
             } else {
-                // Failsafe: if startBatch missed it, push the completed session so the Journey advances
-                batch.pastSessions.push({
+                // Failsafe push
+                sessionToReward = {
                     sessionId: batch.activeSessionId,
-                    startedAt: new Date(Date.now() - 45 * 60000), // Approximate 45 mins ago
-                    endedAt: new Date()
-                });
+                    startedAt: new Date(Date.now() - 45 * 60000),
+                    endedAt: new Date(),
+                    attendedChildren: []
+                };
+                batch.pastSessions.push(sessionToReward);
+            }
+        }
+
+        // 2. Ensure ALL participants who attended at any point get completion XP
+        // Previously we only awarded to p.isActive, which excluded students who left early
+        const childrenToAward = new Set();
+        
+        // Add everyone from the permanent attendance list
+        if (sessionToReward && sessionToReward.attendedChildren) {
+            sessionToReward.attendedChildren.forEach(id => childrenToAward.add(id.toString()));
+        }
+        
+        // Also add everyone in activeParticipants just in case (e.g. if they joined but somehow attendance push failed)
+        if (batch.activeParticipants) {
+            batch.activeParticipants.forEach(p => childrenToAward.add(p.childId.toString()));
+        }
+
+        for (const childId of childrenToAward) {
+            try { 
+                await awardXP(childId, "session_complete", { sessionId: batch.activeSessionId, batchId: id });
+            } catch (err) { 
+                console.error(`Failed to award end-session XP to ${childId}:`, err);
             }
         }
 

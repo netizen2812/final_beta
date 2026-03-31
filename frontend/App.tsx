@@ -326,7 +326,7 @@ const App: React.FC = () => {
               </header>
 
               {/* 📱 MAIN CONTENT (Scrollable Area) */}
-              <main className={`flex-1 flex flex-col ${activeTab === AppTab.CORE ? 'overflow-hidden' : 'overflow-y-auto'} pt-16 pb-20 no-scrollbar`}>
+              <main className={`flex-1 flex flex-col ${activeTab === AppTab.CORE ? 'overflow-hidden' : 'overflow-y-auto'} pt-20 pb-20 no-scrollbar`}>
                 {renderContent()}
                 {activeTab !== AppTab.CORE && <Footer />}
               </main>
@@ -456,7 +456,7 @@ const App: React.FC = () => {
             )}
 
             {/* MAIN CONTENT */}
-            <main className={`flex-1 flex flex-col ${activeTab === AppTab.CORE ? 'overflow-hidden' : 'overflow-y-auto'} pt-16 pb-24 ${isDesktop ? "ml-64" : ""}`}>
+            <main className={`flex-1 flex flex-col ${activeTab === AppTab.CORE ? 'overflow-hidden' : 'overflow-y-auto'} pt-20 pb-24 ${isDesktop ? "ml-64" : ""}`}>
               {renderContent()}
               <Footer />
             </main>

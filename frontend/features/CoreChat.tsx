@@ -432,7 +432,7 @@ const CoreChat: React.FC<CoreChatProps> = ({ madhab, setMadhab, tone: mood, setT
 
         {/* Center Chat Column */}
         <div className="flex-1 flex justify-center overflow-hidden relative">
-          <div className={`w-full ${isDesktop ? 'max-w-[840px] px-8 pt-4 pb-6' : 'max-w-full px-0 pt-0 pb-0'} flex flex-col h-full overscroll-none`}>
+          <div className={`w-full ${isDesktop ? 'max-w-[840px] px-8 pt-4 pb-6' : 'max-w-full px-4 pt-4 pb-0'} flex flex-col h-full overscroll-none`}>
 
             {/* Header (Hidden in App Mode as App.tsx has its own) */}
             {!isAppMode && (

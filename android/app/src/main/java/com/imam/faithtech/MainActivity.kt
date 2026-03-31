@@ -109,11 +109,12 @@ class MainActivity : AppCompatActivity() {
         webView.setBackgroundColor(android.graphics.Color.parseColor("#052e16"))
 
         // Custom User Agent to ensure compatibility with Clerk Social Logins
-        // We MUST remove WebView markers ("; wv" and "Version/4.0 ") or Google blocks OAuth with Error 403
+        // We MUST remove WebView markers ("; wv" and "Version/X.X") or Google blocks OAuth with Error 403
         var defaultUserAgent = settings.userAgentString
-        defaultUserAgent = defaultUserAgent.replace("; wv", "")
-        defaultUserAgent = defaultUserAgent.replace("Version/4.0 ", "")
-        settings.userAgentString = "$defaultUserAgent ImamApp/1.0"
+        // Use regex to remove Version/X.X and ; wv markers
+        defaultUserAgent = defaultUserAgent.replace(Regex("; wv"), "")
+        defaultUserAgent = defaultUserAgent.replace(Regex("Version/\\d+\\.\\d+\\s+"), "")
+        settings.userAgentString = "$defaultUserAgent ImamApp/1.1"
 
         // Bridge: JavaScript Interface
         webView.addJavascriptInterface(WebAppInterface(this), "Android")

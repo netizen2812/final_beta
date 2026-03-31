@@ -26,7 +26,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onNavigateToLive }) => 
     const [sessions, setSessions] = useState<any[]>([]);
     const [analytics, setAnalytics] = useState<any>(null);
     const [aiLogs, setAiLogs] = useState<any[]>([]);
-    const [tab, setTab] = useState<'overview' | 'users' | 'batches' | 'sessions' | 'ailogs'>('overview');
+    const [tab, setTab] = useState<'overview' | 'users' | 'paid' | 'batches' | 'sessions' | 'ailogs'>('overview');
     const [error, setError] = useState<string | null>(null);
     const [searchQuery, setSearchQuery] = useState('');
 
@@ -134,6 +134,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onNavigateToLive }) => 
                     {[
                         { id: 'overview', icon: BarChart2, label: 'Analytics' },
                         { id: 'users', icon: Users, label: 'User Roles' },
+                        { id: 'paid', icon: UserCheck, label: 'Paid Users' },
                         { id: 'ailogs', icon: MessageCircle, label: 'AI Logs' },
                     ].map(t => (
                         <button key={t.id} onClick={() => setTab(t.id as any)} className={`px-4 py-2 rounded-lg text-sm font-bold flex items-center gap-2 transition-all ${tab === t.id ? 'bg-emerald-600' : 'hover:bg-white/10 text-emerald-200'}`}>
@@ -287,6 +288,84 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onNavigateToLive }) => 
                         </table>
                     </div>
                 )}
+
+                {/* 💳 PART 2.5 — PAID USERS */}
+                {tab === 'paid' && (() => {
+                    const paidUsers = users.filter(u => 
+                        u.features?.liveAccess === true || 
+                        (u.features?.aiPremiumUntil && new Date(u.features.aiPremiumUntil) > new Date())
+                    );
+                    
+                    return (
+                        <div className="bg-white rounded-xl shadow-sm border border-emerald-200 overflow-hidden">
+                            <div className="p-6 border-b border-emerald-100 flex justify-between items-center bg-emerald-50">
+                                <div>
+                                    <h2 className="font-bold text-lg text-emerald-900 flex items-center gap-2">
+                                        <UserCheck size={20} className="text-emerald-600" /> Premium / Paid Users
+                                    </h2>
+                                    <p className="text-xs text-emerald-600 font-medium">Users with active Live Tarbiyah or AI subscriptions</p>
+                                </div>
+                                <div className="bg-emerald-600 text-white font-bold px-4 py-2 rounded-lg text-sm shadow-sm">
+                                    Total: {paidUsers.length}
+                                </div>
+                            </div>
+                            <div className="overflow-x-auto">
+                                <table className="w-full text-sm text-left">
+                                    <thead className="bg-slate-50 text-slate-500 font-bold uppercase text-xs">
+                                        <tr>
+                                            <th className="px-6 py-4">User</th>
+                                            <th className="px-6 py-4">Plan Status</th>
+                                            <th className="px-6 py-4">Current Role</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody className="divide-y divide-slate-100">
+                                        {paidUsers.length > 0 ? paidUsers.map(u => {
+                                            const hasLive = u.features?.liveAccess === true;
+                                            const aiUntil = u.features?.aiPremiumUntil ? new Date(u.features.aiPremiumUntil) : null;
+                                            const hasAi = aiUntil && aiUntil > new Date();
+
+                                            return (
+                                                <tr key={u._id} className="hover:bg-slate-50 transition-colors">
+                                                    <td className="px-6 py-4 align-top">
+                                                        <div className="font-bold text-slate-800">{u.name}</div>
+                                                        <div className="text-xs text-slate-500">{u.email}</div>
+                                                        <div className="text-[10px] font-mono text-slate-300 mt-1">{u._id}</div>
+                                                    </td>
+                                                    <td className="px-6 py-4 align-top space-y-2">
+                                                        {hasLive && (
+                                                            <div className="inline-flex items-center gap-1.5 bg-emerald-100 text-emerald-800 px-2.5 py-1 rounded border border-emerald-200 text-xs font-bold w-max">
+                                                                <Video size={12} /> Tarbiyah Lifetime
+                                                            </div>
+                                                        )}
+                                                        {hasAi && (
+                                                            <div className="inline-flex items-center gap-1.5 bg-blue-100 text-blue-800 px-2.5 py-1 rounded border border-blue-200 text-xs font-bold w-max">
+                                                                <MessageCircle size={12} /> AI Premium (Until {aiUntil.toLocaleDateString()})
+                                                            </div>
+                                                        )}
+                                                    </td>
+                                                    <td className="px-6 py-4 align-top">
+                                                        <span className={`px-2 py-1 rounded uppercase font-bold text-[10px] tracking-wide ${
+                                                            u.role === 'admin' ? 'bg-red-100 text-red-700' :
+                                                            u.role === 'scholar' ? 'bg-purple-100 text-purple-700' : 'bg-slate-100 text-slate-600'
+                                                        }`}>
+                                                            {u.role || 'parent'}
+                                                        </span>
+                                                    </td>
+                                                </tr>
+                                            );
+                                        }) : (
+                                            <tr>
+                                                <td colSpan={3} className="px-6 py-12 text-center text-slate-400 italic">
+                                                    No premium users found in the system yet.
+                                                </td>
+                                            </tr>
+                                        )}
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    );
+                })()}
 
                 {/* 💬 PART 3 — AI CONVERSATION LOGS */}
                 {tab === 'ailogs' && (

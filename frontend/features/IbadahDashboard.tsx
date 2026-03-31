@@ -38,7 +38,6 @@ import QuranPage from './QuranPage';
 import { Analytics } from '../utils/analytics';
 import { getPrayerTimings, getHijriDate, getCalendarMonth, formatDateForAPI } from '../services/aladhan';
 import { useTranslation } from 'react-i18next';
-import { notificationService } from '../services/NotificationService';
 
 // --- TYPES & CONSTANTS ---
 
@@ -416,9 +415,6 @@ const IbadahDashboard: React.FC = () => {
   const [subView, setSubView] = useState<SubView>('landing');
   const [selectedPrayer, setSelectedPrayer] = useState<PrayerTime | null>(null);
   const [zakatResult, setZakatResult] = useState<any>(null);
-  const [notificationsEnabled, setNotificationsEnabled] = useState(() => {
-    return localStorage.getItem('imam_notifications_enabled') === 'true';
-  });
 
   // Hijri States
   const [viewDate, setViewDate] = useState(new Date());
@@ -489,12 +485,6 @@ const IbadahDashboard: React.FC = () => {
           return (h * 60 + m) > nowMinutes;
         });
         setNextPrayer(found ? found.name : 'Fajr');
-
-        // Schedule notifications if enabled
-        if (notificationsEnabled) {
-          notificationService.schedulePrayerReminders(timingsData.timings);
-          notificationService.scheduleDailyNudges();
-        }
       }
 
       const todayHijri = await getHijriDate();
@@ -513,28 +503,7 @@ const IbadahDashboard: React.FC = () => {
     fetchData();
 
     return () => { isMounted = false; };
-  }, [location, notificationsEnabled]);
-
-  const toggleNotifications = async () => {
-    if (!notificationsEnabled) {
-      const granted = await notificationService.requestPermission();
-      if (granted) {
-        setNotificationsEnabled(true);
-        localStorage.setItem('imam_notifications_enabled', 'true');
-        // Initial schedule
-        if (prayerTimes.length > 0) {
-          const rawTimings = prayerTimes.reduce((acc, p) => ({ ...acc, [p.name]: p.time }), {});
-          notificationService.schedulePrayerReminders(rawTimings);
-          notificationService.scheduleDailyNudges();
-        }
-      } else {
-        alert("Please enable notification permissions in your browser settings to receive alerts.");
-      }
-    } else {
-      setNotificationsEnabled(false);
-      localStorage.setItem('imam_notifications_enabled', 'false');
-    }
-  };
+  }, [location]);
 
   // MONTHLY CALENDAR FETCHING
   useEffect(() => {
@@ -852,21 +821,7 @@ const IbadahDashboard: React.FC = () => {
           </div>
         </div>
 
-        {/* Notification Toggle inside Hero */}
-        <div className="mt-8">
-          <button
-            onClick={toggleNotifications}
-            className={`flex items-center gap-3 px-8 py-4 rounded-full border transition-all shadow-xl hover:scale-105 active:scale-95 ${notificationsEnabled
-              ? 'bg-emerald-500/20 text-emerald-400 border-emerald-500/50 backdrop-blur-xl'
-              : 'bg-white/10 text-white/60 border-white/20 backdrop-blur-md'
-              }`}
-          >
-            {notificationsEnabled ? <Volume2 size={16} /> : <VolumeX size={16} />}
-            <span className="text-[10px] font-black uppercase tracking-[0.2em]">
-              {notificationsEnabled ? t('ibadah.notificationsActive') : t('ibadah.enablePrayerAlerts')}
-            </span>
-          </button>
-        </div>
+        {/* Notification Toggle Removed per User Request */}
       </div>
       <div className="absolute bottom-0 left-0 w-full px-4 sm:px-6 lg:px-8 z-20">
         <div className="relative max-w-6xl mx-auto -mb-20 md:-mb-40 lg:-mb-24 group/tracker">

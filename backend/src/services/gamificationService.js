@@ -76,8 +76,8 @@ export const awardXP = async (childId, action, data = {}) => {
         else if (action === "participation") {
             const { points } = data; 
             xpGained = points || 2;
-            activityType = "Lesson Revision";
-            activityDuration = 5; // Default revision time
+            activityType = "Class Participation";
+            activityDuration = 5; // Default participation time
         } 
         else if (action === "session_complete") {
             xpGained = 2; // Scaled down from 10
@@ -111,9 +111,7 @@ export const awardXP = async (childId, action, data = {}) => {
                     {
                         $inc: {
                             minutes_spent: activityDuration,
-                            sessions_attended: (action === "session_complete" || action === "participation") ? 1 : 0,
-                        },
-                        $set: {
+                            sessions_attended: (action === "session_complete") ? 1 : 0,
                             [`topics_studied.${activityType}`]: activityDuration
                         }
                     },

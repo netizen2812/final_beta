@@ -23,26 +23,8 @@ import ErrorBoundary from '../components/ErrorBoundary';
 // --- DATA & CONSTANTS ---
 const API_BASE = import.meta.env.VITE_API_URL || "http://localhost:5000";
 
-const GENERATE_STAGES = () => {
-  const themes = [
-    { type: 'Theology', icon: <Sun size={24} />, color: 'bg-amber-500/20 text-amber-300 border-amber-500/50' },
-    { type: 'Character', icon: <Heart size={24} />, color: 'bg-rose-500/20 text-rose-300 border-rose-500/50' },
-    { type: 'Fiqh', icon: <Cloud size={24} />, color: 'bg-blue-500/20 text-blue-300 border-blue-500/50' },
-    { type: 'History', icon: <BookOpen size={24} />, color: 'bg-emerald-500/20 text-emerald-300 border-emerald-500/50' },
-    { type: 'Stories', icon: <Moon size={24} />, color: 'bg-indigo-500/20 text-indigo-300 border-indigo-500/50' },
-  ];
-
-  return Array.from({ length: 30 }).map((_, i) => {
-    const theme = themes[i % themes.length];
-    return {
-      id: i + 1,
-      title: `Live Session ${i + 1}`,
-      ...theme
-    };
-  });
-};
-
-const JOURNEY_STAGES = GENERATE_STAGES();
+// Dynamic stages count
+const STAGES_COUNT = 30;
 const COLORS = ['#10b981', '#fbbf24', '#3b82f6', '#f43f5e', '#8b5cf6'];
 
 export const MovingBackground = React.memo(() => {
@@ -105,7 +87,9 @@ export const TarbiyahLobby = ({
   onScholarJoinSession,
   attendedSessionIds = [],
   attendanceHistory = [],
-  isAdmin = false
+  isAdmin = false,
+  selectedBatchId,
+  setSelectedBatchId
 }: { 
   getToken: any, 
   onJoinSession: (s: any) => void,
@@ -114,7 +98,9 @@ export const TarbiyahLobby = ({
   onScholarJoinSession?: (b: any) => void,
   attendedSessionIds?: string[],
   attendanceHistory?: any[],
-  isAdmin?: boolean
+  isAdmin?: boolean,
+  selectedBatchId: string | null,
+  setSelectedBatchId: (id: string | null) => void
 }) => {
   const [view, setView] = useState<'kids' | 'parent' | 'scholar_journey' | 'scholar_dashboard'>(
      isAdmin ? 'kids' : (userRole === 'scholar' ? 'scholar_dashboard' : 'kids')
@@ -131,6 +117,7 @@ export const TarbiyahLobby = ({
 
   useEffect(() => {
     const fetchData = async () => {
+      if (document.visibilityState !== 'visible') return;
       try {
         const token = await getToken();
         if (!token) return;
@@ -145,7 +132,7 @@ export const TarbiyahLobby = ({
       } catch (err) {}
     };
     fetchData();
-    const interval = setInterval(fetchData, 3000); // Faster polling for live sync
+    const interval = setInterval(fetchData, 4000); // Slightly slower polling for battery efficiency
     return () => clearInterval(interval);
   }, [getToken]);
 
@@ -261,6 +248,8 @@ export const TarbiyahLobby = ({
                   attendanceHistory={attendanceHistory}
                   childrenList={childrenList}
                   userRole={userRole}
+                  selectedBatchId={selectedBatchId}
+                  setSelectedBatchId={setSelectedBatchId}
                 />
               );
             }
@@ -371,24 +360,22 @@ export const TarbiyahLobby = ({
   );
 };
 
-const KidsView = ({ scrollProgress, activeChild, onJoinLive, currentBatchStatus, batches, accessStatus, getToken, setShowQuranPractice, setShowJoinChoice, attendedSessionIds = [], attendanceHistory = [], childrenList = [], userRole = 'parent' }: any) => {
+const KidsView = ({ scrollProgress, activeChild, onJoinLive, currentBatchStatus, batches, accessStatus, getToken, setShowQuranPractice, setShowJoinChoice, attendedSessionIds = [], attendanceHistory = [], childrenList = [], userRole = 'parent', selectedBatchId, setSelectedBatchId }: any) => {
   const [isLoading, setIsLoading] = useState(false);
   const progress = activeChild?.child_progress?.[0];
-  const activeBatch = batches && batches.length > 0 ? batches[0] : null;
+  const activeBatch = batches && batches.length > 0 
+    ? (batches.find((b: any) => b._id === selectedBatchId) || batches[0]) 
+    : null;
   const [selectedSessionId, setSelectedSessionId] = useState<string | null>(null);
   
   // SYNCED LOGIC
   const activeSessionId = activeBatch?.activeSessionId;
   const hasActiveSession = !!activeSessionId;
   const pastSessions = activeBatch?.pastSessions || [];
-  
-  // Find index of currently live session (if any)
-  const currentLiveIndex = hasActiveSession 
-    ? pastSessions.findIndex((s: any) => s.sessionId === activeSessionId)
-    : -1;
     
-  // Classes passed is number of ALREADY ENDED sessions
-  const totalClassesPassed = pastSessions.filter((s: any) => !!s.endedAt).length;
+  // Classes passed is number of sessions that have ALREADY STARTED in this batch
+  // Historically we relied on endedAt, but total count of sessions in history is better for targeting
+  const totalClassesPassed = pastSessions.length;
   
   const hasPremium = accessStatus?.hasAccess || (batches && batches.length > 0) || userRole === 'scholar';
 
@@ -407,7 +394,7 @@ const KidsView = ({ scrollProgress, activeChild, onJoinLive, currentBatchStatus,
   // But actually, pastSessions can be empty.
   
   const lastUnlockedIndex = Math.max(0, Math.min(totalClassesPassed, startOffset + 29));
-  const stagesCount = JOURNEY_STAGES?.length || 30;
+  const stagesCount = STAGES_COUNT;
   const maxPercentage = (lastUnlockedIndex / (stagesCount - 1)) * 100;
   const currentDraw = (scrollProgress || 0) * 2.0;
   const fillPercentage = Math.min(currentDraw, maxPercentage || 0);
@@ -481,6 +468,28 @@ const KidsView = ({ scrollProgress, activeChild, onJoinLive, currentBatchStatus,
             </div>
           </div>
           
+          {/* Batch Selector (Only if multiple batches) */}
+          {batches && batches.length > 1 && (
+            <div className="mt-8 pt-6 border-t border-white/10">
+               <div className="flex flex-col md:flex-row items-center justify-between gap-4">
+                  <div className="flex items-center gap-2 text-emerald-300 font-bold text-[10px] uppercase tracking-widest">
+                    <Calendar size={14} /> My Learning Tracks
+                  </div>
+                  <div className="flex flex-wrap gap-2 justify-center">
+                    {batches.map((b: any) => (
+                      <button 
+                        key={b._id} 
+                        onClick={() => setSelectedBatchId(b._id)}
+                        className={`px-4 py-2 rounded-xl text-[10px] font-black tracking-widest border transition-all ${selectedBatchId === b._id ? 'bg-emerald-500 text-emerald-950 border-emerald-400 shadow-lg' : 'bg-white/5 text-emerald-200 border-white/10 hover:bg-white/10'}`}
+                      >
+                        {b.name}
+                      </button>
+                    ))}
+                  </div>
+               </div>
+            </div>
+          )}
+          
           {/* Recent Attendance Summary (User Request: Show status of last 4 classes) */}
           {attendanceHistory.length > 0 && (
             <div className="mt-6 pt-6 border-t border-white/5">
@@ -527,34 +536,33 @@ const KidsView = ({ scrollProgress, activeChild, onJoinLive, currentBatchStatus,
             
             // Dynamic stage info based on index
             const stageTitle = `Live Session ${index + 1}`;
-            const themeIndex = index % 5; // Cycle through themes
             
             const historicalSession = pastSessions[index];
             const isActuallyLive = hasActiveSession && historicalSession?.sessionId === activeSessionId;
             const isNextTarget = !hasActiveSession && index === totalClassesPassed;
             const isCurrent = isActuallyLive || isNextTarget;
             
-            const isHistorical = !!historicalSession?.endedAt || (index < totalClassesPassed);
-            const isUpcoming = !isCurrent && !isHistorical && index >= totalClassesPassed;
-            const isLocked = !isCurrent && !isHistorical && index > totalClassesPassed;
+            const isHistorical = index < totalClassesPassed;
+            const isUpcoming = index > (hasActiveSession ? totalClassesPassed - 1 : totalClassesPassed);
+            const isLocked = index > totalClassesPassed;
 
             const wasPresent = historicalSession && Array.isArray(attendedSessionIds) && attendedSessionIds.some((id: any) => 
                id && historicalSession.sessionId && String(id) === String(historicalSession.sessionId)
             );
-            const statusLabel = isHistorical ? (wasPresent ? "Completed" : "Absent") : (isCurrent ? "Live Now" : "Scheduled");
+            const statusLabel = isHistorical ? (wasPresent ? "Completed" : "Absent") : (isActuallyLive ? "Live Now" : "Scheduled");
 
             const handleNodeClick = (e: React.MouseEvent) => {
               e.stopPropagation();
               if (!hasPremium) {
                 handleRequestAccess();
-              } else if (isCurrent) {
+              } else if (isActuallyLive) {
                 setShowJoinChoice(true);
               } else if (isHistorical) {
                 if (historicalSession?.sessionId) {
                   setSelectedSessionId(historicalSession.sessionId);
                 }
-              } else if (isUpcoming || isLocked) {
-                setShowQuranPractice(true);
+              } else if (isNextTarget || isUpcoming || isLocked) {
+                setShowQuranPractice({ active: true, mode: 'REVISE' });
               }
             };
 
@@ -675,10 +683,13 @@ const ScholarJourneyView = ({ scrollProgress, batches, onJoinSession, initialBat
 
             return (
               <div key={index} className="flex md:justify-center items-center relative group">
-                <div onClick={() => isCurrent ? onJoinSession(activeBatch) : null} className={`absolute left-[2rem] md:left-1/2 -translate-x-1/2 w-14 h-14 rounded-full border-4 border-[#022c22] z-20 flex items-center justify-center shadow-xl transition-all ${isLocked ? 'bg-gray-800 text-gray-500' : isCurrent ? 'bg-amber-400 text-amber-900 scale-125 cursor-pointer shadow-[0_0_20px_rgba(245,158,11,0.4)] animate-pulse' : 'bg-emerald-400 text-emerald-950'}`}>
+                <div onClick={() => { if (isActuallyLive) onJoinSession(activeBatch); else if (isHistorical && historicalSession?.sessionId) setSelectedSessionId(historicalSession.sessionId); }} className={`absolute left-[2rem] md:left-1/2 -translate-x-1/2 w-14 h-14 rounded-full border-4 border-[#022c22] z-20 flex items-center justify-center shadow-xl transition-all ${isLocked ? 'bg-gray-800 text-gray-500' : (isActuallyLive || isCurrent) ? 'bg-amber-400 text-amber-900 scale-125 cursor-pointer shadow-[0_0_20px_rgba(245,158,11,0.4)] animate-pulse' : 'bg-emerald-400 text-emerald-950'}`}>
                   {isLocked ? <Lock size={20} /> : isActuallyLive ? <Play size={20} fill="currentColor" /> : isCurrent ? <Play size={20} fill="currentColor" className="opacity-50" /> : <CheckCircle size={20} />}
                 </div>
-                <div className={`w-full md:w-[45%] ${index % 2 === 0 ? 'md:mr-auto ml-20 md:pr-16 text-left md:text-right' : 'md:ml-auto ml-20 md:pl-16 text-left'}`}>
+                <div 
+                   onClick={() => { if (isHistorical && historicalSession?.sessionId) setSelectedSessionId(historicalSession.sessionId); }}
+                   className={`w-full md:w-[45%] cursor-pointer ${index % 2 === 0 ? 'md:mr-auto ml-20 md:pr-16 text-left md:text-right' : 'md:ml-auto ml-20 md:pl-16 text-left'}`}
+                >
                    <div className={`bg-white/5 backdrop-blur-xl p-6 rounded-3xl border transition-all ${isCurrent ? 'border-amber-400/50 shadow-xl bg-amber-400/5' : isLocked ? 'opacity-50 border-white/5' : 'border-emerald-500/30 hover:bg-white/10'}`}>
                       <h3 className="font-serif text-2xl font-bold text-white mb-1">{stageTitle}</h3>
                       <div className={`text-[10px] font-black uppercase tracking-widest ${isLocked ? 'text-gray-500' : isCurrent ? 'text-amber-400' : 'text-emerald-400'}`}>

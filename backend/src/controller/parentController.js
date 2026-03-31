@@ -23,6 +23,32 @@ export const getDashboardStats = async (req, res) => {
         const totalMinutes = weeklyActivity.reduce((sum, day) => sum + day.minutes_spent, 0);
         const totalLessons = weeklyActivity.reduce((sum, day) => sum + day.sessions_attended, 0);
 
+        // --- NEW: REAL ATTENDANCE CALCULATION ---
+        const { default: Batch } = await import("../models/Batch.js");
+        const studentBatches = await Batch.find({ students: child._id });
+        
+        let totalSessionsHeld = 0;
+        let sessionsAttended = 0;
+
+        studentBatches.forEach(batch => {
+            (batch.pastSessions || []).forEach(session => {
+                const sessionDate = new Date(session.startedAt);
+                if (sessionDate >= sevenDaysAgo) {
+                    totalSessionsHeld++;
+                    const isAttended = session.attendedChildren && 
+                        session.attendedChildren.some(id => id.toString() === child._id.toString());
+                    if (isAttended) {
+                        sessionsAttended++;
+                    }
+                }
+            });
+        });
+
+        const attendanceRate = totalSessionsHeld > 0 
+            ? Math.round((sessionsAttended / totalSessionsHeld) * 100) 
+            : 0;
+        // ----------------------------------------
+
         // Aggregate topic breakdown
         const topicBreakdown = {};
         weeklyActivity.forEach(day => {
@@ -77,7 +103,7 @@ export const getDashboardStats = async (req, res) => {
                 currentLevel: progress.level || 1,
                 averageAccuracy: Math.round(avgPracticeAccuracy),
                 totalRevisions: totalRevisions,
-                attendanceRate: Math.round((weeklyActivity.length / 7) * 100),
+                attendanceRate: attendanceRate, // Adjusted to real class %
                 streak: progress.streak_days || 0,
                 activeDays: totalActiveDays,
                 completionRate: completionRate

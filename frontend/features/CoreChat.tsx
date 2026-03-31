@@ -520,7 +520,7 @@ const CoreChat: React.FC<CoreChatProps> = ({ madhab, setMadhab, tone: mood, setT
               />
 
               {/* Message List */}
-              <div className={`flex-1 overflow-y-auto ${messages.length > 0 ? (isDesktop ? 'p-6 md:p-10' : 'p-4 pb-4') : 'p-4'} space-y-6 no-scrollbar relative z-10 flex flex-col`}
+              <div className={`flex-1 overflow-y-auto ${messages.length > 0 ? (isDesktop ? 'p-6 md:p-10' : 'p-4 pb-32') : 'p-4 pb-12'} space-y-6 no-scrollbar relative z-10 flex flex-col`}
                 style={{ 
                   overscrollBehavior: 'none',
                   WebkitOverflowScrolling: 'touch'
@@ -581,13 +581,13 @@ const CoreChat: React.FC<CoreChatProps> = ({ madhab, setMadhab, tone: mood, setT
                     value={input}
                     onChange={(e) => setInput(e.target.value)}
                     onKeyDown={(e) => e.key === 'Enter' && handleSend()}
-                    className="flex-1 bg-transparent border-none focus:outline-none text-[16px] px-3 font-medium text-slate-700"
+                    className="flex-1 bg-transparent border-none focus:outline-none text-[15px] md:text-[16px] px-2 md:px-3 font-medium text-slate-700 w-0 min-w-0"
                   />
                   
                   <button
                     onClick={handleSend}
                     disabled={isLoading || !input.trim()}
-                    className="w-10 h-10 flex items-center justify-center bg-[#052e16] text-white rounded-full hover:scale-105 disabled:opacity-20 transition-all shadow-md active:scale-95"
+                    className="w-10 h-10 shrink-0 flex items-center justify-center bg-[#052e16] text-white rounded-full hover:scale-105 disabled:opacity-20 transition-all shadow-md active:scale-95"
                   >
                     <Send size={18} />
                   </button>

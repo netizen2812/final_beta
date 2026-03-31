@@ -65,14 +65,18 @@ export const getTimings = async (req, res) => {
         let detectionMethod = "GPS";
 
         if (!lat || !lng) {
-            const ip = req.headers['x-forwarded-for'] || req.socket.remoteAddress;
+            const forwarded = req.headers['x-forwarded-for'];
+            const ip = forwarded ? forwarded.split(',')[0].trim() : (req.socket.remoteAddress || "127.0.0.1");
             const loc = await getLocationFromIP(ip);
             if (loc) {
                 lat = loc.lat;
                 lng = loc.lng;
                 detectionMethod = `IP (${loc.city})`;
             } else {
-                return res.status(400).json({ error: "Location required. Please enable GPS or check internet connection." });
+                // Universal Fallback: Mecca (Default if everything fails)
+                lat = 21.4225;
+                lng = 39.8262;
+                detectionMethod = "Default (Mecca)";
             }
         }
 
@@ -133,7 +137,9 @@ export const getCalendarMonth = async (req, res) => {
                 lat = loc.lat;
                 lng = loc.lng;
             } else {
-                return res.status(400).json({ error: "Location required" });
+                // Fallback to Mecca
+                lat = 21.4225;
+                lng = 39.8262;
             }
         }
 

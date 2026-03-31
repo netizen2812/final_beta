@@ -92,6 +92,7 @@ const LiveClassRoom: React.FC = () => {
   const [confirmEndClass, setConfirmEndClass] = useState<string | null>(null);
   const [showAssignModal, setShowAssignModal] = useState(false);
   const [currentSessionScore, setCurrentSessionScore] = useState<number>(0);
+  const [selectedBatchId, setSelectedBatchId] = useState<string | null>(null);
   const { triggerRewardAnimation } = useChildContext();
   const lastSeenScoreRef = useRef<number | null>(null);
 
@@ -414,15 +415,15 @@ const LiveClassRoom: React.FC = () => {
     }, POSITION_THROTTLE_MS);
   }, [currentSession, userRole, getToken, user?.id]);
 
-  // Fetch Attendance for Current Batch (Parents only) - Runs whenever activeChild is set to populate Journey map
+  // Fetch Attendance for Current Batch (Parents only) - Runs whenever activeChild or selectedBatchId changes
   useEffect(() => {
     const fetchAttendance = async () => {
       if (userRole === 'parent' && activeChild?.id) {
         try {
           const token = await getToken();
-          let effectiveBatchId = currentSession?.batchId;
+          let effectiveBatchId = selectedBatchId;
 
-          // If no active session, we need to find the batch the child is in to show their journey
+          // If no selected batch, find all batches this child is in
           if (!effectiveBatchId) {
             const batchRes = await axios.get(`${API_BASE}/api/live/my-sessions`, {
               headers: { Authorization: `Bearer ${token}` }
@@ -430,6 +431,7 @@ const LiveClassRoom: React.FC = () => {
             const batches = batchRes.data || [];
             if (batches.length > 0) {
               effectiveBatchId = batches[0]._id;
+              setSelectedBatchId(effectiveBatchId); // Set initial selection
             }
           }
           
@@ -452,7 +454,7 @@ const LiveClassRoom: React.FC = () => {
       }
     };
     fetchAttendance();
-  }, [userRole, currentSession?.batchId, activeChild?.id, getToken]);
+  }, [userRole, selectedBatchId, activeChild?.id, getToken]);
 
   // POLL: Scholar Status (for parent lobby) - Optional, leaving for now
   useEffect(() => {
@@ -1079,6 +1081,8 @@ const LiveClassRoom: React.FC = () => {
       attendedSessionIds={attendedSessionIds}
       attendanceHistory={attendanceHistory}
       isAdmin={tarbiyahIsAdmin}
+      selectedBatchId={selectedBatchId}
+      setSelectedBatchId={setSelectedBatchId}
     />
   );
 };

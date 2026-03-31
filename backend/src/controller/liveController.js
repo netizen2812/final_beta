@@ -310,7 +310,6 @@ export const joinBatch = async (req, res) => {
 
         // --- PRESENCE TRACKING START ---
         // 1. Get Child Details
-        const child = await Child.findById(childId);
         const childName = child ? child.name : "Student";
 
         // 2. Update Batch Active Participants

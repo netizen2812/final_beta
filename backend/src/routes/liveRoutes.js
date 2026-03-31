@@ -9,6 +9,7 @@ import {
     emergencyLinkRestore, forceEndBatch
 } from "../controller/liveController.js";
 import { requireAuth, isAdmin, isScholar } from "../middleware/authmiddleware.js";
+import { canAccessBatch } from "../middleware/batchAccess.js";
 
 const router = express.Router();
 
@@ -24,26 +25,26 @@ router.get("/my-sessions", requireAuth, getMySessions);
 // USER: Join Batch
 router.post("/:id/join", requireAuth, joinBatch);
 
-// DEBUG: Check Batch Status
-router.get("/:id/debug", debugBatch);
+// DEBUG: Check Batch Status (Admin Only)
+router.get("/:id/debug", requireAuth, isAdmin, debugBatch);
 
 // LIVE PRESENCE
 router.post("/ping", requireAuth, batchPing);
 router.post("/update-progress", requireAuth, updateBatchProgress);
 router.post("/update-position", requireAuth, updatePosition);
 router.post("/leave", requireAuth, leaveBatch);
-router.get("/batch/:id/participants", requireAuth, getBatchActiveParticipants);
-router.get("/batch/:id/students", requireAuth, getBatchStudents);
+router.get("/batch/:id/participants", requireAuth, canAccessBatch, getBatchActiveParticipants);
+router.get("/batch/:id/students", requireAuth, canAccessBatch, getBatchStudents);
 
 // CLASSROOM STATE & SCORING
-router.get("/batch/:id/state", requireAuth, getBatchState);
-router.get("/batch/:id/attendance/:childId", requireAuth, getBatchAttendance);
+router.get("/batch/:id/state", requireAuth, canAccessBatch, getBatchState);
+router.get("/batch/:id/attendance/:childId", requireAuth, canAccessBatch, getBatchAttendance);
 router.post("/batch/:id/select-turn", requireAuth, isScholar, selectTurn);
 router.post("/batch/:id/score-recitation", requireAuth, isScholar, scoreRecitation);
 router.post("/batch/:id/score-participation", requireAuth, scoreParticipation);
 router.post("/batch/:id/submit-prompt", requireAuth, submitPrompt);
 router.post("/batch/:id/evaluate-prompt", requireAuth, isScholar, evaluatePrompt);
-router.get("/batch/:id/leaderboard", requireAuth, getLeaderboard);
+router.get("/batch/:id/leaderboard", requireAuth, canAccessBatch, getLeaderboard);
 
 // ADMIN: Batch Management
 router.post("/admin/batch", requireAuth, isAdmin, createBatch);
@@ -53,7 +54,7 @@ router.delete("/admin/batch/:id", requireAuth, isAdmin, deleteBatch);
 router.post("/admin/batch/:id/add-student", requireAuth, isAdmin, addStudentToBatch);
 router.post("/admin/batch/:id/remove-student", requireAuth, isAdmin, removeStudentFromBatch);
 router.post("/admin/batch/:id/force-end", requireAuth, isAdmin, forceEndBatch);
-router.post("/admin/emergency-link-restore", emergencyLinkRestore);
+router.post("/admin/emergency-link-restore", requireAuth, isAdmin, emergencyLinkRestore);
 
 // DEBUG
 router.get("/debug/batches", requireAuth, isAdmin, debugAllBatches);

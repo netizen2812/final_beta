@@ -25,7 +25,9 @@ export const syncUser = async (req, res) => {
         `${clerkUser.firstName || ""} ${clerkUser.lastName || ""}`.trim();
 
       // Check if user already exists by email (e.g. pre-created scholar)
-      user = await User.findOne({ email: { $regex: new RegExp(`^${email}$`, 'i') } });
+      const escapeRegex = (str) => str.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+      const escapedEmail = escapeRegex(email);
+      user = await User.findOne({ email: { $regex: new RegExp(`^${escapedEmail}$`, 'i') } });
       if (user) {
         // Link existing DB user to their real Clerk ID
         user.clerkId = clerkId;

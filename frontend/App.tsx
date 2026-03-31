@@ -39,12 +39,53 @@ const SUPPORTED_LANGUAGES = [
   { code: 'bn', label: 'বাংলা', script: 'বা' },
 ];
 
+const getTabFromPath = (path: string): AppTab => {
+  if (path.startsWith("/admin-live")) return AppTab.ADMIN_LIVE;
+  if (path.startsWith("/admin")) return AppTab.ADMIN;
+  if (path.startsWith("/chat")) return AppTab.CORE;
+  if (path.startsWith("/ibadah")) return AppTab.IBADAH;
+  if (path.startsWith("/tarbiyah")) return AppTab.LIVE;
+  if (path.startsWith("/profile")) return AppTab.PROFILE;
+  if (path.startsWith("/home")) return AppTab.HOME;
+  return AppTab.HOME;
+};
+
 const App: React.FC = () => {
-  const [activeTab, setActiveTab] = useState<AppTab>(AppTab.HOME);
+  const [activeTab, setActiveTab] = useState<AppTab>(() => getTabFromPath(window.location.pathname));
   const [madhab, setMadhab] = useState<Madhab>(Madhab.GENERAL);
   const [tone, setTone] = useState<Tone>(Tone.CALM);
   const [isDesktop, setIsDesktop] = useState(window.innerWidth >= 1024);
   const [showLangDropdown, setShowLangDropdown] = useState(false);
+
+  // Sync URL with active tab
+  useEffect(() => {
+    const pathMap: Record<AppTab, string> = {
+      [AppTab.HOME]: "/home",
+      [AppTab.CORE]: "/chat",
+      [AppTab.IBADAH]: "/ibadah",
+      [AppTab.LIVE]: "/tarbiyah",
+      [AppTab.PROFILE]: "/profile",
+      [AppTab.ADMIN]: "/admin",
+      [AppTab.ADMIN_LIVE]: "/admin-live",
+    };
+    const newPath = pathMap[activeTab] || "/home";
+    if (window.location.pathname !== newPath) {
+      if (activeTab === AppTab.HOME && window.location.pathname === "/") {
+        // stay on root
+      } else {
+        window.history.pushState(null, "", newPath);
+      }
+    }
+  }, [activeTab]);
+
+  // Handle browser back/forward buttons
+  useEffect(() => {
+    const handlePopState = () => {
+      setActiveTab(getTabFromPath(window.location.pathname));
+    };
+    window.addEventListener("popstate", handlePopState);
+    return () => window.removeEventListener("popstate", handlePopState);
+  }, []);
 
   const { user, isLoaded } = useUser();
   const { getToken } = useAuth();

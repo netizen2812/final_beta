@@ -3,12 +3,8 @@ import User from "../models/User.js";
 import Child from "../models/Child.js";
 
 export const requireAuth = (req, res, next) => {
-  // 1. Log the attempt
+  // 1. Log the attempt (Safe metadata only)
   console.log(`🔐 Auth Check: ${req.method} ${req.path}`);
-  console.log(`   - Auth Header Present: ${!!req.headers.authorization}`);
-  if (req.headers.authorization) {
-    console.log(`   - Token Start: ${req.headers.authorization.substring(0, 15)}...`);
-  }
 
   // 2. Pass to Clerk
   return ClerkExpressRequireAuth({
@@ -118,6 +114,42 @@ export const isParentOfChild = async (req, res, next) => {
         next();
     } catch (error) {
         console.error("Ownership check error:", error);
+        res.status(500).json({ message: "Server error during authorization" });
+    }
+};
+
+export const isOwnerOfAssignment = async (req, res, next) => {
+    try {
+        const { assignmentId } = req.params;
+        const userId = req.auth.userId;
+        const { default: QuranAssignment } = await import("../models/QuranAssignment.js");
+
+        if (!assignmentId) return next();
+
+        const user = await User.findOne({ clerkId: userId });
+        if (!user) return res.status(404).json({ message: "User not found" });
+
+        // Admin/Scholar bypass for specific operations (optional, but good for flexibility)
+        if (user.role === 'admin') return next();
+
+        const assignment = await QuranAssignment.findById(assignmentId);
+        if (!assignment) return res.status(404).json({ message: "Assignment not found" });
+
+        const child = await Child.findById(assignment.studentId);
+        if (!child) return res.status(404).json({ message: "Student not found" });
+
+        const isOwner = child.parent_id.toString() === user._id.toString() || 
+                        child.childUserId?.toString() === user._id.toString();
+
+        if (!isOwner) {
+            console.log(`🚫 IDOR Attempt: User ${userId} tried to access assignment ${assignmentId}`);
+            return res.status(403).json({ message: "Access denied" });
+        }
+
+        req.assignment = assignment;
+        next();
+    } catch (error) {
+        console.error("Assignment ownership check error:", error);
         res.status(500).json({ message: "Server error during authorization" });
     }
 };

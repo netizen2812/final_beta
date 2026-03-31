@@ -20,6 +20,22 @@ const getOrCreateScholar = async () => {
     );
 };
 
+// Helper: Verify if the authenticated user owns the child profile
+const verifyChildOwnership = async (clerkId, childId) => {
+    const { default: User } = await import("../models/User.js");
+    const { default: Child } = await import("../models/Child.js");
+
+    const user = await User.findOne({ clerkId });
+    if (!user) return false;
+    if (user.role === 'admin') return true;
+
+    const child = await Child.findById(childId);
+    if (!child) return false;
+
+    return child.parent_id.toString() === user._id.toString() || 
+           child.childUserId?.toString() === user._id.toString();
+};
+
 // GET /api/live/scholar/status - Check if ANY scholar is available (or specific for lobby)
 export const getScholarStatus = async (req, res) => {
     try {
@@ -248,13 +264,12 @@ export const startBatch = async (req, res) => {
 
 // USER: POST /api/live/:id/join - Student joins a batch (Presence Tracking)
 export const joinBatch = async (req, res) => {
-    console.log("🚀 joinBatch (Presence) called for Batch ID:", req.params.id);
-    console.log("Request Body:", req.body);
+    console.log("🚀 joinBatch (Presence) called");
 
     try {
         const { id } = req.params; // Batch ID
         const { childId } = req.body;
-        const userId = req.auth.userId;
+        const clerkId = req.auth.userId;
 
         if (!id || !childId) {
             return res.status(400).json({ success: false, message: "Missing required fields" });
@@ -262,6 +277,19 @@ export const joinBatch = async (req, res) => {
 
         const { default: Batch } = await import("../models/Batch.js");
         const { default: Child } = await import("../models/Child.js");
+        const { default: User } = await import("../models/User.js");
+
+        // 0. OWNERSHIP CHECK
+        const user = await User.findOne({ clerkId });
+        if (!user) return res.status(401).json({ success: false, message: "Unauthorized" });
+
+        const child = await Child.findById(childId);
+        if (!child) return res.status(404).json({ success: false, message: "Student not found" });
+
+        const isOwner = child.parent_id.toString() === user._id.toString() || child.childUserId?.toString() === user._id.toString();
+        if (!isOwner && user.role !== 'admin') {
+            return res.status(403).json({ success: false, message: "Forbidden: You do not own this student profile" });
+        }
 
         const batch = await Batch.findById(id);
         if (!batch) return res.status(404).json({ success: false, message: "Batch not found" });
@@ -480,7 +508,11 @@ export const batchPing = async (req, res) => {
 export const updateBatchProgress = async (req, res) => {
     try {
         const { batchId, childId, surah, ayah } = req.body;
-        console.log("[BACKEND STORE] update-progress", { childId, surah, ayah, ts: new Date().toISOString() });
+        const clerkId = req.auth.userId;
+
+        // 0. OWNERSHIP CHECK
+        const isOwner = await verifyChildOwnership(clerkId, childId);
+        if (!isOwner) return res.status(403).json({ success: false, message: "Forbidden: Not your student" });
 
         const { default: Batch } = await import("../models/Batch.js");
 
@@ -508,18 +540,21 @@ export const updateBatchProgress = async (req, res) => {
 // USER: POST /api/live/update-position - Student position (surah/ayah) — same store as update-progress, with userId + timestamp
 export const updatePosition = async (req, res) => {
     try {
-        const { userId, batchId, childId, surahNumber, ayahNumber, timestamp } = req.body;
-        const id = childId || userId;
-        if (!batchId || !id) {
-            return res.status(400).json({ success: false, message: "batchId and childId (or userId) required" });
+        const { batchId, childId, surahNumber, ayahNumber, timestamp } = req.body;
+        const clerkId = req.auth.userId;
+
+        if (!batchId || !childId) {
+            return res.status(400).json({ success: false, message: "batchId and childId required" });
         }
+
+        // 0. OWNERSHIP CHECK
+        const isOwner = await verifyChildOwnership(clerkId, childId);
+        if (!isOwner) return res.status(403).json({ success: false, message: "Forbidden: Not your student" });
         const surah = surahNumber != null ? Number(surahNumber) : null;
         const ayah = ayahNumber != null ? Number(ayahNumber) : null;
         if (surah == null || ayah == null) {
             return res.status(400).json({ success: false, message: "surahNumber and ayahNumber required" });
         }
-
-        console.log("[BACKEND STORE] update-position", { userId, childId: id, surah, ayah, ts: timestamp || new Date().toISOString() });
 
         const { default: Batch } = await import("../models/Batch.js");
 
@@ -551,6 +586,12 @@ export const updatePosition = async (req, res) => {
 export const leaveBatch = async (req, res) => {
     try {
         const { batchId, childId } = req.body;
+        const clerkId = req.auth.userId;
+
+        // 0. OWNERSHIP CHECK
+        const isOwner = await verifyChildOwnership(clerkId, childId);
+        if (!isOwner) return res.status(403).json({ success: false, message: "Forbidden" });
+
         const { default: Batch } = await import("../models/Batch.js");
 
         await Batch.updateOne(
@@ -589,7 +630,7 @@ export const getBatchActiveParticipants = async (req, res) => {
 
         const liveParticipants = batch.activeParticipants.filter(p => p.isActive);
 
-        console.log("[SCHOLAR RECEIVE]", { batchId: id, count: liveParticipants.length, participants: liveParticipants.map(p => ({ childId: p.childId, childName: p.childName, surah: p.currentSurah, ayah: p.currentAyah, lastSeen: p.lastSeen })) });
+        console.log("[SCHOLAR RECEIVE]", { batchId: id, count: liveParticipants.length });
 
         res.json({
             activeChildId: batch.activeChildId,

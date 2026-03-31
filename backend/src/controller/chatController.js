@@ -13,7 +13,7 @@ export const chatWithImam = async (req, res) => {
       console.log("❌ Chat Request: Missing req.auth.userId");
       return res.status(401).json({ message: "Unauthorized: No User ID" });
     }
-    console.log(`✅ Chat Request Authenticated for User: ${clerkId}`);
+    console.log(`✅ Chat Request Authenticated`);
 
     // 1. Fetch User to check Rate Limit
     let user = await User.findOne({ clerkId });
@@ -54,7 +54,7 @@ export const chatWithImam = async (req, res) => {
         madhab: madhab || 'General'
       });
       if (cached) {
-        console.log(`Cache hit for: "${normalizedPrompt.substring(0, 30)}..." [${userLang}]`);
+        console.log(`Cache hit for prompt [${userLang}]`);
         // Still count messages and persist
         user.dailyChatCount += 1;
         user.lastChatDate = new Date();

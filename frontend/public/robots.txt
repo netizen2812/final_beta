@@ -1,0 +1,7 @@
+User-agent: *
+Allow: /
+Disallow: /admin
+Disallow: /admin-live
+Disallow: /api/
+
+Sitemap: https://imamapp.co/sitemap.xml

@@ -460,7 +460,11 @@ export const TarbiyahOnboarding = ({ getToken, isPaid = false }: { getToken: any
                        <HelpCircle size={18} className="shrink-0 mt-1" />
                        {faq.q}
                     </h3>
-                    <p className="text-emerald-100/50 text-sm leading-relaxed" dangerouslySetInnerHTML={{ __html: faq.a.replace(/\*\*(.*?)\*\*/g, '<strong class="text-emerald-300">$1</strong>') }} />
+                     <p className="text-emerald-100/50 text-sm leading-relaxed">
+                        {faq.a.split('**').map((part, index) => 
+                          index % 2 === 1 ? <strong key={index} className="text-emerald-300">{part}</strong> : part
+                        )}
+                     </p>
                  </div>
                ))}
             </div>

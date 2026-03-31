@@ -4,17 +4,25 @@
     android:layout_width="match_parent"
     android:layout_height="match_parent">
 
-    <ProgressBar
-        android:id="@+id/progressBar"
-        style="?android:attr/progressBarStyleHorizontal"
+    <!-- SwipeRefreshLayout requires exactly ONE direct child.
+         Wrap ProgressBar + WebView in a FrameLayout to avoid rendering glitches. -->
+    <FrameLayout
         android:layout_width="match_parent"
-        android:layout_height="4dp"
-        android:progressDrawable="@drawable/progress_bar_states"
-        android:visibility="gone" />
+        android:layout_height="match_parent">
 
-    <WebView
-        android:id="@+id/webView"
-        android:layout_width="match_parent"
-        android:layout_height="match_parent" />
+        <WebView
+            android:id="@+id/webView"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent" />
+
+        <ProgressBar
+            android:id="@+id/progressBar"
+            style="?android:attr/progressBarStyleHorizontal"
+            android:layout_width="match_parent"
+            android:layout_height="4dp"
+            android:progressDrawable="@drawable/progress_bar_states"
+            android:visibility="gone" />
+
+    </FrameLayout>
 
 </androidx.swiperefreshlayout.widget.SwipeRefreshLayout>

@@ -17,6 +17,7 @@ import android.webkit.WebResourceError
 import android.webkit.WebResourceRequest
 import android.webkit.WebResourceResponse
 import android.content.Intent
+import androidx.browser.customtabs.CustomTabsIntent
 import android.net.ConnectivityManager
 import android.net.NetworkCapabilities
 import android.net.Uri
@@ -108,7 +109,10 @@ class MainActivity : AppCompatActivity() {
         webView.setBackgroundColor(android.graphics.Color.parseColor("#052e16"))
 
         // Custom User Agent to ensure compatibility with Clerk Social Logins
-        val defaultUserAgent = settings.userAgentString
+        // We MUST remove WebView markers ("; wv" and "Version/4.0 ") or Google blocks OAuth with Error 403
+        var defaultUserAgent = settings.userAgentString
+        defaultUserAgent = defaultUserAgent.replace("; wv", "")
+        defaultUserAgent = defaultUserAgent.replace("Version/4.0 ", "")
         settings.userAgentString = "$defaultUserAgent ImamApp/1.0"
 
         // Bridge: JavaScript Interface
@@ -128,8 +132,13 @@ class MainActivity : AppCompatActivity() {
                     return false
                 }
 
-                // Clerk auth flows — keep inside WebView
-                if (url.contains("clerk.") || url.contains("accounts.google.com") || url.contains("appleid.apple.com")) {
+                // Clerk internal flows — keep inside WebView
+                if (url.contains("clerk.") || url.contains("clerkjs.") || url.contains("__clerk")) {
+                    return false
+                }
+
+                // Google & Apple OAuth — allow inside WebView since we spoofed the User-Agent
+                if (url.contains("accounts.google.com") || url.contains("appleid.apple.com")) {
                     return false
                 }
 
@@ -153,8 +162,13 @@ class MainActivity : AppCompatActivity() {
                     return false
                 }
 
-                // Clerk auth flows
-                if (url.contains("clerk.") || url.contains("accounts.google.com") || url.contains("appleid.apple.com")) {
+                // Clerk internal flows — keep inside WebView
+                if (url.contains("clerk.") || url.contains("clerkjs.") || url.contains("__clerk")) {
+                    return false
+                }
+
+                // Google & Apple OAuth — allow inside WebView since we spoofed the User-Agent
+                if (url.contains("accounts.google.com") || url.contains("appleid.apple.com")) {
                     return false
                 }
 
@@ -310,6 +324,8 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun setupSwipeRefresh() {
+        // Disabled because it triggers aggressively on internal web scrolling
+        binding.swipeRefreshLayout.isEnabled = false
         binding.swipeRefreshLayout.setOnRefreshListener {
             if (isNetworkAvailable()) {
                 binding.webView.reload()

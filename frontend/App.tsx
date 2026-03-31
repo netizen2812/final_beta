@@ -288,10 +288,7 @@ const App: React.FC = () => {
         <XPRewardEffect />
         {(appMode === 'app' && !isDesktop) ? (
           /* 📱 APP LAYOUT (MOBILE CONSTRAINED) */
-          <div className="min-h-[100dvh] flex items-center justify-center bg-slate-100 sm:p-6 lg:p-8 overflow-hidden">
-            <div
-              className={`h-[100dvh] sm:h-[844px] w-full sm:max-w-xl flex flex-col bg-white sm:rounded-[48px] sm:shadow-2xl sm:border-[8px] sm:border-slate-900 relative overflow-hidden is-phone-app transition-all duration-500`}
-            >
+          <div className="h-[100dvh] w-full flex flex-col bg-white relative overflow-hidden transition-all duration-500">
               {/* 🏥 HEADER */}
               <header
                 className="absolute top-0 left-0 right-0 h-16 flex items-center justify-between px-6 z-50 bg-white/80 backdrop-blur-xl border-b border-emerald-50/50"
@@ -329,7 +326,7 @@ const App: React.FC = () => {
               </header>
 
               {/* 📱 MAIN CONTENT (Scrollable Area) */}
-              <main className={`flex-1 ${activeTab === AppTab.CORE ? 'overflow-hidden' : 'overflow-y-auto'} pt-16 pb-20 no-scrollbar`}>
+              <main className={`flex-1 flex flex-col ${activeTab === AppTab.CORE ? 'overflow-hidden' : 'overflow-y-auto'} pt-16 pb-20 no-scrollbar`}>
                 {renderContent()}
                 {activeTab !== AppTab.CORE && <Footer />}
               </main>
@@ -352,7 +349,6 @@ const App: React.FC = () => {
                   );
                 })}
               </nav>
-            </div>
           </div>
         ) : (
           /* 🌐 WEB LAYOUT (RESPONSIVE) */
@@ -460,7 +456,7 @@ const App: React.FC = () => {
             )}
 
             {/* MAIN CONTENT */}
-            <main className={`flex-1 overflow-y-auto pt-16 pb-24 ${isDesktop ? "ml-64" : ""}`}>
+            <main className={`flex-1 flex flex-col ${activeTab === AppTab.CORE ? 'overflow-hidden' : 'overflow-y-auto'} pt-16 pb-24 ${isDesktop ? "ml-64" : ""}`}>
               {renderContent()}
               <Footer />
             </main>

@@ -415,7 +415,7 @@ const CoreChat: React.FC<CoreChatProps> = ({ madhab, setMadhab, tone: mood, setT
   return (
     <>
       <AnimatedBackground />
-      <div className={`relative flex ${isAppMode ? 'h-[100dvh]' : 'h-[calc(100vh-64px)]'} w-full gap-0 animate-in fade-in duration-700 overflow-hidden`} style={{ zIndex: 1 }}>
+      <div className="relative flex flex-1 w-full gap-0 animate-in fade-in duration-700 overflow-hidden" style={{ zIndex: 1, minHeight: 0 }}>
 
         {/* Left Panel */}
         {isDesktop && showLeftPanel && (
@@ -520,7 +520,7 @@ const CoreChat: React.FC<CoreChatProps> = ({ madhab, setMadhab, tone: mood, setT
               />
 
               {/* Message List */}
-              <div className={`flex-1 overflow-y-auto ${messages.length > 0 ? (isDesktop ? 'p-6 md:p-10' : 'p-4 pt-4 pb-32') : 'p-4'} space-y-6 no-scrollbar relative z-10 flex flex-col`}
+              <div className={`flex-1 overflow-y-auto ${messages.length > 0 ? (isDesktop ? 'p-6 md:p-10' : 'p-4 pb-4') : 'p-4'} space-y-6 no-scrollbar relative z-10 flex flex-col`}
                 style={{ 
                   overscrollBehavior: 'none',
                   WebkitOverflowScrolling: 'touch'
@@ -561,10 +561,8 @@ const CoreChat: React.FC<CoreChatProps> = ({ madhab, setMadhab, tone: mood, setT
                 <div ref={messagesEndRef} />
               </div>
 
-              {/* Sticky Input Area */}
-              <div className={`shrink-0 ${isDesktop 
-                ? 'p-4 md:p-6 bg-white/60 backdrop-blur-md border-t border-slate-100/60' 
-                : `fixed ${isKeyboardOpen ? 'bottom-2' : 'bottom-20'} left-0 right-0 p-4 pb-6 bg-white/80 backdrop-blur-2xl border-t border-emerald-50/50 z-[60] shadow-[0_-10px_40px_-15px_rgba(0,0,0,0.08)] transition-all duration-300`}`}>
+              {/* Sticky Input Area (Standard flex placement instead of fixed) */}
+              <div className={`shrink-0 relative w-full bg-white/80 backdrop-blur-md border-t border-slate-100/60 z-20 ${isDesktop ? 'p-4 md:p-6' : 'p-3 pb-4'}`}>
                 <div className={`flex items-center gap-2 bg-white ${isDesktop ? 'p-2' : 'p-1.5'} rounded-full border border-slate-200 shadow-sm focus-within:border-emerald-400 focus-within:ring-4 focus-within:ring-emerald-400/10 transition-all max-w-3xl mx-auto`}>
                   
                   {/* Settings Button (Mobile) */}

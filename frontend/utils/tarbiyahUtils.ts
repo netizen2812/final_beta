@@ -1,14 +1,14 @@
 export const RANK_LEVELS = [
     { level: 1, minXP: 0 },
-    { level: 2, minXP: 5 },
-    { level: 3, minXP: 20 },
-    { level: 4, minXP: 45 },
-    { level: 5, minXP: 80 },
-    { level: 6, minXP: 125 },
-    { level: 7, minXP: 180 },
-    { level: 8, minXP: 245 },
-    { level: 9, minXP: 320 },
-    { level: 10, minXP: 405 },
+    { level: 2, minXP: 100 },
+    { level: 3, minXP: 200 },
+    { level: 4, minXP: 300 },
+    { level: 5, minXP: 400 },
+    { level: 6, minXP: 500 },
+    { level: 7, minXP: 600 },
+    { level: 8, minXP: 700 },
+    { level: 9, minXP: 800 },
+    { level: 10, minXP: 900 },
 ];
 
 export interface Rank {

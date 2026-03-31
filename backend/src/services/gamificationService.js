@@ -3,10 +3,9 @@ import ChildActivity from "../models/ChildActivity.js";
 
 export const calculateLevel = (xp) => {
     // 100 XP per level
-    // L1: 0 XP
-    // L2: 100 XP
-    // L3: 200 XP
-    // ...
+    // L1: 0-99
+    // L2: 100-199
+    // L3: 200-299
     return Math.floor(Math.max(0, xp) / 100) + 1;
 };
 

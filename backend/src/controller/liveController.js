@@ -494,6 +494,12 @@ export const debugAllBatches = async (req, res) => {
 export const batchPing = async (req, res) => {
     try {
         const { batchId, childId } = req.body;
+        const clerkId = req.auth.userId;
+
+        // 0. OWNERSHIP CHECK
+        const isOwner = await verifyChildOwnership(clerkId, childId);
+        if (!isOwner) return res.status(403).json({ success: false, message: "Forbidden" });
+
         const { default: Batch } = await import("../models/Batch.js");
 
         await Batch.updateOne(
@@ -554,14 +560,14 @@ export const updatePosition = async (req, res) => {
         if (!isOwner) return res.status(403).json({ success: false, message: "Forbidden: Not your student" });
         const surah = surahNumber != null ? Number(surahNumber) : null;
         const ayah = ayahNumber != null ? Number(ayahNumber) : null;
-        if (surah == null || ayah == null) {
-            return res.status(400).json({ success: false, message: "surahNumber and ayahNumber required" });
+        if (surah == null || ayah == null || surah < 1 || surah > 114) {
+            return res.status(400).json({ success: false, message: "Valid surahNumber (1-114) and ayahNumber required" });
         }
 
         const { default: Batch } = await import("../models/Batch.js");
 
         const result = await Batch.updateOne(
-            { _id: batchId, "activeParticipants.childId": id },
+            { _id: batchId, "activeParticipants.childId": childId },
             {
                 $set: {
                     "activeParticipants.$.currentSurah": surah,
@@ -819,6 +825,12 @@ export const scoreParticipation = async (req, res) => {
         const batch = await Batch.findById(id);
         if (!batch || !batch.activeSessionId) return res.status(400).json({ message: "Batch not active" });
 
+        // 0. AUTH CHECK (Scholar/Admin only)
+        const clerkId = req.auth.userId;
+        const user = await User.findOne({ clerkId });
+        const canScore = user && (user.role === 'scholar' || user.role === 'admin' || ["sarthakjuneja1999@gmail.com", "huzaifbarkati0@gmail.com"].includes(user.email));
+        if (!canScore) return res.status(403).json({ message: "Forbidden: Only scholars can award participation points" });
+
         await LiveScore.findOneAndUpdate(
             { batchId: id, sessionId: batch.activeSessionId, childId },
             { $inc: { participationScore: points || 1 } },
@@ -926,16 +938,16 @@ export const getLeaderboard = async (req, res) => {
         if (!querySessionId) return res.json({ leaderboard: [] });
 
         const scores = await LiveScore.find({ batchId: id, sessionId: querySessionId });
-        
-        const leaderboard = await Promise.all(scores.map(async (s) => {
-            const child = await Child.findById(s.childId);
-            return {
-                childId: s.childId,
-                name: child ? child.name : "Unknown",
-                recitationScore: s.recitationScore,
-                participationScore: s.participationScore,
-                total: (s.recitationScore || 0) + (s.participationScore || 0)
-            };
+        const childIds = scores.map(s => s.childId);
+        const children = await Child.find({ _id: { $in: childIds } }).select('name');
+        const childMap = Object.fromEntries(children.map(c => [c._id.toString(), c.name]));
+
+        const leaderboard = scores.map(s => ({
+            childId: s.childId,
+            name: childMap[s.childId.toString()] || "Unknown",
+            recitationScore: s.recitationScore,
+            participationScore: s.participationScore,
+            total: (s.recitationScore || 0) + (s.participationScore || 0)
         }));
 
         leaderboard.sort((a, b) => b.total - a.total);
@@ -974,9 +986,21 @@ export const getGlobalLeaderboard = async (req, res) => {
 export const getScholarBatches = async (req, res) => {
     try {
         const { default: Batch } = await import("../models/Batch.js");
-        // For MVP: Return all batches the scholar has access to.
-        const batches = await Batch.find()
-            .populate('scholar', 'name')
+        const clerkId = req.auth.userId;
+        const user = await User.findOne({ clerkId });
+
+        let query = {};
+        if (user && user.role !== 'admin' && !["sarthakjuneja1999@gmail.com", "huzaifbarkati0@gmail.com"].includes(user.email)) {
+            query = { 
+                $or: [
+                    { scholar: user._id },
+                    { scholarEmail: user.email }
+                ]
+            };
+        }
+
+        const batches = await Batch.find(query)
+            .populate('scholar', 'name email')
             .populate('students', 'name');
             
         res.json({ batches });

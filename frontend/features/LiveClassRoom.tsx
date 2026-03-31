@@ -395,14 +395,6 @@ const LiveClassRoom: React.FC = () => {
       try {
         const token = await getToken();
         console.log("[STUDENT EMIT] position", { surah, ayah, batchId: currentSession.batchId, childId: currentSession.childId });
-        await axios.post(`${API_BASE}/api/live/update-position`, {
-          userId: user?.id,
-          batchId: currentSession.batchId,
-          childId: currentSession.childId,
-          surahNumber: surah,
-          ayahNumber: ayah,
-          timestamp: new Date().toISOString()
-        }, { headers: { Authorization: `Bearer ${token}` } });
         await axios.post(`${API_BASE}/api/live/update-progress`, {
           batchId: currentSession.batchId,
           childId: currentSession.childId,

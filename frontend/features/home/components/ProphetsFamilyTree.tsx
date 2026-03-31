@@ -34,12 +34,19 @@ const ProphetsFamilyTree: React.FC = () => {
 
     return (
         <>
-            <section className="relative w-full bg-white/5 backdrop-blur-sm rounded-[3rem] border border-emerald-50/10 py-12 md:py-32 px-4 shadow-2xl reveal-on-scroll">
+        <section className="relative w-full bg-gradient-to-b from-emerald-950 to-[#0D4433] rounded-[3rem] border border-emerald-400/20 py-12 md:py-32 px-4 shadow-[0_20px_50px_rgba(5,46,22,0.3)] reveal-on-scroll overflow-hidden">
+                {/* Decorative Pattern Layer */}
+                <div className="absolute inset-0 opacity-10 pointer-events-none"
+                    style={{
+                        backgroundImage: `url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M30 0l5 25 25 5-25 5-5 25-5-25-25-5 25-5z' fill='%2310b981'/%3E%3C/svg%3E")`,
+                        backgroundSize: '80px 80px'
+                    }}
+                />
                 {/* Title Overlay */}
-                <div className="text-center space-y-4 mb-10 md:mb-20 pointer-events-none">
-                    <div className="w-12 h-1 bg-emerald-100 mx-auto rounded-full" />
-                    <h2 className="text-2xl md:text-6xl font-serif text-emerald-950">{t('home.prophets.title')}</h2>
-                    <p className="text-[9px] font-black uppercase tracking-[0.4em] text-emerald-900/30">{t('home.prophets.subtitle')}</p>
+                <div className="relative text-center space-y-4 mb-10 md:mb-20 pointer-events-none z-20">
+                    <div className="w-12 h-1 bg-emerald-400 mx-auto rounded-full" />
+                    <h2 className="text-3xl md:text-7xl font-serif text-white">{t('home.prophets.title')}</h2>
+                    <p className="text-[10px] font-black uppercase tracking-[0.4em] text-emerald-400/60 font-sans">{t('home.prophets.subtitle')}</p>
                 </div>
 
                 {/* The Map Canvas - Now full height and natural scroll with horizontal overflow on mobile */}
@@ -65,11 +72,11 @@ const ProphetsFamilyTree: React.FC = () => {
                                         <path
                                             key={`${prophet.id}-${connId}`}
                                             d={`M ${prophet.x} ${prophet.y} C ${midX} ${prophet.y}, ${midX} ${target.y}, ${target.x} ${target.y}`}
-                                            stroke="url(#lineGrad)"
-                                            strokeWidth="2"
+                                            stroke="rgba(52, 211, 153, 0.4)"
+                                            strokeWidth="2.5"
                                             fill="none"
-                                            className="animate-[dash_10s_linear_infinite]"
-                                            style={{ strokeDasharray: '10, 5' }}
+                                            className="animate-[dash_15s_linear_infinite]"
+                                            style={{ strokeDasharray: '12, 6' }}
                                         />
                                     );
                                 })
@@ -80,7 +87,7 @@ const ProphetsFamilyTree: React.FC = () => {
                             <div
                                 key={prophet.id}
                                 onClick={() => setSelectedProphet(prophet)}
-                                className={`absolute -translate-x-1/2 -translate-y-1/2 group/node cursor-pointer transition-all duration-500 reveal-on-scroll`}
+                                className="absolute -translate-x-1/2 -translate-y-1/2 group/node cursor-pointer transition-all duration-500 hover:z-50"
                                 style={{ left: prophet.x, top: prophet.y }}
                             >
                                 {/* Outer Glow */}

@@ -1,6 +1,7 @@
+import User from '../models/User.js';
+import { clerkClient } from '@clerk/clerk-sdk-node';
 import Razorpay from 'razorpay';
 import crypto from 'crypto';
-import User from '../models/User.js';
 
 export const createOrder = async (req, res) => {
   try {
@@ -67,10 +68,29 @@ export const verifyPayment = async (req, res) => {
 
     // Grant Access
     const userId = req.auth.userId;
-    const user = await User.findOne({ clerkId: userId });
+    let user = await User.findOne({ clerkId: userId });
     
+    // SELF-HEALING: If user missing from DB during payment verification (sync race condition)
     if (!user) {
-        return res.status(404).json({ message: "User not found" });
+        console.log(`🛠️ Self-healing missing user during payment verification: ${userId}`);
+        try {
+            const clerkUser = await clerkClient.users.getUser(userId);
+            const email = clerkUser.emailAddresses[0]?.emailAddress?.toLowerCase();
+            const name = `${clerkUser.firstName || ''} ${clerkUser.lastName || ''}`.trim();
+            
+            // Create user explicitly so we have a document to update
+            user = await User.create({
+                clerkId: userId,
+                email,
+                name,
+                role: 'parent',
+                features: { liveAccess: false, aiPremiumUntil: null }
+            });
+            console.log(`✅ User sync recovery successful for payment: ${email}`);
+        } catch (clerkErr) {
+            console.error("Clerk sync failed in payment verification:", clerkErr.message);
+            return res.status(404).json({ message: "User not found and sync recovery failed" });
+        }
     }
 
     // Update User using findOneAndUpdate for atomicity & reliability
@@ -84,7 +104,7 @@ export const verifyPayment = async (req, res) => {
     } else if (planType === 'TARBIYAH_LIFETIME') {
        updateFields = { 
            "features.liveAccess": true,
-           role: 'parent' // Ensure they have parent permissions to add children
+           role: 'parent' 
        };
     }
     
@@ -98,7 +118,7 @@ export const verifyPayment = async (req, res) => {
     );
     
     if (!updatedUser) {
-        return res.status(404).json({ message: "User not found" });
+        return res.status(500).json({ message: "Error updating user after verification" });
     }
 
     res.json({ message: "Payment successful" });

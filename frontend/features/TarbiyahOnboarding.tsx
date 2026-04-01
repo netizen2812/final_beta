@@ -143,12 +143,20 @@ export const TarbiyahOnboarding = ({ getToken, isPaid = false }: { getToken: any
         description: "Lifetime Tarbiyah Access",
         order_id: order.id,
         handler: async function (response: any) {
-             await axios.post(`${API_BASE}/api/payment/verify`, {
-                 ...response,
-                 planType: 'TARBIYAH_LIFETIME'
-             }, { headers: { Authorization: `Bearer ${token}` } });
-             alert("Welcome! Payment successful. Your batch will be assigned shortly!");
-             window.location.reload();
+          try {
+            // Get a fresh token before verify call
+            const freshToken = await getToken();
+            await axios.post(`${API_BASE}/api/payment/verify`, {
+                ...response,
+                planType: 'TARBIYAH_LIFETIME'
+            }, { headers: { Authorization: `Bearer ${freshToken}` } });
+            
+            alert("Payment successful! Access granted. Please refresh the page if you don't see your dashboard.");
+            window.location.reload();
+          } catch (err: any) {
+            console.error("Verification failed", err);
+            alert(`Payment was successful (ID: ${response.razorpay_payment_id}), but access couldn't be granted automatically. Please contact support with your Payment ID.`);
+          }
         },
         theme: { color: "#052e16" }
       };

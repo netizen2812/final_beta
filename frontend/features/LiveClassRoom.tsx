@@ -357,14 +357,20 @@ const LiveClassRoom: React.FC = () => {
         description: "Lifetime Tarbiyah Access",
         order_id: order.id,
         handler: async function (response: any) {
-             // 3. Verify Payment
-             await axios.post(`${API_BASE}/api/payment/verify`, {
-                 ...response,
-                 planType: 'TARBIYAH_LIFETIME'
-             }, { headers: { Authorization: `Bearer ${token}` } });
-             
-             alert("Payment successful! Access granted. Pulling down classes now.");
-             setAccessStatus({ hasAccess: true, pendingRequest: false });
+             try {
+               // Get a fresh token before verify call
+               const freshToken = await getToken();
+               await axios.post(`${API_BASE}/api/payment/verify`, {
+                   ...response,
+                   planType: 'TARBIYAH_LIFETIME'
+               }, { headers: { Authorization: `Bearer ${freshToken}` } });
+               
+               alert("Payment successful! Access granted.");
+               setAccessStatus({ hasAccess: true, pendingRequest: false });
+             } catch (err: any) {
+               console.error("Verification failed", err);
+               alert(`Payment was successful (ID: ${response.razorpay_payment_id}), but access couldn't be granted automatically. Please contact support with your Payment ID.`);
+             }
         },
         theme: {
           color: "#052e16"

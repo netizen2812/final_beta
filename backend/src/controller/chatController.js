@@ -7,6 +7,12 @@ import { trackEvent } from "../services/analyticsService.js";
 export const chatWithImam = async (req, res) => {
   try {
     const { prompt, history, conversationId, madhab, language } = req.body;
+    
+    // PRIORITY 3: SECURITY - Limit prompt length to 2000 chars
+    if (!prompt || typeof prompt !== 'string' || prompt.length > 2000) {
+      return res.status(400).json({ success: false, message: "Prompt too long or invalid (max 2000 chars)" });
+    }
+
     const clerkId = req.auth?.userId;
 
     if (!clerkId) {

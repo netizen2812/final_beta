@@ -218,10 +218,10 @@ class MainActivity : AppCompatActivity() {
 
             @SuppressLint("WebViewClientOnReceivedSslError")
             override fun onReceivedSslError(view: WebView?, handler: SslErrorHandler?, error: SslError?) {
-                // WARNING: In production, you should carefully decide whether to proceed or cancel.
+                // SECURITY FIX: Never bypass SSL errors in production.
                 Log.w(TAG, "SSL Error: ${error?.toString()}")
                 Toast.makeText(this@MainActivity, "SSL Error: ${error?.toString()}", Toast.LENGTH_LONG).show()
-                handler?.proceed()
+                handler?.cancel() // Corrected: Terminate request on SSL failure
             }
 
             override fun onRenderProcessGone(view: WebView?, detail: android.webkit.RenderProcessGoneDetail?): Boolean {

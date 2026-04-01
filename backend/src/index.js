@@ -63,14 +63,16 @@ app.use(express.json());
 
 // Rate Limiting
 const generalLimiter = rateLimit({
-  windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 100, // Limit each IP to 100 requests per windowMs
-  message: "Too many requests from this IP, please try again later"
+  windowMs: 15 * 60 * 1000, 
+  max: 100, 
+  keyGenerator: (req) => req.auth?.userId || req.ip,
+  message: "Too many requests, please try again later"
 });
 
 const aiLimiter = rateLimit({
-  windowMs: 1 * 60 * 1000, // 1 minute
-  max: 5, // Limit each IP to 5 requests per minute (as requested)
+  windowMs: 1 * 60 * 1000, 
+  max: 5, 
+  keyGenerator: (req) => req.auth?.userId || req.ip,
   message: "AI rate limit reached. Please wait a minute before asking another question."
 });
 

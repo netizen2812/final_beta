@@ -47,7 +47,7 @@ export const syncUser = async (req, res) => {
           ? "admin"
           : clerkRole
             ? clerkRole
-            : email && email.toLowerCase() === "scholar1.imam@gmail.com"
+            : isDefaultScholar(email)
               ? "scholar"
               : "parent";
 

@@ -73,6 +73,11 @@ export const verifyPayment = async (req, res) => {
         return res.status(404).json({ message: "User not found" });
     }
 
+    // Idempotency: Prevent replay attacks
+    if (user.processedPayments?.includes(razorpay_payment_id)) {
+        return res.status(409).json({ message: "Payment already processed previously" });
+    }
+
     if (planType === 'AI_MONTHLY') {
        // Unlock for exactly 30 days
        const thirtyDaysFromNow = new Date();
@@ -87,6 +92,8 @@ export const verifyPayment = async (req, res) => {
        user.markModified('features');
     }
     
+    // Add to processed payments
+    user.processedPayments = [...(user.processedPayments || []), razorpay_payment_id];
     await user.save();
 
     res.json({ message: "Payment successful" });

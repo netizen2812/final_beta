@@ -58,7 +58,10 @@ const userSchema = new mongoose.Schema(
       type: String,
       enum: ['en', 'hi', 'ur', 'ml', 'bn'],
       default: 'en'
-    }
+    },
+
+    // Payment Idempotency (Prevent replay attacks)
+    processedPayments: [{ type: String }]
   },
   { timestamps: true }
 );

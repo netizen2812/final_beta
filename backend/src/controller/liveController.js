@@ -6,13 +6,14 @@ const SCHOLAR_EMAIL = "scholar1.imam@gmail.com";
 
 // Helper: get or upsert scholar record safely
 const getOrCreateScholar = async () => {
+    const defaultScholarEmail = SCHOLAR_EMAILS[0];
     // Use findOneAndUpdate with upsert to avoid E11000 duplicate key errors
     return await User.findOneAndUpdate(
-        { email: { $regex: new RegExp(`^${SCHOLAR_EMAIL.replace('.', '\\.')}$`, 'i') } },
+        { email: { $regex: new RegExp(`^${defaultScholarEmail.replace('.', '\\.')}$`, 'i') } },
         {
             $setOnInsert: {
-                clerkId: `scholar_placeholder_${SCHOLAR_EMAIL}`,
-                email: SCHOLAR_EMAIL,
+                clerkId: `scholar_placeholder_${defaultScholarEmail}`,
+                email: defaultScholarEmail,
                 name: "Scholar",
                 role: "scholar"
             }
@@ -22,19 +23,22 @@ const getOrCreateScholar = async () => {
 };
 
 // Helper: Verify if the authenticated user owns the child profile
-const verifyChildOwnership = async (clerkId, childId) => {
+// Returns { child, user } if authorized, else null
+const verifyChildAccess = async (clerkId, childId) => {
     const { default: User } = await import("../models/User.js");
     const { default: Child } = await import("../models/Child.js");
 
     const user = await User.findOne({ clerkId });
-    if (!user) return false;
-    if (user.role === 'admin') return true;
+    if (!user) return null;
 
     const child = await Child.findById(childId);
-    if (!child) return false;
+    if (!child) return null;
 
-    return child.parent_id.toString() === user._id.toString() || 
-           child.childUserId?.toString() === user._id.toString();
+    const isOwner = child.parent_id.toString() === user._id.toString() || 
+                    child.childUserId?.toString() === user._id.toString() ||
+                    user.role === 'admin';
+
+    return isOwner ? { child, user } : null;
 };
 
 // GET /api/live/scholar/status - Check if ANY scholar is available (or specific for lobby)
@@ -503,8 +507,8 @@ export const updateBatchProgress = async (req, res) => {
         const clerkId = req.auth.userId;
 
         // 0. OWNERSHIP CHECK
-        const isOwner = await verifyChildOwnership(clerkId, childId);
-        if (!isOwner) return res.status(403).json({ success: false, message: "Forbidden: Not your student" });
+        const access = await verifyChildAccess(clerkId, childId);
+        if (!access) return res.status(403).json({ success: false, message: "Forbidden: Not your student" });
 
         const { default: Batch } = await import("../models/Batch.js");
 
@@ -842,11 +846,11 @@ export const submitPrompt = async (req, res) => {
 
         // 0. OWNERSHIP CHECK (or isScholar bypass)
         const clerkId = req.auth.userId;
-        const isOwner = await verifyChildOwnership(clerkId, childId);
-        const user = await User.findOne({ clerkId });
+        const access = await verifyChildAccess(clerkId, childId);
+        const user = access?.user || await User.findOne({ clerkId });
         const isScholar = user && (user.role === 'scholar' || user.role === 'admin' || isRootAdmin(user.email));
         
-        if (!isOwner && !isScholar) {
+        if (!access && !isScholar) {
             return res.status(403).json({ message: "Access denied: Not your child profile" });
         }
 
@@ -1011,71 +1015,66 @@ export const endBatch = async (req, res) => {
         const { default: Batch } = await import("../models/Batch.js");
         const { awardXP } = await import("../services/gamificationService.js");
 
-        const batch = await Batch.findById(id);
-        if (!batch) return res.status(404).json({ message: "Batch not found" });
+        // ATOMIC FIX: Clear activeSessionId and status in one operation
+        // This prevents race conditions where double clicks could award double XP
+        const batch = await Batch.findOneAndUpdate(
+            { _id: id, activeSessionId: { $ne: null } },
+            { 
+                $set: { 
+                    status: 'upcoming',
+                    activeSessionId: null,
+                    activeChildId: null,
+                    activeParticipants: [] 
+                } 
+            },
+            { new: false } // We need the PRE-UPDATE state to get pastSessions/participants
+        );
 
-        // Prevent double-clicking / duplicate Session Complete XP bugs
-        if (!batch.activeSessionId) {
-            return res.status(400).json({ message: "No active session to end. Already processed." });
+        if (!batch) {
+            return res.status(400).json({ message: "No active session to end. Already processed or not found." });
         }
 
-        const durationMinutes = 45; 
+        const activeSessionId = batch.activeSessionId;
         
-        // 1. Mark the historical session as ended
+        // 1. Mark the historical session as ended in the DB
+        // Since we have the batch object before the update, we can find the session index
         let sessionToReward = null;
-        if (batch.activeSessionId) {
-            batch.pastSessions = batch.pastSessions || [];
-            const sessionIndex = batch.pastSessions.findIndex(s => s.sessionId === batch.activeSessionId);
+        if (activeSessionId) {
+            const sessions = batch.pastSessions || [];
+            const sessionIndex = sessions.findIndex(s => s.sessionId === activeSessionId);
             if (sessionIndex > -1) {
-                batch.pastSessions[sessionIndex].endedAt = new Date();
-                sessionToReward = batch.pastSessions[sessionIndex];
-                batch.markModified('pastSessions'); 
-            } else {
-                // Failsafe push
-                sessionToReward = {
-                    sessionId: batch.activeSessionId,
-                    startedAt: new Date(Date.now() - 45 * 60000),
-                    endedAt: new Date(),
-                    attendedChildren: []
-                };
-                batch.pastSessions.push(sessionToReward);
+                // We update the specific pastSession entry directly in DB
+                await Batch.updateOne(
+                    { _id: id, "pastSessions.sessionId": activeSessionId },
+                    { $set: { "pastSessions.$.endedAt": new Date() } }
+                );
+                sessionToReward = sessions[sessionIndex];
             }
         }
 
         // 2. Ensure ALL participants who attended at any point get completion XP
-        // Previously we only awarded to p.isActive, which excluded students who left early
         const childrenToAward = new Set();
         
-        // Add everyone from the permanent attendance list
         if (sessionToReward && sessionToReward.attendedChildren) {
             sessionToReward.attendedChildren.forEach(id => childrenToAward.add(id.toString()));
         }
         
-        // Also add everyone in activeParticipants just in case (e.g. if they joined but somehow attendance push failed)
         if (batch.activeParticipants) {
             batch.activeParticipants.forEach(p => childrenToAward.add(p.childId.toString()));
         }
 
         for (const childId of childrenToAward) {
             try { 
-                await awardXP(childId, "session_complete", { sessionId: batch.activeSessionId, batchId: id });
+                await awardXP(childId, "session_complete", { sessionId: activeSessionId, batchId: id });
             } catch (err) { 
                 console.error(`Failed to award end-session XP to ${childId}:`, err);
             }
         }
 
-        // Return batch to an upcoming state for the next session
-        batch.status = 'upcoming';
-        // Cleanup active state so it can be restarted later
-        batch.activeSessionId = null; 
-        batch.activeChildId = null;
-        batch.activeParticipants = [];
-        await batch.save();
-
         res.json({ message: "Batch ended and XP awarded" });
     } catch (error) {
         console.error("End batch error:", error);
-        res.status(500).json({ message: "Server error", error: error.message, stack: process.env.NODE_ENV !== 'production' ? error.stack : undefined });
+        res.status(500).json({ message: "Server error", error: error.message });
     }
 };
 

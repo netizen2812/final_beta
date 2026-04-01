@@ -132,9 +132,10 @@ export const TarbiyahLobby = ({
       } catch (err) {}
     };
     fetchData();
-    const interval = setInterval(fetchData, 4000); // Slightly slower polling for battery efficiency
+    const hasActiveBatch = batches.some(b => b.status === 'active');
+    const interval = setInterval(fetchData, hasActiveBatch ? 4000 : 20000); 
     return () => clearInterval(interval);
-  }, [getToken]);
+  }, [getToken, batches.some(b => b.status === 'active')]);
 
   useEffect(() => {
     const handleScroll = () => {

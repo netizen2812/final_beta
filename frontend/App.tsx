@@ -243,16 +243,7 @@ const App: React.FC = () => {
     { id: AppTab.LIVE, label: t("nav.tarbiyah", "Tarbiyah"), icon: <Icons.Book /> },
   ];
 
-  const rootAdmins = ["sarthakjuneja1999@gmail.com", "huzaifbarkati0@gmail.com", "abhi.nebhani@gmail.com"];
-  const userEmails = (user?.emailAddresses || []).map(e => e.emailAddress.toLowerCase());
-  
-  const isAdmin = user?.publicMetadata?.role === 'admin' ||
-    userEmails.some(email => {
-      const normalized = email.replace(/\./g, "").replace("@googlemail.com", "@gmail.com");
-      return rootAdmins.some(admin =>
-        admin.replace(/\./g, "").replace("@googlemail.com", "@gmail.com") === normalized
-      );
-    });
+  const isAdmin = user?.publicMetadata?.role === 'admin';
 
   if (isAdmin) {
     navItems.push({ id: AppTab.ADMIN, label: t("nav.admin"), icon: <Settings /> });

@@ -1,6 +1,6 @@
 import express from "express";
 import {
-    startSession, getScholarSessions, getSession, updateAyah, endSession, getScholarStatus,
+    getScholarSessions, getScholarStatus,
     createBatch, getAdminBatches, updateBatch, deleteBatch, startBatch, joinBatch, getMySessions,
     addStudentToBatch, removeStudentFromBatch, getBatchSessions, debugBatch, debugAllBatches,
     batchPing, updateBatchProgress, updatePosition, leaveBatch, getBatchActiveParticipants,
@@ -41,7 +41,7 @@ router.get("/batch/:id/state", requireAuth, canAccessBatch, getBatchState);
 router.get("/batch/:id/attendance/:childId", requireAuth, canAccessBatch, getBatchAttendance);
 router.post("/batch/:id/select-turn", requireAuth, isScholar, selectTurn);
 router.post("/batch/:id/score-recitation", requireAuth, isScholar, scoreRecitation);
-router.post("/batch/:id/score-participation", requireAuth, scoreParticipation);
+router.post("/batch/:id/score-participation", requireAuth, isScholar, scoreParticipation);
 router.post("/batch/:id/submit-prompt", requireAuth, submitPrompt);
 router.post("/batch/:id/evaluate-prompt", requireAuth, isScholar, evaluatePrompt);
 router.get("/batch/:id/leaderboard", requireAuth, canAccessBatch, getLeaderboard);
@@ -68,12 +68,8 @@ router.post("/batch/:id/end", requireAuth, isScholar, endBatch);
 // SCHOLAR: Batch Observation
 router.get("/batch/:id/sessions", requireAuth, isScholar, getBatchSessions);
 
-// SCHOLAR: Common / Legacy
+// SCHOLAR: Common
 router.get("/scholar/sessions", requireAuth, isScholar, getScholarSessions); // for scholar dashboard
-router.post("/start", requireAuth, startSession); // legacy 1-on-1 if still needed
-router.get("/:id", requireAuth, getSession);
-router.patch("/:id", requireAuth, updateAyah);
-router.post("/:id/end", requireAuth, endSession);
 
 console.log("✅ Live routes loaded successfully");
 

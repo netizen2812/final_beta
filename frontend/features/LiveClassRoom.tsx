@@ -101,12 +101,9 @@ const LiveClassRoom: React.FC = () => {
     const role = user?.publicMetadata?.role;
     const email = user?.primaryEmailAddress?.emailAddress?.toLowerCase();
 
-    // Dynamic Role Check (Dashboard assigned) OR Hardcoded Fallback
-    const isScholarOnly = email === "scholar1.imam@gmail.com";
-    const isRootAdmin = ["sarthakjuneja1999@gmail.com", "huzaifbarkati0@gmail.com", "abhi.nebhani@gmail.com"].includes(email || "");
-    const isAdminRole = role === 'admin' || isRootAdmin;
+    const isAdminRole = role === 'admin';
     // Admins are effectively scholars for data sync purposes
-    const isScholarRole = role === 'scholar' || isScholarOnly || isAdminRole;
+    const isScholarRole = role === 'scholar' || isAdminRole;
 
     if (isScholarRole) {
       setUserRole('scholar');
@@ -142,7 +139,9 @@ const LiveClassRoom: React.FC = () => {
     };
     fetchBatches();
     // Poll every 10s for new batches
-    const interval = setInterval(fetchBatches, 3000); // Faster polling for scholar sync
+    const interval = setInterval(() => {
+      if (document.visibilityState === 'visible') fetchBatches();
+    }, 3000); // Faster polling for scholar sync
     return () => clearInterval(interval);
   }, [userRole, getToken, tarbiyahIsAdmin]);
 
@@ -206,7 +205,9 @@ const LiveClassRoom: React.FC = () => {
     };
 
     fetchBatchState();
-    const interval = setInterval(fetchBatchState, 1500);
+    const interval = setInterval(() => {
+      if (document.visibilityState === 'visible') fetchBatchState();
+    }, 1500);
     return () => clearInterval(interval);
   }, [userRole, getToken, currentSession?.batchId, showLeaderboard]);
 
@@ -236,7 +237,9 @@ const LiveClassRoom: React.FC = () => {
       } catch (e) { console.error("Ping failed", e); }
     };
 
-    const interval = setInterval(sendPing, 10000); // 10s Heatbeat
+    const interval = setInterval(() => {
+      if (document.visibilityState === 'visible') sendPing();
+    }, 10000); // 10s Heatbeat
     // Initial ping
     sendPing();
 
@@ -305,7 +308,9 @@ const LiveClassRoom: React.FC = () => {
     };
 
     fetchState();
-    const interval = setInterval(fetchState, 3000); // 3s poll for state sync
+    const interval = setInterval(() => {
+      if (document.visibilityState === 'visible') fetchState();
+    }, 3000); // 3s poll for state sync
     return () => clearInterval(interval);
   }, [currentSession?.batchId, currentSession?._id, userRole, getToken, showLeaderboard]);
 
@@ -481,7 +486,7 @@ const LiveClassRoom: React.FC = () => {
     
     // Poll every 15s to keep waiting room updated
     const interval = setInterval(() => {
-      fetchLeaderboard(currentSession.batchId!, targetSessionId);
+      if (document.visibilityState === 'visible') fetchLeaderboard(currentSession.batchId!, targetSessionId);
     }, 15000);
     
     return () => clearInterval(interval);

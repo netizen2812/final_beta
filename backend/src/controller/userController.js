@@ -1,6 +1,7 @@
 import User from "../models/User.js";
 import { clerkClient } from "@clerk/clerk-sdk-node";
 import { trackEvent } from "../services/analyticsService.js";
+import { isRootAdmin } from "../utils/constants.js";
 
 export const syncUser = async (req, res) => {
   try {
@@ -39,9 +40,8 @@ export const syncUser = async (req, res) => {
         const clerkRole = clerkUser.publicMetadata?.role;
 
         // Check all emails for root admin status
-        const rootAdmins = ["sarthakjuneja1999@gmail.com", "huzaifbarkati0@gmail.com"];
         const allClerkEmails = (clerkUser.emailAddresses || []).map(e => e.emailAddress.toLowerCase());
-        const isRoot = allClerkEmails.some(email => rootAdmins.includes(email));
+        const isRoot = allClerkEmails.some(email => isRootAdmin(email));
 
         const role = isRoot
           ? "admin"
@@ -62,14 +62,12 @@ export const syncUser = async (req, res) => {
       }
     }
 
-    // 🔥 ENSURE ROOT ADMIN ROLE (Check full associated emails)
-    const rootAdmins = ["sarthakjuneja1999@gmail.com", "huzaifbarkati0@gmail.com"];
     const dbEmail = user.email?.toLowerCase();
 
     // Check Clerk Metadata for role updates that happened elsewhere
     const currentClerkRole = (req.auth?.sessionClaims?.publicMetadata?.role);
 
-    if (dbEmail && rootAdmins.includes(dbEmail) && user.role !== "admin") {
+    if (dbEmail && isRootAdmin(dbEmail) && user.role !== "admin") {
       user.role = "admin";
       await user.save();
       console.log(`Updated existing user ${user.email} to admin role`);

@@ -1,6 +1,7 @@
 import { ClerkExpressRequireAuth, clerkClient } from '@clerk/clerk-sdk-node';
 import User from "../models/User.js";
 import Child from "../models/Child.js";
+import { isRootAdmin } from "../utils/constants.js";
 
 export const requireAuth = (req, res, next) => {
   // 1. Log the attempt (Safe metadata only)
@@ -30,24 +31,17 @@ export const isAdmin = async (req, res, next) => {
     let user = await User.findOne({ clerkId: userId });
     let userEmail = user?.email?.toLowerCase() || "";
 
-    const rootAdmins = ["sarthakjuneja1999@gmail.com", "huzaifbarkati0@gmail.com", "abhi.nebhani@gmail.com"];
+    const isRoot = isRootAdmin(userEmail);
 
     // Fallback: If user not in DB or role not admin, check Clerk directly for root admins
-    if (!user || (user.role !== "admin" && !rootAdmins.includes(userEmail))) {
+    if (!user || (user.role !== "admin" && !isRoot)) {
       try {
         const clerkUser = await clerkClient.users.getUser(userId);
         const clerkEmails = (clerkUser.emailAddresses || []).map(e => e.emailAddress.toLowerCase());
-        const isRoot = clerkEmails.some(email => {
-          // Handle Gmail dot aliasing (optional but robust)
-          const normalized = email.replace(/\./g, "").replace("@googlemail.com", "@gmail.com");
-          return rootAdmins.some(admin =>
-            admin.replace(/\./g, "").replace("@googlemail.com", "@gmail.com") === normalized
-          );
-        });
+        const isRootClerk = clerkEmails.some(email => isRootAdmin(email));
 
-        if (isRoot) {
+        if (isRootClerk) {
           console.log(`✅ Root Admin verified via Clerk: ${clerkEmails[0]}`);
-          // Proceed as admin
           if (user) req.user = user;
           return next();
         }
@@ -56,9 +50,7 @@ export const isAdmin = async (req, res, next) => {
       }
     }
 
-    const isRootAdmin = rootAdmins.includes(userEmail);
-
-    if (!user || (user.role !== "admin" && !isRootAdmin)) {
+    if (!user || (user.role !== "admin" && !isRoot)) {
       console.log(`🚫 Admin Access Denied for: ${userEmail} (Role: ${user?.role})`);
       return res.status(403).json({ message: "Admin access required" });
     }
@@ -76,8 +68,9 @@ export const isScholar = async (req, res, next) => {
     const userId = req.auth.userId;
     let user = await User.findOne({ clerkId: userId });
 
-    // Scholar access: Must be admin OR scholar role
-    const isScholarRole = user?.role === 'scholar' || user?.role === 'admin';
+    const isRoot = isRootAdmin(user?.email);
+    // Scholar access: Must be admin OR scholar role OR root admin
+    const isScholarRole = user?.role === 'scholar' || user?.role === 'admin' || isRoot;
 
     if (!isScholarRole) {
       console.log(`🚫 Scholar Access Denied for: ${user?.email}`);

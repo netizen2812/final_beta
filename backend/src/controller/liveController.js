@@ -1,5 +1,6 @@
 import User from "../models/User.js";
 import { trackEvent } from "../services/analyticsService.js";
+import { isRootAdmin } from "../utils/constants.js";
 
 const SCHOLAR_EMAIL = "scholar1.imam@gmail.com";
 
@@ -56,19 +57,9 @@ export const getScholarStatus = async (req, res) => {
     }
 };
 
-// POST /api/live/start - Parent starts a session (Legacy)
-export const startSession = async (req, res) => {
-    res.status(501).json({ message: "Legacy session method disabled" });
-};
-
-// GET /api/live/scholar/sessions - Scholar fetches active sessions (Legacy)
+// SCHOLAR DASHBOARD: GET /api/live/scholar/sessions - (Legacy placeholder, returning empty for list)
 export const getScholarSessions = async (req, res) => {
     res.json({ sessions: [] });
-};
-
-// GET /api/live/:id - Get single session
-export const getSession = async (req, res) => {
-    res.status(404).json({ message: "Not found" });
 };
 
 // ADMIN: POST /api/live/admin/batch - Create new batch
@@ -428,16 +419,9 @@ export const getMySessions = async (req, res) => {
     }
 };
 
-// PATCH /api/live/:id - Update Ayah (Parent)
-export const updateAyah = async (req, res) => {
-    // Legacy Ayah saving disabled; Progress relies entirely on websockets and SessionEnd XP.
-    res.json({ success: true, message: "Progress logged" });
-};
-
 // POST /api/live/:id/end - End Session
-export const endSession = async (req, res) => {
-    res.status(501).json({ message: "Disabled" });
-};
+// Disabled in favor of Batch-based End
+// ... (Removing stub completely)
 
 // DEBUG: GET /api/live/:id/debug
 export const debugBatch = async (req, res) => {
@@ -790,6 +774,9 @@ export const scoreRecitation = async (req, res) => {
         if (!batch || !batch.activeSessionId) return res.status(400).json({ message: "Batch not active or found" });
 
         // Enforce strict limit maps
+        if (![1, 2, 3].includes(Number(score))) {
+            return res.status(400).json({ message: "Score must be 1, 2, or 3" });
+        }
         const xpAward = Number(score) === 3 ? 10 : Number(score) === 2 ? 7 : Number(score) === 1 ? 5 : 2;
 
         await LiveScore.findOneAndUpdate(
@@ -825,12 +812,9 @@ export const scoreParticipation = async (req, res) => {
         const batch = await Batch.findById(id);
         if (!batch || !batch.activeSessionId) return res.status(400).json({ message: "Batch not active" });
 
-        // 0. AUTH CHECK (Scholar/Admin only)
-        const clerkId = req.auth.userId;
-        const user = await User.findOne({ clerkId });
-        const canScore = user && (user.role === 'scholar' || user.role === 'admin' || ["sarthakjuneja1999@gmail.com", "huzaifbarkati0@gmail.com"].includes(user.email));
-        if (!canScore) return res.status(403).json({ message: "Forbidden: Only scholars can award participation points" });
-
+        // Auth already handled by isScholar middleware on route level
+        // req.user is attached by middleware
+        
         await LiveScore.findOneAndUpdate(
             { batchId: id, sessionId: batch.activeSessionId, childId },
             { $inc: { participationScore: points || 1 } },
@@ -855,6 +839,16 @@ export const submitPrompt = async (req, res) => {
 
         const batch = await Batch.findById(id);
         if (!batch || !batch.activeSessionId) return res.status(400).json({ message: "Batch not active" });
+
+        // 0. OWNERSHIP CHECK (or isScholar bypass)
+        const clerkId = req.auth.userId;
+        const isOwner = await verifyChildOwnership(clerkId, childId);
+        const user = await User.findOne({ clerkId });
+        const isScholar = user && (user.role === 'scholar' || user.role === 'admin' || isRootAdmin(user.email));
+        
+        if (!isOwner && !isScholar) {
+            return res.status(403).json({ message: "Access denied: Not your child profile" });
+        }
 
         // Update or add the answer
         const existingIdx = batch.currentPromptAnswers.findIndex(a => a.childId === childId);
@@ -990,7 +984,7 @@ export const getScholarBatches = async (req, res) => {
         const user = await User.findOne({ clerkId });
 
         let query = {};
-        if (user && user.role !== 'admin' && !["sarthakjuneja1999@gmail.com", "huzaifbarkati0@gmail.com"].includes(user.email)) {
+        if (user && user.role !== 'admin' && !isRootAdmin(user.email)) {
             query = { 
                 $or: [
                     { scholar: user._id },
@@ -1116,12 +1110,23 @@ export const forceEndBatch = async (req, res) => {
         if (!batch) return res.status(404).json({ message: "Batch not found" });
 
         batch.status = 'upcoming';
+        
+        // Fix endedAt for orphaned session
+        if (batch.activeSessionId) {
+            batch.pastSessions = batch.pastSessions || [];
+            const sessionIndex = batch.pastSessions.findIndex(s => s.sessionId === batch.activeSessionId);
+            if (sessionIndex > -1) {
+                batch.pastSessions[sessionIndex].endedAt = new Date();
+                batch.markModified('pastSessions');
+            }
+        }
+        
         batch.activeSessionId = null;
         batch.activeChildId = null;
         batch.activeParticipants = [];
         await batch.save();
 
-        res.json({ message: "Batch force-reset to upcoming status" });
+        res.json({ message: "Batch force-reset to upcoming status (Session ended history recorded)" });
     } catch (err) {
         res.status(500).json({ error: err.message });
     }

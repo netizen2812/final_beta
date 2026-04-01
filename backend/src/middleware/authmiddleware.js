@@ -88,22 +88,30 @@ export const isScholar = async (req, res, next) => {
 export const isParentOfChild = async (req, res, next) => {
     try {
         const { childId } = req.params;
-        const userId = req.auth.userId; // Standardize on userId
+        const userId = req.auth.userId;
 
         if (!childId) return next();
 
-        // Find parent user by clerkId to get MongoDB _id for ownership check
-        const parentUser = await User.findOne({ clerkId: userId });
-        if (!parentUser) return res.status(404).json({ message: "Parent user not found" });
+        const user = await User.findOne({ clerkId: userId });
+        if (!user) return res.status(404).json({ message: "User not found" });
+
+        // ADMIN/SCHOLAR BYPASS: Admins and Scholars can access any child profile
+        const isRoot = isRootAdmin(user.email);
+        if (user.role === 'admin' || user.role === 'scholar' || isRoot) {
+            const childById = await Child.findById(childId);
+            if (!childById) return res.status(404).json({ message: "Child not found" });
+            req.child = childById;
+            return next();
+        }
 
         // Verify child belongs to parent
-        const child = await Child.findOne({ _id: childId, parent_id: parentUser._id });
+        const child = await Child.findOne({ _id: childId, parent_id: user._id });
         if (!child) {
             console.log(`🚫 IDOR Attempt: User ${userId} tried to access child ${childId}`);
             return res.status(403).json({ message: "Access denied: You are not authorized to access this child's data." });
         }
 
-        req.child = child; // Attach child object for use in controller
+        req.child = child; 
         next();
     } catch (error) {
         console.error("Ownership check error:", error);

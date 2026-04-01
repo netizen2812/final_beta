@@ -62,10 +62,11 @@ export const createChild = async (req, res) => {
             gender,
             learning_level: learning_level || "Beginner",
             child_progress: [{
-                xp: 0,
+                total_xp: 0,
                 level: 1,
-                lessons_completed: 0,
-                last_activity: new Date(),
+                streak_days: 0,
+                last_active_date: new Date(),
+                total_sessions_attended: 0
             }],
         });
 

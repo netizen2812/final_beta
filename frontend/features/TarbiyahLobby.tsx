@@ -789,14 +789,18 @@ const ParentsView = ({ activeChild, getToken }: any) => {
       ]);
       setDashboardData(dash.data);
       setGlobalLeaderboard(board.data.leaderboard || []);
-    } catch (err) {}
+    } catch (err: any) {
+      console.error("Dashboard fetch failed:", err.response?.data || err.message);
+    }
   };
 
   useEffect(() => {
     fetchData();
   }, [activeChild, getToken]);
 
-  const completionRate = dashboardData?.stats?.completionRate || 0;
+  const stats = dashboardData?.stats;
+  const hasActivity = stats?.activeDays > 0;
+  const completionRate = stats?.completionRate || 0;
   
   const pieData = [
     { name: 'Completed', value: completionRate, color: '#10b981' },
@@ -831,6 +835,20 @@ const ParentsView = ({ activeChild, getToken }: any) => {
             Setup Quran Progress
           </button>
        </div>
+
+       {/* Empty State / Welcome Message for new users */}
+       {!hasActivity && !dashboardData && (
+          <div className="bg-emerald-500/10 border border-emerald-500/20 p-8 rounded-[2.5rem] text-center mb-12 backdrop-blur-sm">
+             <div className="w-16 h-16 bg-emerald-500/20 rounded-full flex items-center justify-center mx-auto mb-4">
+                <Activity className="text-emerald-400" size={32} />
+             </div>
+             <h3 className="text-2xl font-serif font-bold text-white mb-2">Welcome to the Learning Journey!</h3>
+             <p className="text-emerald-200/70 max-w-lg mx-auto">
+                {activeChild?.name} hasn't attended any live sessions or practices yet. 
+                Analytics and XP will appear here once the first session is completed.
+             </p>
+          </div>
+       )}
 
        {/* KEY STATS */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-12">

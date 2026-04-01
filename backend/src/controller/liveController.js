@@ -379,16 +379,32 @@ export const getMySessions = async (req, res) => {
         let batches = [];
 
         if (user.role === 'scholar' || user.role === 'admin') {
-            // Scholar: Find batches assigned to them
-            // Fallback: If scholar ID is not used, could look by email string but preferred to resolve on creation
-            batches = await Batch.find({
+            // Get batches where they are the assigned scholar
+            const taughtBatches = await Batch.find({
                 $or: [
                     { scholar: user._id },
-                    { scholarEmail: user.email } // Add email search if admin stores email (optional fallback)
+                    { scholarEmail: user.email }
                 ],
                 status: { $ne: 'archived' }
-            }).sort({ createdAt: -1 });
+            }).populate('scholar', 'name').sort({ createdAt: -1 });
 
+            // Also get batches where THEIR own children are enrolled (for admins who are parents)
+            const { default: Child } = await import("../models/Child.js");
+            const children = await Child.find({ parent_id: user._id });
+            const childIds = children.map(c => c._id);
+            const enrolledBatches = await Batch.find({
+                students: { $in: childIds },
+                status: { $ne: 'archived' }
+            }).populate('scholar', 'name').sort({ createdAt: -1 });
+
+            // Merge and deduplicate
+            const batchIds = new Set(taughtBatches.map(b => b._id.toString()));
+            batches = [...taughtBatches];
+            for (const b of enrolledBatches) {
+                if (!batchIds.has(b._id.toString())) {
+                    batches.push(b);
+                }
+            }
         } else {
             // Parent: Find batches where their children are enrolled
             const { default: Child } = await import("../models/Child.js");

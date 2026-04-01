@@ -243,7 +243,10 @@ const App: React.FC = () => {
     { id: AppTab.LIVE, label: t("nav.tarbiyah", "Tarbiyah"), icon: <Icons.Book /> },
   ];
 
-  const isAdmin = user?.publicMetadata?.role === 'admin';
+  const rootAdmins = ["sarthakjuneja1999@gmail.com", "huzaifbarkati0@gmail.com", "abhi.nebhani@gmail.com"];
+  const userEmail = user?.primaryEmailAddress?.emailAddress?.toLowerCase();
+
+  const isAdmin = user?.publicMetadata?.role === 'admin' || (userEmail && rootAdmins.includes(userEmail));
 
   if (isAdmin) {
     navItems.push({ id: AppTab.ADMIN, label: t("nav.admin"), icon: <Settings /> });

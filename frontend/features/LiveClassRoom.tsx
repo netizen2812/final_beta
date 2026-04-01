@@ -101,9 +101,11 @@ const LiveClassRoom: React.FC = () => {
     const role = user?.publicMetadata?.role;
     const email = user?.primaryEmailAddress?.emailAddress?.toLowerCase();
 
-    const isAdminRole = role === 'admin';
+    const rootAdmins = ["sarthakjuneja1999@gmail.com", "huzaifbarkati0@gmail.com", "abhi.nebhani@gmail.com"];
+    const isAdminRole = role === 'admin' || (email && rootAdmins.includes(email));
+    const isScholarOnly = email === "scholar1.imam@gmail.com";
     // Admins are effectively scholars for data sync purposes
-    const isScholarRole = role === 'scholar' || isAdminRole;
+    const isScholarRole = role === 'scholar' || isScholarOnly || isAdminRole;
 
     if (isScholarRole) {
       setUserRole('scholar');

@@ -107,7 +107,7 @@ export const TarbiyahLobby = ({
   );
   const [targetBatchId, setTargetBatchId] = useState<string | null>(null);
   const [scrollProgress, setScrollProgress] = useState(0);
-  const { activeChild, children: childrenList, updateLocalProgress } = useChildContext();
+  const { activeChild, children: childrenList, updateLocalProgress, loading: loadingChildren } = useChildContext();
   const [batches, setBatches] = useState<any[]>([]);
   const [accessStatus, setAccessStatus] = useState<any>(null);
   const [showQuranPractice, setShowQuranPractice] = useState<{ active: boolean, mode: 'REVISE' | 'PRACTICE' }>({ active: false, mode: 'REVISE' });
@@ -251,6 +251,7 @@ export const TarbiyahLobby = ({
                   userRole={userRole}
                   selectedBatchId={selectedBatchId}
                   setSelectedBatchId={setSelectedBatchId}
+                  loadingChildren={loadingChildren}
                 />
               );
             }
@@ -361,7 +362,7 @@ export const TarbiyahLobby = ({
   );
 };
 
-const KidsView = ({ scrollProgress, activeChild, onJoinLive, currentBatchStatus, batches, accessStatus, getToken, setShowQuranPractice, setShowJoinChoice, attendedSessionIds = [], attendanceHistory = [], childrenList = [], userRole = 'parent', selectedBatchId, setSelectedBatchId }: any) => {
+const KidsView = ({ scrollProgress, activeChild, onJoinLive, currentBatchStatus, batches, accessStatus, getToken, setShowQuranPractice, setShowJoinChoice, attendedSessionIds = [], attendanceHistory = [], childrenList = [], userRole = 'parent', selectedBatchId, setSelectedBatchId, loadingChildren }: any) => {
   const [isLoading, setIsLoading] = useState(false);
   const progress = activeChild?.child_progress?.[0];
   const activeBatch = batches && batches.length > 0 
@@ -403,8 +404,18 @@ const KidsView = ({ scrollProgress, activeChild, onJoinLive, currentBatchStatus,
   // Entry Guard: If not paid OR (is paid but no child profile exists)
   // Admins skip this block if they have the 'scholar' (which includes admin) userRole
   const isAdminOrScholar = userRole === 'scholar';
-  if (!isAdminOrScholar && (!hasPremium || (accessStatus?.hasAccess && (!childrenList || childrenList.length === 0)))) {
-    return <TarbiyahOnboarding getToken={getToken} isPaid={accessStatus?.hasAccess} />;
+  if (!isAdminOrScholar) {
+    if (loadingChildren || !accessStatus) {
+      return (
+        <div className="min-h-screen flex items-center justify-center">
+           <Loader2 className="animate-spin text-emerald-400" size={48} />
+        </div>
+      );
+    }
+
+    if (!hasPremium || (accessStatus?.hasAccess && (!childrenList || childrenList.length === 0))) {
+      return <TarbiyahOnboarding getToken={getToken} isPaid={accessStatus?.hasAccess} />;
+    }
   }
 
   const handleRequestAccess = async () => {

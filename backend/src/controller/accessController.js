@@ -1,13 +1,34 @@
 import User from "../models/User.js";
 import AccessRequest from "../models/AccessRequest.js";
 import { isRootAdmin } from "../utils/constants.js";
+import { clerkClient } from "@clerk/clerk-sdk-node";
 
 // POST /api/live/access/request
 export const requestAccess = async (req, res) => {
     try {
         const userId = req.auth.userId;
-        const user = await User.findOne({ clerkId: userId });
-        if (!user) return res.status(404).json({ message: "User not found" });
+        let user = await User.findOne({ clerkId: userId });
+        
+        // Auto-sync if not in DB
+        if (!user) {
+            try {
+                const clerkUser = await clerkClient.users.getUser(userId);
+                user = await User.findOneAndUpdate(
+                    { clerkId: userId },
+                    { 
+                        $set: {
+                            email: clerkUser.emailAddresses[0]?.emailAddress?.toLowerCase(),
+                            name: `${clerkUser.firstName || ''} ${clerkUser.lastName || ''}`.trim(),
+                            role: 'parent'
+                        }
+                    },
+                    { upsert: true, new: true }
+                );
+            } catch (clerkErr) {
+                console.error("Clerk sync failed during access request:", clerkErr);
+                return res.status(404).json({ message: "User not found and sync failed" });
+            }
+        }
 
         if (user.features?.liveAccess) {
             return res.status(400).json({ message: "You already have access" });
@@ -33,7 +54,30 @@ export const requestAccess = async (req, res) => {
 export const getAccessStatus = async (req, res) => {
     try {
         const userId = req.auth.userId;
-        const user = await User.findOne({ clerkId: userId });
+        let user = await User.findOne({ clerkId: userId });
+
+        // AUTO-SYNC: If user not in DB, create record from Clerk profile
+        if (!user) {
+            console.log(`🔄 Auto-syncing missing user in access check: ${userId}`);
+            try {
+                const clerkUser = await clerkClient.users.getUser(userId);
+                user = await User.findOneAndUpdate(
+                    { clerkId: userId },
+                    {
+                        $set: {
+                            email: clerkUser.emailAddresses[0]?.emailAddress?.toLowerCase(),
+                            name: `${clerkUser.firstName || ''} ${clerkUser.lastName || ''}`.trim(),
+                            role: 'parent'
+                        }
+                    },
+                    { upsert: true, new: true }
+                );
+                console.log(`✅ User record created from Clerk: ${user.email}`);
+            } catch (clerkErr) {
+                console.error("Clerk user fetch failed:", clerkErr.message);
+                // Continue with user=null, will result in hasAccess=false
+            }
+        }
 
         const userEmail = user?.email?.toLowerCase() || "";
         const isRoot = isRootAdmin(userEmail);
@@ -52,6 +96,7 @@ export const getAccessStatus = async (req, res) => {
         res.status(500).json({ message: "Server error" });
     }
 }
+
 
 // ADMIN: GET /api/admin/live/requests
 export const listRequests = async (req, res) => {

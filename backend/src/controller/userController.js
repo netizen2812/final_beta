@@ -1,7 +1,7 @@
 import User from "../models/User.js";
 import { clerkClient } from "@clerk/clerk-sdk-node";
 import { trackEvent } from "../services/analyticsService.js";
-import { isRootAdmin } from "../utils/constants.js";
+import { isRootAdmin, isDefaultScholar } from "../utils/constants.js";
 
 export const syncUser = async (req, res) => {
   try {
@@ -63,18 +63,37 @@ export const syncUser = async (req, res) => {
 
     const dbEmail = user.email?.toLowerCase();
 
+    // 🔥 Root Admin & Scholar Force-Sync logic
+    const isRoot = isRootAdmin(dbEmail);
+    const isScholarVal = isDefaultScholar(dbEmail);
+    const expectedRole = isRoot ? "admin" : isScholarVal ? "scholar" : user.role;
+
     // Check Clerk Metadata for role updates that happened elsewhere
     const currentClerkRole = (req.auth?.sessionClaims?.publicMetadata?.role);
 
-    if (dbEmail && isRootAdmin(dbEmail) && user.role !== "admin") {
+    // 1. If DB Role is wrong for Root Admin, correct it in DB first
+    if (isRoot && user.role !== "admin") {
       user.role = "admin";
       await user.save();
-      console.log(`Updated existing user ${user.email} to admin role`);
+      console.log(`Updated user ${user.email} in DB to admin (Root detected)`);
+    }
+
+    // 2. If Clerk Metadata is missing or wrong, PUSH IT to Clerk
+    // This fixes the UI issues for Sarthak/Huzaifa/Scholar1 immediately
+    if (expectedRole !== currentClerkRole && (isRoot || isScholarVal)) {
+      try {
+        await clerkClient.users.updateUserMetadata(clerkId, {
+          publicMetadata: { role: expectedRole }
+        });
+        console.log(`Pushed role [${expectedRole}] to Clerk metadata for ${user.email}`);
+      } catch (err) {
+        console.error("Failed to push role to Clerk:", err.message);
+      }
     } else if (currentClerkRole && currentClerkRole !== user.role) {
-      // Sync role from Clerk metadata if it was changed via Dashboard
+      // If Clerk metadata was changed via Clerk Dashboard, sync DOWN to DB
       user.role = currentClerkRole;
       await user.save();
-      console.log(`Synced user ${user.email} role from Clerk: ${currentClerkRole}`);
+      console.log(`Synced DB role for ${user.email} from Clerk Dashboard: ${currentClerkRole}`);
     }
 
     // Track Login/Session Start

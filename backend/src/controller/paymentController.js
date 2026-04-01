@@ -73,28 +73,33 @@ export const verifyPayment = async (req, res) => {
         return res.status(404).json({ message: "User not found" });
     }
 
-    // Idempotency: Prevent replay attacks
-    if (user.processedPayments?.includes(razorpay_payment_id)) {
-        return res.status(409).json({ message: "Payment already processed previously" });
-    }
-
+    // Update User using findOneAndUpdate for atomicity & reliability
+    let updateFields = {};
     if (planType === 'AI_MONTHLY') {
-       // Unlock for exactly 30 days
        const thirtyDaysFromNow = new Date();
        thirtyDaysFromNow.setDate(thirtyDaysFromNow.getDate() + 30);
-       
-       user.features = user.features || {};
-       user.features.aiPremiumUntil = thirtyDaysFromNow;
-       user.markModified('features');
+       updateFields = { 
+           "features.aiPremiumUntil": thirtyDaysFromNow 
+       };
     } else if (planType === 'TARBIYAH_LIFETIME') {
-       user.features = user.features || {};
-       user.features.liveAccess = true;
-       user.markModified('features');
+       updateFields = { 
+           "features.liveAccess": true,
+           role: 'parent' // Ensure they have parent permissions to add children
+       };
     }
     
-    // Add to processed payments
-    user.processedPayments = [...(user.processedPayments || []), razorpay_payment_id];
-    await user.save();
+    const updatedUser = await User.findOneAndUpdate(
+        { clerkId: userId },
+        { 
+            $set: updateFields,
+            $addToSet: { processedPayments: razorpay_payment_id }
+        },
+        { new: true }
+    );
+    
+    if (!updatedUser) {
+        return res.status(404).json({ message: "User not found" });
+    }
 
     res.json({ message: "Payment successful" });
 
@@ -103,3 +108,4 @@ export const verifyPayment = async (req, res) => {
     res.status(500).json({ message: err.message });
   }
 };
+

@@ -1,0 +1,14 @@
+Searching for payments and access marks...
+
+ - User: sarthakjuneja1999@gmail.com
+   Role: admin
+   LiveAccess: true
+   ProcessedPayments: 
+   Other fields: {"liveAccess":true}
+
+ - User: masoodmd474@gmail.com
+   Role: scholar
+   LiveAccess: true
+   ProcessedPayments: None
+   Other fields: {"liveAccess":true}
+

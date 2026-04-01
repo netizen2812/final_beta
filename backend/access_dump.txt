@@ -1,0 +1,47 @@
+[dotenv@17.3.1] injecting env (8) from .env -- tip: ??????  specify custom .env file path with { path: '/custom/path/.env' }
+JSON_START
+{
+  "explicitAccess": [
+    {
+      "email": "sarthakjuneja1999@gmail.com",
+      "role": "admin",
+      "liveAccess": true
+    },
+    {
+      "email": "Scholar1.imam@gmail.com",
+      "role": "scholar",
+      "liveAccess": false
+    },
+    {
+      "email": "huzaifbarkati0@gmail.com",
+      "role": "admin",
+      "liveAccess": false
+    },
+    {
+      "email": "abhi.nebhnani@gmail.com",
+      "role": "admin",
+      "liveAccess": false
+    },
+    {
+      "email": "masoodmd474@gmail.com",
+      "role": "scholar",
+      "liveAccess": true
+    }
+  ],
+  "batches": [
+    {
+      "name": "Batch 1",
+      "students": [
+        {
+          "name": "Syed",
+          "parentEmail": "sarthakjuneja1999@gmail.com"
+        },
+        {
+          "name": "Hafeez",
+          "parentEmail": "190030028.alum23@iitdh.ac.in"
+        }
+      ]
+    }
+  ]
+}
+JSON_END

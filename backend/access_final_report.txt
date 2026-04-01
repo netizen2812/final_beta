@@ -1,0 +1,14 @@
+PAID ACCESS ACCOUNTS:
+
+1. Users with features.liveAccess = true:
+ - sarthakjuneja1999@gmail.com (admin)
+ - masoodmd474@gmail.com (scholar)
+
+2. Admins & Scholars in DB:
+ - Scholar1.imam@gmail.com (scholar)
+ - huzaifbarkati0@gmail.com (admin)
+ - abhi.nebhnani@gmail.com (admin)
+
+3. Parents with Students in Batches:
+ - sarthakjuneja1999@gmail.com
+ - 190030028.alum23@iitdh.ac.in

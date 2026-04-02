@@ -175,6 +175,36 @@ export const addStudentToBatch = async (req, res) => {
     }
 };
 
+export const handleEndClass = async (req, res) => {
+    try {
+        const { id } = req.params;
+        const { default: Batch } = await import("../models/Batch.js");
+        const { default: Session } = await import("../models/Session.js");
+
+        const batch = await Batch.findById(id);
+        if (!batch) return res.status(404).json({ message: "Batch not found" });
+
+        if (batch.activeSessionId) {
+             await Session.findByIdAndUpdate(batch.activeSessionId, { 
+                status: 'completed',
+                endedAt: new Date()
+             });
+        }
+
+        await Batch.findByIdAndUpdate(id, { 
+            status: 'ended',
+            activeSessionId: null,
+            activeChildId: null,
+            promptEvaluated: false,
+            currentPromptAnswers: []
+        });
+
+        res.json({ success: true, message: "Class ended successfully" });
+    } catch (error) {
+        res.status(500).json({ error: error.message });
+    }
+};
+
 // ADMIN: POST /api/live/admin/batch/:id/remove-student
 export const removeStudentFromBatch = async (req, res) => {
     try {
@@ -207,11 +237,15 @@ export const getBatchSessions = async (req, res) => {
     try {
         const { id } = req.params;
         const { default: Batch } = await import("../models/Batch.js");
+        const { default: Session } = await import("../models/Session.js");
 
         const batch = await Batch.findById(id);
-        if (!batch) return res.status(404).json({ message: "Batch not found" });
+        if (!batch || !batch.activeSessionId) return res.json([]);
 
-        const mappedSessions = batch.activeParticipants
+        const session = await Session.findById(batch.activeSessionId);
+        if (!session) return res.json([]);
+
+        const mappedSessions = session.attendance
            .filter(p => p.isActive)
            .map(p => ({
                _id: p._id || p.childId.toString(),
@@ -231,140 +265,107 @@ export const startBatch = async (req, res) => {
     try {
         const { id } = req.params;
         const { default: Batch } = await import("../models/Batch.js");
+        const { default: Session } = await import("../models/Session.js");
 
         let batch = await Batch.findById(id);
         if (batch && batch.status === 'active' && batch.activeSessionId) {
-            return res.json({ message: "Batch already active", activeSessionId: batch.activeSessionId });
+             const existingSession = await Session.findById(batch.activeSessionId);
+             if (existingSession && existingSession.status === 'live') {
+                return res.json({ message: "Batch already active", activeSessionId: batch.activeSessionId, dailyRoomName: batch.dailyRoomName });
+             }
         }
 
-        const activeSessionId = Date.now().toString();
+        // Create new session model record
+        const session = await Session.create({
+            batchId: id,
+            scholarId: null, // Optional: Populate from request context if available
+            status: 'live',
+            scheduledAt: new Date(),
+            attendance: []
+        });
 
         batch = await Batch.findByIdAndUpdate(id, { 
             status: 'active',
-            activeSessionId,
+            activeSessionId: session._id.toString(),
             activeChildId: null,
-            $push: { 
-                pastSessions: { 
-                    sessionId: activeSessionId, 
-                    startedAt: new Date(),
-                    attendedChildren: [] // Initial empty attendance list
-                } 
-            }
+            promptEvaluated: false,
+            currentPromptAnswers: []
         }, { new: true });
-        res.json({ message: "Batch started", activeSessionId, dailyRoomName: batch.dailyRoomName });
+
+        res.json({ message: "Batch started", activeSessionId: session._id, dailyRoomName: batch.dailyRoomName });
     } catch (error) {
+        console.error("Start batch error:", error);
         res.status(500).json({ message: "Server error" });
     }
 };
 
 // USER: POST /api/live/:id/join - Student joins a batch (Presence Tracking)
 export const joinBatch = async (req, res) => {
-    console.log("🚀 joinBatch (Presence) called");
-
     try {
-        const { id } = req.params; // Batch ID
+        const { id } = req.params;
         const { childId } = req.body;
         const clerkId = req.auth.userId;
 
-        if (!id || !childId) {
-            return res.status(400).json({ success: false, message: "Missing required fields" });
-        }
-
         const { default: Batch } = await import("../models/Batch.js");
+        const { default: Session } = await import("../models/Session.js");
         const { default: Child } = await import("../models/Child.js");
         const { default: User } = await import("../models/User.js");
 
-        // 0. OWNERSHIP CHECK
         const user = await User.findOne({ clerkId });
-        if (!user) return res.status(401).json({ success: false, message: "Unauthorized" });
-
         const child = await Child.findById(childId);
-        if (!child) return res.status(404).json({ success: false, message: "Student not found" });
-
-        const isOwner = child.parent_id.toString() === user._id.toString() || child.childUserId?.toString() === user._id.toString();
-        if (!isOwner && user.role !== 'admin') {
-            return res.status(403).json({ success: false, message: "Forbidden: You do not own this student profile" });
-        }
+        if (!user || !child) return res.status(404).json({ success: false, message: "User/Student not found" });
 
         const batch = await Batch.findById(id);
         if (!batch) return res.status(404).json({ success: false, message: "Batch not found" });
 
-        // Ensure session is actually active (Scholar has joined)
-        if (batch.status !== 'active') {
-            return res.status(403).json({ 
-                success: false, 
-                message: "Waiting for scholar to start session. Please stay in the lobby!" 
-            });
+        if (batch.status !== 'active' || !batch.activeSessionId) {
+            return res.status(403).json({ success: false, message: "Waiting for scholar to start session." });
         }
 
-        // Verify Enrollment
-        const isEnrolled = batch.students.map(s => s.toString()).includes(childId);
-        if (!isEnrolled) {
-            return res.status(403).json({ success: false, message: "Student not enrolled in this batch" });
-        }
+        const session = await Session.findById(batch.activeSessionId);
+        if (!session) return res.status(404).json({ success: false, message: "Active session metadata not found" });
 
-        // --- PRESENCE TRACKING START ---
-        // 1. Get Child Details
-        const childName = child ? child.name : "Student";
+        const childName = child.name || "Student";
+        const participantIdx = session.attendance.findIndex(p => p.childId.toString() === childId);
+        let isFirstJoin = false;
 
-        // 2. Update Batch Active Participants
-        const participantIndex = batch.activeParticipants.findIndex(p => p.childId === childId);
-        let firstJoinToday = false;
-
-        if (participantIndex > -1) {
-            if (!batch.activeParticipants[participantIndex].isActive) {
-                firstJoinToday = true;
-            }
-            batch.activeParticipants[participantIndex].isActive = true;
-            batch.activeParticipants[participantIndex].lastSeen = new Date();
-            // Patch older records that might be missing childName from previous versions
-            if (!batch.activeParticipants[participantIndex].childName && childName) {
-                batch.activeParticipants[participantIndex].childName = childName;
-            }
+        if (participantIdx > -1) {
+            if (!session.attendance[participantIdx].isActive) isFirstJoin = true;
+            session.attendance[participantIdx].isActive = true;
+            session.attendance[participantIdx].lastSeen = new Date();
         } else {
-            firstJoinToday = true;
-            batch.activeParticipants.push({
+            isFirstJoin = true;
+            session.attendance.push({
                 childId,
                 childName,
-                // Do not set Surah/Ayah defaults (allow frontend to determine or stay null)
+                isActive: true,
                 lastSeen: new Date(),
-                isActive: true
+                joinedAt: new Date(),
+                status: 'present'
             });
         }
-        // 3. Record Permanent Attendance (If session is active)
-        if (batch.activeSessionId) {
-            const currentSession = batch.pastSessions.find(s => s.sessionId === batch.activeSessionId);
-            if (currentSession) {
-                const attendedChildIds = currentSession.attendedChildren.map(id => id.toString());
-                if (!attendedChildIds.includes(childId.toString())) {
-                    currentSession.attendedChildren.push(childId);
-                }
-            }
+
+        await session.save();
+
+        if (isFirstJoin) {
+            const { awardXP } = await import("../services/gamificationService.js");
+            await awardXP(childId, "participation", { points: 2, batchId: id, sessionId: session._id });
         }
 
-        await batch.save();
-
-        // Award Attendance XP (Observe)
-        const { awardXP } = await import("../services/gamificationService.js");
-        if (firstJoinToday) {
-            await awardXP(childId, "participation", { points: 2 });
-        }
-        // --- PRESENCE TRACKING END ---
-
-        const mockSession = {
-            _id: batch.activeSessionId || batch._id.toString(),
-            batchId: batch._id,
-            childId,
-            status: batch.status,
-            title: batch.name,
-            dailyRoomName: batch.dailyRoomName
-        };
-
-        res.json({ success: true, session: mockSession, message: "Joined successfully" });
-
+        res.json({ 
+            success: true, 
+            session: {
+                _id: session._id,
+                batchId: batch._id,
+                childId,
+                status: batch.status,
+                title: batch.name,
+                dailyRoomName: batch.dailyRoomName
+            } 
+        });
     } catch (error) {
-        console.error("❌ Join Batch Error:", error);
-        res.status(500).json({ success: false, message: "Server error", error: error.message });
+        console.error("Join batch error:", error);
+        res.status(500).json({ success: false, message: "Server error" });
     }
 };
 
@@ -418,19 +419,36 @@ export const getMySessions = async (req, res) => {
             }).populate('scholar', 'name').sort({ createdAt: -1 });
         }
 
+        const { default: Session } = await import("../models/Session.js");
+
         // Map to Frontend Expected Format (LiveSession equivalent for list view)
-        const mappedSessions = batches.map(b => ({
-            _id: b._id,
-            title: b.name || `Batch ${b._id.toString().substr(-4)}`, // Fallback for empty name
-            description: b.name,
-            status: b.status,
-            scholarName: b.scholar?.name || 'Assigned Scholar',
-            schedule: b.schedule,
-            isBatch: true, // Flag to distinguish from individual sessions
-            activeSessionId: b.activeSessionId, 
-            pastSessions: b.pastSessions || [], // Needed by TarbiyahLobby to unlock Journey nodes
-            activeParticipants: b.activeParticipants || [],
-            dailyRoomName: b.dailyRoomName
+        const mappedSessions = await Promise.all(batches.map(async b => {
+            let activeParticipants = [];
+            if (b.activeSessionId) {
+                 const session = await Session.findById(b.activeSessionId);
+                 if (session && session.status === 'live') {
+                     activeParticipants = session.attendance
+                        .filter(p => p.isActive)
+                        .map(p => ({
+                            childId: p.childId,
+                            childName: p.childName,
+                            isActive: true
+                        }));
+                 }
+            }
+
+            return {
+                _id: b._id,
+                title: b.name || `Batch ${b._id.toString().substr(-4)}`,
+                description: b.name,
+                status: b.status,
+                scholarName: b.scholar?.name || 'Assigned Scholar',
+                schedule: b.schedule,
+                isBatch: true,
+                activeSessionId: b.activeSessionId, 
+                activeParticipants: activeParticipants,
+                dailyRoomName: b.dailyRoomName
+            };
         }));
 
         res.json(mappedSessions);
@@ -500,17 +518,15 @@ export const debugAllBatches = async (req, res) => {
 export const batchPing = async (req, res) => {
     try {
         const { batchId, childId } = req.body;
-        const clerkId = req.auth.userId;
-
-        // 0. OWNERSHIP CHECK
-        const isOwner = await verifyChildOwnership(clerkId, childId);
-        if (!isOwner) return res.status(403).json({ success: false, message: "Forbidden" });
-
         const { default: Batch } = await import("../models/Batch.js");
+        const { default: Session } = await import("../models/Session.js");
 
-        await Batch.updateOne(
-            { _id: batchId, "activeParticipants.childId": childId },
-            { $set: { "activeParticipants.$.lastSeen": new Date(), "activeParticipants.$.isActive": true } }
+        const batch = await Batch.findById(batchId);
+        if (!batch || !batch.activeSessionId) return res.json({ ok: false });
+
+        await Session.updateOne(
+            { _id: batch.activeSessionId, "attendance.childId": childId },
+            { $set: { "attendance.$.lastSeen": new Date(), "attendance.$.isActive": true } }
         );
         res.json({ ok: true });
     } catch (error) {
@@ -554,44 +570,26 @@ export const updateBatchProgress = async (req, res) => {
 // USER: POST /api/live/update-position - Student position (surah/ayah) — same store as update-progress, with userId + timestamp
 export const updatePosition = async (req, res) => {
     try {
-        const { batchId, childId, surahNumber, ayahNumber, timestamp } = req.body;
-        const clerkId = req.auth.userId;
-
-        if (!batchId || !childId) {
-            return res.status(400).json({ success: false, message: "batchId and childId required" });
-        }
-
-        // 0. OWNERSHIP CHECK
-        const isOwner = await verifyChildOwnership(clerkId, childId);
-        if (!isOwner) return res.status(403).json({ success: false, message: "Forbidden: Not your student" });
-        const surah = surahNumber != null ? Number(surahNumber) : null;
-        const ayah = ayahNumber != null ? Number(ayahNumber) : null;
-        if (surah == null || ayah == null || surah < 1 || surah > 114) {
-            return res.status(400).json({ success: false, message: "Valid surahNumber (1-114) and ayahNumber required" });
-        }
-
+        const { batchId, childId, surahNumber, ayahNumber } = req.body;
         const { default: Batch } = await import("../models/Batch.js");
+        const { default: Session } = await import("../models/Session.js");
 
-        const result = await Batch.updateOne(
-            { _id: batchId, "activeParticipants.childId": childId },
+        const batch = await Batch.findById(batchId);
+        if (!batch || !batch.activeSessionId) return res.status(404).json({ success: false });
+
+        await Session.updateOne(
+            { _id: batch.activeSessionId, "attendance.childId": childId },
             {
                 $set: {
-                    "activeParticipants.$.currentSurah": surah,
-                    "activeParticipants.$.currentAyah": ayah,
-                    "activeParticipants.$.lastSeen": new Date(),
-                    "activeParticipants.$.isActive": true
+                    "attendance.$.currentSurah": Number(surahNumber),
+                    "attendance.$.currentAyah": Number(ayahNumber),
+                    "attendance.$.lastSeen": new Date(),
+                    "attendance.$.isActive": true
                 }
             }
         );
-
-        if (result.matchedCount === 0) {
-            console.warn("[BACKEND STORE] No participant matched for batchId/childId — student may not have joined");
-            return res.status(404).json({ success: false, message: "Participant not found in batch" });
-        }
-        console.log("[BACKEND BROADCAST] Position stored; scholar will receive on next poll (≤2s)");
         res.json({ ok: true });
     } catch (error) {
-        console.error("[BACKEND STORE] Error:", error.message);
         res.status(500).json({ success: false, error: error.message });
     }
 };
@@ -600,18 +598,16 @@ export const updatePosition = async (req, res) => {
 export const leaveBatch = async (req, res) => {
     try {
         const { batchId, childId } = req.body;
-        const clerkId = req.auth.userId;
-
-        // 0. OWNERSHIP CHECK
-        const isOwner = await verifyChildOwnership(clerkId, childId);
-        if (!isOwner) return res.status(403).json({ success: false, message: "Forbidden" });
-
         const { default: Batch } = await import("../models/Batch.js");
+        const { default: Session } = await import("../models/Session.js");
 
-        await Batch.updateOne(
-            { _id: batchId, "activeParticipants.childId": childId },
-            { $set: { "activeParticipants.$.isActive": false } }
-        );
+        const batch = await Batch.findById(batchId);
+        if (batch && batch.activeSessionId) {
+            await Session.updateOne(
+                { _id: batch.activeSessionId, "attendance.childId": childId },
+                { $set: { "attendance.$.isActive": false } }
+            );
+        }
         res.json({ ok: true });
     } catch (error) {
         res.status(500).json({ error: error.message });
@@ -675,33 +671,34 @@ export const getBatchState = async (req, res) => {
     try {
         const { id } = req.params;
         const { default: Batch } = await import("../models/Batch.js");
-        const batch = await Batch.findById(id).select("activeChildId activeSessionId status activeParticipants currentPromptAnswers promptEvaluated pastSessions");
+        const { default: Session } = await import("../models/Session.js");
+        const { default: LiveScore } = await import("../models/LiveScore.js");
+
+        const batch = await Batch.findById(id).select("activeChildId activeSessionId status dailyRoomName promptEvaluated currentPromptAnswers");
         if (!batch) return res.status(404).json({ message: "Batch not found" });
 
+        let session = null;
+        if (batch.activeSessionId) {
+            session = await Session.findById(batch.activeSessionId);
+        }
+
+        const activeParticipants = session?.attendance || [];
+        
         let activeSurah = null;
         let activeAyah = null;
-
-        if (batch.activeChildId && batch.activeParticipants) {
-            const activeParticipant = batch.activeParticipants.find(p => p.childId === batch.activeChildId);
+        if (batch.activeChildId) {
+            const activeParticipant = activeParticipants.find(p => p.childId.toString() === batch.activeChildId);
             if (activeParticipant) {
                 activeSurah = activeParticipant.currentSurah;
                 activeAyah = activeParticipant.currentAyah;
             }
         }
 
-        // FETCH REQUESTING CHILD'S CURRENT SESSION SCORE (For Real-time UI feedback)
         const { childId } = req.query;
         let currentScore = 0;
         if (childId && batch.activeSessionId) {
-            const { default: LiveScore } = await import("../models/LiveScore.js");
-            const scoreDoc = await LiveScore.findOne({ 
-                batchId: id, 
-                sessionId: batch.activeSessionId, 
-                childId 
-            });
-            if (scoreDoc) {
-                currentScore = (scoreDoc.recitationScore || 0) + (scoreDoc.participationScore || 0);
-            }
+            const scoreDoc = await LiveScore.findOne({ batchId: id, sessionId: batch.activeSessionId, childId });
+            if (scoreDoc) currentScore = (scoreDoc.recitationScore || 0) + (scoreDoc.participationScore || 0);
         }
 
         res.json({
@@ -713,10 +710,11 @@ export const getBatchState = async (req, res) => {
             currentScore,
             currentPromptAnswers: batch.currentPromptAnswers || [],
             promptEvaluated: batch.promptEvaluated || false,
-            activeParticipants: batch.activeParticipants || [],
-            pastSessions: batch.pastSessions || []
+            activeParticipants: activeParticipants,
+            pastSessions: [] // Handled by separate history view now or keep empty for minimal lean payload
         });
     } catch (error) {
+        console.error("Get batch state error:", error);
         res.status(500).json({ error: error.message, activeParticipants: [], pastSessions: [] });
     }
 };
@@ -1188,11 +1186,14 @@ export const handleDailyWebhook = async (req, res) => {
         }
 
         if (event === "participant.joined" || event === "participant.left") {
+             const { default: Session } = await import("../models/Session.js");
              const childId = payload.participant?.user_id;
-             const pIdx = batch.activeParticipants.findIndex(p => p.childId === childId);
-             if (pIdx > -1) {
-                 batch.activeParticipants[pIdx].isActive = (event === "participant.joined");
-                 await batch.save();
+
+             if (batch.activeSessionId) {
+                 await Session.updateOne(
+                    { _id: batch.activeSessionId, "attendance.childId": childId },
+                    { $set: { "attendance.$.isActive": (event === "participant.joined") } }
+                 );
              }
         }
 

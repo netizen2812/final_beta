@@ -1115,11 +1115,10 @@ const LiveClassRoom: React.FC = () => {
                    <button onClick={() => setConfirmEndClass(null)} className="flex-1 bg-white/10 hover:bg-white/20 text-white font-bold py-3 rounded-xl transition-all">Cancel</button>
                    <button onClick={() => { handleEndClass(confirmEndClass); setConfirmEndClass(null); }} className="flex-1 bg-gradient-to-r from-red-500 to-red-600 hover:from-red-400 hover:to-red-500 text-white font-bold py-3 rounded-xl shadow-[0_0_15px_rgba(239,68,68,0.4)] transition-all">Yes, End Class</button>
                  </div>
-              </div>
+               </div>
             </div>
           )}
         </div>
-      </div>
     );
   }
   // RENDER: LOBBY (Scholar or Parent/Kid)

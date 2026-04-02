@@ -35,14 +35,6 @@ const batchSchema = new mongoose.Schema({
         enum: ["active", "archived", "upcoming", "ended"],
         default: "upcoming" // Fix: Default must be upcoming so students see "Class Scheduled" until Scholar actually starts it
     },
-    activeParticipants: [{
-        childId: String,
-        childName: String,
-        currentSurah: Number, // Enforce Number
-        currentAyah: Number,  // Enforce Number
-        lastSeen: { type: Date, default: Date.now },
-        isActive: { type: Boolean, default: true }
-    }],
     activeChildId: {
         type: String, // Tracks whose turn it is
         default: null
@@ -51,12 +43,6 @@ const batchSchema = new mongoose.Schema({
         type: String, // Tracks the current active class session for grouping scores
         default: null
     },
-    pastSessions: [{
-        sessionId: String,
-        startedAt: { type: Date, default: Date.now },
-        endedAt: Date,
-        attendedChildren: [{ type: mongoose.Schema.Types.ObjectId, ref: "Child" }]
-    }],
     currentPromptAnswers: [{
         childId: String,
         answer: { type: String, enum: ['yes', 'no'] }

@@ -116,8 +116,19 @@ export const awardXP = async (childId, action, data = {}) => {
                     },
                     { new: true, upsert: true }
                 );
+
+                // --- NEW: INDIVIDUAL TRANSACTION LOGGING ---
+                const { default: XPLog } = await import("../models/XPLog.js");
+                await XPLog.create({
+                    childId,
+                    action,
+                    xpGained,
+                    batchId: data.batchId || null,
+                    sessionId: data.sessionId || null,
+                    metadata: data
+                });
             } catch(e) {
-                console.error("Failed to log ChildActivity", e);
+                console.error("Failed to log Activity/XP event", e);
             }
         }
 

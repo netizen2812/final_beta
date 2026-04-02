@@ -239,7 +239,7 @@ export const startBatch = async (req, res) => {
 
         const activeSessionId = Date.now().toString();
 
-        await Batch.findByIdAndUpdate(id, { 
+        batch = await Batch.findByIdAndUpdate(id, { 
             status: 'active',
             activeSessionId,
             activeChildId: null,
@@ -250,8 +250,8 @@ export const startBatch = async (req, res) => {
                     attendedChildren: [] // Initial empty attendance list
                 } 
             }
-        });
-        res.json({ message: "Batch started", activeSessionId });
+        }, { new: true });
+        res.json({ message: "Batch started", activeSessionId, dailyRoomName: batch.dailyRoomName });
     } catch (error) {
         res.status(500).json({ message: "Server error" });
     }
@@ -356,7 +356,8 @@ export const joinBatch = async (req, res) => {
             batchId: batch._id,
             childId,
             status: batch.status,
-            title: batch.name
+            title: batch.name,
+            dailyRoomName: batch.dailyRoomName
         };
 
         res.json({ success: true, session: mockSession, message: "Joined successfully" });
@@ -428,7 +429,8 @@ export const getMySessions = async (req, res) => {
             isBatch: true, // Flag to distinguish from individual sessions
             activeSessionId: b.activeSessionId, 
             pastSessions: b.pastSessions || [], // Needed by TarbiyahLobby to unlock Journey nodes
-            activeParticipants: b.activeParticipants || []
+            activeParticipants: b.activeParticipants || [],
+            dailyRoomName: b.dailyRoomName
         }));
 
         res.json(mappedSessions);
@@ -1144,6 +1146,60 @@ export const forceEndBatch = async (req, res) => {
         res.json({ message: "Batch force-reset to upcoming status (Session ended history recorded)" });
     } catch (err) {
         res.status(500).json({ error: err.message });
+    }
+};
+
+// DAILY.CO WEBHOOK HANDLER
+export const handleDailyWebhook = async (req, res) => {
+    try {
+        const { event, payload } = req.body;
+        if (!payload || !payload.room) return res.status(200).json({ status: "skipped" });
+
+        const { default: Batch } = await import("../models/Batch.js");
+
+        const batch = await Batch.findOne({ 
+            $or: [
+                { dailyRoomName: payload.room },
+                { _id: payload.room.match(/^[0-9a-fA-F]{24}$/) ? payload.room : null }
+            ].filter(q => q._id !== null || q.dailyRoomName)
+        });
+
+        if (!batch) return res.status(200).json({ status: "not_found" });
+
+        if (event === "participant.joined") {
+            const childId = payload.participant?.user_id;
+            const childName = payload.participant?.user_name || "Student";
+
+            const pIdx = batch.activeParticipants.findIndex(p => p.childId === childId);
+            if (pIdx > -1) {
+                batch.activeParticipants[pIdx].isActive = true;
+                batch.activeParticipants[pIdx].lastSeen = new Date();
+            } else if (childId) {
+                batch.activeParticipants.push({ childId, childName, isActive: true, lastSeen: new Date() });
+            }
+
+            if (batch.activeSessionId && childId) {
+                const session = batch.pastSessions.find(s => s.sessionId === batch.activeSessionId);
+                if (session && !session.attendedChildren.map(id => id.toString()).includes(childId.toString())) {
+                    session.attendedChildren.push(childId);
+                }
+            }
+            await batch.save();
+        }
+
+        if (event === "participant.joined" || event === "participant.left") {
+             const childId = payload.participant?.user_id;
+             const pIdx = batch.activeParticipants.findIndex(p => p.childId === childId);
+             if (pIdx > -1) {
+                 batch.activeParticipants[pIdx].isActive = (event === "participant.joined");
+                 await batch.save();
+             }
+        }
+
+        res.status(200).json({ status: "success", event });
+    } catch (err) {
+        console.error("Daily Webhook Error:", err);
+        res.status(200).json({ status: "error" });
     }
 };
 

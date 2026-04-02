@@ -8,8 +8,9 @@ import {
 } from 'lucide-react';
 import { 
   PieChart, Pie, Cell, ResponsiveContainer, BarChart, Bar, XAxis, YAxis, CartesianGrid, 
-  Tooltip as RechartsTooltip 
+  Tooltip as RechartsTooltip, AreaChart, Area 
 } from 'recharts';
+import { QURAN_METADATA } from '../quranMetadata';
 import { useChildContext } from '../contexts/ChildContext';
 import axios from 'axios';
 import { useTranslation } from 'react-i18next';
@@ -365,9 +366,21 @@ export const TarbiyahLobby = ({
 const KidsView = ({ scrollProgress, activeChild, onJoinLive, currentBatchStatus, batches, accessStatus, getToken, setShowQuranPractice, setShowJoinChoice, attendedSessionIds = [], attendanceHistory = [], childrenList = [], userRole = 'parent', selectedBatchId, setSelectedBatchId, loadingChildren }: any) => {
   const [isLoading, setIsLoading] = useState(false);
   const progress = activeChild?.child_progress?.[0];
-  const activeBatch = batches && batches.length > 0 
-    ? (batches.find((b: any) => b._id === selectedBatchId) || batches[0]) 
-    : null;
+  
+  // PRIORITIZE THE BATCH WHERE THE ACTIVE CHILD IS ENROLLED
+  const activeBatch = useMemo(() => {
+    if (!batches || batches.length === 0) return null;
+    if (selectedBatchId) return batches.find((b: any) => b._id === selectedBatchId) || batches[0];
+    
+    if (activeChild?.id) {
+      const enrolledBatch = batches.find((b: any) => 
+        b.students && b.students.some((sId: any) => String(sId) === String(activeChild.id))
+      );
+      if (enrolledBatch) return enrolledBatch;
+    }
+    return batches[0];
+  }, [batches, activeChild?.id, selectedBatchId]);
+
   const [selectedSessionId, setSelectedSessionId] = useState<string | null>(null);
   
   // SYNCED LOGIC
@@ -1097,20 +1110,28 @@ const SetupQuranProgress = ({ childId, getToken, onClose, onSuccess, initialPart
                      Toggle Entire Juz
                    </button>
                 </div>
-                <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+                <div className="grid grid-cols-2 md:grid-cols-2 gap-4">
                    {[...Array(15)].map((_, i) => {
-                      const partCode = `J${selectedJuz}P${i + 1}`;
+                      const partNum = i + 1;
+                      const partCode = `J${selectedJuz}P${partNum}`;
                       const isDone = completedParts.includes(partCode);
+                      const meta = QURAN_METADATA[selectedJuz]?.find(m => m.part === partNum);
+                      
                       return (
                         <button 
                           key={partCode}
                           onClick={() => togglePart(partCode)}
                           className={`p-6 rounded-[2rem] border transition-all text-left flex flex-col gap-2 relative group ${isDone ? 'bg-emerald-500 border-emerald-400 text-[#022c22] shadow-lg' : 'bg-white/5 border-white/5 text-emerald-100 hover:bg-white/10'}`}
                         >
-                           <div className="text-[10px] font-black uppercase tracking-widest opacity-60">Part {i+1}</div>
-                           <div className="font-bold flex justify-between items-center">
-                              {isDone ? 'COMPLETED' : 'PENDING'}
+                           <div className="flex justify-between items-center">
+                              <div className="text-[10px] font-black uppercase tracking-widest opacity-60">Part {partNum}</div>
                               {isDone ? <CheckCircle size={18} fill="currentColor" opacity="0.4" /> : <div className="w-5 h-5 rounded-full border border-white/20" />}
+                           </div>
+                           <div className="font-bold text-lg leading-tight">
+                              {meta?.label || `Part ${partNum}`}
+                           </div>
+                           <div className="text-[10px] opacity-60 font-medium">
+                              {isDone ? 'MARKED AS COMPLETE' : 'NOT STARTED'}
                            </div>
                         </button>
                       );

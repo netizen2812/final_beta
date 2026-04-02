@@ -13,6 +13,14 @@ import { canAccessBatch } from "../middleware/batchAccess.js";
 
 const router = express.Router();
 
+// Daily.co Webhook (Unauthenticated)
+router.post("/webhook/daily", (req, res, next) => {
+    // Basic verification could go here if we had a secret
+    next();
+}, (req, res, next) => {
+    import("../controller/liveController.js").then(m => m.handleDailyWebhook(req, res)).catch(next);
+});
+
 // Helper: Scholar Status
 router.get("/scholar/status", requireAuth, getScholarStatus);
 

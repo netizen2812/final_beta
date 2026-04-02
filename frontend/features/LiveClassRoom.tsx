@@ -10,7 +10,8 @@ import {
   LayoutDashboard,
   WifiOff,
   Wifi,
-  Star, Moon, Cloud, Sprout, Leaf, Sun, Mic, Trophy, CheckCircle, Lock
+  Star, Moon, Cloud, Sprout, Leaf, Sun, Mic, Trophy, CheckCircle, Lock,
+  Maximize2, Minimize2, Video, VideoOff
 } from 'lucide-react';
 import { useChildContext } from '../contexts/ChildContext';
 import QuranPage from './QuranPage';
@@ -39,6 +40,7 @@ interface LiveSession {
   parentName?: string;
   studentName?: string;
   batchId?: string; // Added for presence tracking
+  dailyRoomName?: string;
 }
 
 interface ScholarStatus {
@@ -93,6 +95,8 @@ const LiveClassRoom: React.FC = () => {
   const [showAssignModal, setShowAssignModal] = useState(false);
   const [currentSessionScore, setCurrentSessionScore] = useState<number>(0);
   const [selectedBatchId, setSelectedBatchId] = useState<string | null>(null);
+  const [showVideo, setShowVideo] = useState(true);
+  const [isVideoFullScreen, setIsVideoFullScreen] = useState(false);
   const { triggerRewardAnimation } = useChildContext();
   const lastSeenScoreRef = useRef<number | null>(null);
 
@@ -538,7 +542,8 @@ const LiveClassRoom: React.FC = () => {
       scholarId: user?.id || '',
       currentSurah: null,
       currentAyah: null,
-      status: 'active'
+      status: 'active',
+      dailyRoomName: batch.dailyRoomName
     });
     setBatchState({
         activeChildId: batch.activeChildId || null,
@@ -851,12 +856,24 @@ const LiveClassRoom: React.FC = () => {
               <p className="text-xs text-emerald-300">Viewing Student: <span className="font-bold text-white">{currentSession.studentName || currentSession.childId}</span></p>
             )}
           </div>
-          <button
-            onClick={handleExitSession}
-            className="bg-emerald-800 hover:bg-emerald-700 text-white px-4 py-2 rounded-full text-xs font-bold uppercase tracking-widest flex items-center gap-2 transition-all"
-          >
-            <LogOut size={16} /> {t('live.exit')}
-          </button>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => setShowVideo(!showVideo)}
+              className={`${showVideo ? 'bg-amber-500 text-emerald-900' : 'bg-white/10 text-white'} p-2 rounded-full transition-all group relative`}
+              title={showVideo ? "Hide Video" : "Show Video"}
+            >
+              {showVideo ? <Video size={18} /> : <VideoOff size={18} />}
+              <span className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-2 py-1 bg-black text-[8px] rounded opacity-0 group-hover:opacity-100 whitespace-nowrap pointer-events-none">
+                {showVideo ? 'Hide Video' : 'Join Call'}
+              </span>
+            </button>
+            <button
+              onClick={handleExitSession}
+              className="bg-red-600 hover:bg-red-500 text-white px-4 py-2 rounded-full text-xs font-bold uppercase tracking-widest flex items-center gap-2 transition-all shadow-lg active:scale-95"
+            >
+              <LogOut size={16} /> {t('live.exit')}
+            </button>
+          </div>
         </div>
 
         {/* Assignment Modal */}
@@ -911,101 +928,131 @@ const LiveClassRoom: React.FC = () => {
           </div>
         )}
 
-        <div className={`relative z-10 flex-1 overflow-y-auto flex flex-col bg-transparent ${userRole === 'scholar' ? 'pb-72' : ''}`}>
-          {!hasPosition && userRole === 'scholar' ? (
-            <div className="absolute inset-0 flex items-center justify-center bg-transparent">
-              <div className="text-center p-6">
-                <div className="w-16 h-16 bg-white/10 rounded-full flex items-center justify-center mx-auto mb-4 animate-pulse">
-                  <BookOpen className="text-emerald-100" />
+        <div className={`relative z-10 flex-1 flex flex-col md:flex-row bg-transparent ${userRole === 'scholar' ? 'pb-72' : ''} overflow-hidden`}>
+           {/* VIDEO PANE (Daily.co) */}
+           {showVideo && currentSession?.dailyRoomName && (
+             <div className={`${isVideoFullScreen ? 'fixed inset-0 z-[4500] bg-black' : 'w-full md:w-[40%] lg:w-[35%] h-[300px] md:h-full border-b md:border-b-0 md:border-r border-emerald-500/20'} relative flex flex-col bg-black transition-all duration-500`}>
+                <div className="absolute top-4 right-4 z-10 flex gap-2">
+                   <button 
+                     onClick={() => setIsVideoFullScreen(!isVideoFullScreen)}
+                     className="bg-black/50 hover:bg-black/80 text-white p-2 rounded-lg backdrop-blur-md border border-white/10 transition-all"
+                   >
+                     {isVideoFullScreen ? <Minimize2 size={20} /> : <Maximize2 size={20} />}
+                   </button>
                 </div>
-                <h3 className="font-bold text-white">{t('live.studentSelecting', 'Student is selecting Ayah...')}</h3>
-                <p className="text-sm text-emerald-200">{t('live.quranViewAppear', 'Quran view will appear soon.')}</p>
-              </div>
-            </div>
-          ) : userRole === 'parent' && !isMyTurn ? (
-            <div className="absolute inset-0 flex flex-col items-center justify-start bg-transparent overflow-y-auto">
-               <div className="w-full bg-[#022c22]/50 backdrop-blur-md border-b border-emerald-800/50 text-white p-8 md:p-12 shadow-xl relative overflow-hidden shrink-0">
-                  <div className="absolute top-0 right-0 w-64 h-64 bg-emerald-800 rounded-full blur-3xl opacity-50 -translate-y-1/2 translate-x-1/2" />
-                  <div className="absolute bottom-0 left-0 w-48 h-48 bg-teal-800 rounded-full blur-3xl opacity-30 translate-y-1/2 -translate-x-1/4" />
-                  
-                  <div className="relative z-10 flex flex-col items-center text-center">
-                    <div className="w-20 h-20 mb-6 rounded-full bg-emerald-800/50 flex items-center justify-center animate-pulse shadow-[0_0_30px_rgba(16,185,129,0.3)] ring-4 ring-emerald-700">
-                       <BookOpen className="text-emerald-300" size={32} />
-                    </div>
-                    <h3 className="font-serif text-3xl md:text-4xl font-bold text-white mb-3">Live Session Active</h3>
-                    <p className="text-emerald-200/80 max-w-md mx-auto text-sm md:text-base leading-relaxed">
-                       A classmate is currently reciting. Listen carefully, as you'll be prompted to evaluate them soon!
-                    </p>
-                  </div>
-               </div>
-
-               <div className="w-full max-w-2xl px-4 py-8 md:py-12 flex-1 pb-40">
-                  <div className="flex items-center justify-between mb-6">
-                    <h4 className="font-bold text-xl text-white flex items-center gap-2">
-                       <Trophy className="text-amber-500" size={24} /> 
-                       Live Leaderboard
-                    </h4>
-                    <span className="text-[10px] font-bold text-emerald-600 bg-emerald-100 px-3 py-1 rounded-full uppercase tracking-wider flex items-center gap-1">
-                      <div className="w-1.5 h-1.5 bg-emerald-500 rounded-full animate-pulse" /> Live
+                <iframe 
+                  src={`https://imam.daily.co/${currentSession.dailyRoomName}#${userRole === 'scholar' ? 'sc-host' : 'sc-guest'}`}
+                  className="w-full h-full border-0"
+                  allow="camera; microphone; display-capture; autoplay"
+                />
+                {!isVideoFullScreen && (
+                  <div className="absolute top-4 left-4 pointer-events-none">
+                    <span className="bg-emerald-500/80 backdrop-blur-md text-white px-3 py-1 rounded-full text-[10px] font-black tracking-widest uppercase flex items-center gap-2">
+                       <div className="w-1.5 h-1.5 bg-white rounded-full animate-pulse" /> Live Call
                     </span>
                   </div>
-                  
-                  <div className="space-y-3">
-                     {leaderboard && leaderboard.length > 0 ? leaderboard.map((l, idx) => (
-                        <div key={l.childId} className="flex items-center justify-between p-4 rounded-2xl bg-emerald-950/40 backdrop-blur-md shadow-sm border border-emerald-800/50 hover:border-emerald-500/50 transition-all">
-                           <div className="flex items-center gap-4">
-                              <span className="font-black text-lg text-emerald-500 w-6">#{idx + 1}</span>
-                              <span className="font-bold text-emerald-50 truncate max-w-[120px]">{l.name}</span>
+                )}
+             </div>
+           )}
+
+           {/* CONTENT PANE (Existing Features) */}
+           <div className={`flex-1 flex flex-col relative h-full overflow-hidden ${isVideoFullScreen ? 'hidden' : ''}`}>
+             {!hasPosition && userRole === 'scholar' ? (
+               <div className="absolute inset-0 flex items-center justify-center bg-transparent">
+                 <div className="text-center p-6">
+                   <div className="w-16 h-16 bg-white/10 rounded-full flex items-center justify-center mx-auto mb-4 animate-pulse">
+                     <BookOpen className="text-emerald-100" />
+                   </div>
+                   <h3 className="font-bold text-white">{t('live.studentSelecting', 'Student is selecting Ayah...')}</h3>
+                   <p className="text-sm text-emerald-200">{t('live.quranViewAppear', 'Quran view will appear soon.')}</p>
+                 </div>
+               </div>
+             ) : userRole === 'parent' && !isMyTurn ? (
+               <div className="absolute inset-0 flex flex-col items-center justify-start bg-transparent overflow-y-auto">
+                  <div className="w-full bg-[#022c22]/50 backdrop-blur-md border-b border-emerald-800/50 text-white p-8 md:p-12 shadow-xl relative overflow-hidden shrink-0">
+                     <div className="absolute top-0 right-0 w-64 h-64 bg-emerald-800 rounded-full blur-3xl opacity-50 -translate-y-1/2 translate-x-1/2" />
+                     <div className="absolute bottom-0 left-0 w-48 h-48 bg-teal-800 rounded-full blur-3xl opacity-30 translate-y-1/2 -translate-x-1/4" />
+                     
+                     <div className="relative z-10 flex flex-col items-center text-center">
+                       <div className="w-20 h-20 mb-6 rounded-full bg-emerald-800/50 flex items-center justify-center animate-pulse shadow-[0_0_30px_rgba(16,185,129,0.3)] ring-4 ring-emerald-700">
+                          <BookOpen className="text-emerald-300" size={32} />
+                       </div>
+                       <h3 className="font-serif text-3xl md:text-4xl font-bold text-white mb-3">Live Session Active</h3>
+                       <p className="text-emerald-200/80 max-w-md mx-auto text-sm md:text-base leading-relaxed">
+                          A classmate is currently reciting. Listen carefully, as you'll be prompted to evaluate them soon!
+                       </p>
+                     </div>
+                  </div>
+   
+                  <div className="w-full max-w-2xl px-4 py-8 md:py-12 flex-1 pb-40">
+                     <div className="flex items-center justify-between mb-6">
+                       <h4 className="font-bold text-xl text-white flex items-center gap-2">
+                          <Trophy className="text-amber-500" size={24} /> 
+                          Live Leaderboard
+                       </h4>
+                       <span className="text-[10px] font-bold text-emerald-600 bg-emerald-100 px-3 py-1 rounded-full uppercase tracking-wider flex items-center gap-1">
+                         <div className="w-1.5 h-1.5 bg-emerald-500 rounded-full animate-pulse" /> Live
+                       </span>
+                     </div>
+                     
+                     <div className="space-y-3">
+                        {leaderboard && leaderboard.length > 0 ? leaderboard.map((l, idx) => (
+                           <div key={l.childId} className="flex items-center justify-between p-4 rounded-2xl bg-emerald-950/40 backdrop-blur-md shadow-sm border border-emerald-800/50 hover:border-emerald-500/50 transition-all">
+                              <div className="flex items-center gap-4">
+                                 <span className="font-black text-lg text-emerald-500 w-6">#{idx + 1}</span>
+                                 <span className="font-bold text-emerald-50 truncate max-w-[120px]">{l.name}</span>
+                              </div>
+                              <div className="flex items-center gap-6">
+                                 <div className="text-right hidden sm:block">
+                                    <div className="text-[10px] text-emerald-300/60 font-bold uppercase tracking-wider">Recitation</div>
+                                    <div className="font-bold text-emerald-50">{l.recitationScore}</div>
+                                 </div>
+                                 <div className="text-right hidden sm:block">
+                                    <div className="text-[10px] text-emerald-300/60 font-bold uppercase tracking-wider">Evaluation</div>
+                                    <div className="font-bold text-emerald-50">{l.participationScore}</div>
+                                 </div>
+                                 <div className="font-black text-xl text-amber-300 bg-amber-500/20 border border-amber-500/30 px-4 py-1.5 rounded-lg w-16 text-center">
+                                    {l.total}
+                                 </div>
+                              </div>
                            </div>
-                           <div className="flex items-center gap-6">
-                              <div className="text-right hidden sm:block">
-                                 <div className="text-[10px] text-emerald-300/60 font-bold uppercase tracking-wider">Recitation</div>
-                                 <div className="font-bold text-emerald-50">{l.recitationScore}</div>
-                              </div>
-                              <div className="text-right hidden sm:block">
-                                 <div className="text-[10px] text-emerald-300/60 font-bold uppercase tracking-wider">Evaluation</div>
-                                 <div className="font-bold text-emerald-50">{l.participationScore}</div>
-                              </div>
-                              <div className="font-black text-xl text-amber-300 bg-amber-500/20 border border-amber-500/30 px-4 py-1.5 rounded-lg w-16 text-center">
-                                 {l.total}
-                              </div>
+                        )) : (
+                           <div className="text-center py-12 bg-white/5 backdrop-blur-md rounded-3xl border border-dashed border-emerald-500/30">
+                              <Loader2 className="animate-spin mx-auto text-emerald-300 mb-2" size={24} />
+                              <p className="text-[10px] font-bold text-emerald-200/60 uppercase tracking-widest mt-2">Compiling Scores...</p>
                            </div>
-                        </div>
-                     )) : (
-                        <div className="text-center py-12 bg-white/5 backdrop-blur-md rounded-3xl border border-dashed border-emerald-500/30">
-                           <Loader2 className="animate-spin mx-auto text-emerald-300 mb-2" size={24} />
-                           <p className="text-[10px] font-bold text-emerald-200/60 uppercase tracking-widest mt-2">Compiling Scores...</p>
-                        </div>
-                     )}
+                        )}
+                     </div>
                   </div>
                </div>
-            </div>
-          ) : userRole === 'parent' && isMyTurn && !hasStartedReciting ? (
-            <div className="absolute inset-0 flex flex-col items-center justify-center bg-transparent p-4">
-               <div className="bg-emerald-950/80 backdrop-blur-xl p-10 rounded-3xl shadow-[0_0_50px_rgba(16,185,129,0.15)] border border-emerald-500/30 text-center max-w-md w-full animate-in zoom-in-95 duration-300">
-                 <div className="w-20 h-20 bg-amber-500/20 text-amber-400 rounded-full flex items-center justify-center mx-auto mb-6 shadow-inner ring-4 ring-amber-500/20">
-                    <Mic size={36} />
-                 </div>
-                 <h3 className="font-bold text-2xl text-white mb-2">It's Your Turn!</h3>
-                 <p className="text-emerald-200/80 mb-8">The Scholar is ready for your recitation.</p>
-                 <button onClick={() => setHasStartedReciting(true)} className="w-full bg-gradient-to-r from-emerald-500 to-emerald-600 hover:from-emerald-400 hover:to-emerald-500 text-white py-4 rounded-xl font-black text-lg shadow-[0_0_20px_rgba(5,150,105,0.4)] transition-all active:scale-95 flex flex-col items-center justify-center gap-1">
-                    <span>RECITE NOW</span>
-                    <span className="text-[10px] uppercase font-bold text-emerald-100 opacity-80 tracking-widest">Open Quran</span>
-                 </button>
+             ) : userRole === 'parent' && isMyTurn && !hasStartedReciting ? (
+               <div className="absolute inset-0 flex flex-col items-center justify-center bg-transparent p-4">
+                  <div className="bg-emerald-950/80 backdrop-blur-xl p-10 rounded-3xl shadow-[0_0_50px_rgba(16,185,129,0.15)] border border-emerald-500/30 text-center max-w-md w-full animate-in zoom-in-95 duration-300">
+                    <div className="w-20 h-20 bg-amber-500/20 text-amber-400 rounded-full flex items-center justify-center mx-auto mb-6 shadow-inner ring-4 ring-amber-500/20">
+                       <Mic size={36} />
+                    </div>
+                    <h3 className="font-bold text-2xl text-white mb-2">It's Your Turn!</h3>
+                    <p className="text-emerald-200/80 mb-8">The Scholar is ready for your recitation.</p>
+                    <button onClick={() => setHasStartedReciting(true)} className="w-full bg-gradient-to-r from-emerald-500 to-emerald-600 hover:from-emerald-400 hover:to-emerald-500 text-white py-4 rounded-xl font-black text-lg shadow-[0_0_20px_rgba(5,150,105,0.4)] transition-all active:scale-95 flex flex-col items-center justify-center gap-1">
+                       <span>RECITE NOW</span>
+                       <span className="text-[10px] uppercase font-bold text-emerald-100 opacity-80 tracking-widest">Open Quran</span>
+                    </button>
+                  </div>
                </div>
-            </div>
-          ) : (
-            <div className="flex-1 flex flex-col h-full relative">
-              <QuranPage
-                onBack={handleExitSession}
-                sessionCurrentSurah={currentSession.currentSurah}
-                sessionCurrentAyah={currentSession.currentAyah}
-                onAyahClick={handleAyahClick}
-                onPositionChange={userRole === 'scholar' ? undefined : emitPosition}
-                readOnly={userRole === 'scholar' || isObserving}
-              />
-            </div>
-          )}
+             ) : (
+               <div className="flex-1 flex flex-col h-full relative">
+                 <QuranPage
+                   onBack={handleExitSession}
+                   sessionCurrentSurah={currentSession.currentSurah}
+                   sessionCurrentAyah={currentSession.currentAyah}
+                   onAyahClick={handleAyahClick}
+                   onPositionChange={userRole === 'scholar' ? undefined : emitPosition}
+                   readOnly={userRole === 'scholar' || isObserving}
+                 />
+               </div>
+             )}
+           </div>
+         </div>
 
           {/* Student Engagement Prompt */}
           {isObserving && (

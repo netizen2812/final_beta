@@ -64,6 +64,10 @@ const batchSchema = new mongoose.Schema({
     promptEvaluated: {
         type: Boolean,
         default: false
+    },
+    dailyRoomName: {
+        type: String, // Maps to Daily.co room name for webhooks
+        default: null
     }
 }, { timestamps: true });
 

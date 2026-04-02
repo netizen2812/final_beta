@@ -91,7 +91,19 @@ export const getDashboardStats = async (req, res) => {
             completed_quran_parts: [] 
         };
 
-        const totalCompletedParts = progress.completed_quran_parts?.length || 0;
+        const manualParts = new Set(progress.completed_quran_parts || []);
+        
+        // Find completed assignments to include in progress
+        const completedAssignments = await QuranAssignment.find({ 
+            studentId: child._id, 
+            status: 'completed' 
+        });
+        
+        completedAssignments.forEach(a => {
+           manualParts.add(`J${a.juz}P${a.subpart}`);
+        });
+
+        const totalCompletedParts = manualParts.size;
         const completionRate = Math.round((totalCompletedParts / 450) * 100);
 
         // Calculate total active days (all time)
@@ -106,7 +118,8 @@ export const getDashboardStats = async (req, res) => {
                 attendanceRate: attendanceRate, // Adjusted to real class %
                 streak: progress.streak_days || 0,
                 activeDays: totalActiveDays,
-                completionRate: completionRate
+                completionRate: completionRate,
+                completed_quran_parts: Array.from(manualParts)
             },
             timeThisWeek: {
                 total: `${Math.floor(totalMinutes / 60)}h ${totalMinutes % 60}m`,
@@ -183,6 +196,24 @@ export const getBadges = async (req, res) => {
         res.json(badges);
     } catch (error) {
         console.error("Get badges error:", error);
+        res.status(500).json({ message: "Server error" });
+    }
+};
+
+// GET /api/parent/quran-meta/:juz
+export const getQuranMeta = async (req, res) => {
+    try {
+        const { juz } = req.params;
+        const { default: JuzSubpart } = await import("../models/JuzSubpart.js");
+        const metadata = await JuzSubpart.findOne({ juz: parseInt(juz) });
+        
+        if (!metadata) {
+            return res.status(404).json({ message: "Juz metadata not found" });
+        }
+        
+        res.json(metadata);
+    } catch (error) {
+        console.error("Get Quran meta error:", error);
         res.status(500).json({ message: "Server error" });
     }
 };

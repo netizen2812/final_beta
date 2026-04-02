@@ -253,11 +253,11 @@ export const TarbiyahOnboarding = ({ getToken, isPaid = false }: { getToken: any
           <div className="flex flex-col md:flex-row items-stretch gap-4 relative">
             {/* Connecting line (desktop) */}
             <div className="hidden md:block absolute top-[3rem] left-[16%] right-[16%] h-px z-0">
-               <div className="w-full h-full bg-gradient-to-r from-blue-500/30 via-emerald-500/30 to-amber-500/30"></div>
+               <div className="w-full h-full bg-gradient-to-r from-emerald-500/20 via-emerald-500/40 to-amber-500/20"></div>
             </div>
             
             {[
-              { step: "1", title: "Practice", desc: "Your child practices their assigned ayah independently while a classmate recites. Built-in Quran reader tracks their position.", icon: <BookOpen />, color: "from-blue-500 to-indigo-500", accent: "text-blue-400" },
+              { step: "1", title: "Practice", desc: "Your child practices their assigned ayah independently while a classmate recites. Built-in Quran reader tracks their position.", icon: <BookOpen />, color: "from-emerald-600 to-teal-500", accent: "text-emerald-400" },
               { step: "2", title: "Observe & Engage", desc: "While a classmate recites, the scholar asks everyone: 'Did they read it correctly?' Your child taps Yes or No. The scholar then reveals the answer — kids who got it right earn XP. This keeps every child actively listening and judging Tajweed, even when it's not their turn.", icon: <Eye />, color: "from-emerald-500 to-teal-500", accent: "text-emerald-400" },
               { step: "3", title: "Recite Live", desc: "When it's their turn, they recite directly with the scholar who scores their Tajweed in real-time. Scores feed into the class leaderboard.", icon: <Mic />, color: "from-amber-500 to-orange-500", accent: "text-amber-400" }
             ].map((step, i) => (

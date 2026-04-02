@@ -104,7 +104,7 @@ export const TarbiyahLobby = ({
   setSelectedBatchId: (id: string | null) => void
 }) => {
   const [view, setView] = useState<'kids' | 'parent' | 'scholar_journey' | 'scholar_dashboard'>(
-     isAdmin ? 'kids' : (userRole === 'scholar' ? 'scholar_dashboard' : 'kids')
+     userRole === 'scholar' ? 'scholar_dashboard' : 'kids'
   );
   const [targetBatchId, setTargetBatchId] = useState<string | null>(null);
   const [scrollProgress, setScrollProgress] = useState(0);
@@ -708,17 +708,23 @@ const ScholarJourneyView = ({ scrollProgress, batches, onJoinSession, initialBat
 
             return (
               <div key={index} className="flex md:justify-center items-center relative group">
-                <div onClick={() => { if (isActuallyLive) onJoinSession(activeBatch); else if (isHistorical && historicalSession?.sessionId) setSelectedSessionId(historicalSession.sessionId); }} className={`absolute left-[2rem] md:left-1/2 -translate-x-1/2 w-14 h-14 rounded-full border-4 border-[#022c22] z-20 flex items-center justify-center shadow-xl transition-all ${isLocked ? 'bg-gray-800 text-gray-500' : (isActuallyLive || isCurrent) ? 'bg-amber-400 text-amber-900 scale-125 cursor-pointer shadow-[0_0_20px_rgba(245,158,11,0.4)] animate-pulse' : 'bg-emerald-400 text-emerald-950'}`}>
+                <div onClick={() => { 
+                  if (isActuallyLive || isCurrent) onJoinSession(activeBatch); 
+                  else if (isHistorical && historicalSession?.sessionId) setSelectedSessionId(historicalSession.sessionId); 
+                }} className={`absolute left-[2rem] md:left-1/2 -translate-x-1/2 w-14 h-14 rounded-full border-4 border-[#022c22] z-20 flex items-center justify-center shadow-xl transition-all ${isLocked ? 'bg-gray-800 text-gray-500' : (isActuallyLive || isCurrent) ? 'bg-amber-400 text-amber-900 scale-125 cursor-pointer shadow-[0_0_20px_rgba(245,158,11,0.4)] animate-pulse' : 'bg-emerald-400 text-emerald-950'}`}>
                   {isLocked ? <Lock size={20} /> : isActuallyLive ? <Play size={20} fill="currentColor" /> : isCurrent ? <Play size={20} fill="currentColor" className="opacity-50" /> : <CheckCircle size={20} />}
                 </div>
                 <div 
-                   onClick={() => { if (isHistorical && historicalSession?.sessionId) setSelectedSessionId(historicalSession.sessionId); }}
+                   onClick={() => { 
+                     if (isActuallyLive || isCurrent) onJoinSession(activeBatch);
+                     else if (isHistorical && historicalSession?.sessionId) setSelectedSessionId(historicalSession.sessionId); 
+                   }}
                    className={`w-full md:w-[45%] cursor-pointer ${index % 2 === 0 ? 'md:mr-auto ml-20 md:pr-16 text-left md:text-right' : 'md:ml-auto ml-20 md:pl-16 text-left'}`}
                 >
-                   <div className={`bg-white/5 backdrop-blur-xl p-6 rounded-3xl border transition-all ${isCurrent ? 'border-amber-400/50 shadow-xl bg-amber-400/5' : isLocked ? 'opacity-50 border-white/5' : 'border-emerald-500/30 hover:bg-white/10'}`}>
+                   <div className={`bg-white/5 backdrop-blur-xl p-6 rounded-3xl border transition-all ${isCurrent ? 'border-amber-400/50 shadow-xl bg-amber-400/5 scale-[1.02] ring-1 ring-amber-400/20' : isLocked ? 'opacity-50 border-white/5' : 'border-emerald-500/30 hover:bg-white/10'}`}>
                       <h3 className="font-serif text-2xl font-bold text-white mb-1">{stageTitle}</h3>
                       <div className={`text-[10px] font-black uppercase tracking-widest ${isLocked ? 'text-gray-500' : isCurrent ? 'text-amber-400' : 'text-emerald-400'}`}>
-                        {isActuallyLive ? 'Live Now' : (isCurrent ? 'Next Class' : isHistorical ? 'Session Completed' : 'Upcoming')}
+                        {isActuallyLive ? 'Live Now • Click to Join' : (isCurrent ? 'Next Class • Click to Start' : isHistorical ? 'Session Completed' : 'Upcoming')}
                       </div>
                    </div>
                 </div>
@@ -1027,6 +1033,26 @@ const SetupQuranProgress = ({ childId, getToken, onClose, onSuccess, initialPart
   const [selectedJuz, setSelectedJuz] = useState(1);
   const [completedParts, setCompletedParts] = useState<string[]>(initialParts);
   const [saving, setSaving] = useState(false);
+  const [juzLoading, setJuzLoading] = useState(false);
+  const [dynamicMeta, setDynamicMeta] = useState<any>(null);
+
+  useEffect(() => {
+    const fetchMeta = async () => {
+      setJuzLoading(true);
+      try {
+        const token = await getToken();
+        const res = await axios.get(`${API_BASE}/api/parent/quran-meta/${selectedJuz}`, {
+           headers: { Authorization: `Bearer ${token}` }
+        });
+        setDynamicMeta(res.data);
+      } catch (err) {
+        setDynamicMeta(null);
+      } finally {
+        setJuzLoading(false);
+      }
+    };
+    fetchMeta();
+  }, [selectedJuz, getToken]);
 
   const togglePart = (part: string) => {
     setCompletedParts(prev => 
@@ -1109,13 +1135,19 @@ const SetupQuranProgress = ({ childId, getToken, onClose, onSuccess, initialPart
                    >
                      Toggle Entire Juz
                    </button>
-                </div>
-                <div className="grid grid-cols-2 md:grid-cols-2 gap-4">
-                   {[...Array(15)].map((_, i) => {
+                 </div>
+                 <div className="grid grid-cols-2 md:grid-cols-2 gap-4">
+                   {juzLoading ? (
+                      <div className="col-span-full py-20 flex flex-col items-center justify-center text-emerald-400">
+                         <Loader2 className="animate-spin mb-2" size={32} />
+                         <span className="text-sm font-bold opacity-60">Loading descriptions...</span>
+                      </div>
+                   ) : [...Array(15)].map((_, i) => {
                       const partNum = i + 1;
                       const partCode = `J${selectedJuz}P${partNum}`;
                       const isDone = completedParts.includes(partCode);
-                      const meta = QURAN_METADATA[selectedJuz]?.find(m => m.part === partNum);
+                      const staticMeta = QURAN_METADATA[selectedJuz]?.find(m => m.part === partNum);
+                      const dynamicPart = dynamicMeta?.parts?.find((p: any) => p.partNum === partNum);
                       
                       return (
                         <button 
@@ -1128,16 +1160,17 @@ const SetupQuranProgress = ({ childId, getToken, onClose, onSuccess, initialPart
                               {isDone ? <CheckCircle size={18} fill="currentColor" opacity="0.4" /> : <div className="w-5 h-5 rounded-full border border-white/20" />}
                            </div>
                            <div className="font-bold text-lg leading-tight">
-                              {meta?.label || `Part ${partNum}`}
+                              {dynamicPart?.description || staticMeta?.label || `Part ${partNum}`}
                            </div>
-                           <div className="text-[10px] opacity-60 font-medium">
-                              {isDone ? 'MARKED AS COMPLETE' : 'NOT STARTED'}
+                           <div className="text-[10px] opacity-60 font-medium lowercase">
+                              {dynamicPart?.surah && <span>{dynamicPart.surah} • </span>}
+                              {isDone ? 'COMPLETED' : 'NOT STARTED'}
                            </div>
                         </button>
                       );
                    })}
-                </div>
-             </div>
+                 </div>
+              </div>
           </div>
 
           <div className="p-8 border-t border-white/5 flex gap-4 bg-emerald-950/20">

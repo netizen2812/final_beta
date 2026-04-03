@@ -54,7 +54,21 @@ const batchSchema = new mongoose.Schema({
     dailyRoomName: {
         type: String, // Maps to Daily.co room name for webhooks
         default: null
-    }
+    },
+    pastSessions: [{
+        sessionId: { type: String, required: true },
+        startedAt: { type: Date, default: Date.now },
+        endedAt: { type: Date, default: null },
+        attendedChildren: [{ type: mongoose.Schema.Types.ObjectId, ref: 'Child' }]
+    }],
+    activeParticipants: [{
+        childId: { type: String, required: true },
+        childName: { type: String, default: 'Student' },
+        currentSurah: { type: Number, default: null },
+        currentAyah: { type: Number, default: null },
+        lastSeen: { type: Date, default: Date.now },
+        isActive: { type: Boolean, default: true }
+    }]
 }, { timestamps: true });
 
 const Batch = mongoose.model("Batch", batchSchema);

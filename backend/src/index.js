@@ -42,6 +42,8 @@ const allowedOrigins = [
   process.env.FRONTEND_URL,
   "https://tryimam.vercel.app",
   "https://imam.vercel.app",
+  "https://www.imamapp.co",
+  "https://imamapp.co",
   "http://localhost:5173",
   "http://localhost:3000"
 ].filter(Boolean);
@@ -76,6 +78,8 @@ const aiLimiter = rateLimit({
   message: "AI rate limit reached. Please wait a minute before asking another question."
 });
 
+// Exempt live routes from general rate limiting (heavy polling during sessions)
+app.use("/api/live", (req, res, next) => next());
 app.use("/api/", generalLimiter);
 app.use("/api/chat", aiLimiter);
 app.use("/ai-test", aiLimiter);
@@ -126,7 +130,20 @@ console.log("   - /api/ibadah/*");
 
 const PORT = process.env.PORT || 5000;
 
-app.listen(PORT, '0.0.0.0', () => {
+app.listen(PORT, '0.0.0.0', async () => {
   console.log(`Server running on port ${PORT}`);
   console.log(`🚀 Deployment Trigger: ${new Date().toISOString()}`);
+
+  // Auto-configure Daily.co webhooks (no manual dashboard step needed)
+  if (process.env.DAILY_API_KEY) {
+    try {
+      const { setupDailyWebhook } = await import("./services/dailyService.js");
+      const backendUrl = process.env.NODE_ENV === 'production' 
+        ? 'https://final-beta.onrender.com' 
+        : `http://localhost:${PORT}`;
+      await setupDailyWebhook(backendUrl);
+    } catch (err) {
+      console.warn("Daily.co webhook setup skipped:", err.message);
+    }
+  }
 });

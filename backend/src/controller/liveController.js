@@ -1,6 +1,6 @@
 import User from "../models/User.js";
 import { trackEvent } from "../services/analyticsService.js";
-import { isRootAdmin } from "../utils/constants.js";
+import { isRootAdmin, SCHOLAR_EMAILS } from "../utils/constants.js";
 
 const SCHOLAR_EMAIL = "scholar1.imam@gmail.com";
 
@@ -95,6 +95,18 @@ export const createBatch = async (req, res) => {
             level: level || 'Beginner',
             status: status || 'upcoming'
         });
+
+        // Auto-provision Daily.co room for video calls
+        try {
+            const { createDailyRoom } = await import("../services/dailyService.js");
+            const roomName = await createDailyRoom(batch._id.toString(), name);
+            if (roomName) {
+                batch.dailyRoomName = roomName;
+                await batch.save();
+            }
+        } catch (dailyErr) {
+            console.warn("Daily.co room auto-creation skipped:", dailyErr.message);
+        }
 
         res.status(201).json(batch);
     } catch (error) {
@@ -275,6 +287,20 @@ export const startBatch = async (req, res) => {
              }
         }
 
+        // Ensure Daily.co room exists (auto-create if missing)
+        if (!batch.dailyRoomName) {
+            try {
+                const { createDailyRoom } = await import("../services/dailyService.js");
+                const roomName = await createDailyRoom(id, batch.name);
+                if (roomName) {
+                    await Batch.updateOne({ _id: id }, { $set: { dailyRoomName: roomName } });
+                    batch.dailyRoomName = roomName;
+                }
+            } catch (dailyErr) {
+                console.warn("Daily.co room auto-creation on start skipped:", dailyErr.message);
+            }
+        }
+
         // Create new session model record
         const session = await Session.create({
             batchId: id,
@@ -285,11 +311,22 @@ export const startBatch = async (req, res) => {
         });
 
         batch = await Batch.findByIdAndUpdate(id, { 
-            status: 'active',
-            activeSessionId: session._id.toString(),
-            activeChildId: null,
-            promptEvaluated: false,
-            currentPromptAnswers: []
+            $set: {
+                status: 'active',
+                activeSessionId: session._id.toString(),
+                activeChildId: null,
+                promptEvaluated: false,
+                currentPromptAnswers: [],
+                activeParticipants: []
+            },
+            $push: {
+                pastSessions: {
+                    sessionId: session._id.toString(),
+                    startedAt: new Date(),
+                    endedAt: null,
+                    attendedChildren: []
+                }
+            }
         }, { new: true });
 
         res.json({ message: "Batch started", activeSessionId: session._id, dailyRoomName: batch.dailyRoomName });
@@ -350,6 +387,12 @@ export const joinBatch = async (req, res) => {
         if (isFirstJoin) {
             const { awardXP } = await import("../services/gamificationService.js");
             await awardXP(childId, "participation", { points: 2, batchId: id, sessionId: session._id });
+            
+            // Also track in batch's pastSessions for attendance history
+            await Batch.updateOne(
+                { _id: id, "pastSessions.sessionId": batch.activeSessionId },
+                { $addToSet: { "pastSessions.$.attendedChildren": childId } }
+            );
         }
 
         res.json({ 
@@ -440,6 +483,7 @@ export const getMySessions = async (req, res) => {
             return {
                 _id: b._id,
                 title: b.name || `Batch ${b._id.toString().substr(-4)}`,
+                name: b.name,
                 description: b.name,
                 status: b.status,
                 scholarName: b.scholar?.name || 'Assigned Scholar',
@@ -447,7 +491,9 @@ export const getMySessions = async (req, res) => {
                 isBatch: true,
                 activeSessionId: b.activeSessionId, 
                 activeParticipants: activeParticipants,
-                dailyRoomName: b.dailyRoomName
+                dailyRoomName: b.dailyRoomName,
+                pastSessions: b.pastSessions || [],
+                students: (b.students || []).map(s => s._id || s)
             };
         }));
 
@@ -674,7 +720,7 @@ export const getBatchState = async (req, res) => {
         const { default: Session } = await import("../models/Session.js");
         const { default: LiveScore } = await import("../models/LiveScore.js");
 
-        const batch = await Batch.findById(id).select("activeChildId activeSessionId status dailyRoomName promptEvaluated currentPromptAnswers");
+        const batch = await Batch.findById(id).select("activeChildId activeSessionId status dailyRoomName promptEvaluated currentPromptAnswers pastSessions");
         if (!batch) return res.status(404).json({ message: "Batch not found" });
 
         let session = null;
@@ -711,7 +757,7 @@ export const getBatchState = async (req, res) => {
             currentPromptAnswers: batch.currentPromptAnswers || [],
             promptEvaluated: batch.promptEvaluated || false,
             activeParticipants: activeParticipants,
-            pastSessions: [] // Handled by separate history view now or keep empty for minimal lean payload
+            pastSessions: batch.pastSessions || []
         });
     } catch (error) {
         console.error("Get batch state error:", error);
@@ -1155,12 +1201,11 @@ export const handleDailyWebhook = async (req, res) => {
 
         const { default: Batch } = await import("../models/Batch.js");
 
-        const batch = await Batch.findOne({ 
-            $or: [
-                { dailyRoomName: payload.room },
-                { _id: payload.room.match(/^[0-9a-fA-F]{24}$/) ? payload.room : null }
-            ].filter(q => q._id !== null || q.dailyRoomName)
-        });
+        const roomQuery = [{ dailyRoomName: payload.room }];
+        if (payload.room.match(/^[0-9a-fA-F]{24}$/)) {
+            roomQuery.push({ _id: payload.room });
+        }
+        const batch = await Batch.findOne({ $or: roomQuery });
 
         if (!batch) return res.status(200).json({ status: "not_found" });
 

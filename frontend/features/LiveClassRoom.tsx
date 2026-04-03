@@ -51,6 +51,61 @@ interface ScholarStatus {
 
 const API_BASE = import.meta.env.VITE_API_URL || "http://localhost:5000";
 
+// Daily.co Prebuilt Video Pane — uses createFrame() for user identification
+const DailyVideoPane: React.FC<{ roomName: string; userName: string; isScholar: boolean }> = ({ roomName, userName, isScholar }) => {
+  const containerRef = useRef<HTMLDivElement>(null);
+  const callRef = useRef<any>(null);
+
+  useEffect(() => {
+    if (!containerRef.current || callRef.current) return;
+
+    const roomUrl = `https://imam-team.daily.co/${roomName}`;
+
+    // Try using the Daily.js SDK if loaded, else fall back to simple iframe
+    const daily = (window as any).Daily;
+    if (daily) {
+      try {
+        const frame = daily.createFrame(containerRef.current, {
+          showLeaveButton: true,
+          showFullscreenButton: false,
+          userName: userName,
+          iframeStyle: {
+            width: '100%',
+            height: '100%',
+            border: '0',
+          },
+        });
+        frame.join({ url: roomUrl });
+        callRef.current = frame;
+      } catch (err) {
+        console.warn("[Daily] createFrame failed, using iframe fallback:", err);
+        // Fallback: inject plain iframe
+        const iframe = document.createElement('iframe');
+        iframe.src = roomUrl;
+        iframe.style.cssText = 'width:100%;height:100%;border:0';
+        iframe.allow = 'camera; microphone; display-capture; autoplay';
+        containerRef.current.appendChild(iframe);
+      }
+    } else {
+      // SDK not loaded — use plain iframe
+      const iframe = document.createElement('iframe');
+      iframe.src = roomUrl;
+      iframe.style.cssText = 'width:100%;height:100%;border:0';
+      iframe.allow = 'camera; microphone; display-capture; autoplay';
+      containerRef.current.appendChild(iframe);
+    }
+
+    return () => {
+      if (callRef.current) {
+        try { callRef.current.destroy(); } catch (_) {}
+        callRef.current = null;
+      }
+    };
+  }, [roomName, userName]);
+
+  return <div ref={containerRef} className="w-full h-full" />;
+};
+
 const LiveClassRoom: React.FC = () => {
   const { activeChild, refreshChildren } = useChildContext();
   const { getToken } = useAuth();
@@ -929,7 +984,7 @@ const LiveClassRoom: React.FC = () => {
         )}
 
         <div className={`relative z-10 flex-1 flex flex-col md:flex-row bg-transparent ${userRole === 'scholar' ? 'pb-72' : ''} overflow-hidden`}>
-           {/* VIDEO PANE (Daily.co) */}
+           {/* VIDEO PANE (Daily.co Prebuilt) */}
            {showVideo && currentSession?.dailyRoomName && (
              <div className={`${isVideoFullScreen ? 'fixed inset-0 z-[4500] bg-black' : 'w-full md:w-[40%] lg:w-[35%] h-[300px] md:h-full border-b md:border-b-0 md:border-r border-emerald-500/20'} relative flex flex-col bg-black transition-all duration-500`}>
                 <div className="absolute top-4 right-4 z-10 flex gap-2">
@@ -940,13 +995,13 @@ const LiveClassRoom: React.FC = () => {
                      {isVideoFullScreen ? <Minimize2 size={20} /> : <Maximize2 size={20} />}
                    </button>
                 </div>
-                <iframe 
-                  src={`https://imam.daily.co/${currentSession.dailyRoomName}#${userRole === 'scholar' ? 'sc-host' : 'sc-guest'}`}
-                  className="w-full h-full border-0"
-                  allow="camera; microphone; display-capture; autoplay"
+                <DailyVideoPane
+                  roomName={currentSession.dailyRoomName}
+                  userName={userRole === 'scholar' ? (user?.fullName || 'Scholar') : (activeChild?.name || 'Student')}
+                  isScholar={userRole === 'scholar'}
                 />
                 {!isVideoFullScreen && (
-                  <div className="absolute top-4 left-4 pointer-events-none">
+                  <div className="absolute top-4 left-4 pointer-events-none z-10">
                     <span className="bg-emerald-500/80 backdrop-blur-md text-white px-3 py-1 rounded-full text-[10px] font-black tracking-widest uppercase flex items-center gap-2">
                        <div className="w-1.5 h-1.5 bg-white rounded-full animate-pulse" /> Live Call
                     </span>

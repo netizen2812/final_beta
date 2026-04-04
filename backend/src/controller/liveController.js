@@ -1329,6 +1329,7 @@ export const handleDailyWebhook = async (req, res) => {
                 const session = batch.pastSessions.find(s => s.sessionId === batch.activeSessionId);
                 if (session && !session.attendedChildren.map(id => id.toString()).includes(childId.toString())) {
                     session.attendedChildren.push(childId);
+                    batch.markModified('pastSessions'); // FIXED: Force Mongoose to see the mutation
                 }
             }
             await batch.save();

@@ -149,7 +149,7 @@ const LiveClassRoom: React.FC = () => {
     fetchBatches();
     const interval = setInterval(() => {
       if (document.visibilityState === 'visible') fetchBatches();
-    }, 10000);
+    }, 15000);
     return () => clearInterval(interval);
   }, [userRole, getToken]);
 
@@ -177,10 +177,12 @@ const LiveClassRoom: React.FC = () => {
         // XP Animation Handling for Students
         if (userRole === 'parent') {
            const newScore = data.currentScore || 0;
-           if (lastSeenScoreRef.current !== null && newScore > lastSeenScoreRef.current) {
+           if (lastSeenScoreRef.current === null) {
+              lastSeenScoreRef.current = newScore;
+           } else if (newScore > lastSeenScoreRef.current) {
               triggerRewardAnimation(newScore - lastSeenScoreRef.current);
+              lastSeenScoreRef.current = newScore;
            }
-           lastSeenScoreRef.current = newScore;
            setCurrentSessionScore(newScore);
         }
 
@@ -224,7 +226,7 @@ const LiveClassRoom: React.FC = () => {
       } catch (e) {}
     };
     fetchLeaderboard();
-    const interval = setInterval(fetchLeaderboard, 8000); // Increased polling interval to 8s
+    const interval = setInterval(fetchLeaderboard, 10000); // Increased polling interval to 10s
     return () => clearInterval(interval);
   }, [currentSession?.batchId]);
 
@@ -239,7 +241,7 @@ const LiveClassRoom: React.FC = () => {
         headers: { Authorization: `Bearer ${token}` }
       });
       setCurrentSession(res.data.session);
-    } catch (err) { alert("Failed to join class"); }
+    } catch (err) { alert("Failed to start class. Please try again."); }
   };
 
   const handleSetTurn = async (childId: string, batchId: string) => {
@@ -248,7 +250,7 @@ const LiveClassRoom: React.FC = () => {
       await axios.post(`${API_BASE}/api/live/batch/${batchId}/set-turn`, { childId }, {
         headers: { Authorization: `Bearer ${token}` }
       });
-    } catch (err) {}
+    } catch (err) { alert("Failed to set student turn."); }
   };
 
   const handleScoreRecitation = async (childId: string, batchId: string, score: number) => {
@@ -258,7 +260,7 @@ const LiveClassRoom: React.FC = () => {
         childId, 
         accuracyScore: score 
       }, { headers: { Authorization: `Bearer ${token}` } });
-    } catch (err) {}
+    } catch (err) { alert("Failed to score recitation. Please retry."); }
   };
 
   const handleEvaluatePrompt = async (decision: 'yes' | 'no') => {
@@ -269,7 +271,7 @@ const LiveClassRoom: React.FC = () => {
         decision 
       }, { headers: { Authorization: `Bearer ${token}` } });
       setPromptDecision(null);
-    } catch (err) {}
+    } catch (err) { alert("Failed to evaluate prompt."); }
   };
 
   const handleSubmitPrompt = async (answer: 'yes' | 'no') => {
@@ -279,7 +281,7 @@ const LiveClassRoom: React.FC = () => {
       await axios.post(`${API_BASE}/api/live/batch/${currentSession.batchId}/submit-prompt`, { 
         childId: activeChild.id, answer 
       }, { headers: { Authorization: `Bearer ${token}` } });
-    } catch (e) {}
+    } catch (e) { alert("Failed to submit answer. Please try again."); }
   };
 
   const handleEndClass = async (batchId: string) => {
@@ -289,7 +291,7 @@ const LiveClassRoom: React.FC = () => {
         headers: { Authorization: `Bearer ${token}` }
       });
       setCurrentSession(null);
-    } catch (err) {}
+    } catch (err) { alert("Failed to terminate class. Please retry."); }
   };
 
   const handleExitSession = () => {

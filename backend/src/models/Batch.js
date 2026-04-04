@@ -59,7 +59,7 @@ const batchSchema = new mongoose.Schema({
         sessionId: { type: String, required: true },
         startedAt: { type: Date, default: Date.now },
         endedAt: { type: Date, default: null },
-        attendedChildren: [{ type: mongoose.Schema.Types.ObjectId, ref: 'Child' }]
+        attendedChildren: [{ type: String }] // Store as exact string to prevent $addToSet type matching failures!
     }],
     activeParticipants: [{
         childId: { type: String, required: true },

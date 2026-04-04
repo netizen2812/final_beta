@@ -99,13 +99,16 @@ const ParentDashboard: React.FC = () => {
     );
   }
 
-  // Prepare chart data
-  const topicData = dashboardData ? dashboardData.topicBreakdown : [];
+  // Colors for the pie chart
+  const PIE_COLORS = ['#10b981', '#3b82f6', '#f59e0b', '#8b5cf6', '#ec4899'];
 
-  const activityData = dashboardData ? dashboardData.activityLog.days.map((day, idx) => ({
-    day,
-    min: dashboardData.activityLog.minutes[idx]
+  // Prepare chart data
+  const topicData = dashboardData ? dashboardData.topicBreakdown.map((item: any, index: number) => ({
+      ...item,
+      fill: PIE_COLORS[index % PIE_COLORS.length]
   })) : [];
+
+  const activityData = dashboardData ? dashboardData.weeklyActivity : [];
 
   const getActivityIcon = (topic: string) => {
     if (topic.includes('Practice')) return <PlayCircle size={14} className="text-emerald-500" />;

@@ -32,6 +32,7 @@ import { Analytics } from '../utils/analytics';
 import { quranTracker } from '../utils/quranProgressTracker';
 import { useTranslation } from 'react-i18next';
 import { useAuth } from '@clerk/clerk-react';
+import { useChildContext } from '../contexts/ChildContext';
 
 interface Surah {
   number: number;
@@ -389,9 +390,18 @@ const QuranPage: React.FC<QuranPageProps> = ({
   );
 
   const stats = quranTracker.getStats();
+  const { activeChild } = useChildContext();
+
+  // Merge manual/scholar-verified progress with local tracked progress
+  const manualKhatmPercentage = activeChild?.child_progress?.[0]?.completed_quran_parts 
+      ? Math.min((activeChild.child_progress[0].completed_quran_parts.length / 30) * 100, 100) 
+      : 0;
+  
+  const mergedKhatmPercentage = Math.round(Math.max(stats.khatmPercentage, manualKhatmPercentage));
+
   const PROGRESS_DATA = [
-    { name: 'Completed', value: stats.khatmPercentage },
-    { name: 'Remaining', value: 100 - stats.khatmPercentage },
+    { name: 'Completed', value: mergedKhatmPercentage },
+    { name: 'Remaining', value: Math.max(0, 100 - mergedKhatmPercentage) },
   ];
   const COLORS = ['#10b981', '#f3f4f6'];
 
@@ -575,7 +585,7 @@ const QuranPage: React.FC<QuranPageProps> = ({
                 </div>
                 <div className="bg-white p-8 rounded-[3rem] border border-emerald-50 shadow-sm text-center space-y-3">
                   <Target size={32} className="mx-auto text-emerald-500" />
-                  <div className="text-4xl font-black text-[#0D4433]">{stats.khatmPercentage}%</div>
+                  <div className="text-4xl font-black text-[#0D4433]">{mergedKhatmPercentage}%</div>
                   <p className="text-[10px] font-black uppercase text-gray-400 tracking-widest">{t('quran.yearGoal')}</p>
                 </div>
               </div>
@@ -595,11 +605,11 @@ const QuranPage: React.FC<QuranPageProps> = ({
                 <div className="space-y-6">
                   <h3 className="text-3xl font-serif font-bold text-[#0D4433]">{t('quran.khatmProgress')}</h3>
                   <p className="text-gray-500 font-medium leading-relaxed">
-                    {stats.khatmPercentage === 0
+                    {mergedKhatmPercentage === 0
                       ? t('quran.khatmDescStart', { defaultValue: 'You have just begun your beautiful journey with the Quran.' })
-                      : stats.khatmPercentage < 50
+                      : mergedKhatmPercentage < 50
                         ? t('quran.khatmDescEarly', { defaultValue: 'Every letter you read brings a reward. Keep going!' })
-                        : stats.khatmPercentage < 100
+                        : mergedKhatmPercentage < 100
                           ? t('quran.khatmDescLate', { defaultValue: 'You are making amazing progress! Consistent daily reading helps.' })
                           : t('quran.khatmDescDone', { defaultValue: 'Alhamdulillah! You have completed a full Khatm.' })
                     }

@@ -484,7 +484,7 @@ const KidsView = ({ scrollProgress, activeChild, onJoinLive, currentBatchStatus,
             const isCurrent = isActuallyLive || (!hasActiveSession && index === totalClassesPassed);
             const isHistorical = index < totalClassesPassed;
             const isLocked = index > totalClassesPassed;
-            const wasPresent = historicalSession && Array.isArray(attendedSessionIds) && attendedSessionIds.some((id: any) => id && historicalSession.sessionId && String(id) === String(historicalSession.sessionId));
+            const wasPresent = historicalSession?.attendedChildren?.includes(String(activeChild?.id)) || false;
 
             const handleNodeClick = () => {
               if (!isLoggedIn) {

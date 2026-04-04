@@ -133,6 +133,17 @@ const QuranPage: React.FC<QuranPageProps> = ({
     }
   }, [sessionCurrentSurah, sessionCurrentAyah, surahs]);
 
+  // Autoscroll to active ayah precisely when index is updated (e.g. from nextAyah, next button, audio, or prop sync)
+  useEffect(() => {
+    if (currentAyahIndex !== null && currentAyahIndex !== undefined) {
+      const el = document.getElementById(`ayah-${currentAyahIndex}`);
+      // Only smooth scroll if we are in reading view and the element exists
+      if (el && view === 'reading') {
+        el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      }
+    }
+  }, [currentAyahIndex, view]);
+
   // Student: report position when surah/ayah changes (ayah click, next/prev, surah switch). Parent throttles.
   useEffect(() => {
     if (!selectedSurah || !surahContent.length) return;

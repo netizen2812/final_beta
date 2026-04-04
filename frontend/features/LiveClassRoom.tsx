@@ -207,7 +207,7 @@ const LiveClassRoom: React.FC = () => {
     fetchBatchState();
     const interval = setInterval(() => {
       if (document.visibilityState === 'visible') fetchBatchState();
-    }, 2000);
+    }, 4000); // Increased polling interval to 4s to reduce server load
     return () => clearInterval(interval);
   }, [currentSession?.batchId, userRole]);
 
@@ -224,7 +224,7 @@ const LiveClassRoom: React.FC = () => {
       } catch (e) {}
     };
     fetchLeaderboard();
-    const interval = setInterval(fetchLeaderboard, 5000);
+    const interval = setInterval(fetchLeaderboard, 8000); // Increased polling interval to 8s
     return () => clearInterval(interval);
   }, [currentSession?.batchId]);
 
@@ -356,51 +356,52 @@ const LiveClassRoom: React.FC = () => {
                  uid={user?.id || 0}
                  role="scholar"
                  layout="grid"
+                 scholarId={currentSession.scholarId}
                />
-               <div className="absolute top-8 left-8 py-2 px-4 bg-black/40 backdrop-blur-3xl border border-white/10 rounded-2xl flex items-center gap-3">
+               <div className="absolute top-8 left-8 py-2 px-4 bg-black/40 backdrop-blur-3xl border border-white/10 rounded-2xl flex items-center gap-3 z-30">
                   <div className="w-1.5 h-1.5 bg-emerald-500 rounded-full animate-pulse" />
                   <span className="text-[9px] text-white font-black uppercase tracking-widest">Active Class • {activeSessions.length} Participants</span>
                </div>
             </div>
 
             {!isMobile && batchState?.activeChildId && (
-               <div className="w-[340px] bg-[#0c0c0c] rounded-[3rem] border border-white/5 p-10 flex flex-col gap-10 shadow-2xl animate-in slide-in-from-right-12 duration-700">
-                  <div className="text-center space-y-2">
-                     <p className="text-[10px] text-emerald-500/60 font-black uppercase tracking-[0.2em]">Evaluating</p>
-                     <h3 className="text-3xl font-black text-white">{activeSessions.find(s => s.childId === batchState.activeChildId)?.studentName}</h3>
+               <div className="w-[280px] bg-[#0c0c0c] rounded-[2rem] border border-white/5 p-6 flex flex-col gap-6 shadow-2xl animate-in slide-in-from-right-12 duration-700">
+                  <div className="text-center space-y-1">
+                     <p className="text-[9px] text-emerald-500/60 font-black uppercase tracking-[0.2em]">Evaluating</p>
+                     <h3 className="text-xl font-black text-white truncate px-2">{activeSessions.find(s => s.childId === batchState.activeChildId)?.studentName}</h3>
                   </div>
 
-                  <div className="space-y-6">
-                     <div className="p-6 bg-white/[0.02] border border-white/5 rounded-3xl">
-                        <p className="text-[9px] text-gray-500 font-bold uppercase tracking-widest mb-6 text-center">Class Consensus</p>
-                        <div className="flex items-center justify-around gap-4 px-4">
+                  <div className="space-y-4">
+                     <div className="p-4 bg-white/[0.02] border border-white/5 rounded-2xl">
+                        <p className="text-[9px] text-gray-500 font-bold uppercase tracking-widest mb-4 text-center">Class Consensus</p>
+                        <div className="flex items-center justify-around gap-2 px-2">
                            <div className="text-center">
-                              <span className="text-3xl font-black text-emerald-400">{batchState?.currentPromptAnswers?.filter(a => a.answer === 'yes').length || 0}</span>
+                              <span className="text-2xl font-black text-emerald-400">{batchState?.currentPromptAnswers?.filter(a => a.answer === 'yes').length || 0}</span>
                               <p className="text-[9px] text-emerald-500/40 uppercase font-black tracking-tighter mt-1">Perfect</p>
                            </div>
-                           <div className="w-px h-10 bg-white/5" />
+                           <div className="w-px h-6 bg-white/5" />
                            <div className="text-center">
-                              <span className="text-3xl font-black text-red-400">{batchState?.currentPromptAnswers?.filter(a => a.answer === 'no').length || 0}</span>
+                              <span className="text-2xl font-black text-red-400">{batchState?.currentPromptAnswers?.filter(a => a.answer === 'no').length || 0}</span>
                               <p className="text-[9px] text-red-500/40 uppercase font-black tracking-tighter mt-1">Mistakes</p>
                            </div>
                         </div>
                         
                         {!batchState?.promptEvaluated && (batchState?.currentPromptAnswers?.length || 0) > 0 && (
-                           <div className="grid grid-cols-2 gap-2 mt-8">
-                              <button onClick={() => handleEvaluatePrompt('yes')} className="bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-400 py-3 rounded-xl font-black text-[9px] uppercase border border-emerald-500/20 transition-all">Confirm Perfect</button>
-                              <button onClick={() => handleEvaluatePrompt('no')} className="bg-red-500/10 hover:bg-red-500/20 text-red-400 py-3 rounded-xl font-black text-[9px] uppercase border border-red-500/20 transition-all">Confirm Mistake</button>
+                           <div className="grid grid-cols-2 gap-2 mt-4">
+                              <button onClick={() => handleEvaluatePrompt('yes')} className="bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-400 py-2 rounded-xl font-black text-[9px] uppercase border border-emerald-500/20 transition-all">Confirm Perfect</button>
+                              <button onClick={() => handleEvaluatePrompt('no')} className="bg-red-500/10 hover:bg-red-500/20 text-red-400 py-2 rounded-xl font-black text-[9px] uppercase border border-red-500/20 transition-all">Confirm Mistake</button>
                            </div>
                         )}
                      </div>
 
-                     <div className="grid grid-cols-2 gap-3">
-                        <button onClick={() => handleScoreRecitation(batchState.activeChildId!, currentSession.batchId!, 3)} className="bg-emerald-500 hover:bg-emerald-400 text-black py-4 rounded-2xl font-black text-[10px] uppercase transition-all shadow-lg shadow-emerald-500/10 active:scale-95">Award +10 XP</button>
-                        <button onClick={() => handleScoreRecitation(batchState.activeChildId!, currentSession.batchId!, 2)} className="bg-amber-500 hover:bg-amber-400 text-black py-4 rounded-2xl font-black text-[10px] uppercase transition-all shadow-lg shadow-amber-500/10 active:scale-95">Award +7 XP</button>
-                        <button onClick={() => setShowAssignModal(true)} className="col-span-2 bg-indigo-500 hover:bg-indigo-400 text-white py-4 rounded-2xl font-black text-[10px] uppercase mt-4 flex items-center justify-center gap-2 transition-all active:scale-95"><BookOpen size={14}/> Setup Lesson</button>
+                     <div className="grid grid-cols-2 gap-2">
+                        <button onClick={() => handleScoreRecitation(batchState.activeChildId!, currentSession.batchId!, 3)} className="bg-emerald-500 hover:bg-emerald-400 text-black py-3 rounded-xl font-black text-[9px] uppercase transition-all shadow-lg active:scale-95">Award +10 XP</button>
+                        <button onClick={() => handleScoreRecitation(batchState.activeChildId!, currentSession.batchId!, 2)} className="bg-amber-500 hover:bg-amber-400 text-black py-3 rounded-xl font-black text-[9px] uppercase transition-all shadow-lg active:scale-95">Award +7 XP</button>
+                        <button onClick={() => setShowAssignModal(true)} className="col-span-2 bg-indigo-500 hover:bg-indigo-400 text-white py-3 rounded-xl font-black text-[9px] uppercase flex items-center justify-center gap-2 transition-all active:scale-95"><BookOpen size={14}/> Setup Lesson</button>
                      </div>
                   </div>
 
-                  <button onClick={() => setConfirmEndClass(currentSession.batchId!)} className="mt-auto w-full py-4 text-red-500/60 hover:text-red-400 font-black text-[10px] uppercase tracking-widest transition-colors">Terminate Classroom</button>
+                  <button onClick={() => setConfirmEndClass(currentSession.batchId!)} className="mt-auto w-full py-3 text-red-500/60 hover:text-red-400 font-black text-[10px] uppercase tracking-widest transition-colors mb-2">Terminate Classroom</button>
                </div>
             )}
          </div>
@@ -453,6 +454,7 @@ const LiveClassRoom: React.FC = () => {
                     uid={user?.id || 0}
                     role="student"
                     layout="inset"
+                    scholarId={currentSession.scholarId}
                   />
                   <div className="absolute inset-x-0 bottom-0 py-2 bg-gradient-to-t from-black/80 to-transparent flex justify-center opacity-0 group-hover:opacity-100 transition-opacity">
                      <span className="text-[10px] text-white font-black uppercase tracking-widest">Scholar Monitor</span>
@@ -490,6 +492,7 @@ const LiveClassRoom: React.FC = () => {
                  uid={user?.id || 0}
                  role="student"
                  layout="spotlight"
+                 scholarId={currentSession.scholarId}
                />
                <div className="absolute top-10 left-10 py-2 px-5 bg-emerald-500/10 backdrop-blur-3xl border border-emerald-500/30 rounded-full flex items-center gap-3 animate-pulse">
                   <div className="w-2 h-2 bg-emerald-500 rounded-full" />

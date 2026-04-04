@@ -15,6 +15,7 @@ interface AgoraVideoPaneProps {
   role: 'scholar' | 'student';
   userName?: string;
   layout?: 'grid' | 'spotlight' | 'inset'; // NEW: Flexible layout control
+  scholarId?: string; // Optional identifier to uniquely isolate the scholar
 }
 
 const AgoraVideoPane: React.FC<AgoraVideoPaneProps> = ({
@@ -24,7 +25,8 @@ const AgoraVideoPane: React.FC<AgoraVideoPaneProps> = ({
   uid,
   role,
   userName = 'User',
-  layout = 'grid'
+  layout = 'grid',
+  scholarId
 }) => {
   const [joined, setJoined] = useState(false);
   const [localVideoTrack, setLocalVideoTrack] = useState<ICameraVideoTrack | null>(null);
@@ -103,7 +105,10 @@ const AgoraVideoPane: React.FC<AgoraVideoPaneProps> = ({
     }
   }, [localVideoTrack]);
 
-  const scholarUser = role === 'student' ? remoteUsers[0] : null;
+  // Reliable scholar identification using exact clerk user ID.
+  const scholarUser = role === 'student' 
+    ? remoteUsers.find(u => scholarId ? String(u.uid) === String(scholarId) : true) 
+    : null;
 
   return (
     <div className={`relative w-full h-full bg-[#0a0a0a] overflow-hidden transition-all duration-700 shadow-2xl group ${layout === 'inset' ? 'rounded-2xl border border-white/10' : 'rounded-[2rem] border border-white/5'}`}>
@@ -121,11 +126,13 @@ const AgoraVideoPane: React.FC<AgoraVideoPaneProps> = ({
         {/* LOCAL PREVIEW */}
         <div 
           ref={localVideoRef}
-          className={`group bg-[#111] border border-white/5 shadow-2xl transition-all duration-500 ${layout === 'grid' 
-            ? 'relative aspect-video rounded-2xl border-emerald-500/20' 
-            : layout === 'inset'
-              ? 'hidden' // Hide self preview in inset mode for recitation focus
-              : 'absolute bottom-4 right-4 w-32 md:w-48 aspect-video rounded-2xl z-20 hover:scale-105'
+          className={`group bg-[#111] border border-white/5 shadow-2xl transition-all duration-500 z-50 ${layout === 'inset'
+            ? 'hidden' // Hide self preview in inset mode for recitation focus
+            : role === 'scholar' 
+              ? 'absolute bottom-6 right-6 w-32 md:w-48 aspect-video rounded-3xl hover:scale-105 shadow-[0_20px_50px_rgba(0,0,0,0.5)] border-emerald-500/20' // Float scholar out of the grid
+              : layout === 'grid'
+                ? 'relative aspect-video rounded-2xl border-emerald-500/20' 
+                : 'absolute bottom-4 right-4 w-32 md:w-48 aspect-video rounded-2xl z-20 hover:scale-105'
           }`}
         >
           <div className="absolute top-2 left-2 px-2 py-1 bg-black/60 backdrop-blur-md rounded-lg flex items-center gap-1 z-10 border border-white/5">

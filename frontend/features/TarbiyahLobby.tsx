@@ -21,7 +21,7 @@ import QuranPracticeModule from './QuranPracticeModule';
 import ScholarQuranManager from './ScholarQuranManager';
 import ErrorBoundary from '../components/ErrorBoundary';
 import { GuestEmailModal } from './GuestEmailModal';
-import { useClerk } from '@clerk/clerk-react';
+import { useClerk, useUser } from '@clerk/clerk-react';
 
 // --- DATA & CONSTANTS ---
 const API_BASE = import.meta.env.VITE_API_URL || "http://localhost:5000";
@@ -394,7 +394,8 @@ const KidsView = ({ scrollProgress, activeChild, onJoinLive, currentBatchStatus,
   const fillPercentage = Math.min(currentDraw, maxPercentage || 0);
 
   // GUESTS CAN PASS THROUGH: Logic moved to handleNodeClick
-  const isLoggedIn = !!getToken && getToken() !== null; 
+  const { isLoaded, isSignedIn } = useUser();
+  const isLoggedIn = isLoaded && isSignedIn;
 
   if (isLoggedIn && !userRole.includes('scholar')) {
     if (loadingChildren || !accessStatus) return <div className="min-h-screen flex items-center justify-center"><Loader2 className="animate-spin text-emerald-400" size={48} /></div>;

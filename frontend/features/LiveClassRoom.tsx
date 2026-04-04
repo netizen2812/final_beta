@@ -102,7 +102,14 @@ const LiveClassRoom: React.FC = () => {
 
   // Determine Role & Check Access
   useEffect(() => {
-    if (!user) return;
+    if (user === undefined) return; // Still loading from Clerk
+
+    if (user === null) {
+      // Guest User
+      setUserRole('parent'); // Treats guests as parents for UI structure
+      return;
+    }
+
     const role = user?.publicMetadata?.role;
     const email = user?.primaryEmailAddress?.emailAddress?.toLowerCase();
     const isScholar = role === 'scholar' || email === "scholar1.imam@gmail.com";

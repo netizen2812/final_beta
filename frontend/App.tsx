@@ -194,7 +194,7 @@ const App: React.FC = () => {
 
   const renderContent = () => {
     // 🛡️ AUTH CHECK: Some tabs require login
-    const requiresAuth = [AppTab.IBADAH, AppTab.LIVE, AppTab.ADMIN, AppTab.ADMIN_LIVE, AppTab.PROFILE].includes(activeTab);
+    const requiresAuth = [AppTab.IBADAH, AppTab.ADMIN, AppTab.ADMIN_LIVE, AppTab.PROFILE].includes(activeTab);
     
     if (requiresAuth && isLoaded && !user) {
       return (

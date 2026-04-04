@@ -28,7 +28,6 @@ import { loadRazorpayScript } from '../utils/razorpay';
 import { Crown } from 'lucide-react';
 
 // Types
-// Types
 interface LiveSession {
   _id: string;
   parentId: string;
@@ -41,6 +40,9 @@ interface LiveSession {
   studentName?: string;
   batchId?: string; // Added for presence tracking
   dailyRoomName?: string;
+  agoraToken?: string;
+  agoraAppId?: string;
+  channel?: string;
 }
 
 interface ScholarStatus {
@@ -51,59 +53,82 @@ interface ScholarStatus {
 
 const API_BASE = import.meta.env.VITE_API_URL || "http://localhost:5000";
 
-// Daily.co Prebuilt Video Pane — uses createFrame() for user identification
-const DailyVideoPane: React.FC<{ roomName: string; userName: string; isScholar: boolean }> = ({ roomName, userName, isScholar }) => {
+// Agora Video Pane — uses Agora Web SDK (Standard v4)
+const AgoraVideoPane: React.FC<{ 
+  appId: string; 
+  token: string; 
+  channel: string; 
+  role: 'publisher' | 'subscriber'
+}> = ({ appId, token, channel, role }) => {
   const containerRef = useRef<HTMLDivElement>(null);
-  const callRef = useRef<any>(null);
+  const clientRef = useRef<any>(null);
+  const localTracksRef = useRef<any[]>([]);
 
   useEffect(() => {
-    if (!containerRef.current || callRef.current) return;
+    if (!containerRef.current || !appId || !token) return;
 
-    const roomUrl = `https://imam-team.daily.co/${roomName}`;
-
-    // Try using the Daily.js SDK if loaded, else fall back to simple iframe
-    const daily = (window as any).Daily;
-    if (daily) {
-      try {
-        const frame = daily.createFrame(containerRef.current, {
-          showLeaveButton: true,
-          showFullscreenButton: false,
-          userName: userName,
-          iframeStyle: {
-            width: '100%',
-            height: '100%',
-            border: '0',
-          },
-        });
-        frame.join({ url: roomUrl });
-        callRef.current = frame;
-      } catch (err) {
-        console.warn("[Daily] createFrame failed, using iframe fallback:", err);
-        // Fallback: inject plain iframe
-        const iframe = document.createElement('iframe');
-        iframe.src = roomUrl;
-        iframe.style.cssText = 'width:100%;height:100%;border:0';
-        iframe.allow = 'camera; microphone; display-capture; autoplay';
-        containerRef.current.appendChild(iframe);
-      }
-    } else {
-      // SDK not loaded — use plain iframe
-      const iframe = document.createElement('iframe');
-      iframe.src = roomUrl;
-      iframe.style.cssText = 'width:100%;height:100%;border:0';
-      iframe.allow = 'camera; microphone; display-capture; autoplay';
-      containerRef.current.appendChild(iframe);
+    const AgoraRTC = (window as any).AgoraRTC;
+    if (!AgoraRTC) {
+      console.error("Agora SDK not loaded — check index.html");
+      return;
     }
 
-    return () => {
-      if (callRef.current) {
-        try { callRef.current.destroy(); } catch (_) {}
-        callRef.current = null;
+    const init = async () => {
+      try {
+        const client = AgoraRTC.createClient({ mode: "rtc", codec: "vp8" });
+        clientRef.current = client;
+
+        // Handle remote users
+        client.on("user-published", async (user: any, mediaType: string) => {
+          await client.subscribe(user, mediaType);
+          if (mediaType === "video") {
+            const remoteContainer = document.createElement("div");
+            remoteContainer.id = `agora-${user.uid}`;
+            remoteContainer.className = "w-full h-full";
+            containerRef.current?.appendChild(remoteContainer);
+            user.videoTrack.play(remoteContainer);
+          }
+          if (mediaType === "audio") user.audioTrack.play();
+        });
+
+        client.on("user-unpublished", (user: any) => {
+          document.getElementById(`agora-${user.uid}`)?.remove();
+        });
+
+        // Join channel
+        await client.join(appId, channel, token, null);
+
+        // Publish if scholar (publisher)
+        if (role === 'publisher') {
+          const [audioTrack, videoTrack] = await AgoraRTC.createMicrophoneAndCameraTracks();
+          localTracksRef.current = [audioTrack, videoTrack];
+          
+          const localContainer = document.createElement("div");
+          localContainer.id = "local-player";
+          localContainer.className = "w-full h-full border-2 border-emerald-500/50 rounded-lg overflow-hidden";
+          containerRef.current?.insertBefore(localContainer, containerRef.current.firstChild);
+          
+          videoTrack.play(localContainer);
+          await client.publish(localTracksRef.current);
+        }
+      } catch (err) {
+        console.error("Agora join failed:", err);
       }
     };
-  }, [roomName, userName]);
 
-  return <div ref={containerRef} className="w-full h-full" />;
+    init();
+
+    return () => {
+      localTracksRef.current.forEach(track => {
+        track.stop();
+        track.close();
+      });
+      clientRef.current?.leave();
+      if (containerRef.current) containerRef.current.innerHTML = "";
+    };
+  }, [appId, token, channel, role]);
+
+  return <div ref={containerRef} className="w-full h-full flex flex-wrap bg-slate-900 overflow-y-auto gap-1 p-1 md:p-2" />;
 };
 
 const LiveClassRoom: React.FC = () => {
@@ -984,8 +1009,8 @@ const LiveClassRoom: React.FC = () => {
         )}
 
         <div className={`relative z-10 flex-1 flex flex-col md:flex-row bg-transparent ${userRole === 'scholar' ? 'pb-72' : ''} overflow-hidden`}>
-           {/* VIDEO PANE (Daily.co Prebuilt) */}
-           {showVideo && currentSession?.dailyRoomName && (
+           {/* VIDEO PANE (Agora SDK) */}
+           {showVideo && currentSession?.agoraAppId && currentSession?.agoraToken && (
              <div className={`${isVideoFullScreen ? 'fixed inset-0 z-[4500] bg-black' : 'w-full md:w-[40%] lg:w-[35%] h-[300px] md:h-full border-b md:border-b-0 md:border-r border-emerald-500/20'} relative flex flex-col bg-black transition-all duration-500`}>
                 <div className="absolute top-4 right-4 z-10 flex gap-2">
                    <button 
@@ -995,10 +1020,11 @@ const LiveClassRoom: React.FC = () => {
                      {isVideoFullScreen ? <Minimize2 size={20} /> : <Maximize2 size={20} />}
                    </button>
                 </div>
-                <DailyVideoPane
-                  roomName={currentSession.dailyRoomName}
-                  userName={userRole === 'scholar' ? (user?.fullName || 'Scholar') : (activeChild?.name || 'Student')}
-                  isScholar={userRole === 'scholar'}
+                <AgoraVideoPane
+                  appId={currentSession.agoraAppId}
+                  token={currentSession.agoraToken}
+                  channel={currentSession.channel || currentSession.batchId || ""}
+                  role={userRole === 'scholar' ? 'publisher' : 'subscriber'}
                 />
                 {!isVideoFullScreen && (
                   <div className="absolute top-4 left-4 pointer-events-none z-10">

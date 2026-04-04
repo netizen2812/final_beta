@@ -747,6 +747,26 @@ export const getBatchState = async (req, res) => {
             if (scoreDoc) currentScore = (scoreDoc.recitationScore || 0) + (scoreDoc.participationScore || 0);
         }
 
+        // GENERATE AGORA TOKEN ON-DEMAND (Channel = Batch ID)
+        let agoraToken = null;
+        let agoraAppId = process.env.AGORA_APP_ID;
+        if (batch.status === 'active') {
+            try {
+                const { generateAgoraToken } = await import("../services/agoraService.js");
+                const { SCHOLAR_EMAILS, isRootAdmin } = await import("../utils/constants.js");
+                
+                const userEmail = req.auth?.emailAddresses?.[0]?.emailAddress;
+                const isScholar = SCHOLAR_EMAILS.includes(userEmail?.toLowerCase());
+                const isAdmin = isRootAdmin(userEmail);
+                
+                // Admins/Scholars are publishers, students are subscribers
+                const role = (isScholar || isAdmin) ? 'publisher' : 'subscriber';
+                agoraToken = generateAgoraToken(id, 0, role);
+            } catch (err) {
+                console.warn("[Agora] Token generation failed during state poll:", err.message);
+            }
+        }
+
         res.json({
             activeChildId: batch.activeChildId,
             activeSessionId: batch.activeSessionId,
@@ -757,7 +777,10 @@ export const getBatchState = async (req, res) => {
             currentPromptAnswers: batch.currentPromptAnswers || [],
             promptEvaluated: batch.promptEvaluated || false,
             activeParticipants: activeParticipants,
-            pastSessions: batch.pastSessions || []
+            pastSessions: batch.pastSessions || [],
+            agoraToken,
+            agoraAppId,
+            channel: id
         });
     } catch (error) {
         console.error("Get batch state error:", error);

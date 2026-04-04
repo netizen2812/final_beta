@@ -67,18 +67,34 @@ export const verifyPayment = async (req, res) => {
     }
 
     // Grant Access
-    const userId = req.auth.userId;
-    let user = await User.findOne({ clerkId: userId });
+    const userId = req.auth?.userId;
+    const guestEmail = req.body.email?.toLowerCase();
     
-    // SELF-HEALING: If user missing from DB during payment verification (sync race condition)
-    if (!user) {
+    let user;
+    if (userId) {
+        user = await User.findOne({ clerkId: userId });
+    } else if (guestEmail) {
+        user = await User.findOne({ email: guestEmail });
+    }
+
+    if (!user && guestEmail) {
+        // GUEST FLOW: Create user by email if not exists
+        console.log(`🎁 Creating guest user for payment: ${guestEmail}`);
+        user = await User.create({
+            email: guestEmail,
+            role: 'parent',
+            features: { liveAccess: false, aiPremiumUntil: null }
+        });
+    }
+    
+    // SELF-HEALING: If Clerk user missing from DB but we have their ID
+    if (!user && userId) {
         console.log(`🛠️ Self-healing missing user during payment verification: ${userId}`);
         try {
             const clerkUser = await clerkClient.users.getUser(userId);
             const email = clerkUser.emailAddresses[0]?.emailAddress?.toLowerCase();
             const name = `${clerkUser.firstName || ''} ${clerkUser.lastName || ''}`.trim();
             
-            // Create user explicitly so we have a document to update
             user = await User.create({
                 clerkId: userId,
                 email,
@@ -86,11 +102,14 @@ export const verifyPayment = async (req, res) => {
                 role: 'parent',
                 features: { liveAccess: false, aiPremiumUntil: null }
             });
-            console.log(`✅ User sync recovery successful for payment: ${email}`);
         } catch (clerkErr) {
             console.error("Clerk sync failed in payment verification:", clerkErr.message);
             return res.status(404).json({ message: "User not found and sync recovery failed" });
         }
+    }
+
+    if (!user) {
+        return res.status(400).json({ message: "No user found or email provided for guest payment" });
     }
 
     // Update User using findOneAndUpdate for atomicity & reliability
@@ -98,9 +117,7 @@ export const verifyPayment = async (req, res) => {
     if (planType === 'AI_MONTHLY') {
        const thirtyDaysFromNow = new Date();
        thirtyDaysFromNow.setDate(thirtyDaysFromNow.getDate() + 30);
-       updateFields = { 
-           "features.aiPremiumUntil": thirtyDaysFromNow 
-       };
+       updateFields = { "features.aiPremiumUntil": thirtyDaysFromNow };
     } else if (planType === 'TARBIYAH_LIFETIME') {
        updateFields = { 
            "features.liveAccess": true,
@@ -109,7 +126,7 @@ export const verifyPayment = async (req, res) => {
     }
     
     const updatedUser = await User.findOneAndUpdate(
-        { clerkId: userId },
+        { _id: user._id },
         { 
             $set: updateFields,
             $addToSet: { processedPayments: razorpay_payment_id }

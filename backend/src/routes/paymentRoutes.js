@@ -4,7 +4,7 @@ import { createOrder, verifyPayment } from "../controller/paymentController.js";
 
 const router = express.Router();
 
-router.post("/create-order", ClerkExpressRequireAuth(), createOrder);
-router.post("/verify", ClerkExpressRequireAuth(), verifyPayment);
+router.post("/create-order", createOrder);
+router.post("/verify", verifyPayment);
 
 export default router;

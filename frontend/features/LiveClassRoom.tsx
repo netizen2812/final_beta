@@ -11,21 +11,20 @@ import {
   WifiOff,
   Wifi,
   Star, Moon, Cloud, Sprout, Leaf, Sun, Mic, Trophy, CheckCircle, Lock,
-  Maximize2, Minimize2, Video, VideoOff
+  Maximize2, Minimize2, Video, VideoOff, XCircle
 } from 'lucide-react';
 import { useChildContext } from '../contexts/ChildContext';
 import QuranPage from './QuranPage';
 import axios from 'axios';
 import { useAuth, useUser } from '@clerk/clerk-react';
 import { useTranslation } from 'react-i18next';
-import { TarbiyahLobby } from './TarbiyahLobby';
+import { TarbiyahLobby, MovingBackground } from './TarbiyahLobby';
 import ScholarQuranManager from './ScholarQuranManager';
+import AgoraVideoPane from './AgoraVideoPane';
+import { loadRazorpayScript } from '../utils/razorpay';
 
 const POSITION_THROTTLE_MS = 500;
-
-import { MovingBackground } from './TarbiyahLobby';
-import { loadRazorpayScript } from '../utils/razorpay';
-import { Crown } from 'lucide-react';
+const API_BASE = import.meta.env.VITE_API_URL || "http://localhost:5000";
 
 // Types
 interface LiveSession {
@@ -38,8 +37,7 @@ interface LiveSession {
   status: 'active' | 'ended' | 'waiting';
   parentName?: string;
   studentName?: string;
-  batchId?: string; // Added for presence tracking
-  dailyRoomName?: string;
+  batchId?: string;
   agoraToken?: string;
   agoraAppId?: string;
   channel?: string;
@@ -51,120 +49,37 @@ interface ScholarStatus {
   activeSessions?: number;
 }
 
-const API_BASE = import.meta.env.VITE_API_URL || "http://localhost:5000";
+interface PromptAnswer {
+  childId: string;
+  answer: 'yes' | 'no';
+}
 
-// Agora Video Pane — uses Agora Web SDK (Standard v4)
-const AgoraVideoPane: React.FC<{ 
-  appId: string; 
-  token: string; 
-  channel: string; 
-  role: 'publisher' | 'subscriber'
-}> = ({ appId, token, channel, role }) => {
-  const containerRef = useRef<HTMLDivElement>(null);
-  const clientRef = useRef<any>(null);
-  const localTracksRef = useRef<any[]>([]);
-
-  useEffect(() => {
-    if (!containerRef.current || !appId || !token) return;
-
-    const AgoraRTC = (window as any).AgoraRTC;
-    if (!AgoraRTC) {
-      console.error("Agora SDK not loaded — check index.html");
-      return;
-    }
-
-    const init = async () => {
-      try {
-        const client = AgoraRTC.createClient({ mode: "rtc", codec: "vp8" });
-        clientRef.current = client;
-
-        // Handle remote users
-        client.on("user-published", async (user: any, mediaType: string) => {
-          await client.subscribe(user, mediaType);
-          if (mediaType === "video") {
-            const remoteContainer = document.createElement("div");
-            remoteContainer.id = `agora-${user.uid}`;
-            remoteContainer.className = "w-full h-full";
-            containerRef.current?.appendChild(remoteContainer);
-            user.videoTrack.play(remoteContainer);
-          }
-          if (mediaType === "audio") user.audioTrack.play();
-        });
-
-        client.on("user-unpublished", (user: any) => {
-          document.getElementById(`agora-${user.uid}`)?.remove();
-        });
-
-        // Join channel
-        await client.join(appId, channel, token, null);
-
-        // Publish if scholar (publisher)
-        if (role === 'publisher') {
-          const [audioTrack, videoTrack] = await AgoraRTC.createMicrophoneAndCameraTracks();
-          localTracksRef.current = [audioTrack, videoTrack];
-          
-          const localContainer = document.createElement("div");
-          localContainer.id = "local-player";
-          localContainer.className = "w-full h-full border-2 border-emerald-500/50 rounded-lg overflow-hidden";
-          containerRef.current?.insertBefore(localContainer, containerRef.current.firstChild);
-          
-          videoTrack.play(localContainer);
-          await client.publish(localTracksRef.current);
-        }
-      } catch (err) {
-        console.error("Agora join failed:", err);
-      }
-    };
-
-    init();
-
-    return () => {
-      localTracksRef.current.forEach(track => {
-        track.stop();
-        track.close();
-      });
-      clientRef.current?.leave();
-      if (containerRef.current) containerRef.current.innerHTML = "";
-    };
-  }, [appId, token, channel, role]);
-
-  return <div ref={containerRef} className="w-full h-full flex flex-wrap bg-slate-900 overflow-y-auto gap-1 p-1 md:p-2" />;
-};
+interface BatchState {
+  activeChildId: string | null;
+  activeSessionId: string | null;
+  status: string;
+  currentPromptAnswers?: PromptAnswer[];
+  promptEvaluated?: boolean;
+  pastSessions?: { sessionId: string; startedAt: string; endedAt: string }[];
+}
 
 const LiveClassRoom: React.FC = () => {
-  const { activeChild, refreshChildren } = useChildContext();
+  const { activeChild, refreshChildren, triggerRewardAnimation } = useChildContext();
   const { getToken } = useAuth();
   const { user } = useUser();
   const { t } = useTranslation();
 
   const [userRole, setUserRole] = useState<'parent' | 'scholar' | 'loading'>('loading');
+  const [tarbiyahIsAdmin, setTarbiyahIsAdmin] = useState(false);
+  const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
+  const [activeDrawer, setActiveDrawer] = useState<'students' | 'leaderboard' | 'none'>('none');
   const [isLoading, setIsLoading] = useState(false);
-  const [scholarStatus, setScholarStatus] = useState<ScholarStatus>({ online: false, scholarName: "Scholar" });
-  const [statusLoading, setStatusLoading] = useState(true);
-
-  // Scholar Dashboard State
+  
   const [activeSessions, setActiveSessions] = useState<LiveSession[]>([]);
-
-  // Active Session State
   const [currentSession, setCurrentSession] = useState<LiveSession | null>(null);
-  const [hasStartedReciting, setHasStartedReciting] = useState(false);
-
-  const [accessStatus, setAccessStatus] = useState<{ hasAccess: boolean; pendingRequest: boolean } | null>(null);
-
-  // Classroom State (Turn & Session tracking)
-  interface PromptAnswer {
-    childId: string;
-    answer: 'yes' | 'no';
-  }
-
-  interface BatchState {
-    activeChildId: string | null;
-    activeSessionId: string | null;
-    status: string;
-    currentPromptAnswers?: PromptAnswer[];
-    pastSessions?: { sessionId: string; startedAt: string; endedAt: string }[];
-  }
   const [batchState, setBatchState] = useState<BatchState | null>(null);
+  
+  const [hasStartedReciting, setHasStartedReciting] = useState(false);
   const [selectedScore, setSelectedScore] = useState<number | null>(null);
   const [promptDecision, setPromptDecision] = useState<'yes' | 'no' | null>(null);
   const [leaderboard, setLeaderboard] = useState<any[] | null>(null);
@@ -175,78 +90,70 @@ const LiveClassRoom: React.FC = () => {
   const [showAssignModal, setShowAssignModal] = useState(false);
   const [currentSessionScore, setCurrentSessionScore] = useState<number>(0);
   const [selectedBatchId, setSelectedBatchId] = useState<string | null>(null);
-  const [showVideo, setShowVideo] = useState(true);
-  const [isVideoFullScreen, setIsVideoFullScreen] = useState(false);
-  const { triggerRewardAnimation } = useChildContext();
+  
   const lastSeenScoreRef = useRef<number | null>(null);
+
+  // Responsive Detection
+  useEffect(() => {
+    const handleResize = () => setIsMobile(window.innerWidth < 768);
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
 
   // Determine Role & Check Access
   useEffect(() => {
-    if (!user) {
-       // Wait for clerk user to load
-       return;
-    }
-
+    if (!user) return;
     const role = user?.publicMetadata?.role;
     const email = user?.primaryEmailAddress?.emailAddress?.toLowerCase();
-
-    const rootAdmins = ["sarthakjuneja1999@gmail.com", "huzaifbarkati0@gmail.com", "abhi.nebhani@gmail.com"];
-    const isAdminRole = role === 'admin' || (email && rootAdmins.includes(email));
+    const isScholar = role === 'scholar' || email === "scholar1.imam@gmail.com";
     
-    // 🔥 CHANGE: Scholar1 is a scholar, but Admin is NOT a scholar in Tarbiyah view anymore.
-    // Admin is a basic user (parent) here, but with admin dashboard access elsewhere.
-    const isScholarOnly = email === "scholar1.imam@gmail.com";
-    const isScholarRole = role === 'scholar' || isScholarOnly;
-
-    if (isScholarRole) {
+    if (isScholar) {
       setUserRole('scholar');
     } else {
       setUserRole('parent');
       checkAccess();
     }
-    
-    // We'll still pass tarbiyahIsAdmin for debugging or special overrides if needed
-    setTarbiyahIsAdmin(isAdminRole);
-  }, [user, getToken]);
+    setTarbiyahIsAdmin(role === 'admin');
+  }, [user]);
 
-  const [tarbiyahIsAdmin, setTarbiyahIsAdmin] = useState(false);
+  const checkAccess = async () => {
+    try {
+      const token = await getToken();
+      if (!token) return;
+      await axios.get(`${API_BASE}/api/live/access/status`, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+    } catch (e) {}
+  };
 
-  // SCHOLAR DASHBOARD STATE
+  // 📡 SCHOLAR SYNC: Fetch Batches & Participants
   const [scholarBatches, setScholarBatches] = useState<any[]>([]);
-
-  // Fetch Scholar's Batches (Once on mount)
   useEffect(() => {
-    if (userRole !== 'scholar' && !tarbiyahIsAdmin) return;
+    if (userRole !== 'scholar') return;
     const fetchBatches = async () => {
       try {
         const token = await getToken();
-        // Fetch batches assigned to this scholar (or all for MVP)
         const res = await axios.get(`${API_BASE}/api/live/scholar/batches`, {
           headers: { Authorization: `Bearer ${token}` }
         });
         setScholarBatches(Array.isArray(res.data.batches) ? res.data.batches : []);
-      } catch (err) {
-        console.error("Failed to fetch scholar batches", err);
-        setScholarBatches([]);
-      }
+      } catch (err) {}
     };
     fetchBatches();
-    // Poll every 10s for new batches
     const interval = setInterval(() => {
       if (document.visibilityState === 'visible') fetchBatches();
-    }, 3000); // Faster polling for scholar sync
+    }, 10000);
     return () => clearInterval(interval);
-  }, [userRole, getToken, tarbiyahIsAdmin]);
+  }, [userRole, getToken]);
 
+  // 📡 BATCH STATE POLLING
   useEffect(() => {
-    if (userRole !== 'scholar' || !currentSession?.batchId) return;
+    if (!currentSession?.batchId) return;
     
-    // Instead of hacking activeSessions, we poll the batch state directly!
     const fetchBatchState = async () => {
       try {
         const token = await getToken();
-        // Get full batch state which includes participants
-        const res = await axios.get(`${API_BASE}/api/live/batch/${currentSession.batchId}/state`, {
+        const res = await axios.get(`${API_BASE}/api/live/batch/${currentSession.batchId}/state?childId=${currentSession.childId}`, {
           headers: { Authorization: `Bearer ${token}` }
         });
         
@@ -256,970 +163,526 @@ const LiveClassRoom: React.FC = () => {
            activeSessionId: data.activeSessionId,
            status: data.status,
            currentPromptAnswers: data.currentPromptAnswers || [],
+           promptEvaluated: data.promptEvaluated || false,
            pastSessions: data.pastSessions || []
         });
-        
-        // Auto scroll to latest active participant's position
-        if (data.activeChildId && data.activeSurah && data.activeAyah) {
-           setCurrentSession(prev => prev ? {
-              ...prev,
-              childId: data.activeChildId,
-              currentSurah: data.activeSurah,
-              currentAyah: data.activeAyah
-           } : null);
+
+        // XP Animation Handling for Students
+        if (userRole === 'parent') {
+           const newScore = data.currentScore || 0;
+           if (lastSeenScoreRef.current !== null && newScore > lastSeenScoreRef.current) {
+              triggerRewardAnimation(newScore - lastSeenScoreRef.current);
+           }
+           lastSeenScoreRef.current = newScore;
+           setCurrentSessionScore(newScore);
         }
 
-        // Map active participants back to `activeSessions` for the UI
-        if (data.activeParticipants && Array.isArray(data.activeParticipants)) {
-            const mappedSessions = data.activeParticipants.filter((p: any) => p && p.isActive).map((p: any) => ({
+        // Active Session Sync
+        if (data.activeParticipants && userRole === 'scholar') {
+            setActiveSessions(data.activeParticipants.filter((p: any) => p.isActive).map((p: any) => ({
               _id: `${p.childId}-${currentSession.batchId}`,
-              parentId: "unknown",
               childId: p.childId,
-              scholarId: user?.id || "scholar",
-              currentSurah: p.currentSurah || null,
-              currentAyah: p.currentAyah || null,
-              lastSeen: p.lastSeen,
-              status: 'active',
               studentName: p.childName || 'Student',
-              parentName: `Batch`,
-              batchId: currentSession.batchId
-            }));
-            setActiveSessions(mappedSessions);
+              batchId: currentSession.batchId,
+              currentSurah: p.currentSurah,
+              currentAyah: p.currentAyah,
+              status: 'active'
+            } as any)));
         }
 
-        // SCHOLAR SYNC: Trigger results on explicit 'ended' status
+        // Auto-Results Trigger
         if (data.status === 'ended' && !showLeaderboard) {
-           const lastSession = data.pastSessions?.[data.pastSessions.length - 1];
-           setShowLeaderboard(lastSession ? lastSession.sessionId : true);
+            setShowLeaderboard(data.activeSessionId || true);
         }
-      } catch (err) {
-        console.error("Batch state poll error", err);
-      }
+      } catch (err) {}
     };
 
     fetchBatchState();
     const interval = setInterval(() => {
       if (document.visibilityState === 'visible') fetchBatchState();
-    }, 1500);
+    }, 2000);
     return () => clearInterval(interval);
-  }, [userRole, getToken, currentSession?.batchId, showLeaderboard]);
+  }, [currentSession?.batchId, userRole]);
 
-  // SCHOLAR: Auto-switch view to active reciting student
-  useEffect(() => {
-    if (userRole === 'scholar' && batchState?.activeChildId && currentSession?.batchId) {
-      if (currentSession.childId !== batchState.activeChildId) {
-        const nextActive = activeSessions.find(s => s.childId === batchState.activeChildId);
-        if (nextActive) {
-          setCurrentSession(nextActive);
-        }
-      }
-    }
-  }, [userRole, batchState?.activeChildId, activeSessions, currentSession]);
-
-  // STUDENT: HEARTBEAT & SYNC
-  useEffect(() => {
-    if (!currentSession?.batchId || userRole === 'scholar') return;
-
-    const sendPing = async () => {
-      try {
-        const token = await getToken();
-        await axios.post(`${API_BASE}/api/live/ping`, {
-          batchId: currentSession.batchId,
-          childId: currentSession.childId
-        }, { headers: { Authorization: `Bearer ${token}` } });
-      } catch (e) { console.error("Ping failed", e); }
-    };
-
-    const interval = setInterval(() => {
-      if (document.visibilityState === 'visible') sendPing();
-    }, 10000); // 10s Heatbeat
-    // Initial ping
-    sendPing();
-
-    return () => clearInterval(interval);
-  }, [currentSession, userRole, getToken]);
-
-  // STUDENT: CLASSROOM STATE POLLING
-  useEffect(() => {
-    if (!currentSession?.batchId || userRole === 'scholar') return;
-    
-    const fetchState = async () => {
-      try {
-        const token = await getToken();
-        const res = await axios.get(`${API_BASE}/api/live/batch/${currentSession.batchId}/state?childId=${currentSession.childId}`, {
-           headers: { Authorization: `Bearer ${token}` }
-        });
-        
-        // HEARTBEAT SYNC: XP Rewards / Animations
-        const newScore = res.data.currentScore || 0;
-        
-        if (lastSeenScoreRef.current === null) {
-          // Initial sync - don't trigger animation
-          lastSeenScoreRef.current = newScore;
-          setCurrentSessionScore(newScore);
-        } else if (newScore > lastSeenScoreRef.current) {
-          const diff = newScore - lastSeenScoreRef.current;
-          triggerRewardAnimation(diff);
-          lastSeenScoreRef.current = newScore;
-          setCurrentSessionScore(newScore);
-        } else if (newScore < lastSeenScoreRef.current) {
-          // Reset if score was reset
-          lastSeenScoreRef.current = newScore;
-          setCurrentSessionScore(newScore);
-        }
-
-        setBatchState({
-          activeChildId: res.data.activeChildId || null,
-          activeSessionId: res.data.activeSessionId || null,
-          status: res.data.status || 'active',
-          currentPromptAnswers: res.data.currentPromptAnswers || [],
-          promptEvaluated: res.data.promptEvaluated || false
-        });
-
-        // STUDENT AUTO-SYNC (Observer View)
-        if (res.data.activeChildId && res.data.activeChildId !== currentSession.childId) {
-            if (res.data.activeSurah && res.data.activeAyah) {
-                setCurrentSession(prev => {
-                    if (!prev) return prev;
-                    if (prev.currentSurah !== res.data.activeSurah || prev.currentAyah !== res.data.activeAyah) {
-                        return { ...prev, currentSurah: res.data.activeSurah, currentAyah: res.data.activeAyah };
-                    }
-                    return prev;
-                });
-            }
-        }
-
-        // STUDENT SYNC: Robust session transition detection
-        const isSessionFinished = (res.data.status === 'ended' || res.data.status === 'upcoming');
-        const isNewSessionStarted = res.data.activeSessionId && res.data.activeSessionId !== currentSession?._id;
-
-        if ((isSessionFinished || isNewSessionStarted) && !showLeaderboard) {
-            // Force results for the session we were just in
-            setShowLeaderboard(currentSession?._id || true);
-        }
-      } catch(e) {}
-    };
-
-    fetchState();
-    const interval = setInterval(() => {
-      if (document.visibilityState === 'visible') fetchState();
-    }, 3000); // 3s poll for state sync
-    return () => clearInterval(interval);
-  }, [currentSession?.batchId, currentSession?._id, userRole, getToken, showLeaderboard]);
-
-
-  const checkAccess = async () => {
-    try {
-      const token = await getToken();
-      if (!token) return;
-      const res = await axios.get(`${API_BASE}/api/live/access/status`, {
-        headers: { Authorization: `Bearer ${token}` }
-      });
-      setAccessStatus(res.data);
-    } catch (err) {
-      console.error("Access check failed", err);
-    }
-  };
-
-  const handleRequestAccess = async () => {
-    setIsLoading(true);
-    try {
-      const token = await getToken();
-      
-      // Load Razorpay SDK
-      const res = await loadRazorpayScript();
-      if (!res) {
-        alert("Razorpay SDK failed to load. Are you online?");
-        setIsLoading(false);
-        return;
-      }
-
-      // 1. Create Order
-      const { data: order } = await axios.post(`${API_BASE}/api/payment/create-order`, {
-        planType: 'TARBIYAH_LIFETIME'
-      }, { headers: { Authorization: `Bearer ${token}` } });
-
-      // 2. Open Checkout
-      const options = {
-        key: import.meta.env.VITE_RAZORPAY_KEY_ID,
-        amount: order.amount,
-        currency: order.currency,
-        name: "Imam",
-        description: "Lifetime Tarbiyah Access",
-        order_id: order.id,
-        handler: async function (response: any) {
-             try {
-               // Get a fresh token before verify call
-               const freshToken = await getToken();
-               await axios.post(`${API_BASE}/api/payment/verify`, {
-                   ...response,
-                   planType: 'TARBIYAH_LIFETIME'
-               }, { headers: { Authorization: `Bearer ${freshToken}` } });
-               
-               alert("Payment successful! Access granted.");
-               setAccessStatus({ hasAccess: true, pendingRequest: false });
-             } catch (err: any) {
-               console.error("Verification failed", err);
-               alert(`Payment was successful (ID: ${response.razorpay_payment_id}), but access couldn't be granted automatically. Please contact support with your Payment ID.`);
-             }
-        },
-        theme: {
-          color: "#052e16"
-        }
-      };
-
-      const rzp = new (window as any).Razorpay(options);
-      rzp.on('payment.failed', function (response: any){
-          alert("Payment failed. Please try again.");
-      });
-      rzp.open();
-      
-    } catch (err) {
-      console.error("Payment initiation failed", err);
-      alert("Something went wrong with the payment gateway.");
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  // Throttled position emit (student → backend → scholar). Max 500ms.
-  const positionThrottleRef = useRef<{ timer: ReturnType<typeof setTimeout> | null; lastSurah: number; lastAyah: number }>({ timer: null, lastSurah: 0, lastAyah: 0 });
-
-  const emitPosition = useCallback(async (surah: number, ayah: number) => {
-    if (!currentSession?.batchId || !currentSession?.childId || userRole === 'scholar') return;
-    const { lastSurah, lastAyah } = positionThrottleRef.current;
-    if (lastSurah === surah && lastAyah === ayah) return;
-
-    positionThrottleRef.current.lastSurah = surah;
-    positionThrottleRef.current.lastAyah = ayah;
-
-    if (positionThrottleRef.current.timer) clearTimeout(positionThrottleRef.current.timer);
-    positionThrottleRef.current.timer = setTimeout(async () => {
-      positionThrottleRef.current.timer = null;
-      try {
-        const token = await getToken();
-        console.log("[STUDENT EMIT] position", { surah, ayah, batchId: currentSession.batchId, childId: currentSession.childId });
-        await axios.post(`${API_BASE}/api/live/update-progress`, {
-          batchId: currentSession.batchId,
-          childId: currentSession.childId,
-          surah,
-          ayah
-        }, { headers: { Authorization: `Bearer ${token}` } });
-      } catch (err) {
-        console.error("[STUDENT EMIT] Failed:", err);
-      }
-    }, POSITION_THROTTLE_MS);
-  }, [currentSession, userRole, getToken, user?.id]);
-
-  // Fetch Attendance for Current Batch (Parents only) - Runs whenever activeChild or selectedBatchId changes
-  useEffect(() => {
-    const fetchAttendance = async () => {
-      if (userRole === 'parent' && activeChild?.id) {
-        try {
-          const token = await getToken();
-          let effectiveBatchId = selectedBatchId;
-
-          // If no selected batch, find all batches this child is in
-          if (!effectiveBatchId) {
-            const batchRes = await axios.get(`${API_BASE}/api/live/my-sessions`, {
-              headers: { Authorization: `Bearer ${token}` }
-            });
-            const batches = batchRes.data || [];
-            if (batches.length > 0) {
-              effectiveBatchId = batches[0]._id;
-              setSelectedBatchId(effectiveBatchId); // Set initial selection
-            }
-          }
-          
-          if (!effectiveBatchId) return;
-
-          const res = await axios.get(`${API_BASE}/api/live/batch/${effectiveBatchId}/attendance/${activeChild.id}`, {
-            headers: { Authorization: `Bearer ${token}` }
-          });
-          
-          if (Array.isArray(res.data)) {
-            setAttendanceHistory(res.data);
-            const attendedIds = res.data
-              .filter((session: any) => session.attended)
-              .map((session: any) => session.sessionId);
-            setAttendedSessionIds(attendedIds);
-          }
-        } catch (e) { 
-           console.error("Attendance fetch failed", e); 
-        }
-      }
-    };
-    fetchAttendance();
-  }, [userRole, selectedBatchId, activeChild?.id, getToken]);
-
-  // POLL: Scholar Status (for parent lobby) - Optional, leaving for now
-  useEffect(() => {
-    if (userRole === 'parent' && accessStatus?.hasAccess && !currentSession) {
-      // ... existing
-    }
-  }, [userRole, currentSession, accessStatus]);
-
-  // CLASSROOM HOOKS (Must be before any early returns)
-  const fetchLeaderboard = useCallback(async (batchId: string, sessionId?: string) => {
-    try {
-      const token = await getToken();
-      const url = sessionId && sessionId !== "true" && typeof sessionId === 'string' 
-        ? `${API_BASE}/api/live/batch/${batchId}/leaderboard?sessionId=${sessionId}`
-        : `${API_BASE}/api/live/batch/${batchId}/leaderboard`;
-        
-      const res = await axios.get(url, {
-        headers: { Authorization: `Bearer ${token}` }
-      });
-      setLeaderboard(res.data.leaderboard || []);
-    } catch(e) { console.error("Leaderboard fetch failed", e); }
-  }, [getToken]);
-
+  // 📡 LEADERBOARD POLLING
   useEffect(() => {
     if (!currentSession?.batchId) return;
-    
-    // If showLeaderboard is a string (sessionId), use it!
-    const targetSessionId = typeof showLeaderboard === 'string' ? showLeaderboard : undefined;
-    
-    // Initial fetch
-    fetchLeaderboard(currentSession.batchId, targetSessionId);
-    
-    // Poll every 15s to keep waiting room updated
-    const interval = setInterval(() => {
-      if (document.visibilityState === 'visible') fetchLeaderboard(currentSession.batchId!, targetSessionId);
-    }, 15000);
-    
-    return () => clearInterval(interval);
-  }, [currentSession?.batchId, showLeaderboard, fetchLeaderboard]);
-
-  // HANDLERS
-  const handleParentStartSession = async () => {
-    if (!activeChild) {
-      alert("Please select a child profile first.");
-      return;
-    }
-    setIsLoading(true);
-    try {
-      const token = await getToken();
-      const res = await axios.post(`${API_BASE}/api/live/start`, {
-        childId: activeChild.id
-      }, {
-        headers: { Authorization: `Bearer ${token}` }
-      });
-      setShowLeaderboard(false);
-      setLeaderboard(null);
-      setCurrentSession(res.data.session);
-    } catch (err: any) {
-      console.error("Failed to start session", err);
-      if (err.response?.status === 403) {
-        alert(`Daily Limit Reached: ${err.response.data.message}`);
-      } else {
-        alert(`Could not start session: ${err.response?.data?.detail || err.message}`);
-      }
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  const handleScholarJoinBatch = async (batch: any) => {
-    setCurrentSession({
-      _id: batch._id || batch.id,
-      batchId: batch._id || batch.id,
-      childId: batch.activeChildId || '',
-      parentId: '',
-      scholarId: user?.id || '',
-      currentSurah: null,
-      currentAyah: null,
-      status: 'active',
-      dailyRoomName: batch.dailyRoomName,
-      agoraToken: batch.agoraToken,
-      agoraAppId: batch.agoraAppId
-    });
-    setBatchState({
-        activeChildId: batch.activeChildId || null,
-        activeSessionId: null,
-        status: 'active',
-        currentPromptAnswers: [],
-        promptEvaluated: false
-    });
-    setShowLeaderboard(false);
-    setLeaderboard(null);
-
-    try {
-        const token = await getToken();
-        await axios.post(`${API_BASE}/api/live/${batch._id || batch.id}/start`, {}, { 
-            headers: { Authorization: `Bearer ${token}` } 
-        });
-    } catch (e) { 
-        console.error("Failed to start batch", e); 
-    }
-  };
-
-  const handleExitSession = async () => {
-    const sessionToExit = currentSession;
-    setCurrentSession(null);
-    if (userRole === 'scholar') setActiveSessions([]);
-    
-    // Refresh child context to pull new attendance/XP for Journey of Light
-    if (refreshChildren) refreshChildren();
-
-    if (userRole !== 'scholar' && sessionToExit?.batchId) {
+    const fetchLeaderboard = async () => {
       try {
         const token = await getToken();
-        await axios.post(`${API_BASE}/api/live/leave`, {
-          batchId: sessionToExit.batchId,
-          childId: sessionToExit.childId
-        }, { headers: { Authorization: `Bearer ${token}` } });
-      } catch (e) {
-        console.error("Leave failed", e);
-      }
-    }
-  };
+        const res = await axios.get(`${API_BASE}/api/live/batch/${currentSession.batchId}/leaderboard`, {
+          headers: { Authorization: `Bearer ${token}` }
+        });
+        setLeaderboard(res.data.leaderboard);
+      } catch (e) {}
+    };
+    fetchLeaderboard();
+    const interval = setInterval(fetchLeaderboard, 5000);
+    return () => clearInterval(interval);
+  }, [currentSession?.batchId]);
 
-  // CLASSROOM HANDLERS
+  // -------------------------------------------------------------------
+  // 🕹️ ACTIONS
+  // -------------------------------------------------------------------
 
-  const handleEndClass = async (batchId: string) => {
-     try {
-       const token = await getToken();
-       await axios.post(`${API_BASE}/api/live/batch/${batchId}/end`, {}, { headers: { Authorization: `Bearer ${token}` } });
-       
-       if (userRole === 'scholar') {
-         setCurrentSession(null);
-         setActiveSessions([]);
-       }
-     } catch(e) { console.warn(e); }
+  const handleScholarJoinBatch = async (batchId: string) => {
+    try {
+      const token = await getToken();
+      const res = await axios.post(`${API_BASE}/api/live/batch/${batchId}/start`, {}, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      setCurrentSession(res.data.session);
+    } catch (err) { alert("Failed to join class"); }
   };
 
   const handleSetTurn = async (childId: string, batchId: string) => {
-     try {
-       const token = await getToken();
-       await axios.post(`${API_BASE}/api/live/batch/${batchId}/select-turn`, { childId }, { headers: { Authorization: `Bearer ${token}` } });
-       setSelectedScore(null);
-       setPromptDecision(null);
-     } catch(e) {}
+    try {
+      const token = await getToken();
+      await axios.post(`${API_BASE}/api/live/batch/${batchId}/set-turn`, { childId }, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+    } catch (err) {}
   };
 
   const handleScoreRecitation = async (childId: string, batchId: string, score: number) => {
-     try {
-       const token = await getToken();
-       await axios.post(`${API_BASE}/api/live/batch/${batchId}/score-recitation`, { childId, score }, { headers: { Authorization: `Bearer ${token}` } });
-     } catch(e) {}
+    try {
+      const token = await getToken();
+      await axios.post(`${API_BASE}/api/live/batch/${batchId}/score`, { 
+        childId, 
+        accuracyScore: score 
+      }, { headers: { Authorization: `Bearer ${token}` } });
+    } catch (err) {}
+  };
+
+  const handleEvaluatePrompt = async (decision: 'yes' | 'no') => {
+    if (!currentSession?.batchId) return;
+    try {
+      const token = await getToken();
+      await axios.post(`${API_BASE}/api/live/batch/${currentSession.batchId}/evaluate-prompt`, { 
+        decision 
+      }, { headers: { Authorization: `Bearer ${token}` } });
+      setPromptDecision(null);
+    } catch (err) {}
   };
 
   const handleSubmitPrompt = async (answer: 'yes' | 'no') => {
-     if (!currentSession?.batchId || !activeChild) return;
-     try {
-       const token = await getToken();
-       await axios.post(`${API_BASE}/api/live/batch/${currentSession.batchId}/submit-prompt`, { 
-          childId: activeChild.id, answer 
-       }, { headers: { Authorization: `Bearer ${token}` } });
-       
-       setBatchState(prev => prev ? {
-           ...prev, 
-           currentPromptAnswers: [...(prev.currentPromptAnswers || []), { childId: activeChild.id, answer }]
-       } : null);
-     } catch(e) {}
-  };
-
-  const handleEvaluatePrompt = async (correctAnswer: 'yes' | 'no') => {
-     if (!currentSession?.batchId) return;
-     try {
-       const token = await getToken();
-       await axios.post(`${API_BASE}/api/live/batch/${currentSession.batchId}/evaluate-prompt`, { 
-          correctAnswer 
-       }, { headers: { Authorization: `Bearer ${token}` } });
-       
-       setBatchState(prev => prev ? { ...prev, promptEvaluated: true } : null);
-     } catch(e) {}
-  };
-
-  const handleScoreParticipation = async (points: number = 1) => {
-     if (!currentSession?.batchId || !activeChild) return;
-     try {
-       const token = await getToken();
-       await axios.post(`${API_BASE}/api/live/batch/${currentSession.batchId}/score-participation`, { 
-          childId: activeChild.id, points 
-       }, { headers: { Authorization: `Bearer ${token}` } });
-     } catch(e) {}
-  };
-
-
-  const handleAyahClick = async (surah: number, ayah: number) => {
-    if (!currentSession) return;
-    if (userRole === 'scholar') return;
-
-    setCurrentSession(prev => prev ? { ...prev, currentSurah: surah, currentAyah: ayah } : null);
-    emitPosition(surah, ayah);
-
+    if (!currentSession?.batchId || !activeChild) return;
     try {
       const token = await getToken();
-      if (currentSession._id) {
-        await axios.patch(`${API_BASE}/api/live/${currentSession._id}`, {
-          surah, ayah
-        }, { headers: { Authorization: `Bearer ${token}` } });
-      }
-    } catch (err) {
-      console.error("Failed to update ayah", err);
-    }
+      await axios.post(`${API_BASE}/api/live/batch/${currentSession.batchId}/submit-prompt`, { 
+        childId: activeChild.id, answer 
+      }, { headers: { Authorization: `Bearer ${token}` } });
+    } catch (e) {}
   };
 
-  // RENDER: LEADERBOARD MODAL
-  if (showLeaderboard) {
-    return (
-      <div className="fixed inset-0 z-[2000] bg-[#022c22] overflow-y-auto overflow-x-hidden p-4 flex items-center justify-center animate-in fade-in">
-        <div className="fixed inset-0 pointer-events-none">
-          <div className="absolute top-[-20%] left-[-10%] w-[50%] h-[50%] bg-teal-900/40 rounded-full blur-[120px]" />
-          <div className="absolute bottom-[-20%] right-[-10%] w-[60%] h-[60%] bg-emerald-900/30 rounded-full blur-[150px]" />
-          <MovingBackground />
-        </div>
-        
-        <div className="bg-emerald-950/80 backdrop-blur-xl border border-emerald-500/30 rounded-3xl max-w-md w-full p-8 shadow-[0_0_50px_rgba(16,185,129,0.15)] space-y-6 relative z-10">
-           <div className="text-center space-y-2">
-             <div className="w-20 h-20 bg-amber-500/20 rounded-full flex items-center justify-center mx-auto text-amber-400 mb-4 border-4 border-amber-500/30 shadow-inner">
-                <svg xmlns="http://www.w3.org/2000/svg" width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m2 4 3 12 5-6 2 6 5-6 3 12"/><path d="M22 20H2"/></svg>
-             </div>
-             <h2 className="text-3xl font-serif font-bold text-white">{t('live.classResults', 'Class Results')}</h2>
-             <p className="text-emerald-200/80">Great job everyone!</p>
-           </div>
+  const handleEndClass = async (batchId: string) => {
+    try {
+      const token = await getToken();
+      await axios.post(`${API_BASE}/api/live/batch/${batchId}/end`, {}, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      setCurrentSession(null);
+    } catch (err) {}
+  };
 
-           <div className="space-y-3 mt-8 max-h-[400px] overflow-y-auto pr-2">
-             {leaderboard ? leaderboard.map((l, idx) => (
-                <div key={l.childId} className={`flex items-center justify-between p-4 rounded-2xl border ${idx === 0 ? 'bg-gradient-to-r from-amber-500 to-amber-600 border-amber-400/50 shadow-[0_0_20px_rgba(245,158,11,0.3)] transform scale-[1.02]' : 'bg-emerald-900/50 border-emerald-800/50'}`}>
-                   <div className="flex items-center gap-3">
-                      <span className={`font-black text-lg ${idx === 0 ? 'text-white' : 'text-emerald-500'}`}>#{idx + 1}</span>
-                      <span className={`font-bold truncate max-w-[100px] ${idx === 0 ? 'text-white' : 'text-emerald-50'}`}>{l.name}</span>
-                   </div>
-                   <div className="flex items-center gap-4">
-                      <div className="text-right">
-                         <div className={`text-[10px] opacity-80 leading-none uppercase font-bold tracking-wider ${idx === 0 ? 'text-amber-100' : 'text-emerald-300/60'}`}>Recite</div>
-                         <div className={`font-bold ${idx === 0 ? 'text-white' : 'text-emerald-50'}`}>{l.recitationScore}</div>
+  const handleExitSession = () => {
+    setCurrentSession(null);
+    setBatchState(null);
+  };
+
+  const emitPosition = async (surah: number, ayah: number) => {
+    if (!currentSession?.batchId || userRole === 'scholar') return;
+    try {
+      const token = await getToken();
+      await axios.patch(`${API_BASE}/api/live/batch/${currentSession.batchId}/position`, {
+        childId: currentSession.childId, surah, ayah
+      }, { headers: { Authorization: `Bearer ${token}` } });
+    } catch (e) {}
+  };
+
+  const handleAyahClick = async (surah: number, ayah: number) => {
+    if (!currentSession || userRole === 'scholar') return;
+    setCurrentSession(prev => prev ? { ...prev, currentSurah: surah, currentAyah: ayah } : null);
+    emitPosition(surah, ayah);
+  };
+
+  // -------------------------------------------------------------------
+  // 🎭 RENDER STAGES
+  // -------------------------------------------------------------------
+
+  const renderScholarStage = () => {
+    if (!currentSession) return null;
+    return (
+      <div className="flex flex-col h-full bg-[#040404]">
+         {/* STUDENT SPEED DOCK */}
+         <div className="flex-none p-4 pb-0 z-20">
+            <div className="flex gap-4 overflow-x-auto no-scrollbar pb-4 items-center">
+              {activeSessions.map(session => (
+                <div 
+                  key={session._id} 
+                  onClick={() => handleSetTurn(session.childId, session.batchId!)}
+                  className={`p-1 rounded-3xl transition-all duration-500 cursor-pointer shrink-0 ${batchState?.activeChildId === session.childId ? 'bg-emerald-500 scale-105 shadow-[0_0_30px_rgba(16,185,129,0.4)]' : 'bg-white/5 opacity-40 hover:opacity-100 hover:scale-105'}`}
+                >
+                   <div className="bg-[#111] rounded-[1.4rem] px-6 py-4 flex items-center gap-4">
+                      <div className={`w-10 h-10 rounded-full flex items-center justify-center font-black transition-colors ${batchState?.activeChildId === session.childId ? 'bg-emerald-500 text-black shadow-inner' : 'bg-emerald-900/20 text-emerald-500'}`}>
+                        {session.studentName?.[0] || 'S'}
                       </div>
-                      <div className="text-right">
-                         <div className={`text-[10px] opacity-80 leading-none uppercase font-bold tracking-wider ${idx === 0 ? 'text-amber-100' : 'text-emerald-300/60'}`}>Engage</div>
-                         <div className={`font-bold ${idx === 0 ? 'text-white' : 'text-emerald-50'}`}>{l.participationScore}</div>
-                      </div>
-                      <div className={`font-black text-2xl ml-2 px-3 py-1 rounded-lg border ${idx === 0 ? 'bg-amber-400 text-amber-900 border-amber-300' : 'bg-emerald-800 text-emerald-300 border-emerald-700/50'}`}>
-                         {l.total}
+                      <div className="flex flex-col">
+                        <span className={`text-[10px] font-black uppercase tracking-widest transition-colors ${batchState?.activeChildId === session.childId ? 'text-white' : 'text-gray-400'}`}>{session.studentName}</span>
+                        {batchState?.activeChildId === session.childId && (
+                           <span className="text-[8px] text-red-500 font-bold uppercase animate-pulse">Reciting</span>
+                        )}
                       </div>
                    </div>
                 </div>
-             )) : (
-                <div className="text-center py-10"><Loader2 className="animate-spin mx-auto text-emerald-400" /></div>
-             )}
-           </div>
+              ))}
+            </div>
+         </div>
 
-           <button onClick={() => { setShowLeaderboard(false); handleExitSession(); }} className="w-full bg-emerald-500 hover:bg-emerald-400 text-[#022c22] py-4 rounded-xl font-bold mt-6 transition-all shadow-[0_0_15px_rgba(16,185,129,0.3)]">
-             Close Class
-           </button>
-        </div>
-      </div>
-    );
-  }
+         {/* MAIN STAGE */}
+         <div className="flex-1 relative flex flex-col md:flex-row gap-4 p-4 overflow-hidden">
+            <div className="flex-1 bg-black rounded-[3rem] border border-white/5 shadow-2xl overflow-hidden relative group">
+               <AgoraVideoPane
+                 appId={currentSession.agoraAppId || ""}
+                 token={currentSession.agoraToken || ""}
+                 channel={currentSession.channel || currentSession.batchId || ""}
+                 uid={user?.id || 0}
+                 role="scholar"
+                 layout="grid"
+               />
+               <div className="absolute top-8 left-8 py-2 px-4 bg-black/40 backdrop-blur-3xl border border-white/10 rounded-2xl flex items-center gap-3">
+                  <div className="w-1.5 h-1.5 bg-emerald-500 rounded-full animate-pulse" />
+                  <span className="text-[9px] text-white font-black uppercase tracking-widest">Active Class • {activeSessions.length} Participants</span>
+               </div>
+            </div>
 
-  // RENDER: ACTIVE SESSION (Quran View)
-  if (currentSession) {
-    const hasPosition = currentSession.currentSurah && currentSession.currentAyah;
-    const isMyTurn = userRole === 'parent' && batchState?.activeChildId === currentSession.childId;
-    const isObserving = userRole === 'parent' && batchState?.activeChildId && !isMyTurn;
-
-    // Reset recite flag if turn changes
-    if (!isMyTurn && hasStartedReciting) {
-        setHasStartedReciting(false);
-    }
-
-    return (
-      <div className="fixed inset-0 z-[1000] bg-[#022c22] flex flex-col animate-in fade-in duration-300 overflow-hidden font-sans">
-        <div className="fixed inset-0 pointer-events-none">
-          <div className="absolute top-[-20%] left-[-10%] w-[50%] h-[50%] bg-teal-900/40 rounded-full blur-[120px]" />
-          <div className="absolute bottom-[-20%] right-[-10%] w-[60%] h-[60%] bg-emerald-900/30 rounded-full blur-[150px]" />
-          <MovingBackground />
-        </div>
-        
-        {/* Scholar Control Panel (Fixed Bottom Dock) */}
-        {userRole === 'scholar' && currentSession?.batchId && (
-          <div className="fixed bottom-0 left-0 right-0 z-[5000] bg-[#022c22] border-t border-emerald-800 shadow-[0_-15px_40px_rgba(0,0,0,0.5)]">
-            <div className="max-w-7xl mx-auto flex flex-col w-full relative">
-               
-               {/* Status & End Button Row */}
-               <div className="flex justify-between items-center px-4 py-2 border-b border-emerald-900/50 bg-emerald-950">
-                  <span className="text-[10px] font-bold text-emerald-400 uppercase tracking-widest flex items-center gap-2">
-                     <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" /> Live Monitoring
-                  </span>
-                  <div className="flex gap-2">
-                    <button 
-                       onClick={() => setShowAssignModal(true)}
-                       className="bg-[#4f46e5] hover:bg-indigo-500 text-white px-5 py-2 rounded-xl text-xs font-black tracking-widest shadow-[0_4px_15px_rgba(79,70,229,0.4)] transition-all flex items-center gap-2 active:scale-95 border-b-4 border-indigo-800"
-                    >
-                       <BookOpen size={14} className="animate-bounce" /> ASSIGN PRACTICE
-                    </button>
-                    <button 
-                       onClick={() => setConfirmEndClass(currentSession.batchId!)} 
-                       className="bg-red-500 hover:bg-red-400 text-white px-4 py-1.5 rounded-lg text-xs font-black tracking-wider shadow-[0_2px_10px_rgba(239,68,68,0.4)] transition-all flex items-center gap-1 active:scale-95"
-                    >
-                       <LogOut size={12} /> END CLASS & RESULTS
-                    </button>
+            {!isMobile && batchState?.activeChildId && (
+               <div className="w-[340px] bg-[#0c0c0c] rounded-[3rem] border border-white/5 p-10 flex flex-col gap-10 shadow-2xl animate-in slide-in-from-right-12 duration-700">
+                  <div className="text-center space-y-2">
+                     <p className="text-[10px] text-emerald-500/60 font-black uppercase tracking-[0.2em]">Evaluating</p>
+                     <h3 className="text-3xl font-black text-white">{activeSessions.find(s => s.childId === batchState.activeChildId)?.studentName}</h3>
                   </div>
-               </div>
 
-               {/* Student Horizontal Scroll Frame */}
-               <div className="flex gap-4 overflow-x-auto hide-scrollbar px-4 py-3 items-end">
-                 {activeSessions.length === 0 && (
-                   <div className="text-emerald-500/50 text-xs py-4 italic w-full text-center">Waiting for students to join...</div>
-                 )}
-                 {activeSessions.map(session => (
-                   <div 
-                     key={session._id} 
-                     onClick={() => handleSetTurn(session.childId, session.batchId!)}
-                     className={`p-3 rounded-2xl flex flex-col items-center justify-center shrink-0 cursor-pointer min-w-[130px] transition-all duration-200 ${batchState?.activeChildId === session.childId ? 'bg-amber-400 text-emerald-950 border border-amber-200 shadow-[0_0_20px_rgba(251,191,36,0.3)] scale-[1.02]' : 'bg-emerald-900/40 text-emerald-100 border border-emerald-800/40 hover:bg-emerald-800'}`}
-                   >
-                     <div className="flex items-center gap-2 mb-1 w-full justify-center">
-                       <div className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-black shrink-0 ${batchState?.activeChildId === session.childId ? 'bg-emerald-950 text-amber-400' : 'bg-emerald-800 text-emerald-300 shadow-inner'}`}>
-                         {session.childId[0].toUpperCase()}
-                       </div>
-                       <span className="font-bold text-sm truncate max-w-[80px]">{session.studentName || 'Student'}</span>
-                     </div>
-                     
-                     {batchState?.activeChildId === session.childId ? (
-                        <div className="flex flex-col gap-[6px] mt-2 w-full" onClick={e => e.stopPropagation()}>
-                          
-                          {/* OVERVIEW OF OBSERVERS */}
-                          <div className="bg-emerald-950/60 rounded-xl p-2 border border-emerald-800/40 shadow-inner">
-                            <p className="text-[8px] text-emerald-300/80 font-bold uppercase tracking-widest mb-1 text-center">Class Observations</p>
-                            <div className="flex justify-evenly items-center w-full px-1">
-                              <span className="text-[10px] font-bold text-green-400 flex items-center gap-1"><CheckCircle size={10}/> {batchState?.currentPromptAnswers?.filter(a => a.answer === 'yes').length || 0}</span>
-                              <span className="text-gray-600">|</span>
-                              <span className="text-[10px] font-bold text-red-400 flex items-center gap-1"><Lock size={10}/> {batchState?.currentPromptAnswers?.filter(a => a.answer === 'no').length || 0}</span>
-                            </div>
-                            
-                            {!batchState?.promptEvaluated ? (
-                              <div className="flex gap-1 mt-1.5">
-                                <button onClick={() => setPromptDecision('yes')} className={`flex-1 ${promptDecision === 'yes' ? 'bg-green-500 text-white shadow-md' : 'bg-green-500/20 hover:bg-green-500/40 text-green-300'} py-1 rounded text-[9px] font-black border border-green-500/30 transition-colors uppercase`}>Perfect</button>
-                                <button onClick={() => setPromptDecision('no')} className={`flex-1 ${promptDecision === 'no' ? 'bg-red-500 text-white shadow-md' : 'bg-red-500/20 hover:bg-red-500/40 text-red-300'} py-1 rounded text-[9px] font-black border border-red-500/30 transition-colors uppercase`}>Mistake</button>
-                              </div>
-                            ) : (
-                              <div className="text-center text-[9px] font-bold text-emerald-400 mt-1.5 uppercase tracking-widest bg-emerald-900/40 py-0.5 rounded">Evaluated</div>
-                            )}
-                          </div>
-     
-                          <div className="grid grid-cols-2 gap-1 w-full mt-1">
-                            <button onClick={() => setSelectedScore(3)} className={`py-1.5 flex items-center justify-center rounded-lg text-[9px] text-white font-black transition-all ${selectedScore === 3 ? 'bg-green-600 ring-1 ring-white shadow-md' : 'bg-green-500 hover:bg-green-400'}`}>+10 XP</button>
-                            <button onClick={() => setSelectedScore(2)} className={`py-1.5 flex items-center justify-center rounded-lg text-[9px] text-white font-black transition-all ${selectedScore === 2 ? 'bg-amber-600 ring-1 ring-white shadow-md' : 'bg-amber-500 hover:bg-amber-400'}`}>+7 XP</button>
-                            <button onClick={() => setSelectedScore(1)} className={`py-1.5 flex items-center justify-center rounded-lg text-[9px] text-white font-black transition-all ${selectedScore === 1 ? 'bg-orange-600 ring-1 ring-white shadow-md' : 'bg-orange-500 hover:bg-orange-400'}`}>+5 XP</button>
-                            <button onClick={() => setSelectedScore(0)} className={`py-1.5 flex items-center justify-center rounded-lg text-[9px] text-white font-black transition-all ${selectedScore === 0 ? 'bg-red-600 ring-1 ring-white shadow-md' : 'bg-red-500 hover:bg-red-400'}`}>+2 XP</button>
-                          </div>
-     
-                          {(selectedScore !== null || promptDecision !== null) && (
-                             <button 
-                               onClick={() => {
-                                 if (promptDecision !== null && !batchState?.promptEvaluated) {
-                                    handleEvaluatePrompt(promptDecision);
-                                    setPromptDecision(null);
-                                 }
-                                 if (selectedScore !== null) {
-                                    handleScoreRecitation(session.childId, session.batchId!, selectedScore);
-                                    setSelectedScore(null);
-                                 }
-                               }}
-                               className="w-full mt-1 bg-white hover:bg-emerald-50 text-emerald-950 py-2 rounded-xl text-[10px] font-black shadow-lg border-2 border-emerald-500 transition-all uppercase tracking-widest active:scale-95 flex justify-center items-center gap-1"
-                             >
-                               Submit <CheckCircle size={10} />
-                             </button>
-                          )}
-                        </div>
-                       ) : (
-                          <span className="text-[10px] font-bold uppercase tracking-widest text-emerald-500/70 mt-2 bg-emerald-950/50 px-3 py-1 rounded-full border border-emerald-800/30">Observer</span>
-                       )}
-                   </div>
-                 ))}
-               </div>
-            </div>
-          </div>
-        )}
-
-        <div className="relative z-10 bg-emerald-900 text-white p-4 flex justify-between items-center shadow-lg shrink-0">
-          <div>
-            <h2 className="font-bold text-lg flex items-center gap-2">
-              <BookOpen size={20} />
-              {userRole === 'scholar' ? t('live.monitoringSession') : t('live.liveClassroom', 'Live Classroom')}
-            </h2>
-            {userRole === 'scholar' && currentSession && (
-              <p className="text-xs text-emerald-300">Viewing Student: <span className="font-bold text-white">{currentSession.studentName || currentSession.childId}</span></p>
-            )}
-          </div>
-          <div className="flex items-center gap-2">
-            <button
-              onClick={() => setShowVideo(!showVideo)}
-              className={`${showVideo ? 'bg-amber-500 text-emerald-900' : 'bg-white/10 text-white'} p-2 rounded-full transition-all group relative`}
-              title={showVideo ? "Hide Video" : "Show Video"}
-            >
-              {showVideo ? <Video size={18} /> : <VideoOff size={18} />}
-              <span className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-2 py-1 bg-black text-[8px] rounded opacity-0 group-hover:opacity-100 whitespace-nowrap pointer-events-none">
-                {showVideo ? 'Hide Video' : 'Join Call'}
-              </span>
-            </button>
-            <button
-              onClick={handleExitSession}
-              className="bg-red-600 hover:bg-red-500 text-white px-4 py-2 rounded-full text-xs font-bold uppercase tracking-widest flex items-center gap-2 transition-all shadow-lg active:scale-95"
-            >
-              <LogOut size={16} /> {t('live.exit')}
-            </button>
-          </div>
-        </div>
-
-        {/* Assignment Modal */}
-        {showAssignModal && currentSession?.batchId && (
-          <div className="fixed inset-0 z-[6000] bg-[#022c22]/95 backdrop-blur-2xl flex items-center justify-center p-4 overflow-y-auto">
-            <div className="w-full max-w-5xl bg-black/40 border border-emerald-500/20 rounded-[3rem] p-4 shadow-2xl relative">
-              <div className="p-2">
-                <ScholarQuranManager 
-                  batchId={currentSession.batchId} 
-                  batchName="Current Class" 
-                  onClose={() => setShowAssignModal(false)}
-                />
-              </div>
-            </div>
-          </div>
-        )}
-
-        {/* Floating Student Gamification Status */}
-        {userRole === 'parent' && activeChild && (
-          <div className="absolute top-[80px] right-4 z-[60] flex flex-col gap-2 pointer-events-none">
-            <div className="bg-white/90 backdrop-blur-md px-4 py-2 rounded-2xl shadow-xl border border-emerald-100 flex items-center gap-3 animate-in fade-in slide-in-from-right-8 duration-500">
-               <div className="w-8 h-8 bg-emerald-100 text-emerald-600 rounded-full flex items-center justify-center font-bold shadow-inner">
-                 <Star size={14} fill="currentColor" />
-               </div>
-               <div className="pointer-events-auto">
-                 <p className="text-[9px] font-black uppercase tracking-widest text-emerald-800/60">Current XP</p>
-                 <p className="font-serif font-bold text-emerald-900 text-sm leading-none mt-0.5">
-                    {activeChild.child_progress?.[0]?.total_xp || 0}
-                 </p>
-               </div>
-            </div>
-            
-            <div className="bg-white/90 backdrop-blur-md px-4 py-2 rounded-2xl shadow-xl border border-amber-100 flex items-center gap-3 animate-in fade-in slide-in-from-right-8 duration-700 delay-100">
-               <div className="w-8 h-8 bg-amber-100 text-amber-600 rounded-full flex items-center justify-center font-bold shadow-inner">
-                 <Cloud size={14} fill="currentColor" />
-               </div>
-               <div className="pointer-events-auto">
-                 <p className="text-[9px] font-black uppercase tracking-widest text-amber-800/60">Level</p>
-                 <p className="font-serif font-bold text-amber-900 text-sm leading-none mt-0.5">
-                    {activeChild.child_progress?.[0]?.level || 1}
-                 </p>
-               </div>
-            </div>
-          </div>
-        )}
-
-        {/* Student Turn Banner */}
-        {isMyTurn && (
-          <div className="relative z-10 bg-gradient-to-r from-amber-400 via-amber-300 to-amber-400 text-emerald-950 font-black px-6 py-4 flex items-center justify-center gap-3 shadow-md border-b-4 border-amber-500 animate-in slide-in-from-top shrink-0">
-             <div className="w-3 h-3 bg-red-500 rounded-full animate-pulse shadow-[0_0_10px_rgba(239,68,68,0.8)]" />
-             <span className="tracking-widest uppercase text-xl">Your Turn To Recite</span>
-          </div>
-        )}
-
-        <div className={`relative z-10 flex-1 flex flex-col md:flex-row bg-transparent ${userRole === 'scholar' ? 'pb-72' : ''} overflow-hidden`}>
-           {/* VIDEO PANE (Agora SDK) */}
-           {showVideo && currentSession?.agoraAppId && currentSession?.agoraToken && (
-             <div className={`${isVideoFullScreen ? 'fixed inset-0 z-[4500] bg-black' : 'w-full md:w-[40%] lg:w-[35%] h-[300px] md:h-full border-b md:border-b-0 md:border-r border-emerald-500/20'} relative flex flex-col bg-black transition-all duration-500`}>
-                <div className="absolute top-4 right-4 z-10 flex gap-2">
-                   <button 
-                     onClick={() => setIsVideoFullScreen(!isVideoFullScreen)}
-                     className="bg-black/50 hover:bg-black/80 text-white p-2 rounded-lg backdrop-blur-md border border-white/10 transition-all"
-                   >
-                     {isVideoFullScreen ? <Minimize2 size={20} /> : <Maximize2 size={20} />}
-                   </button>
-                </div>
-                <AgoraVideoPane
-                  appId={currentSession.agoraAppId}
-                  token={currentSession.agoraToken}
-                  channel={currentSession.channel || currentSession.batchId || ""}
-                  role={userRole === 'scholar' ? 'publisher' : 'subscriber'}
-                />
-                {!isVideoFullScreen && (
-                  <div className="absolute top-4 left-4 pointer-events-none z-10">
-                    <span className="bg-emerald-500/80 backdrop-blur-md text-white px-3 py-1 rounded-full text-[10px] font-black tracking-widest uppercase flex items-center gap-2">
-                       <div className="w-1.5 h-1.5 bg-white rounded-full animate-pulse" /> Live Call
-                    </span>
-                  </div>
-                )}
-             </div>
-           )}
-
-           {/* CONTENT PANE (Existing Features) */}
-           <div className={`flex-1 flex flex-col relative h-full overflow-hidden ${isVideoFullScreen ? 'hidden' : ''}`}>
-             {!hasPosition && userRole === 'scholar' ? (
-               <div className="absolute inset-0 flex items-center justify-center bg-transparent">
-                 <div className="text-center p-6">
-                   <div className="w-16 h-16 bg-white/10 rounded-full flex items-center justify-center mx-auto mb-4 animate-pulse">
-                     <BookOpen className="text-emerald-100" />
-                   </div>
-                   <h3 className="font-bold text-white">{t('live.studentSelecting', 'Student is selecting Ayah...')}</h3>
-                   <p className="text-sm text-emerald-200">{t('live.quranViewAppear', 'Quran view will appear soon.')}</p>
-                 </div>
-               </div>
-             ) : userRole === 'parent' && !isMyTurn ? (
-               <div className="absolute inset-0 flex flex-col items-center justify-start bg-transparent overflow-y-auto">
-                  <div className="w-full bg-[#022c22]/50 backdrop-blur-md border-b border-emerald-800/50 text-white p-8 md:p-12 shadow-xl relative overflow-hidden shrink-0">
-                     <div className="absolute top-0 right-0 w-64 h-64 bg-emerald-800 rounded-full blur-3xl opacity-50 -translate-y-1/2 translate-x-1/2" />
-                     <div className="absolute bottom-0 left-0 w-48 h-48 bg-teal-800 rounded-full blur-3xl opacity-30 translate-y-1/2 -translate-x-1/4" />
-                     
-                     <div className="relative z-10 flex flex-col items-center text-center">
-                       <div className="w-20 h-20 mb-6 rounded-full bg-emerald-800/50 flex items-center justify-center animate-pulse shadow-[0_0_30px_rgba(16,185,129,0.3)] ring-4 ring-emerald-700">
-                          <BookOpen className="text-emerald-300" size={32} />
-                       </div>
-                       <h3 className="font-serif text-3xl md:text-4xl font-bold text-white mb-3">Live Session Active</h3>
-                       <p className="text-emerald-200/80 max-w-md mx-auto text-sm md:text-base leading-relaxed">
-                          A classmate is currently reciting. Listen carefully, as you'll be prompted to evaluate them soon!
-                       </p>
-                     </div>
-                  </div>
-   
-                  <div className="w-full max-w-2xl px-4 py-8 md:py-12 flex-1 pb-40">
-                     <div className="flex items-center justify-between mb-6">
-                       <h4 className="font-bold text-xl text-white flex items-center gap-2">
-                          <Trophy className="text-amber-500" size={24} /> 
-                          Live Leaderboard
-                       </h4>
-                       <span className="text-[10px] font-bold text-emerald-600 bg-emerald-100 px-3 py-1 rounded-full uppercase tracking-wider flex items-center gap-1">
-                         <div className="w-1.5 h-1.5 bg-emerald-500 rounded-full animate-pulse" /> Live
-                       </span>
-                     </div>
-                     
-                     <div className="space-y-3">
-                        {leaderboard && leaderboard.length > 0 ? leaderboard.map((l, idx) => (
-                           <div key={l.childId} className="flex items-center justify-between p-4 rounded-2xl bg-emerald-950/40 backdrop-blur-md shadow-sm border border-emerald-800/50 hover:border-emerald-500/50 transition-all">
-                              <div className="flex items-center gap-4">
-                                 <span className="font-black text-lg text-emerald-500 w-6">#{idx + 1}</span>
-                                 <span className="font-bold text-emerald-50 truncate max-w-[120px]">{l.name}</span>
-                              </div>
-                              <div className="flex items-center gap-6">
-                                 <div className="text-right hidden sm:block">
-                                    <div className="text-[10px] text-emerald-300/60 font-bold uppercase tracking-wider">Recitation</div>
-                                    <div className="font-bold text-emerald-50">{l.recitationScore}</div>
-                                 </div>
-                                 <div className="text-right hidden sm:block">
-                                    <div className="text-[10px] text-emerald-300/60 font-bold uppercase tracking-wider">Evaluation</div>
-                                    <div className="font-bold text-emerald-50">{l.participationScore}</div>
-                                 </div>
-                                 <div className="font-black text-xl text-amber-300 bg-amber-500/20 border border-amber-500/30 px-4 py-1.5 rounded-lg w-16 text-center">
-                                    {l.total}
-                                 </div>
-                              </div>
+                  <div className="space-y-6">
+                     <div className="p-6 bg-white/[0.02] border border-white/5 rounded-3xl">
+                        <p className="text-[9px] text-gray-500 font-bold uppercase tracking-widest mb-6 text-center">Class Consensus</p>
+                        <div className="flex items-center justify-around gap-4 px-4">
+                           <div className="text-center">
+                              <span className="text-3xl font-black text-emerald-400">{batchState?.currentPromptAnswers?.filter(a => a.answer === 'yes').length || 0}</span>
+                              <p className="text-[9px] text-emerald-500/40 uppercase font-black tracking-tighter mt-1">Perfect</p>
                            </div>
-                        )) : (
-                           <div className="text-center py-12 bg-white/5 backdrop-blur-md rounded-3xl border border-dashed border-emerald-500/30">
-                              <Loader2 className="animate-spin mx-auto text-emerald-300 mb-2" size={24} />
-                              <p className="text-[10px] font-bold text-emerald-200/60 uppercase tracking-widest mt-2">Compiling Scores...</p>
+                           <div className="w-px h-10 bg-white/5" />
+                           <div className="text-center">
+                              <span className="text-3xl font-black text-red-400">{batchState?.currentPromptAnswers?.filter(a => a.answer === 'no').length || 0}</span>
+                              <p className="text-[9px] text-red-500/40 uppercase font-black tracking-tighter mt-1">Mistakes</p>
+                           </div>
+                        </div>
+                        
+                        {!batchState?.promptEvaluated && (batchState?.currentPromptAnswers?.length || 0) > 0 && (
+                           <div className="grid grid-cols-2 gap-2 mt-8">
+                              <button onClick={() => handleEvaluatePrompt('yes')} className="bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-400 py-3 rounded-xl font-black text-[9px] uppercase border border-emerald-500/20 transition-all">Confirm Perfect</button>
+                              <button onClick={() => handleEvaluatePrompt('no')} className="bg-red-500/10 hover:bg-red-500/20 text-red-400 py-3 rounded-xl font-black text-[9px] uppercase border border-red-500/20 transition-all">Confirm Mistake</button>
                            </div>
                         )}
                      </div>
+
+                     <div className="grid grid-cols-2 gap-3">
+                        <button onClick={() => handleScoreRecitation(batchState.activeChildId!, currentSession.batchId!, 3)} className="bg-emerald-500 hover:bg-emerald-400 text-black py-4 rounded-2xl font-black text-[10px] uppercase transition-all shadow-lg shadow-emerald-500/10 active:scale-95">Award +10 XP</button>
+                        <button onClick={() => handleScoreRecitation(batchState.activeChildId!, currentSession.batchId!, 2)} className="bg-amber-500 hover:bg-amber-400 text-black py-4 rounded-2xl font-black text-[10px] uppercase transition-all shadow-lg shadow-amber-500/10 active:scale-95">Award +7 XP</button>
+                        <button onClick={() => setShowAssignModal(true)} className="col-span-2 bg-indigo-500 hover:bg-indigo-400 text-white py-4 rounded-2xl font-black text-[10px] uppercase mt-4 flex items-center justify-center gap-2 transition-all active:scale-95"><BookOpen size={14}/> Setup Lesson</button>
+                     </div>
                   </div>
+
+                  <button onClick={() => setConfirmEndClass(currentSession.batchId!)} className="mt-auto w-full py-4 text-red-500/60 hover:text-red-400 font-black text-[10px] uppercase tracking-widest transition-colors">Terminate Classroom</button>
                </div>
-             ) : userRole === 'parent' && isMyTurn && !hasStartedReciting ? (
-               <div className="absolute inset-0 flex flex-col items-center justify-center bg-transparent p-4">
-                  <div className="bg-emerald-950/80 backdrop-blur-xl p-10 rounded-3xl shadow-[0_0_50px_rgba(16,185,129,0.15)] border border-emerald-500/30 text-center max-w-md w-full animate-in zoom-in-95 duration-300">
-                    <div className="w-20 h-20 bg-amber-500/20 text-amber-400 rounded-full flex items-center justify-center mx-auto mb-6 shadow-inner ring-4 ring-amber-500/20">
-                       <Mic size={36} />
-                    </div>
-                    <h3 className="font-bold text-2xl text-white mb-2">It's Your Turn!</h3>
-                    <p className="text-emerald-200/80 mb-8">The Scholar is ready for your recitation.</p>
-                    <button onClick={() => setHasStartedReciting(true)} className="w-full bg-gradient-to-r from-emerald-500 to-emerald-600 hover:from-emerald-400 hover:to-emerald-500 text-white py-4 rounded-xl font-black text-lg shadow-[0_0_20px_rgba(5,150,105,0.4)] transition-all active:scale-95 flex flex-col items-center justify-center gap-1">
-                       <span>RECITE NOW</span>
-                       <span className="text-[10px] uppercase font-bold text-emerald-100 opacity-80 tracking-widest">Open Quran</span>
-                    </button>
-                  </div>
-               </div>
-             ) : (
-               <div className="flex-1 flex flex-col h-full relative">
-                 <QuranPage
-                   onBack={handleExitSession}
-                   sessionCurrentSurah={currentSession.currentSurah}
-                   sessionCurrentAyah={currentSession.currentAyah}
-                   onAyahClick={handleAyahClick}
-                   onPositionChange={userRole === 'scholar' ? undefined : emitPosition}
-                   readOnly={userRole === 'scholar' || isObserving}
-                 />
-               </div>
-             )}
-           </div>
+            )}
          </div>
 
-          {/* Student Engagement Prompt */}
-          {isObserving && (
-            (() => {
-              const myAnswer = batchState?.currentPromptAnswers?.find(a => a.childId === currentSession.childId);
-              
-              if (batchState?.promptEvaluated) {
-                 return (
-                    <div className="absolute bottom-6 left-4 right-4 md:left-1/2 md:-translate-x-1/2 md:w-[400px] bg-emerald-950/90 text-white backdrop-blur-xl p-5 rounded-3xl shadow-2xl border-4 border-emerald-500/30 z-50 animate-in slide-in-from-bottom text-center">
-                       <span className="bg-emerald-500/20 text-emerald-300 px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest inline-block mb-2">Evaluated</span>
-                       <h4 className="font-bold text-xl text-white">The Scholar has checked the answers!</h4>
-                    </div>
-                 );
-              }
-
-              if (myAnswer) {
-                 return (
-                    <div className="absolute bottom-6 left-4 right-4 md:left-1/2 md:-translate-x-1/2 md:w-[400px] bg-emerald-950/90 text-white backdrop-blur-xl p-5 rounded-3xl shadow-2xl border-4 border-emerald-500/30 z-50 animate-in slide-in-from-bottom text-center">
-                       <span className="bg-amber-500/20 text-amber-300 px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest inline-block mb-2">Answer Submitted</span>
-                       <h4 className="font-bold text-xl text-white">Waiting for Scholar...</h4>
-                       <p className="text-sm font-bold mt-2 text-emerald-100">You guessed: {myAnswer.answer === 'yes' ? 'Perfect' : 'Mistake'}</p>
-                    </div>
-                 );
-              }
-
-              return (
-                <div className="absolute bottom-6 left-4 right-4 md:left-1/2 md:-translate-x-1/2 md:w-[400px] bg-emerald-950/90 text-white backdrop-blur-xl p-5 rounded-3xl shadow-2xl border-4 border-emerald-500/30 z-50 animate-in slide-in-from-bottom">
-                  <div className="mb-4">
-                    <span className="bg-amber-500/20 text-amber-300 px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest mb-3 inline-block">Observe & Answer</span>
-                    <h4 className="font-bold text-xl text-white leading-tight">Was the recitation correct?</h4>
-                    <p className="text-sm text-emerald-200/80 mt-1">Listen to your classmate closely.</p>
-                  </div>
-                  <div className="flex gap-3 mt-5">
-                     <button onClick={() => handleSubmitPrompt('yes')} className="flex-1 bg-green-500 hover:bg-green-600 shadow-green-500/20 shadow-lg text-white py-4 rounded-xl font-bold transition-transform active:scale-95 text-lg">Yes</button>
-                     <button onClick={() => handleSubmitPrompt('no')} className="flex-1 bg-red-500 hover:bg-red-600 shadow-red-500/20 shadow-lg text-white py-4 rounded-xl font-bold transition-transform active:scale-95 text-lg">No (Mistake)</button>
-                  </div>
-                </div>
-              );
-            })()
-          )}
-
-          {userRole === 'scholar' && (
-            <div className="absolute bottom-6 left-1/2 -translate-x-1/2 bg-black/80 text-white px-6 py-3 rounded-full backdrop-blur-md shadow-2xl border border-white/10 z-50">
-              <p className="text-xs font-bold uppercase tracking-widest flex items-center gap-2">
-                <span className="w-2 h-2 bg-green-500 rounded-full animate-pulse" />
-                {t('live.liveSyncActive')}
-              </p>
+         {isMobile && batchState?.activeChildId && (
+            <div className="fixed bottom-0 left-0 right-0 p-6 bg-black/80 backdrop-blur-3xl border-t border-white/5 rounded-t-[3rem] z-30 flex items-center gap-4 animate-in slide-in-from-bottom duration-500">
+                <button onClick={() => handleScoreRecitation(batchState.activeChildId!, currentSession.batchId!, 3)} className="bg-emerald-500 text-black px-8 py-5 rounded-3xl font-black text-[10px] uppercase grow shadow-2xl">Award XP</button>
+                <button onClick={() => setShowAssignModal(true)} className="bg-white/10 text-white px-8 py-5 rounded-3xl font-black text-[10px] uppercase grow border border-white/10">Lesson</button>
             </div>
-          )}
-          
-          {confirmEndClass && (
-            <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-in fade-in">
-              <div className="bg-[#022c22]/90 backdrop-blur-xl rounded-3xl p-8 max-w-sm w-full text-center shadow-[0_0_50px_rgba(239,68,68,0.2)] border border-red-500/30">
-                 <div className="w-16 h-16 bg-red-500/20 text-red-400 rounded-full flex items-center justify-center mx-auto mb-4 border border-red-500/30 shadow-inner">
-                   <LogOut size={32} />
-                 </div>
-                 <h3 className="font-bold text-2xl text-white mb-2">End Session?</h3>
-                 <p className="text-emerald-100/80 mb-6 text-sm">Are you sure you want to end this live class? This restricts student access and awards final attendance XP.</p>
-                 <div className="flex gap-3">
-                   <button onClick={() => setConfirmEndClass(null)} className="flex-1 bg-white/10 hover:bg-white/20 text-white font-bold py-3 rounded-xl transition-all">Cancel</button>
-                   <button onClick={() => { handleEndClass(confirmEndClass); setConfirmEndClass(null); }} className="flex-1 bg-gradient-to-r from-red-500 to-red-600 hover:from-red-400 hover:to-red-500 text-white font-bold py-3 rounded-xl shadow-[0_0_15px_rgba(239,68,68,0.4)] transition-all">Yes, End Class</button>
-                 </div>
+         )}
+      </div>
+    );
+  };
+
+  const renderRecitationStage = () => {
+    if (!currentSession) return null;
+    return (
+      <div className="flex flex-col h-full bg-[#0c0c0c] relative">
+         <div className="p-8 pb-2 flex items-center justify-between z-20">
+            <div className="flex items-center gap-5">
+               <div className="w-12 h-12 rounded-full bg-emerald-500 text-black flex items-center justify-center shadow-lg shadow-emerald-500/20">
+                  <Mic size={24} />
+               </div>
+               <div>
+                  <h3 className="text-white font-black uppercase text-sm tracking-widest mb-0.5">Live Recitation</h3>
+                  <p className="text-emerald-500/60 text-[10px] font-bold uppercase tracking-widest">Scholar is listening carefully</p>
                </div>
             </div>
-          )}
-        </div>
+            <div className="bg-emerald-950/40 px-6 py-3 rounded-2xl border border-emerald-500/20 flex flex-col items-center">
+               <span className="text-[9px] text-emerald-500/40 uppercase font-black tracking-widest leading-none">Class Points</span>
+               <span className="text-2xl font-black text-emerald-400 mt-1">{currentSessionScore}</span>
+            </div>
+         </div>
+
+         <div className="flex-1 relative p-6 mb-4">
+            <div className="w-full h-full bg-[#fdfaf3] rounded-[3.5rem] overflow-hidden shadow-[0_50px_100px_-20px_rgba(0,0,0,0.5)] border border-black/5 relative">
+               <QuranPage
+                 onBack={handleExitSession}
+                 sessionCurrentSurah={currentSession.currentSurah}
+                 sessionCurrentAyah={currentSession.currentAyah}
+                 onAyahClick={handleAyahClick}
+                 onPositionChange={emitPosition}
+                 readOnly={false}
+               />
+               <div className="absolute top-10 right-10 w-48 md:w-72 aspect-video z-30 shadow-3xl rounded-3xl overflow-hidden group border border-amber-900/20 transition-transform duration-500 hover:scale-105">
+                  <AgoraVideoPane
+                    appId={currentSession.agoraAppId || ""}
+                    token={currentSession.agoraToken || ""}
+                    channel={currentSession.channel || currentSession.batchId || ""}
+                    uid={user?.id || 0}
+                    role="student"
+                    layout="inset"
+                  />
+                  <div className="absolute inset-x-0 bottom-0 py-2 bg-gradient-to-t from-black/80 to-transparent flex justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+                     <span className="text-[10px] text-white font-black uppercase tracking-widest">Scholar Monitor</span>
+                  </div>
+               </div>
+            </div>
+         </div>
+      </div>
     );
-  }
-  // RENDER: LOBBY (Scholar or Parent/Kid)
+  };
+
+  const renderObservationStage = () => {
+    if (!currentSession) return null;
+    return (
+      <div className="flex flex-col h-full bg-[#040404]">
+         <div className="p-8 pb-4 flex items-center justify-between z-20">
+            <div className="flex flex-col">
+               <h3 className="text-white font-black uppercase text-sm tracking-widest mb-1 leading-none">Observer Mode</h3>
+               <p className="text-emerald-500/50 text-[10px] font-bold uppercase tracking-widest">A classmate is currently reciting</p>
+            </div>
+            {leaderboard && (
+               <button onClick={() => setActiveDrawer('leaderboard')} className="flex items-center gap-4 px-6 py-3 bg-amber-500/10 border border-amber-500/20 rounded-2xl hover:bg-amber-500/20 transition-all group">
+                  <Trophy size={18} className="text-amber-500 group-hover:scale-110 transition-transform" />
+                  <span className="text-[10px] text-amber-500 font-black uppercase tracking-widest">Leaderboard</span>
+               </button>
+            )}
+         </div>
+
+         <div className="flex-1 p-6 flex flex-col md:flex-row gap-6 overflow-hidden mb-12 md:mb-0">
+            <div className="flex-[3] bg-black rounded-[3.5rem] overflow-hidden border border-white/5 shadow-2xl relative">
+               <AgoraVideoPane
+                 appId={currentSession.agoraAppId || ""}
+                 token={currentSession.agoraToken || ""}
+                 channel={currentSession.channel || currentSession.batchId || ""}
+                 uid={user?.id || 0}
+                 role="student"
+                 layout="spotlight"
+               />
+               <div className="absolute top-10 left-10 py-2 px-5 bg-emerald-500/10 backdrop-blur-3xl border border-emerald-500/30 rounded-full flex items-center gap-3 animate-pulse">
+                  <div className="w-2 h-2 bg-emerald-500 rounded-full" />
+                  <span className="text-[10px] text-emerald-400 font-black uppercase tracking-widest">Scholar Main Stream</span>
+               </div>
+            </div>
+
+            {!isMobile && (
+               <div className="flex-1 bg-white/[0.02] border border-white/5 rounded-[3.5rem] p-10 flex flex-col shadow-inner">
+                  <h4 className="text-[10px] text-gray-500 font-black uppercase tracking-[0.3em] mb-10 text-center">Class Activity</h4>
+                  <div className="space-y-4 overflow-y-auto no-scrollbar">
+                     {leaderboard?.slice(0, 6).map((l, idx) => (
+                        <div key={l.childId} className="flex items-center justify-between p-5 bg-white/5 rounded-3xl border border-white/5 group hover:border-emerald-500/30 transition-all">
+                           <div className="flex items-center gap-4 text-xs font-bold text-white/70">
+                              <span className="font-black text-emerald-500 w-4">#{idx+1}</span>
+                              <span className="truncate max-w-[100px]">{l.name}</span>
+                           </div>
+                           <span className="text-xs font-black text-amber-400 group-hover:scale-110 transition-transform">{l.total} XP</span>
+                        </div>
+                     ))}
+                  </div>
+               </div>
+            )}
+         </div>
+
+         <div className="fixed bottom-10 left-1/2 -translate-x-1/2 w-full max-w-md px-8 z-50">
+            {batchState?.activeChildId && batchState.activeChildId !== currentSession.childId && (
+               (() => {
+                 const myAnswer = batchState?.currentPromptAnswers?.find(a => a.childId === currentSession.childId);
+                 if (batchState?.promptEvaluated || myAnswer) {
+                    return (
+                        <div className="bg-[#111]/90 backdrop-blur-3xl p-8 rounded-[3rem] border border-emerald-500/20 shadow-3xl text-center flex flex-col items-center gap-4 animate-in slide-in-from-bottom-12 duration-700">
+                          <div className="w-16 h-16 bg-emerald-500/10 rounded-full flex items-center justify-center border border-emerald-500/20">
+                             <CheckCircle className="text-emerald-500" size={36} />
+                          </div>
+                          <div>
+                            <h4 className="text-white font-black text-base uppercase tracking-tight">Active Engagement!</h4>
+                            <p className="text-[10px] text-white/30 font-black uppercase tracking-[0.1em] mt-1">Class participation XP added</p>
+                          </div>
+                       </div>
+                    );
+                 }
+                 return (
+                    <div className="bg-[#111]/90 backdrop-blur-3xl p-10 rounded-[3rem] border border-white/10 shadow-[0_50px_100px_-30px_rgba(0,0,0,0.8)] animate-in slide-in-from-bottom-12 duration-700">
+                       <h4 className="text-center text-white/50 font-black uppercase text-[10px] tracking-[0.3em] mb-10">Listen and Evaluate</h4>
+                       <div className="flex gap-4">
+                          <button onClick={() => handleSubmitPrompt('yes')} className="flex-1 bg-emerald-500 hover:bg-emerald-400 p-6 rounded-3xl flex flex-col items-center gap-3 transition-all active:scale-90 shadow-2xl shadow-emerald-500/10 group">
+                             <CheckCircle size={32} className="text-black transition-transform group-hover:scale-110" />
+                             <span className="text-[10px] font-black text-black">PERFECT</span>
+                          </button>
+                          <button onClick={() => handleSubmitPrompt('no')} className="flex-1 bg-white/5 hover:bg-white/10 border border-white/10 p-6 rounded-3xl flex flex-col items-center gap-3 transition-all active:scale-90 group">
+                             <XCircle size={28} className="text-red-500 transition-transform group-hover:scale-110" />
+                             <span className="text-[10px] font-black text-white/80">MISTAKE</span>
+                          </button>
+                       </div>
+                    </div>
+                 );
+               })()
+            )}
+         </div>
+      </div>
+    );
+  };
+
+  const renderMainStage = () => {
+    if (!currentSession) return null;
+    const isMyTurn = userRole === 'parent' && batchState?.activeChildId === currentSession.childId;
+    if (userRole === 'scholar') return renderScholarStage();
+    if (isMyTurn) return renderRecitationStage();
+    return renderObservationStage();
+  };
+
+  // -------------------------------------------------------------------
+  // 🏁 MAIN RENDER
+  // -------------------------------------------------------------------
+
   if (userRole === 'loading') {
     return (
-       <div className="fixed inset-0 bg-[#022c22] flex items-center justify-center">
-          <div className="text-center">
-             <Loader2 className="animate-spin text-emerald-400 mx-auto mb-4" size={48} />
-             <p className="text-emerald-200 font-bold tracking-widest uppercase text-xs">Entering Tarbiyah...</p>
+       <div className="fixed inset-0 bg-[#040404] flex items-center justify-center">
+          <div className="text-center space-y-8">
+             <div className="w-20 h-20 border-4 border-emerald-500/5 border-t-emerald-500 rounded-full animate-spin mx-auto shadow-[0_0_40px_-10px_rgba(16,185,129,0.3)]" />
+             <div className="space-y-2">
+                <h2 className="text-white font-black tracking-[0.4em] uppercase text-xs animate-pulse">Initializing Live Session</h2>
+                <p className="text-emerald-500/40 text-[9px] font-medium uppercase tracking-widest">Connecting to Tarbiyah Cloud...</p>
+             </div>
           </div>
        </div>
+    );
+  }
+
+  if (currentSession) {
+    return (
+      <div className="fixed inset-0 z-[1000] bg-[#020202] flex flex-col font-sans selection:bg-emerald-500/20 overflow-hidden text-white">
+        {/* ULTRA-GLASS HEADER */}
+        <div className="flex-none h-16 bg-black/40 backdrop-blur-3xl border-b border-white/5 px-8 flex items-center justify-between z-50">
+           <div className="flex items-center gap-8">
+              <div className="flex items-center gap-3">
+                 <div className="w-8 h-8 rounded-xl bg-emerald-500/10 flex items-center justify-center border border-emerald-500/20">
+                    <Cloud className="text-emerald-500" size={16} />
+                 </div>
+                 <div className="flex flex-col">
+                    <span className="text-[10px] text-white font-black uppercase tracking-widest leading-none">Imam Live</span>
+                    <span className="text-[8px] text-emerald-500/60 font-bold uppercase tracking-tighter mt-1">v4.0.0 Stable</span>
+                 </div>
+              </div>
+              <div className="h-5 w-px bg-white/5 hidden md:block" />
+              <div className="hidden md:flex items-center gap-4">
+                 <div className="flex items-center gap-2">
+                    <Wifi size={14} className="text-emerald-500" />
+                    <span className="text-[9px] font-black uppercase tracking-widest">Real-time Sync Active</span>
+                 </div>
+              </div>
+           </div>
+
+           <div className="flex items-center gap-5">
+              <button 
+                onClick={handleExitSession}
+                className="group flex items-center gap-4 bg-white/5 hover:bg-white/10 text-white/60 hover:text-white border border-white/10 px-6 py-2.5 rounded-2xl transition-all active:scale-95"
+              >
+                <LogOut size={16} className="group-hover:-translate-x-1 transition-transform" />
+                <span className="text-[9px] font-black uppercase tracking-widest">Exit Stream</span>
+              </button>
+           </div>
+        </div>
+
+        <div className="flex-1 relative overflow-hidden">
+            {renderMainStage()}
+        </div>
+
+        {/* MODALS & DRAWERS */}
+        {showAssignModal && currentSession?.batchId && (
+          <div className="fixed inset-0 z-[6000] bg-black/95 backdrop-blur-3xl flex items-center justify-center p-6 animate-in fade-in duration-500">
+             <div className="w-full max-w-6xl h-[90vh] bg-[#0a0a0a] border border-white/10 rounded-[4rem] shadow-3xl overflow-hidden relative animate-in zoom-in-95">
+                <ScholarQuranManager 
+                  batchId={currentSession.batchId} 
+                  batchName="Curriculum Management" 
+                  onClose={() => setShowAssignModal(false)}
+                />
+             </div>
+          </div>
+        )}
+
+        {confirmEndClass && (
+          <div className="fixed inset-0 z-[7000] bg-black/90 backdrop-blur-3xl flex items-center justify-center p-8">
+            <div className="bg-[#0c0c0c] border border-white/10 rounded-[3.5rem] p-16 max-w-md w-full text-center shadow-3xl animate-in zoom-in-95 duration-500">
+               <div className="w-24 h-24 bg-red-500/10 text-red-500 rounded-full flex items-center justify-center mx-auto mb-10 border border-red-500/20 shadow-inner">
+                 <LogOut size={40} />
+               </div>
+               <h3 className="text-3xl font-black text-white mb-4">Class Termination</h3>
+               <p className="text-white/30 text-sm mb-12 uppercase tracking-wide leading-relaxed">Are you sure you want to dismiss the session for all participants?</p>
+               <div className="flex gap-4">
+                 <button onClick={() => setConfirmEndClass(null)} className="flex-1 bg-white/5 hover:bg-white/10 text-white font-black py-5 rounded-3xl transition-all uppercase text-[10px] tracking-widest">Stay Live</button>
+                 <button onClick={() => { handleEndClass(confirmEndClass); setConfirmEndClass(null); }} className="flex-1 bg-red-500 hover:bg-red-400 text-black font-black py-5 rounded-3xl shadow-2xl shadow-red-500/30 transition-all uppercase text-[10px] tracking-widest">End Session</button>
+               </div>
+             </div>
+          </div>
+        )}
+
+        {activeDrawer === 'leaderboard' && (
+           <div className="fixed inset-0 z-[5000] bg-black/60 backdrop-blur-sm animate-in fade-in" onClick={() => setActiveDrawer('none')}>
+              <div 
+                className="absolute bottom-0 left-0 right-0 max-h-[85vh] bg-[#0c0c0c] border-t border-white/10 rounded-t-[4rem] p-12 overflow-hidden animate-in slide-in-from-bottom duration-700 shadow-3xl flex flex-col"
+                onClick={e => e.stopPropagation()}
+              >
+                 <div className="w-16 h-2 bg-white/10 rounded-full mx-auto mb-12 shrink-0" />
+                 <div className="flex items-center justify-between mb-12 shrink-0">
+                    <h2 className="text-3xl font-black text-white flex items-center gap-5">
+                       <Trophy className="text-amber-500" size={32} />
+                       Class Leaderboard
+                    </h2>
+                    <button onClick={() => setActiveDrawer('none')} className="text-white/20 hover:text-white transition-colors">
+                       <XCircle size={40} />
+                    </button>
+                 </div>
+                 <div className="flex-1 overflow-y-auto no-scrollbar space-y-4 pb-12">
+                    {leaderboard?.map((l, idx) => (
+                       <div key={idx} className="flex items-center justify-between p-8 bg-white/[0.03] rounded-[2.5rem] border border-white/5 group hover:border-emerald-500/20 transition-all">
+                          <div className="flex items-center gap-7">
+                             <span className={`text-2xl font-black ${idx < 3 ? 'text-amber-400' : 'text-emerald-500'}`}>0{idx+1}</span>
+                             <div className="flex flex-col">
+                                <span className="font-black text-white/90 text-lg uppercase tracking-tight">{l.name}</span>
+                                <span className="text-[10px] text-white/30 font-bold uppercase tracking-widest mt-1">Session Active</span>
+                             </div>
+                          </div>
+                          <div className="bg-amber-400 text-black px-6 py-2.5 rounded-2xl font-black text-base shadow-xl shadow-amber-400/10">
+                             {l.total} XP
+                          </div>
+                       </div>
+                    ))}
+                    {(!leaderboard || leaderboard.length === 0) && (
+                       <div className="text-center py-20 bg-white/5 border border-dashed border-white/10 rounded-[3rem]">
+                          <Loader2 className="animate-spin text-emerald-500/40 mx-auto mb-4" size={40} />
+                          <p className="text-[10px] font-black text-white/20 uppercase tracking-[0.3em]">Synching Participant Metadata</p>
+                       </div>
+                    )}
+                 </div>
+              </div>
+           </div>
+        )}
+      </div>
     );
   }
 

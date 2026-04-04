@@ -1,4 +1,8 @@
 import User from "../models/User.js";
+import Batch from "../models/Batch.js";
+import Session from "../models/Session.js";
+import Child from "../models/Child.js";
+import { generateAgoraToken } from "../services/agoraService.js";
 import { trackEvent } from "../services/analyticsService.js";
 import { isRootAdmin, SCHOLAR_EMAILS } from "../utils/constants.js";
 
@@ -276,8 +280,6 @@ export const getBatchSessions = async (req, res) => {
 export const startBatch = async (req, res) => {
     try {
         const { id } = req.params;
-        const { default: Batch } = await import("../models/Batch.js");
-        const { default: Session } = await import("../models/Session.js");
 
         let batch = await Batch.findById(id);
         if (batch && batch.status === 'active' && batch.activeSessionId) {
@@ -329,7 +331,6 @@ export const startBatch = async (req, res) => {
             }
         }, { new: true });
 
-        const { generateAgoraToken } = await import("../services/agoraService.js");
         const AGORA_APP_ID = process.env.AGORA_APP_ID;
         const agoraToken = generateAgoraToken(id, 0, 'publisher');
 
@@ -352,11 +353,6 @@ export const joinBatch = async (req, res) => {
         const { id } = req.params;
         const { childId } = req.body;
         const clerkId = req.auth.userId;
-
-        const { default: Batch } = await import("../models/Batch.js");
-        const { default: Session } = await import("../models/Session.js");
-        const { default: Child } = await import("../models/Child.js");
-        const { default: User } = await import("../models/User.js");
 
         const user = await User.findOne({ clerkId });
         const child = await Child.findById(childId);
@@ -406,7 +402,6 @@ export const joinBatch = async (req, res) => {
         }
 
         // Generate Agora Token for student (subscriber)
-        const { generateAgoraToken } = await import("../services/agoraService.js");
         const AGORA_APP_ID = process.env.AGORA_APP_ID;
         const agoraToken = generateAgoraToken(id, 0, 'subscriber');
 
@@ -437,7 +432,6 @@ export const getMySessions = async (req, res) => {
 
         if (!user) return res.status(404).json({ message: "User not found" });
 
-        const { default: Batch } = await import("../models/Batch.js");
         let batches = [];
 
         if (user.role === 'scholar' || user.role === 'admin') {
@@ -451,7 +445,6 @@ export const getMySessions = async (req, res) => {
             }).populate('scholar', 'name').sort({ createdAt: -1 });
 
             // Also get batches where THEIR own children are enrolled (for admins who are parents)
-            const { default: Child } = await import("../models/Child.js");
             const children = await Child.find({ parent_id: user._id });
             const childIds = children.map(c => c._id);
             const enrolledBatches = await Batch.find({
@@ -469,7 +462,6 @@ export const getMySessions = async (req, res) => {
             }
         } else {
             // Parent: Find batches where their children are enrolled
-            const { default: Child } = await import("../models/Child.js");
             const children = await Child.find({ parent_id: user._id });
             const childIds = children.map(c => c._id);
 
@@ -479,9 +471,6 @@ export const getMySessions = async (req, res) => {
             }).populate('scholar', 'name').sort({ createdAt: -1 });
         }
 
-        const { default: Session } = await import("../models/Session.js");
-
-        const { generateAgoraToken } = await import("../services/agoraService.js");
         const AGORA_APP_ID = process.env.AGORA_APP_ID;
 
         // Map to Frontend Expected Format (LiveSession equivalent for list view)
@@ -1094,8 +1083,6 @@ export const getGlobalLeaderboard = async (req, res) => {
 // GET /api/live/scholar/batches
 export const getScholarBatches = async (req, res) => {
     try {
-        const { default: Batch } = await import("../models/Batch.js");
-        const { default: Session } = await import("../models/Session.js");
         const clerkId = req.auth.userId;
         const user = await User.findOne({ clerkId });
 
@@ -1137,7 +1124,6 @@ export const getScholarBatches = async (req, res) => {
             .populate('scholar', 'name email')
             .sort({ createdAt: -1 });
 
-        const { generateAgoraToken } = await import("../services/agoraService.js");
         const AGORA_APP_ID = process.env.AGORA_APP_ID;
 
         // Map to the same frontend-expected shape as getMySessions

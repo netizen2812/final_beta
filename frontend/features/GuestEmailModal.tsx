@@ -9,7 +9,6 @@ interface GuestEmailModalProps {
 
 export const GuestEmailModal: React.FC<GuestEmailModalProps> = ({ isOpen, onClose, onConfirm }) => {
   const [email, setEmail] = useState('');
-  const [phone, setPhone] = useState('');
   const [error, setError] = useState('');
 
   if (!isOpen) return null;
@@ -20,7 +19,7 @@ export const GuestEmailModal: React.FC<GuestEmailModalProps> = ({ isOpen, onClos
       setError('Please enter a valid email address');
       return;
     }
-    onConfirm(email, phone);
+    onConfirm(email, undefined);
   };
 
   return (
@@ -42,7 +41,7 @@ export const GuestEmailModal: React.FC<GuestEmailModalProps> = ({ isOpen, onClos
               <Mail size={32} />
            </div>
            <h3 className="text-3xl font-serif font-bold text-white mb-2 italic">Join the Caravan</h3>
-           <p className="text-emerald-200/60 text-sm">Provide your email to secure your lifetime spot in the first batch.</p>
+           <p className="text-emerald-200/60 text-sm">Provide your email to secure your spot in the first batch.</p>
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-6">
@@ -60,20 +59,6 @@ export const GuestEmailModal: React.FC<GuestEmailModalProps> = ({ isOpen, onClos
                  />
               </div>
               {error && <p className="text-red-400 text-[10px] font-bold uppercase tracking-tight mt-1 ml-2">{error}</p>}
-           </div>
-
-           <div className="space-y-2">
-              <label className="text-[10px] uppercase font-black tracking-widest text-emerald-500/50 ml-2">Phone (Optional)</label>
-              <div className="relative group">
-                 <Phone className="absolute left-4 top-1/2 -translate-y-1/2 text-emerald-500/40 group-focus-within:text-emerald-400 transition-colors" size={18} />
-                 <input 
-                   type="tel" 
-                   value={phone}
-                   onChange={e => setPhone(e.target.value)}
-                   placeholder="+91 00000 00000"
-                   className="w-full bg-[#031d0e] border border-emerald-900/50 focus:border-emerald-500/50 rounded-2xl py-4 pl-12 pr-4 text-white placeholder:text-white/10 outline-none transition-all shadow-inner"
-                 />
-              </div>
            </div>
 
            <div className="pt-4">

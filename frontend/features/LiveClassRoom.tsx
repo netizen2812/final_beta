@@ -566,19 +566,7 @@ const LiveClassRoom: React.FC = () => {
   // 🏁 MAIN RENDER
   // -------------------------------------------------------------------
 
-  if (userRole === 'loading') {
-    return (
-       <div className="fixed inset-0 bg-[#040404] flex items-center justify-center">
-          <div className="text-center space-y-8">
-             <div className="w-20 h-20 border-4 border-emerald-500/5 border-t-emerald-500 rounded-full animate-spin mx-auto shadow-[0_0_40px_-10px_rgba(16,185,129,0.3)]" />
-             <div className="space-y-2">
-                <h2 className="text-white font-black tracking-[0.4em] uppercase text-xs animate-pulse">Initializing Live Session</h2>
-                <p className="text-emerald-500/40 text-[9px] font-medium uppercase tracking-widest">Connecting to Tarbiyah Cloud...</p>
-             </div>
-          </div>
-       </div>
-    );
-  }
+
 
   if (currentSession) {
     return (

@@ -137,7 +137,7 @@ const LiveClassRoom: React.FC = () => {
   const { user } = useUser();
   const { t } = useTranslation();
 
-  const [userRole, setUserRole] = useState<'parent' | 'scholar'>('parent');
+  const [userRole, setUserRole] = useState<'parent' | 'scholar' | 'loading'>('loading');
   const [isLoading, setIsLoading] = useState(false);
   const [scholarStatus, setScholarStatus] = useState<ScholarStatus>({ online: false, scholarName: "Scholar" });
   const [statusLoading, setStatusLoading] = useState(true);
@@ -182,14 +182,21 @@ const LiveClassRoom: React.FC = () => {
 
   // Determine Role & Check Access
   useEffect(() => {
+    if (!user) {
+       // Wait for clerk user to load
+       return;
+    }
+
     const role = user?.publicMetadata?.role;
     const email = user?.primaryEmailAddress?.emailAddress?.toLowerCase();
 
     const rootAdmins = ["sarthakjuneja1999@gmail.com", "huzaifbarkati0@gmail.com", "abhi.nebhani@gmail.com"];
     const isAdminRole = role === 'admin' || (email && rootAdmins.includes(email));
+    
+    // 🔥 CHANGE: Scholar1 is a scholar, but Admin is NOT a scholar in Tarbiyah view anymore.
+    // Admin is a basic user (parent) here, but with admin dashboard access elsewhere.
     const isScholarOnly = email === "scholar1.imam@gmail.com";
-    // Admins are effectively scholars for data sync purposes
-    const isScholarRole = role === 'scholar' || isScholarOnly || isAdminRole;
+    const isScholarRole = role === 'scholar' || isScholarOnly;
 
     if (isScholarRole) {
       setUserRole('scholar');
@@ -198,7 +205,7 @@ const LiveClassRoom: React.FC = () => {
       checkAccess();
     }
     
-    // We'll pass an extra prop to TarbiyahLobby to allow Admins to see all views
+    // We'll still pass tarbiyahIsAdmin for debugging or special overrides if needed
     setTarbiyahIsAdmin(isAdminRole);
   }, [user, getToken]);
 
@@ -623,7 +630,9 @@ const LiveClassRoom: React.FC = () => {
       currentSurah: null,
       currentAyah: null,
       status: 'active',
-      dailyRoomName: batch.dailyRoomName
+      dailyRoomName: batch.dailyRoomName,
+      agoraToken: batch.agoraToken,
+      agoraAppId: batch.agoraAppId
     });
     setBatchState({
         activeChildId: batch.activeChildId || null,
@@ -1203,6 +1212,17 @@ const LiveClassRoom: React.FC = () => {
     );
   }
   // RENDER: LOBBY (Scholar or Parent/Kid)
+  if (userRole === 'loading') {
+    return (
+       <div className="fixed inset-0 bg-[#022c22] flex items-center justify-center">
+          <div className="text-center">
+             <Loader2 className="animate-spin text-emerald-400 mx-auto mb-4" size={48} />
+             <p className="text-emerald-200 font-bold tracking-widest uppercase text-xs">Entering Tarbiyah...</p>
+          </div>
+       </div>
+    );
+  }
+
   return (
     <TarbiyahLobby 
       getToken={getToken} 

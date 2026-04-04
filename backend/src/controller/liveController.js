@@ -329,7 +329,17 @@ export const startBatch = async (req, res) => {
             }
         }, { new: true });
 
-        res.json({ message: "Batch started", activeSessionId: session._id, dailyRoomName: batch.dailyRoomName });
+        const { generateAgoraToken } = await import("../services/agoraService.js");
+        const AGORA_APP_ID = process.env.AGORA_APP_ID;
+        const agoraToken = generateAgoraToken(id, 0, 'publisher');
+
+        res.json({ 
+            message: "Batch started", 
+            activeSessionId: session._id, 
+            dailyRoomName: batch.dailyRoomName,
+            agoraToken: agoraToken || null,
+            agoraAppId: AGORA_APP_ID || null
+        });
     } catch (error) {
         console.error("Start batch error:", error);
         res.status(500).json({ message: "Server error" });
@@ -395,6 +405,11 @@ export const joinBatch = async (req, res) => {
             );
         }
 
+        // Generate Agora Token for student (subscriber)
+        const { generateAgoraToken } = await import("../services/agoraService.js");
+        const AGORA_APP_ID = process.env.AGORA_APP_ID;
+        const agoraToken = generateAgoraToken(id, 0, 'subscriber');
+
         res.json({ 
             success: true, 
             session: {
@@ -403,7 +418,9 @@ export const joinBatch = async (req, res) => {
                 childId,
                 status: batch.status,
                 title: batch.name,
-                dailyRoomName: batch.dailyRoomName
+                dailyRoomName: batch.dailyRoomName,
+                agoraToken: agoraToken || null,
+                agoraAppId: AGORA_APP_ID || null
             } 
         });
     } catch (error) {
@@ -464,14 +481,21 @@ export const getMySessions = async (req, res) => {
 
         const { default: Session } = await import("../models/Session.js");
 
+        const { generateAgoraToken } = await import("../services/agoraService.js");
+        const AGORA_APP_ID = process.env.AGORA_APP_ID;
+
         // Map to Frontend Expected Format (LiveSession equivalent for list view)
         const mappedSessions = await Promise.all(batches.map(async b => {
             let activeParticipants = [];
+            let agoraToken = null;
             if (b.activeSessionId) {
                  const session = await Session.findById(b.activeSessionId);
                  if (session && session.status === 'live') {
-                     activeParticipants = session.attendance
-                        .filter(p => p.isActive)
+                     // Generate token for student (subscriber)
+                     agoraToken = generateAgoraToken(b._id.toString(), 0, 'subscriber');
+
+                     activeParticipants = (session.attendance || [])
+                        .filter(p => p && p.isActive)
                         .map(p => ({
                             childId: p.childId,
                             childName: p.childName,
@@ -492,6 +516,8 @@ export const getMySessions = async (req, res) => {
                 activeSessionId: b.activeSessionId, 
                 activeParticipants: activeParticipants,
                 dailyRoomName: b.dailyRoomName,
+                agoraToken: agoraToken || null,
+                agoraAppId: AGORA_APP_ID || null,
                 pastSessions: b.pastSessions || [],
                 students: (b.students || []).map(s => s._id || s)
             };
@@ -1073,28 +1099,59 @@ export const getScholarBatches = async (req, res) => {
         const clerkId = req.auth.userId;
         const user = await User.findOne({ clerkId });
 
-        let query = {};
-        if (user && user.role !== 'admin' && !isRootAdmin(user.email)) {
-            query = { 
-                $or: [
-                    { scholar: user._id },
-                    { scholarEmail: user.email }
-                ]
-            };
+        // Resolve email from Clerk if user not in DB yet
+        let userEmail = user?.email?.toLowerCase() || null;
+        if (!userEmail) {
+            try {
+                const { clerkClient } = await import('@clerk/clerk-sdk-node');
+                const clerkUser = await clerkClient.users.getUser(clerkId);
+                userEmail = clerkUser.emailAddresses?.[0]?.emailAddress?.toLowerCase() || null;
+            } catch (e) {
+                console.warn('[getScholarBatches] Clerk email lookup failed:', e.message);
+            }
         }
+
+        // 🔥 REVISE: Only root admins see everything. Regular admins only see batches assigned to them.
+        const isRoot = isRootAdmin(userEmail);
+        const isAdminProfile = user?.role === 'admin';
+
+        let query = {};
+        if (!isRoot) {
+            // Build OR query: match by MongoDB user._id OR by email stored in batch
+            const orClauses = [];
+            if (user?._id) orClauses.push({ scholar: user._id });
+            if (userEmail) orClauses.push({ scholarEmail: userEmail });
+            
+            if (orClauses.length > 0) {
+                query = { $or: orClauses };
+            } else {
+                // No scholar ID or email? Return nothing (safe)
+                return res.json({ batches: [] });
+            }
+        }
+        // root admins: query = {} → all batches
+
+        console.log(`[getScholarBatches] user=${userEmail} isRoot=${isRoot} query=${JSON.stringify(query)}`);
 
         const rawBatches = await Batch.find(query)
             .populate('scholar', 'name email')
             .sort({ createdAt: -1 });
 
+        const { generateAgoraToken } = await import("../services/agoraService.js");
+        const AGORA_APP_ID = process.env.AGORA_APP_ID;
+
         // Map to the same frontend-expected shape as getMySessions
         const batches = await Promise.all(rawBatches.map(async (b) => {
             let activeParticipants = [];
+            let agoraToken = null;
             if (b.activeSessionId) {
                 const session = await Session.findById(b.activeSessionId);
                 if (session && session.status === 'live') {
-                    activeParticipants = session.attendance
-                        .filter(p => p.isActive)
+                    // Generate token for scholar (publisher role)
+                    agoraToken = generateAgoraToken(b._id.toString(), 0, 'publisher');
+
+                    activeParticipants = (session.attendance || [])
+                        .filter(p => p && p.isActive)
                         .map(p => ({
                             childId: p.childId,
                             childName: p.childName,
@@ -1117,6 +1174,8 @@ export const getScholarBatches = async (req, res) => {
                 activeChildId: b.activeChildId || null,
                 activeParticipants,
                 dailyRoomName: b.dailyRoomName,
+                agoraToken: agoraToken || null,
+                agoraAppId: AGORA_APP_ID || null,
                 pastSessions: b.pastSessions || [],
                 students: (b.students || []).map(s => s._id || s)
             };

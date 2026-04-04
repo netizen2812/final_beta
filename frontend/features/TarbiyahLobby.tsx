@@ -116,6 +116,14 @@ export const TarbiyahLobby = ({
   const [showScholarManage, setShowScholarManage] = useState<any>(null); // To store batch for scholar managemnt
   const { t } = useTranslation();
 
+  // FIX: Sync view when userRole loads asynchronously (Clerk user loads after mount)
+  // Without this, scholars see KidsView because userRole starts as 'parent'
+  useEffect(() => {
+    if (userRole === 'scholar' && (view === 'kids' || view === 'parent')) {
+      setView('scholar_dashboard');
+    }
+  }, [userRole]);
+
   useEffect(() => {
     const fetchData = async () => {
       if (document.visibilityState !== 'visible') return;
@@ -178,22 +186,7 @@ export const TarbiyahLobby = ({
       <div className="fixed top-20 left-0 w-full z-40 px-4 py-3 pointer-events-none">
         <div className="max-w-5xl mx-auto flex justify-center md:justify-end items-start mt-2 md:mt-0">
           <div className="pointer-events-auto bg-black/40 backdrop-blur-md rounded-full p-1 shadow-lg border border-white/10 inline-flex ring-1 ring-white/5">
-            {isAdmin ? (
-              <>
-                <button onClick={() => setView('kids')} className={`px-4 py-2 rounded-full text-[10px] font-bold transition-all ${view === 'kids' ? 'bg-emerald-600 text-white shadow-[0_0_15px_rgba(16,185,129,0.5)]' : 'text-emerald-200 hover:text-white'}`}>Map</button>
-                <button onClick={() => setView('parent')} className={`px-4 py-2 rounded-full text-[10px] font-bold transition-all ${view === 'parent' ? 'bg-indigo-600 text-white shadow-[0_0_15px_rgba(79,70,229,0.5)]' : 'text-indigo-200 hover:text-white'}`}>Parent</button>
-                <div className="w-px h-6 bg-white/10 mx-1" />
-                <button 
-                   onClick={() => setView(view.startsWith('scholar') ? 'kids' : 'scholar_dashboard')} 
-                   className={`px-4 py-2 rounded-full text-[10px] font-bold transition-all ${view.startsWith('scholar') ? 'bg-amber-600 text-white shadow-[0_0_15px_rgba(245,158,11,0.5)]' : 'bg-white/5 text-amber-200 hover:bg-white/10'}`}
-                >
-                  <ShieldCheck size={12} className="inline mr-1" /> Scholar Mode
-                </button>
-                {view.startsWith('scholar') && (
-                  <button onClick={() => setView('scholar_journey')} className={`px-4 py-2 rounded-full text-[10px] font-bold transition-all ${view === 'scholar_journey' ? 'bg-emerald-600 text-white shadow-[0_0_15px_rgba(16,185,129,0.5)]' : 'text-emerald-200 hover:text-white ml-1'}`}>Class Flow</button>
-                )}
-              </>
-            ) : userRole === 'scholar' ? (
+            {userRole === 'scholar' ? (
               <>
                 <button onClick={() => setView('scholar_journey')} className={`px-6 py-2 rounded-full text-xs font-bold transition-all ${view === 'scholar_journey' ? 'bg-emerald-600 text-white shadow-[0_0_15px_rgba(16,185,129,0.5)]' : 'text-emerald-200 hover:text-white'}`}>Class Journey</button>
                 <button onClick={() => setView('scholar_dashboard')} className={`px-6 py-2 rounded-full text-xs font-bold transition-all ${view === 'scholar_dashboard' ? 'bg-indigo-600 text-white shadow-[0_0_15px_rgba(79,70,229,0.5)]' : 'text-indigo-200 hover:text-white'}`}>Scholar Dashboard</button>
@@ -668,6 +661,21 @@ const ScholarJourneyView = ({ scrollProgress, batches, onJoinSession, initialBat
   const maxPercentage = (lastUnlockedIndex / (stagesCount - 1)) * 100;
   const currentDraw = scrollProgress * 2.0;
   const fillPercentage = Math.min(currentDraw, maxPercentage);
+
+  // EMPTY STATE: No batches assigned yet
+  if (!batches || batches.length === 0) {
+    return (
+      <div className="relative z-10 pt-36 pb-20 flex flex-col items-center justify-center min-h-[60vh] text-center px-6">
+        <div className="w-24 h-24 rounded-full bg-emerald-900/50 border border-emerald-800 flex items-center justify-center mb-6 mx-auto">
+          <BookOpen className="text-emerald-400" size={36} />
+        </div>
+        <h2 className="text-3xl font-serif font-bold text-white mb-3">No Batches Assigned</h2>
+        <p className="text-emerald-200/70 max-w-sm">
+          You don't have any batches assigned yet. Contact your admin to get set up.
+        </p>
+      </div>
+    );
+  }
 
   return (
     <div className="relative z-10 pt-36 pb-20">

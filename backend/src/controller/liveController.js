@@ -1069,6 +1069,7 @@ export const getGlobalLeaderboard = async (req, res) => {
 export const getScholarBatches = async (req, res) => {
     try {
         const { default: Batch } = await import("../models/Batch.js");
+        const { default: Session } = await import("../models/Session.js");
         const clerkId = req.auth.userId;
         const user = await User.findOne({ clerkId });
 
@@ -1082,10 +1083,45 @@ export const getScholarBatches = async (req, res) => {
             };
         }
 
-        const batches = await Batch.find(query)
+        const rawBatches = await Batch.find(query)
             .populate('scholar', 'name email')
-            .populate('students', 'name');
-            
+            .sort({ createdAt: -1 });
+
+        // Map to the same frontend-expected shape as getMySessions
+        const batches = await Promise.all(rawBatches.map(async (b) => {
+            let activeParticipants = [];
+            if (b.activeSessionId) {
+                const session = await Session.findById(b.activeSessionId);
+                if (session && session.status === 'live') {
+                    activeParticipants = session.attendance
+                        .filter(p => p.isActive)
+                        .map(p => ({
+                            childId: p.childId,
+                            childName: p.childName,
+                            isActive: true,
+                            currentSurah: p.currentSurah,
+                            currentAyah: p.currentAyah
+                        }));
+                }
+            }
+            return {
+                _id: b._id,
+                title: b.name || `Batch ${b._id.toString().substr(-4)}`,
+                name: b.name,
+                description: b.name,
+                status: b.status,
+                scholarName: b.scholar?.name || 'Assigned Scholar',
+                schedule: b.schedule,
+                isBatch: true,
+                activeSessionId: b.activeSessionId || null,
+                activeChildId: b.activeChildId || null,
+                activeParticipants,
+                dailyRoomName: b.dailyRoomName,
+                pastSessions: b.pastSessions || [],
+                students: (b.students || []).map(s => s._id || s)
+            };
+        }));
+
         res.json({ batches });
     } catch (error) {
         console.error("Scholar batches error:", error);

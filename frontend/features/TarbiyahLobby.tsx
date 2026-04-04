@@ -227,7 +227,7 @@ export const TarbiyahLobby = ({
               return (
                 <ScholarDashboardView 
                   batches={scholarBatches} 
-                  onJoinSession={(batch: any) => { setTargetBatchId(batch._id); setView('scholar_journey'); }} 
+                  onJoinSession={(batch: any) => { if (batch?._id) { setTargetBatchId(batch._id); setView('scholar_journey'); } }} 
                   attendedSessionIds={attendedSessionIds}
                   setShowScholarManage={setShowScholarManage}
                 />
@@ -674,7 +674,7 @@ const ScholarJourneyView = ({ scrollProgress, batches, onJoinSession, initialBat
       <div className="max-w-3xl mx-auto px-6 mb-16 text-center">
         <h1 className="text-4xl font-serif font-bold text-white mb-4">Class Journey</h1>
         {batches?.length > 0 && (
-          <div className="relative max-w-md mx-auto mb-12">
+          <div className="relative max-w-md mx-auto mb-8">
              <button onClick={() => setIsDropdownOpen(!isDropdownOpen)} className="w-full bg-emerald-900 border-2 border-emerald-500/30 text-white px-6 py-4 rounded-2xl font-black text-lg flex items-center justify-between transition-all">
                 <span className="tracking-wide font-serif">{activeBatch?.name || 'Select Batch'}</span>
                 <ChevronDown size={24} className={`text-emerald-400 transition-transform ${isDropdownOpen ? 'rotate-180' : ''}`} />
@@ -688,6 +688,31 @@ const ScholarJourneyView = ({ scrollProgress, batches, onJoinSession, initialBat
                    ))}
                 </div>
              )}
+          </div>
+        )}
+
+        {/* SCHOLAR QUICK-START BANNER */}
+        {activeBatch && (
+          <div
+            onClick={() => activeBatch && onJoinSession(activeBatch)}
+            className={`cursor-pointer max-w-md mx-auto mb-10 flex items-center justify-between gap-4 px-6 py-4 rounded-2xl border-2 transition-all active:scale-95 ${
+              hasActiveSession
+                ? 'bg-emerald-500/20 border-emerald-400/60 shadow-[0_0_30px_rgba(16,185,129,0.3)] animate-pulse'
+                : 'bg-amber-500/20 border-amber-400/60 hover:bg-amber-500/30 shadow-[0_0_20px_rgba(245,158,11,0.2)]'
+            }`}
+          >
+            <div className={`w-12 h-12 rounded-full flex items-center justify-center shrink-0 ${hasActiveSession ? 'bg-emerald-400 text-emerald-950' : 'bg-amber-400 text-amber-950'}`}>
+              <Play size={20} fill="currentColor" />
+            </div>
+            <div className="text-left flex-1">
+              <div className={`text-[10px] font-black uppercase tracking-widest mb-0.5 ${hasActiveSession ? 'text-emerald-300' : 'text-amber-300'}`}>
+                {hasActiveSession ? '🔴 Session Active' : '▶ Ready to Start'}
+              </div>
+              <div className="text-white font-bold text-lg">
+                {hasActiveSession ? 'Re-join Live Session' : `Start Session ${totalClassesPassed + 1}`}
+              </div>
+            </div>
+            <ChevronRight size={20} className={hasActiveSession ? 'text-emerald-400' : 'text-amber-400'} />
           </div>
         )}
       </div>
@@ -709,14 +734,14 @@ const ScholarJourneyView = ({ scrollProgress, batches, onJoinSession, initialBat
             return (
               <div key={index} className="flex md:justify-center items-center relative group">
                 <div onClick={() => { 
-                  if (isActuallyLive || isCurrent) onJoinSession(activeBatch); 
+                  if ((isActuallyLive || isCurrent) && activeBatch) onJoinSession(activeBatch); 
                   else if (isHistorical && historicalSession?.sessionId) setSelectedSessionId(historicalSession.sessionId); 
                 }} className={`absolute left-[2rem] md:left-1/2 -translate-x-1/2 w-14 h-14 rounded-full border-4 border-[#022c22] z-20 flex items-center justify-center shadow-xl transition-all ${isLocked ? 'bg-gray-800 text-gray-500' : (isActuallyLive || isCurrent) ? 'bg-amber-400 text-amber-900 scale-125 cursor-pointer shadow-[0_0_20px_rgba(245,158,11,0.4)] animate-pulse' : 'bg-emerald-400 text-emerald-950'}`}>
                   {isLocked ? <Lock size={20} /> : isActuallyLive ? <Play size={20} fill="currentColor" /> : isCurrent ? <Play size={20} fill="currentColor" className="opacity-50" /> : <CheckCircle size={20} />}
                 </div>
                 <div 
                    onClick={() => { 
-                     if (isActuallyLive || isCurrent) onJoinSession(activeBatch);
+                     if ((isActuallyLive || isCurrent) && activeBatch) onJoinSession(activeBatch);
                      else if (isHistorical && historicalSession?.sessionId) setSelectedSessionId(historicalSession.sessionId); 
                    }}
                    className={`w-full md:w-[45%] cursor-pointer ${index % 2 === 0 ? 'md:mr-auto ml-20 md:pr-16 text-left md:text-right' : 'md:ml-auto ml-20 md:pl-16 text-left'}`}
@@ -767,27 +792,53 @@ const ScholarDashboardView = ({ batches, onJoinSession, setShowScholarManage }: 
         </div>
       </div>
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        {batches?.map((batch: any) => (
-            <div key={batch._id} className="bg-emerald-950/40 backdrop-blur-md p-6 rounded-[2rem] border border-emerald-800/50 shadow-md flex flex-col group hover:border-emerald-500/50 transition-all">
-            <h3 className="font-bold text-2xl text-white mb-1 truncate">{batch.name}</h3>
-            <p className="text-sm text-emerald-300 font-bold mb-6 flex items-center gap-2"><Users size={16} /> {batch.students?.length || 0} Enrolled Students</p>
-            
-            <div className="grid grid-cols-1 gap-3">
-                <button 
-                    onClick={() => onJoinSession(batch)} 
-                    className="w-full bg-emerald-500 hover:bg-emerald-400 text-[#022c22] py-3 rounded-xl font-bold flex items-center justify-center gap-2"
+        {batches?.map((batch: any) => {
+          const isLive = !!batch.activeSessionId;
+          const sessionCount = (batch.pastSessions || []).length;
+          return (
+            <div key={batch._id} className={`backdrop-blur-md p-6 rounded-[2rem] border shadow-md flex flex-col group transition-all ${
+              isLive
+                ? 'bg-emerald-500/10 border-emerald-400/60 shadow-[0_0_30px_rgba(16,185,129,0.2)]'
+                : 'bg-emerald-950/40 border-emerald-800/50 hover:border-emerald-500/50'
+            }`}>
+              <div className="flex items-start justify-between mb-3">
+                <h3 className="font-bold text-2xl text-white truncate">{batch.name}</h3>
+                {isLive && (
+                  <span className="flex items-center gap-1.5 bg-red-500/20 border border-red-500/40 text-red-300 text-[9px] font-black uppercase tracking-widest px-2 py-1 rounded-full shrink-0 ml-2">
+                    <span className="w-1.5 h-1.5 rounded-full bg-red-400 animate-ping" /> Live
+                  </span>
+                )}
+              </div>
+              <p className="text-sm text-emerald-300 font-bold flex items-center gap-2 mb-1">
+                <Users size={14} /> {batch.students?.length || 0} Students
+              </p>
+              <p className="text-[10px] text-emerald-400/60 font-bold uppercase tracking-widest mb-6">
+                {sessionCount} Session{sessionCount !== 1 ? 's' : ''} completed
+              </p>
+
+              <div className="mt-auto grid grid-cols-1 gap-3">
+                {/* PRIMARY: Start or Re-join class */}
+                <button
+                  onClick={() => onJoinSession(batch)}
+                  className={`w-full py-3 rounded-xl font-bold flex items-center justify-center gap-2 transition-all active:scale-95 ${
+                    isLive
+                      ? 'bg-red-500 hover:bg-red-400 text-white shadow-[0_4px_15px_rgba(239,68,68,0.4)] border-b-4 border-red-700'
+                      : 'bg-emerald-500 hover:bg-emerald-400 text-[#022c22] border-b-4 border-emerald-700'
+                  }`}
                 >
-                    Class Journey <Play size={14} fill="currentColor" />
+                  <Play size={14} fill="currentColor" />
+                  {isLive ? 'Re-join Live Session' : 'Start Class'}
                 </button>
-                <button 
-                    onClick={() => setShowScholarManage(batch)} 
-                    className="w-full bg-indigo-600/40 hover:bg-indigo-600 border border-indigo-500/30 text-white py-3 rounded-xl font-bold flex items-center justify-center gap-2"
+                <button
+                  onClick={() => setShowScholarManage(batch)}
+                  className="w-full bg-indigo-600/40 hover:bg-indigo-600 border border-indigo-500/30 text-white py-3 rounded-xl font-bold flex items-center justify-center gap-2"
                 >
-                    <BookOpen size={14} /> Manage Assignments
+                  <BookOpen size={14} /> Manage Assignments
                 </button>
+              </div>
             </div>
-          </div>
-        ))}
+          );
+        })}
       </div>
     </div>
   );

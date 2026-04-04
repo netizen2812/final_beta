@@ -121,6 +121,8 @@ export const TarbiyahLobby = ({
   const [isLoading, setIsLoading] = useState(false);
   const { openSignUp } = useClerk();
   const { t } = useTranslation();
+  const { isLoaded, isSignedIn } = useUser();
+  const isLoggedIn = isLoaded && isSignedIn;
 
   // FIX: Sync view when userRole loads asynchronously (Clerk user loads after mount)
   useEffect(() => {
@@ -223,6 +225,30 @@ export const TarbiyahLobby = ({
   };
 
   const currentBatchStatus = batches.find(b => b.status === 'active') ? 'active' : 'waiting';
+
+  if (!isLoaded) {
+    return <div className="min-h-screen flex items-center justify-center bg-[#020202]"><Loader2 className="animate-spin text-emerald-400" size={48} /></div>;
+  }
+
+  if (!isLoggedIn) {
+     return (
+       <div className="min-h-screen relative font-sans selection:bg-emerald-500 bg-[#020202]">
+         <TarbiyahOnboarding 
+           getToken={getToken} 
+           isPaid={false} 
+           handleGuestJoin={() => setShowGuestModal(true)} 
+         />
+         <GuestEmailModal 
+           isOpen={showGuestModal} 
+           onClose={() => setShowGuestModal(false)} 
+           onConfirm={(email) => { setShowGuestModal(false); handleRequestAccess(email); }}
+         />
+         {showSuccessOverlay && (
+           <SuccessOverlay onSignUp={() => openSignUp({ afterSignUpUrl: '/tarbiyah' })} />
+         )}
+       </div>
+     );
+  }
 
   return (
     <div className="min-h-screen text-white font-sans selection:bg-emerald-500 relative transition-colors duration-1000">
@@ -394,8 +420,8 @@ const KidsView = ({ scrollProgress, activeChild, onJoinLive, currentBatchStatus,
   const fillPercentage = Math.min(currentDraw, maxPercentage || 0);
 
   // GUESTS CAN PASS THROUGH: Logic moved to handleNodeClick
-  const { isLoaded, isSignedIn } = useUser();
-  const isLoggedIn = isLoaded && isSignedIn;
+  // Auth state now handled at the root TarbiyahLobby level
+  const isLoggedIn = true; // Always true because guests bypass KidsView now
 
   if (isLoggedIn && !userRole.includes('scholar')) {
     if (loadingChildren || !accessStatus) return <div className="min-h-screen flex items-center justify-center"><Loader2 className="animate-spin text-emerald-400" size={48} /></div>;

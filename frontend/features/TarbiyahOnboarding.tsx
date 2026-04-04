@@ -16,7 +16,7 @@ import { useChildContext } from '../contexts/ChildContext';
 
 const API_BASE = import.meta.env.VITE_API_URL || "http://localhost:5000";
 
-export const TarbiyahOnboarding = ({ getToken, isPaid = false }: { getToken: any, isPaid?: boolean }) => {
+export const TarbiyahOnboarding = ({ getToken, isPaid = false, handleGuestJoin }: { getToken: any, isPaid?: boolean, handleGuestJoin?: () => void }) => {
   const [isLoading, setIsLoading] = useState(false);
   const { addChild } = useChildContext();
   
@@ -125,6 +125,10 @@ export const TarbiyahOnboarding = ({ getToken, isPaid = false }: { getToken: any
   }
 
   const handleJoinBatch = async () => {
+    if (handleGuestJoin) {
+      handleGuestJoin();
+      return;
+    }
     setIsLoading(true);
     try {
       const token = await getToken();

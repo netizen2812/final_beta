@@ -22,6 +22,7 @@ import { TarbiyahLobby, MovingBackground } from './TarbiyahLobby';
 import ScholarQuranManager from './ScholarQuranManager';
 import AgoraVideoPane from './AgoraVideoPane';
 import { loadRazorpayScript } from '../utils/razorpay';
+import { getNumericUid } from '../utils/tarbiyahUtils';
 
 const POSITION_THROTTLE_MS = 500;
 const API_BASE = import.meta.env.VITE_API_URL || "http://localhost:5000";
@@ -355,7 +356,7 @@ const LiveClassRoom: React.FC = () => {
                  appId={currentSession.agoraAppId || ""}
                  token={currentSession.agoraToken || ""}
                  channel={currentSession.channel || currentSession.batchId || ""}
-                 uid={user?.id || 0}
+                 uid={getNumericUid(user?.id || '')}
                  role="scholar"
                  layout="grid"
                  scholarId={currentSession.scholarId}
@@ -410,8 +411,11 @@ const LiveClassRoom: React.FC = () => {
 
          {isMobile && batchState?.activeChildId && (
             <div className="fixed bottom-0 left-0 right-0 p-6 bg-black/80 backdrop-blur-3xl border-t border-white/5 rounded-t-[3rem] z-30 flex items-center gap-4 animate-in slide-in-from-bottom duration-500">
-                <button onClick={() => handleScoreRecitation(batchState.activeChildId!, currentSession.batchId!, 3)} className="bg-emerald-500 text-black px-8 py-5 rounded-3xl font-black text-[10px] uppercase grow shadow-2xl">Award XP</button>
-                <button onClick={() => setShowAssignModal(true)} className="bg-white/10 text-white px-8 py-5 rounded-3xl font-black text-[10px] uppercase grow border border-white/10">Lesson</button>
+               <div className="flex gap-2 grow">
+                  <button onClick={() => handleScoreRecitation(batchState.activeChildId!, currentSession.batchId!, 3)} className="bg-emerald-500 hover:bg-emerald-400 text-black py-4 rounded-2xl font-black text-[10px] uppercase grow shadow-2xl transition-all">Award +10 XP</button>
+                  <button onClick={() => handleScoreRecitation(batchState.activeChildId!, currentSession.batchId!, 2)} className="bg-amber-500 hover:bg-amber-400 text-black py-4 rounded-2xl font-black text-[10px] uppercase grow shadow-2xl transition-all">Award +7 XP</button>
+               </div>
+               <button onClick={() => setShowAssignModal(true)} className="bg-white/10 text-white px-6 py-4 rounded-2xl font-black text-[10px] uppercase border border-white/10 shrink-0">Lesson</button>
             </div>
          )}
       </div>
@@ -453,7 +457,7 @@ const LiveClassRoom: React.FC = () => {
                     appId={currentSession.agoraAppId || ""}
                     token={currentSession.agoraToken || ""}
                     channel={currentSession.channel || currentSession.batchId || ""}
-                    uid={user?.id || 0}
+                    uid={getNumericUid(user?.id || '')}
                     role="student"
                     layout="inset"
                     scholarId={currentSession.scholarId}
@@ -491,7 +495,7 @@ const LiveClassRoom: React.FC = () => {
                  appId={currentSession.agoraAppId || ""}
                  token={currentSession.agoraToken || ""}
                  channel={currentSession.channel || currentSession.batchId || ""}
-                 uid={user?.id || 0}
+                 uid={getNumericUid(user?.id || '')}
                  role="student"
                  layout="spotlight"
                  scholarId={currentSession.scholarId}

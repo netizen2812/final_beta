@@ -29,6 +29,8 @@ const AgoraVideoPane: React.FC<AgoraVideoPaneProps> = ({
   scholarId
 }) => {
   const [joined, setJoined] = useState(false);
+  const [micEnabled, setMicEnabled] = useState(role === 'scholar');
+  const [videoEnabled, setVideoEnabled] = useState(true);
   const [localVideoTrack, setLocalVideoTrack] = useState<ICameraVideoTrack | null>(null);
   const [localAudioTrack, setLocalAudioTrack] = useState<IMicrophoneAudioTrack | null>(null);
   const [remoteUsers, setRemoteUsers] = useState<IAgoraRTCRemoteUser[]>([]);
@@ -79,9 +81,13 @@ const AgoraVideoPane: React.FC<AgoraVideoPaneProps> = ({
 
         if (role === 'scholar') {
             await client.publish([audioTrack, videoTrack]);
+            setMicEnabled(true);
+            setVideoEnabled(true);
         } else {
             audioTrack.setEnabled(false);
             await client.publish([audioTrack, videoTrack]);
+            setMicEnabled(false);
+            setVideoEnabled(true);
         }
 
         setJoined(true);
@@ -164,23 +170,27 @@ const AgoraVideoPane: React.FC<AgoraVideoPaneProps> = ({
       {joined && layout !== 'inset' && (
         <div className="absolute bottom-6 left-1/2 -translate-x-1/2 px-5 py-3 bg-black/40 backdrop-blur-3xl border border-white/10 rounded-full flex items-center gap-3 opacity-0 group-hover:opacity-100 translate-y-2 group-hover:translate-y-0 transition-all duration-500 shadow-2xl z-50">
             <ControlToggle 
-                active={localAudioTrack?.enabled || false} 
+                active={micEnabled} 
                 iconOn={<Mic size={18} />} 
                 iconOff={<MicOff size={18} />} 
                 onClick={() => {
-                    const next = !localAudioTrack?.enabled;
-                    localAudioTrack?.setEnabled(next);
-                    setJoined(prev => !prev); setJoined(prev => !prev);
+                    if (localAudioTrack) {
+                        const next = !micEnabled;
+                        localAudioTrack.setEnabled(next);
+                        setMicEnabled(next);
+                    }
                 }}
             />
             <ControlToggle 
-                active={localVideoTrack?.enabled || false} 
+                active={videoEnabled} 
                 iconOn={<Video size={18} />} 
                 iconOff={<VideoOff size={18} />} 
                 onClick={() => {
-                    const next = !localVideoTrack?.enabled;
-                    localVideoTrack?.setEnabled(next);
-                    setJoined(prev => !prev); setJoined(prev => !prev);
+                    if (localVideoTrack) {
+                        const next = !videoEnabled;
+                        localVideoTrack.setEnabled(next);
+                        setVideoEnabled(next);
+                    }
                 }}
             />
         </div>

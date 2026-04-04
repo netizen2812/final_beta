@@ -22,6 +22,7 @@ import ScholarQuranManager from './ScholarQuranManager';
 import ErrorBoundary from '../components/ErrorBoundary';
 import { GuestEmailModal } from './GuestEmailModal';
 import { useClerk, useUser } from '@clerk/clerk-react';
+import { quranTracker } from '../utils/quranProgressTracker';
 
 // --- DATA & CONSTANTS ---
 const API_BASE = import.meta.env.VITE_API_URL || "http://localhost:5000";
@@ -648,6 +649,22 @@ const ParentsView = ({ activeChild, getToken }: any) => {
   const stats = dashboardData?.stats;
   const completionRate = stats?.completionRate || 0;
   
+  const PIE_COLORS = ['#10b981', '#3b82f6', '#f59e0b', '#8b5cf6', '#ec4899'];
+  const topicData = dashboardData?.topicBreakdown?.map((item: any, index: number) => ({
+      ...item,
+      fill: PIE_COLORS[index % PIE_COLORS.length]
+  })) || [];
+
+  const activityData = dashboardData?.weeklyActivity || [];
+  
+  const localStats = quranTracker.getStats();
+  const mergedKhatmPercentage = Math.round(Math.max(localStats.khatmPercentage, completionRate));
+  const completionData = [
+    { name: 'Completed', value: mergedKhatmPercentage },
+    { name: 'Remaining', value: Math.max(0, 100 - mergedKhatmPercentage) },
+  ];
+  const COMPLETION_COLORS = ['#10b981', '#ffffff15'];
+  
   return (
     <div className="pt-32 pb-20 px-4 max-w-6xl mx-auto z-10 relative">
       <div className="flex flex-col md:flex-row justify-between items-center gap-6 mb-12">
@@ -658,6 +675,73 @@ const ParentsView = ({ activeChild, getToken }: any) => {
          <div className="bg-white/5 p-8 rounded-[2rem] border border-white/10 text-center"><div className="text-emerald-400 text-xs font-black uppercase mb-4">Total XP</div><div className="text-5xl font-black text-white">{stats?.currentXP || 0}</div></div>
          <div className="bg-white/5 p-8 rounded-[2rem] border border-white/10 text-center"><div className="text-blue-400 text-xs font-black uppercase mb-4">Accuracy</div><div className="text-5xl font-black text-white">{stats?.averageAccuracy || 0}%</div></div>
          <div className="bg-white/5 p-8 rounded-[2rem] border border-white/10 text-center"><div className="text-amber-500 text-xs font-black uppercase mb-4">Attendance</div><div className="text-5xl font-black text-white">{stats?.attendanceRate || 0}%</div></div>
+      </div>
+
+      {/* Chart Section */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 mb-12">
+        {/* Quran Completion Pie Chart */}
+        <div className="bg-white/5 p-8 rounded-[3rem] shadow-sm border border-white/10 flex flex-col items-center">
+           <h3 className="font-bold text-white text-lg mb-2">Quran Progress</h3>
+           <p className="text-emerald-200/60 text-xs text-center mb-6">Overall Khatm Completion</p>
+           <div className="h-48 w-full relative">
+              <div className="absolute inset-0 flex items-center justify-center flex-col">
+                 <div className="text-3xl font-black text-emerald-400">{mergedKhatmPercentage}%</div>
+              </div>
+              <ResponsiveContainer width="100%" height="100%">
+                 <PieChart>
+                    <Pie data={completionData} cx="50%" cy="50%" innerRadius={60} outerRadius={80} paddingAngle={5} dataKey="value" stroke="none">
+                       {completionData.map((entry, index) => (
+                          <Cell key={`cell-${index}`} fill={COMPLETION_COLORS[index]} />
+                       ))}
+                    </Pie>
+                 </PieChart>
+              </ResponsiveContainer>
+           </div>
+        </div>
+
+        {/* Learning Focus Pie Chart */}
+        <div className="bg-white/5 p-8 rounded-[3rem] shadow-sm border border-white/10 flex flex-col items-center">
+          <h3 className="font-bold text-white text-lg mb-2">Learning Focus</h3>
+          <p className="text-emerald-200/60 text-xs text-center mb-6">Distribution of time spent</p>
+          {topicData.length > 0 ? (
+            <div className="h-48 w-full">
+              <ResponsiveContainer width="100%" height="100%">
+                <PieChart>
+                  <Pie data={topicData} cx="50%" cy="50%" innerRadius={50} outerRadius={80} paddingAngle={5} dataKey="value" stroke="none">
+                    {topicData.map((entry: any, index: number) => (
+                      <Cell key={`cell-${index}`} fill={entry.fill} />
+                    ))}
+                  </Pie>
+                  <RechartsTooltip contentStyle={{ backgroundColor: '#022c22', border: '1px solid rgba(16, 185, 129, 0.3)', borderRadius: '1rem', color: 'white' }} itemStyle={{ color: 'white' }} />
+                </PieChart>
+              </ResponsiveContainer>
+            </div>
+          ) : (
+            <div className="h-48 w-full flex items-center justify-center text-emerald-200/40 text-sm">No data yet</div>
+          )}
+        </div>
+
+        {/* Weekly Activity Bar Chart */}
+        <div className="bg-white/5 p-8 rounded-[3rem] shadow-sm border border-white/10 flex flex-col items-center">
+          <div className="flex justify-between items-center w-full mb-2">
+             <h3 className="font-bold text-white text-lg">Weekly Activity</h3>
+             <span className="text-[10px] bg-emerald-500/20 border border-emerald-500/30 rounded-lg py-1 px-3 text-emerald-300 font-bold">Last 7 Days</span>
+          </div>
+          <p className="text-emerald-200/60 text-xs text-center mb-6 w-full text-left">Minutes spent per day</p>
+          <div className="h-48 w-full">
+            {activityData.length > 0 ? (
+              <ResponsiveContainer width="100%" height="100%">
+                <BarChart data={activityData}>
+                  <XAxis dataKey="day" axisLine={false} tickLine={false} tick={{ fontSize: 10, fill: '#a7f3d0', fontWeight: 'bold' }} />
+                  <RechartsTooltip cursor={{ fill: 'rgba(255,255,255,0.05)' }} contentStyle={{ backgroundColor: '#022c22', border: '1px solid rgba(16, 185, 129, 0.3)', borderRadius: '1rem', color: 'white' }} />
+                  <Bar dataKey="min" fill="#10b981" radius={[6, 6, 0, 0]} barSize={24} />
+                </BarChart>
+              </ResponsiveContainer>
+            ) : (
+              <div className="h-full w-full flex items-center justify-center text-emerald-200/40 text-sm">No activity</div>
+            )}
+          </div>
+        </div>
       </div>
       {showSetupModal && (
           <div className="fixed inset-0 z-[200] bg-black/80 flex items-center justify-center p-4">

@@ -394,7 +394,7 @@ const QuranPage: React.FC<QuranPageProps> = ({
 
   // Merge manual/scholar-verified progress with local tracked progress
   const manualKhatmPercentage = activeChild?.child_progress?.[0]?.completed_quran_parts 
-      ? Math.min((activeChild.child_progress[0].completed_quran_parts.length / 30) * 100, 100) 
+      ? Math.min((activeChild.child_progress[0].completed_quran_parts.length / 450) * 100, 100) 
       : 0;
   
   const mergedKhatmPercentage = Math.round(Math.max(stats.khatmPercentage, manualKhatmPercentage));

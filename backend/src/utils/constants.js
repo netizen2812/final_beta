@@ -1,5 +1,5 @@
-const ROOT_ADMIN_EMAILS = (process.env.ROOT_ADMIN_EMAILS || "").split(',').map(e => e.trim().toLowerCase()).filter(Boolean);
-const SCHOLAR_EMAILS = (process.env.SCHOLAR_EMAILS || "").split(',').map(e => e.trim().toLowerCase()).filter(Boolean);
+export const ROOT_ADMIN_EMAILS = (process.env.ROOT_ADMIN_EMAILS || "").split(',').map(e => e.trim().toLowerCase()).filter(Boolean);
+export const SCHOLAR_EMAILS = (process.env.SCHOLAR_EMAILS || "").split(',').map(e => e.trim().toLowerCase()).filter(Boolean);
 
 export const isRootAdmin = (email) => {
     if (!email) return false;

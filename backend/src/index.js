@@ -66,8 +66,9 @@ app.use(express.json());
 // Rate Limiting
 const generalLimiter = rateLimit({
   windowMs: 15 * 60 * 1000, 
-  max: 100, 
+  max: 5000, // Increased limits heavily to support polling features
   keyGenerator: (req) => req.auth?.userId || req.ip,
+  skip: (req) => req.originalUrl.includes("/api/live") || req.originalUrl.includes("/heartbeat"),
   message: "Too many requests, please try again later"
 });
 
@@ -78,8 +79,7 @@ const aiLimiter = rateLimit({
   message: "AI rate limit reached. Please wait a minute before asking another question."
 });
 
-// Exempt live routes from general rate limiting (heavy polling during sessions)
-app.use("/api/live", (req, res, next) => next());
+// Live routes are excluded via the skip function in generalLimiter directly
 app.use("/api/", generalLimiter);
 app.use("/api/chat", aiLimiter);
 app.use("/ai-test", aiLimiter);

@@ -235,8 +235,10 @@ const LiveClassRoom: React.FC = () => {
   // 🕹️ ACTIONS
   // -------------------------------------------------------------------
 
-  const handleScholarJoinBatch = async (batchId: string) => {
+  const handleScholarJoinBatch = async (batchOrId: any) => {
     try {
+      const batchId = typeof batchOrId === 'string' ? batchOrId : batchOrId?._id;
+      if (!batchId) return;
       const token = await getToken();
       const res = await axios.post(`${API_BASE}/api/live/batch/${batchId}/start`, {}, {
         headers: { Authorization: `Bearer ${token}` }

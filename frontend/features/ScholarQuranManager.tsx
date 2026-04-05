@@ -271,28 +271,30 @@ const ScholarQuranManager: React.FC<ScholarQuranManagerProps> = ({ batchId, batc
                                                 <button onClick={clearAll} className="text-[10px] bg-red-500/20 text-red-300 px-2 py-1 rounded-md hover:bg-red-500/30 transition-all font-bold uppercase tracking-tighter">Clear</button>
                                             </div>
                                         </div>
-                                        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-3">
-                                            {[...Array(15)].map((_, i) => {
-                                                const partNum = i + 1;
-                                                const metadata = QURAN_METADATA[juz]?.find(m => m.part === partNum);
-                                                const isSelected = selectedSubparts.includes(partNum);
-                                                return (
-                                                    <button 
-                                                        key={partNum} 
-                                                        onClick={() => toggleSubpart(partNum)}
-                                                        className={`p-3 rounded-2xl border transition-all text-left flex flex-col gap-1 relative overflow-hidden group ${isSelected ? 'bg-emerald-500 border-emerald-400 text-[#022c22] shadow-lg scale-[1.02]' : 'bg-black/40 border-white/5 text-emerald-100 hover:border-emerald-500/30'}`}
-                                                    >
-                                                        <div className="flex items-center justify-between">
-                                                            <span className={`text-[10px] font-black ${isSelected ? 'text-[#022c22]/70' : 'text-emerald-500/70'}`}>PART {partNum}</span>
-                                                            {isSelected && <div className="bg-[#022c22] text-emerald-400 rounded-full p-0.5"><CheckCircle size={10} /></div>}
-                                                        </div>
-                                                        <div className={`text-xs font-bold leading-tight line-clamp-2 ${isSelected ? 'text-[#022c22]' : 'text-white'}`}>
-                                                            {metadata?.label || `Part ${partNum}`}
-                                                        </div>
-                                                        {!isSelected && <div className="absolute inset-0 bg-emerald-500/0 group-hover:bg-emerald-500/5 transition-all" />}
-                                                    </button>
-                                                );
-                                            })}
+                                        <div className="max-h-[350px] overflow-y-auto custom-scrollbar pr-2">
+                                            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-5 gap-3">
+                                                {[...Array(15)].map((_, i) => {
+                                                    const partNum = i + 1;
+                                                    const metadata = QURAN_METADATA[juz]?.find(m => m.part === partNum);
+                                                    const isSelected = selectedSubparts.includes(partNum);
+                                                    return (
+                                                        <button 
+                                                            key={partNum} 
+                                                            onClick={() => toggleSubpart(partNum)}
+                                                            className={`p-3 rounded-2xl border transition-all text-left flex flex-col gap-1 relative overflow-hidden group ${isSelected ? 'bg-emerald-500 border-emerald-400 text-[#022c22] shadow-lg scale-[1.02]' : 'bg-black/40 border-white/5 text-emerald-100 hover:border-emerald-500/30'}`}
+                                                        >
+                                                            <div className="flex items-center justify-between">
+                                                                <span className={`text-[10px] font-black ${isSelected ? 'text-[#022c22]/70' : 'text-emerald-500/70'}`}>PART {partNum}</span>
+                                                                {isSelected && <div className="bg-[#022c22] text-emerald-400 rounded-full p-0.5"><CheckCircle size={10} /></div>}
+                                                            </div>
+                                                            <div className={`text-xs font-bold leading-tight line-clamp-2 ${isSelected ? 'text-[#022c22]' : 'text-white'}`}>
+                                                                {metadata?.label || `Part ${partNum}`}
+                                                            </div>
+                                                            {!isSelected && <div className="absolute inset-0 bg-emerald-500/0 group-hover:bg-emerald-500/5 transition-all" />}
+                                                        </button>
+                                                    );
+                                                })}
+                                            </div>
                                         </div>
                                     </div>
                                 </div>

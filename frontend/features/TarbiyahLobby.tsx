@@ -371,12 +371,12 @@ export const TarbiyahLobby = ({
 
       {showScholarManage && (
          <div className="fixed inset-0 z-[130] bg-[#022c22]/95 backdrop-blur-2xl flex items-center justify-center p-4">
-            <div className="w-full max-w-5xl bg-black/40 border border-emerald-500/20 rounded-[3rem] p-1 shadow-2xl relative">
-                <button onClick={() => setShowScholarManage(null)} className="absolute -top-12 right-4 text-white hover:text-emerald-400 font-bold flex items-center gap-2">✕ Close Portal</button>
-                <div className="p-6 md:p-8">
-                    <ScholarQuranManager batchId={showScholarManage._id} batchName={showScholarManage.name} onClose={() => setShowScholarManage(null)} />
-                </div>
-            </div>
+             <div className="w-full max-w-5xl bg-black/40 border border-emerald-500/20 rounded-[3rem] p-1 shadow-2xl relative max-h-[90vh] overflow-y-auto no-scrollbar">
+                 <button onClick={() => setShowScholarManage(null)} className="absolute top-6 right-8 text-white/50 hover:text-emerald-400 font-bold flex items-center gap-2 z-50">✕ Close Portal</button>
+                 <div className="p-6 md:p-10">
+                     <ScholarQuranManager batchId={showScholarManage._id} batchName={showScholarManage.name} onClose={() => setShowScholarManage(null)} />
+                 </div>
+             </div>
          </div>
       )}
 

@@ -392,7 +392,7 @@ const LiveClassRoom: React.FC = () => {
 
             {/* RIGHT: SYNCED QURAN (Scholar Exclusive follow student) */}
             {batchState?.activeChildId && (
-               <div className="flex-1 bg-[#fdfaf3] rounded-[3rem] border border-black/5 shadow-2xl overflow-hidden relative group flex flex-col md:flex-1 animate-in slide-in-from-right duration-700">
+               <div className="flex-1 bg-[#fdfaf3] rounded-[3rem] border border-black/5 shadow-2xl overflow-y-auto custom-scrollbar relative group flex flex-col md:flex-1 animate-in slide-in-from-right duration-700">
                   <div className="absolute top-8 left-8 py-2 px-4 bg-black/5 backdrop-blur-3xl border border-black/10 rounded-2xl flex items-center gap-3 z-30">
                     <BookOpen size={12} className="text-emerald-700" />
                     <span className="text-[9px] text-emerald-900 font-black uppercase tracking-widest">Monitoring Student Quran</span>
@@ -491,7 +491,7 @@ const LiveClassRoom: React.FC = () => {
          </div>
 
          <div className="flex-1 relative p-6 mb-4">
-            <div className="w-full h-full bg-[#fdfaf3] rounded-[3.5rem] overflow-hidden shadow-[0_50px_100px_-20px_rgba(0,0,0,0.5)] border border-black/5 relative">
+            <div className="w-full h-full bg-[#fdfaf3] rounded-[3.5rem] overflow-y-auto no-scrollbar shadow-[0_50px_100px_-20px_rgba(0,0,0,0.5)] border border-black/5 relative">
                <QuranPage
                  onBack={handleExitSession}
                  sessionCurrentSurah={currentSession.currentSurah}
@@ -657,7 +657,7 @@ const LiveClassRoom: React.FC = () => {
         {/* MODALS & DRAWERS */}
         {showAssignModal && currentSession?.batchId && (
           <div className="fixed inset-0 z-[6000] bg-black/95 backdrop-blur-3xl flex items-center justify-center p-6 animate-in fade-in duration-500">
-             <div className="w-full max-w-6xl h-[90vh] bg-[#0a0a0a] border border-white/10 rounded-[4rem] shadow-3xl overflow-hidden relative animate-in zoom-in-95">
+             <div className="w-full max-w-6xl h-[90vh] bg-[#0a0a0a] border border-white/10 rounded-[4rem] shadow-3xl overflow-y-auto no-scrollbar relative animate-in zoom-in-95">
                 <ScholarQuranManager 
                   batchId={currentSession.batchId} 
                   batchName="Curriculum Management" 

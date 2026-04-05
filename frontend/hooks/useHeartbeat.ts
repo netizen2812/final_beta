@@ -2,7 +2,7 @@ import { useEffect, useRef } from 'react';
 import { useAuth } from '@clerk/clerk-react';
 import axios from 'axios';
 
-import { API_BASE } from '../lib/api';
+import { APPLICATION_API_URL } from '../lib/api';
 
 export const useHeartbeat = () => {
     const { getToken, isSignedIn } = useAuth();
@@ -15,7 +15,7 @@ export const useHeartbeat = () => {
                 const token = await getToken();
                 if (!token) return;
 
-                await axios.post(`${API_BASE}/api/users/heartbeat`, {}, {
+                await axios.post(`${APPLICATION_API_URL}/api/users/heartbeat`, {}, {
                     headers: { Authorization: `Bearer ${token}` }
                 });
             } catch (err) {

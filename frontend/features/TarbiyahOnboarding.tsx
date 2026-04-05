@@ -14,7 +14,7 @@ import { MovingBackground } from './TarbiyahLobby';
 
 import { useChildContext } from '../contexts/ChildContext';
 
-import { API_BASE } from '../lib/api';
+import { APPLICATION_API_URL } from '../lib/api';
 
 export const TarbiyahOnboarding = ({ getToken, isPaid = false, handleGuestJoin }: { getToken: any, isPaid?: boolean, handleGuestJoin?: () => void }) => {
   const [isLoading, setIsLoading] = useState(false);
@@ -135,7 +135,7 @@ export const TarbiyahOnboarding = ({ getToken, isPaid = false, handleGuestJoin }
       const res = await loadRazorpayScript();
       if (!res) { alert("Razorpay SDK failed to load."); setIsLoading(false); return; }
 
-      const { data: order } = await axios.post(`${API_BASE}/api/payment/create-order`, {
+      const { data: order } = await axios.post(`${APPLICATION_API_URL}/api/payment/create-order`, {
         planType: 'TARBIYAH_LIFETIME'
       }, { headers: { Authorization: `Bearer ${token}` } });
 
@@ -150,7 +150,7 @@ export const TarbiyahOnboarding = ({ getToken, isPaid = false, handleGuestJoin }
           try {
             // Get a fresh token before verify call
             const freshToken = await getToken();
-            await axios.post(`${API_BASE}/api/payment/verify`, {
+            await axios.post(`${APPLICATION_API_URL}/api/payment/verify`, {
                 ...response,
                 planType: 'TARBIYAH_LIFETIME'
             }, { headers: { Authorization: `Bearer ${freshToken}` } });

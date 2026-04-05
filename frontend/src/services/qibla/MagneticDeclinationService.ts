@@ -1,3 +1,4 @@
+import { API_BASE } from '../../../lib/api';
 import geomagnetism from 'geomagnetism';
 
 /**
@@ -22,7 +23,7 @@ export const getMagneticDeclination = async (lat: number, lng: number): Promise<
  */
 const fallbackDeclinationApi = async (lat: number, lng: number): Promise<number> => {
     try {
-        const API_URL = (import.meta as any).env.VITE_API_URL || "http://localhost:5000";
+        const API_URL = API_BASE;
         const url = `${API_URL}/api/ibadah/declination?lat=${lat}&lng=${lng}`;
         const res = await fetch(url, { mode: 'cors' });
         if (!res.ok) return 0;

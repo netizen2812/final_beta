@@ -1,7 +1,7 @@
 import axios from 'axios';
 import { Child } from '../types';
 
-const API_BASE = import.meta.env.VITE_API_URL || "http://localhost:5000";
+import { API_BASE } from '../lib/api';
 
 const getHeaders = async (getToken: () => Promise<string | null>) => {
   const token = await getToken();

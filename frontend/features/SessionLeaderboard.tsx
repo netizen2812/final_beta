@@ -5,7 +5,7 @@ import { useTranslation } from 'react-i18next';
 import { useAuth } from '@clerk/clerk-react';
 import { MovingBackground } from './TarbiyahLobby';
 
-const API_BASE = import.meta.env.VITE_API_URL || "http://localhost:5000";
+import { API_BASE } from '../lib/api';
 
 interface SessionLeaderboardProps {
   batchId: string;

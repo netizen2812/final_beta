@@ -1,4 +1,4 @@
-const API_URL = import.meta.env.VITE_API_URL || "http://localhost:5000";
+import { API_BASE as API_URL } from '../lib/api';
 
 export const getPrayerTimings = async (lat?: number, lng?: number) => {
   try {

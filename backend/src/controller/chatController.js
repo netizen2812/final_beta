@@ -99,7 +99,8 @@ export const chatWithImam = async (req, res) => {
     }
 
     // Keep only the last 4 messages (2 interactions) to save inference cost
-    const recentHistory = Array.isArray(history) ? history.slice(-4) : [];
+    const recentHistory = (Array.isArray(history) ? history.slice(-4) : [])
+      .filter(h => typeof h.content === 'string' && h.content.length < 5000); // 🔴 High Priority: Content validation
 
     const reply = await generateResponse(prompt, clerkId, madhab, context, userLang, recentHistory);
 
@@ -139,6 +140,10 @@ export const chatWithImam = async (req, res) => {
             conversation.title = prompt.substring(0, 50) + (prompt.length > 50 ? "..." : "");
           }
 
+          // Cap messages to 200 to prevent document size explosion (16MB limit)
+          if (conversation.messages.length > 200) {
+              conversation.messages = conversation.messages.slice(-200);
+          }
           await conversation.save();
         }
       } catch (dbErr) {

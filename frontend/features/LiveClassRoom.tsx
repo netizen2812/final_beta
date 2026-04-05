@@ -25,7 +25,7 @@ import { loadRazorpayScript } from '../utils/razorpay';
 import { getNumericUid } from '../utils/tarbiyahUtils';
 
 const POSITION_THROTTLE_MS = 500;
-const API_BASE = import.meta.env.VITE_API_URL || "http://localhost:5000";
+import { API_BASE } from '../lib/api';
 
 // Types
 interface LiveSession {

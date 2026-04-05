@@ -71,5 +71,10 @@ const batchSchema = new mongoose.Schema({
     }]
 }, { timestamps: true });
 
+batchSchema.index({ scholar: 1 });
+batchSchema.index({ students: 1 });
+batchSchema.index({ status: 1 });
+batchSchema.index({ dailyRoomName: 1 });
+
 const Batch = mongoose.model("Batch", batchSchema);
 export default Batch;

@@ -4,7 +4,7 @@ import { loadRazorpayScript } from '../utils/razorpay';
 import axios from 'axios';
 import { useAuth } from '@clerk/clerk-react';
 
-const API_URL = import.meta.env.VITE_API_URL || "http://localhost:5000";
+import { API_BASE as API_URL } from '../lib/api';
 
 export const ChatLimitModal = ({ isOpen, onClose, onSuccess }: { isOpen: boolean; onClose: () => void; onSuccess: () => void }) => {
   const { getToken } = useAuth();

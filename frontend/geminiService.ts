@@ -3,7 +3,7 @@ import { Madhab } from "./types";
 import { useAuth } from "@clerk/clerk-react";
 import i18n from "./src/i18n";
 
-const API_BASE = import.meta.env.VITE_API_URL || "http://localhost:5000";
+import { API_BASE } from './lib/api';
 console.log("🔌 API_BASE:", API_BASE);
 
 

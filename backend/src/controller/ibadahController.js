@@ -374,6 +374,10 @@ export const syncQuranProgress = async (req, res) => {
         const clerkId = req.auth.userId;
         const { readAyahs, activeSeconds, streak, lastReadDate } = req.body;
 
+        if (readAyahs && (!Array.isArray(readAyahs) || readAyahs.length > 6300)) {
+            return res.status(400).json({ message: "Invalid readAyahs data" });
+        }
+
         const user = await User.findOne({ clerkId });
         if (!user) {
             return res.status(404).json({ error: "User not found" });

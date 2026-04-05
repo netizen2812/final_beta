@@ -13,7 +13,7 @@ import { Analytics } from '../utils/analytics';
 import { useTranslation } from 'react-i18next';
 import { ChatLimitModal } from './ChatLimitModal';
 
-const API_URL = import.meta.env.VITE_API_URL || "http://localhost:5000";
+import { API_BASE as API_URL } from '../lib/api';
 
 // ─── Animated Background ────────────────────────────────────────────────────
 const AnimatedBackground: React.FC = () => (

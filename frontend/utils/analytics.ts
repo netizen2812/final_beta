@@ -1,3 +1,4 @@
+import { API_BASE } from '../lib/api';
 import axios from 'axios';
 
 // Native UUID generator fallback
@@ -12,7 +13,7 @@ const generateUUID = () => {
     });
 };
 
-const API_BASE = (import.meta.env.VITE_API_URL || "http://localhost:5000") + "/api/analytics";
+const API_BASE = API_BASE + "/api/analytics";
 const SESSION_TIMEOUT = 30 * 60 * 1000; // 30 minutes
 
 class AnalyticsService {

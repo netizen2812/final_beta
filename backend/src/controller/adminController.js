@@ -201,19 +201,44 @@ export const getAdminStats = async (req, res) => {
 
 // --- PART 2: USER DASHBOARD ROLE MANAGEMENT ---
 
-// GET /api/admin/users
+// GET /api/admin/users?page=1&limit=50
 export const getAllUsers = async (req, res) => {
     try {
-        const users = await User.find().sort({ createdAt: -1 }).lean();
+        const page = parseInt(req.query.page) || 1;
+        const limit = parseInt(req.query.limit) || 100;
+        const skip = (page - 1) * limit;
 
-        // Enhance with detailed child info for hierarchy
-        const enhanced = await Promise.all(users.map(async u => {
-            const children = await Child.find({ parent_id: u._id }).lean();
-            return { ...u, children, childCount: children.length };
-        }));
+        const users = await User.aggregate([
+            { $sort: { createdAt: -1 } },
+            { $skip: skip },
+            { $limit: limit },
+            {
+                $lookup: {
+                    from: "children",
+                    localField: "_id",
+                    foreignField: "parent_id",
+                    as: "children"
+                }
+            },
+            {
+                $addFields: {
+                    childCount: { $size: "$children" }
+                }
+            }
+        ]);
 
-        res.json(enhanced);
+        const total = await User.countDocuments();
+
+        res.json({
+            users,
+            pagination: {
+                total,
+                page,
+                pages: Math.ceil(total / limit)
+            }
+        });
     } catch (error) {
+        console.error("Fetch all users error:", error);
         res.status(500).json({ message: "Error fetching users" });
     }
 };

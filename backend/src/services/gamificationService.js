@@ -132,21 +132,55 @@ export const awardXP = async (childId, action, data = {}) => {
             }
         }
 
-        progress.total_xp += xpGained;
+        // Atomic increment of XP and update other fields
+        const xpUpdate = {
+            $inc: {
+                "child_progress.0.total_xp": xpGained,
+                "child_progress.0.total_sessions_attended": (action === "session_complete") ? 1 : 0,
+                "child_progress.0.total_correct_recitations": (action === "recitation" && (data.score >= 7)) ? 1 : 0
+            },
+            $set: {
+                "child_progress.0.last_active_date": new Date()
+            }
+        };
 
-        // Calculate Level
-        const oldLevel = progress.level;
-        progress.level = calculateLevel(progress.total_xp);
+        // If it's a session completion, we also push to attendance history atomically
+        if (action === "session_complete" && (data.batchId || data.sessionId)) {
+            xpUpdate.$push = {
+                "child_progress.0.attendance": {
+                    batchId: data.batchId || null,
+                    sessionId: data.sessionId || null,
+                    date: new Date(),
+                    status: 'present',
+                    type: 'session_complete'
+                }
+            };
+        }
 
-        child.markModified('child_progress');
-        await child.save();
+        const updatedChild = await Child.findByIdAndUpdate(
+            childId,
+            xpUpdate,
+            { new: true }
+        );
+
+        if (!updatedChild) throw new Error("Child update failed");
+        
+        const updatedProgress = updatedChild.child_progress[0];
+        const newLevel = calculateLevel(updatedProgress.total_xp);
+        
+        if (newLevel !== updatedProgress.level) {
+            await Child.updateOne(
+                { _id: childId },
+                { $set: { "child_progress.0.level": newLevel } }
+            );
+        }
 
         return {
             xpGained,
-            newLevel: progress.level > oldLevel ? progress.level : null,
-            total_xp: progress.total_xp,
-            level: progress.level,
-            streak: progress.streak_days
+            newLevel: newLevel > updatedProgress.level ? newLevel : null,
+            total_xp: updatedProgress.total_xp,
+            level: newLevel,
+            streak: updatedProgress.streak_days
         };
     } catch (err) {
         console.error("Error awarding XP:", err);

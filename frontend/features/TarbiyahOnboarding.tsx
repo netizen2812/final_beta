@@ -14,7 +14,7 @@ import { MovingBackground } from './TarbiyahLobby';
 
 import { useChildContext } from '../contexts/ChildContext';
 
-const API_BASE = import.meta.env.VITE_API_URL || "http://localhost:5000";
+import { API_BASE } from '../lib/api';
 
 export const TarbiyahOnboarding = ({ getToken, isPaid = false, handleGuestJoin }: { getToken: any, isPaid?: boolean, handleGuestJoin?: () => void }) => {
   const [isLoading, setIsLoading] = useState(false);

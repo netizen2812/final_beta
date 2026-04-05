@@ -4,7 +4,7 @@ import { BookOpen, User, Calendar, CheckCircle, Clock, ChevronRight, Users, Info
 import { useAuth } from '@clerk/clerk-react';
 import { QURAN_METADATA } from '../quranMetadata';
 
-const API_BASE = import.meta.env.VITE_API_URL || "http://localhost:5000";
+import { API_BASE } from '../lib/api';
 
 interface ScholarQuranManagerProps {
     batchId?: string;

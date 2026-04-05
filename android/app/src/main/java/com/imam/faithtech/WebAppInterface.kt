@@ -95,8 +95,7 @@ class WebAppInterface(private val mContext: Context) {
     @JavascriptInterface
     fun logError(error: String) {
         android.util.Log.e("ImamAppJS", error)
-        // Show as long toast for visibility during debugging
-        Toast.makeText(mContext, "JS Error: $error", Toast.LENGTH_LONG).show()
+        // Toast removed to prevent information leaks in production
     }
 
     @JavascriptInterface

@@ -286,7 +286,8 @@ export const startBatch = async (req, res) => {
         if (batch && batch.status === 'active' && batch.activeSessionId) {
              const existingSession = await Session.findById(batch.activeSessionId);
              if (existingSession && existingSession.status === 'live') {
-                const agoraToken = generateAgoraToken(id, 0, 'publisher');
+                const { getNumericUid } = await import("../utils/tarbiyahUtils.js");
+                const agoraToken = generateAgoraToken(id, getNumericUid(req.auth.userId), 'publisher');
                 return res.json({ 
                     success: true,
                     session: {
@@ -344,7 +345,8 @@ export const startBatch = async (req, res) => {
             }
         }, { new: true });
 
-        const agoraToken = generateAgoraToken(id, 0, 'publisher');
+        const { getNumericUid } = await import("../utils/tarbiyahUtils.js");
+        const agoraToken = generateAgoraToken(id, getNumericUid(req.auth.userId), 'publisher');
 
         res.json({ 
             success: true,
@@ -407,6 +409,21 @@ export const joinBatch = async (req, res) => {
 
         await session.save();
 
+        // 🔥 SYNC: Add to Batch.activeParticipants for real-time scholar view
+        const pIdxBatch = batch.activeParticipants.findIndex(p => p.childId === childId);
+        if (pIdxBatch > -1) {
+            batch.activeParticipants[pIdxBatch].isActive = true;
+            batch.activeParticipants[pIdxBatch].lastSeen = new Date();
+        } else {
+            batch.activeParticipants.push({
+                childId,
+                childName,
+                isActive: true,
+                lastSeen: new Date()
+            });
+        }
+        await batch.save();
+
         if (isFirstJoin) {
             const { awardXP } = await import("../services/gamificationService.js");
             await awardXP(childId, "participation", { points: 2, batchId: id, sessionId: session._id });
@@ -420,7 +437,8 @@ export const joinBatch = async (req, res) => {
 
         // Generate Agora Token for student (subscriber)
         const AGORA_APP_ID = process.env.AGORA_APP_ID;
-        const agoraToken = generateAgoraToken(id, 0, 'subscriber');
+        const { getNumericUid } = await import("../utils/tarbiyahUtils.js");
+        const agoraToken = generateAgoraToken(id, getNumericUid(req.auth.userId), 'subscriber');
 
         res.json({ 
             success: true, 
@@ -497,8 +515,9 @@ export const getMySessions = async (req, res) => {
             if (b.activeSessionId) {
                  const session = await Session.findById(b.activeSessionId);
                  if (session && session.status === 'live') {
+                     const { getNumericUid } = await import("../utils/tarbiyahUtils.js");
                      // Generate token for student (subscriber)
-                     agoraToken = generateAgoraToken(b._id.toString(), 0, 'subscriber');
+                     agoraToken = generateAgoraToken(b._id.toString(), getNumericUid(req.auth.userId), 'subscriber');
 
                      activeParticipants = (session.attendance || [])
                         .filter(p => p && p.isActive)
@@ -606,6 +625,13 @@ export const batchPing = async (req, res) => {
             { _id: batch.activeSessionId, "attendance.childId": childId },
             { $set: { "attendance.$.lastSeen": new Date(), "attendance.$.isActive": true } }
         );
+
+        // 🔥 SYNC: Also update Batch.activeParticipants for Scholar Live View
+        await Batch.updateOne(
+            { _id: batchId, "activeParticipants.childId": childId },
+            { $set: { "activeParticipants.$.lastSeen": new Date(), "activeParticipants.$.isActive": true } }
+        );
+
         res.json({ ok: true });
     } catch (error) {
         res.status(500).json({ error: error.message });
@@ -666,6 +692,20 @@ export const updatePosition = async (req, res) => {
                 }
             }
         );
+
+        // 🔥 SYNC: Also update Batch.activeParticipants for Scholar Live View
+        await Batch.updateOne(
+            { _id: batchId, "activeParticipants.childId": childId },
+            {
+                $set: {
+                    "activeParticipants.$.currentSurah": Number(surahNumber),
+                    "activeParticipants.$.currentAyah": Number(ayahNumber),
+                    "activeParticipants.$.lastSeen": new Date(),
+                    "activeParticipants.$.isActive": true
+                }
+            }
+        );
+
         res.json({ ok: true });
     } catch (error) {
         res.status(500).json({ success: false, error: error.message });
@@ -684,6 +724,12 @@ export const leaveBatch = async (req, res) => {
             await Session.updateOne(
                 { _id: batch.activeSessionId, "attendance.childId": childId },
                 { $set: { "attendance.$.isActive": false } }
+            );
+
+            // 🔥 SYNC: Also update Batch.activeParticipants for Scholar Live View
+            await Batch.updateOne(
+                { _id: batchId, "activeParticipants.childId": childId },
+                { $set: { "activeParticipants.$.isActive": false } }
             );
         }
         res.json({ ok: true });
@@ -782,10 +828,11 @@ export const getBatchState = async (req, res) => {
         // GENERATE AGORA TOKEN ON-DEMAND (Channel = Batch ID)
         let agoraToken = null;
         let agoraAppId = process.env.AGORA_APP_ID;
-        if (batch.status === 'active') {
+        if (batch.status === 'active' || (req.query?.forceToken === 'true')) {
             try {
                 const { generateAgoraToken } = await import("../services/agoraService.js");
                 const { SCHOLAR_EMAILS, isRootAdmin } = await import("../utils/constants.js");
+                const { getNumericUid } = await import("../utils/tarbiyahUtils.js");
                 
                 const userEmail = req.auth?.emailAddresses?.[0]?.emailAddress;
                 const isScholar = SCHOLAR_EMAILS.includes(userEmail?.toLowerCase());
@@ -793,7 +840,10 @@ export const getBatchState = async (req, res) => {
                 
                 // Admins/Scholars are publishers, students are subscribers
                 const role = (isScholar || isAdmin) ? 'publisher' : 'subscriber';
-                agoraToken = generateAgoraToken(id, 0, role);
+                
+                // Pass real numeric UID to token generation (Critical fix)
+                const numericUid = getNumericUid(req.auth.userId);
+                agoraToken = generateAgoraToken(id, numericUid, role);
             } catch (err) {
                 console.warn("[Agora] Token generation failed during state poll:", err.message);
             }
@@ -1317,6 +1367,23 @@ export const forceEndBatch = async (req, res) => {
 // DAILY.CO WEBHOOK HANDLER
 export const handleDailyWebhook = async (req, res) => {
     try {
+        // --- 🔴 CRITICAL: Signature Verification ---
+        const signature = req.headers['x-daily-signature'];
+        const sharedSecret = process.env.DAILY_WEBHOOK_SECRET;
+        
+        if (sharedSecret && signature) {
+            const crypto = await import('node:crypto');
+            const hmac = crypto.createHmac('sha256', sharedSecret);
+            const body = JSON.stringify(req.body);
+            hmac.update(body);
+            const expected = hmac.digest('hex');
+            
+            if (signature !== expected) {
+                console.warn("[Daily Webhook] Signature mismatch. Possible spoofing attempt.");
+                return res.status(401).json({ error: "Invalid signature" });
+            }
+        }
+        
         const { event, payload } = req.body;
         if (!payload || !payload.room) return res.status(200).json({ status: "skipped" });
 

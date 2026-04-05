@@ -25,7 +25,7 @@ import { useClerk, useUser } from '@clerk/clerk-react';
 import { quranTracker } from '../utils/quranProgressTracker';
 
 // --- DATA & CONSTANTS ---
-const API_BASE = import.meta.env.VITE_API_URL || "http://localhost:5000";
+import { API_BASE } from '../lib/api';
 
 // Dynamic stages count
 const STAGES_COUNT = 30;

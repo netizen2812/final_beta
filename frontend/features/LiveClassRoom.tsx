@@ -240,7 +240,7 @@ const LiveClassRoom: React.FC = () => {
       const batchId = typeof batchOrId === 'string' ? batchOrId : batchOrId?._id;
       if (!batchId) return;
       const token = await getToken();
-      const res = await axios.post(`${API_BASE}/api/live/batch/${batchId}/start`, {}, {
+      const res = await axios.post(`${API_BASE}/api/live/${batchId}/start`, {}, {
         headers: { Authorization: `Bearer ${token}` }
       });
       setCurrentSession(res.data.session);

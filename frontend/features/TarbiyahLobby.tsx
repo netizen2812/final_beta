@@ -635,6 +635,9 @@ const ScholarDashboardView = ({ batches, onJoinSession, setShowScholarManage }: 
 const ParentsView = ({ activeChild, getToken }: any) => {
   const [dashboardData, setDashboardData] = useState<any>(null);
   const [showSetupModal, setShowSetupModal] = useState(false);
+  const [juz, setJuz] = useState(1);
+  const [completedParts, setCompletedParts] = useState<string[]>([]);
+  const [isSaving, setIsSaving] = useState(false);
 
   useEffect(() => {
     if (!activeChild?.id) return;
@@ -642,9 +645,48 @@ const ParentsView = ({ activeChild, getToken }: any) => {
        const token = await getToken();
        const res = await axios.get(`${API_BASE}/api/parent/dashboard/${activeChild.id}`, { headers: { Authorization: `Bearer ${token}` } });
        setDashboardData(res.data);
+       if (res.data?.stats?.completed_quran_parts) {
+           setCompletedParts(res.data.stats.completed_quran_parts);
+       }
     };
     fetch();
   }, [activeChild, getToken]);
+
+  const togglePart = (pJuz: number, pPart: number) => {
+      const key = `J${pJuz}P${pPart}`;
+      setCompletedParts(prev => 
+          prev.includes(key) ? prev.filter(k => k !== key) : [...prev, key]
+      );
+  };
+
+  const selectAllCurrentJuz = () => {
+      const keys = [...Array(15)].map((_, i) => `J${juz}P${i+1}`);
+      setCompletedParts(prev => [...new Set([...prev, ...keys])]);
+  };
+
+  const clearCurrentJuz = () => {
+      const keys = [...Array(15)].map((_, i) => `J${juz}P${i+1}`);
+      setCompletedParts(prev => prev.filter(k => !keys.includes(k)));
+  };
+
+  const handleSaveProgress = async () => {
+      setIsSaving(true);
+      try {
+          const token = await getToken();
+          await axios.post(`${API_BASE}/api/parent/completion/${activeChild.id}`, {
+              parts: completedParts
+          }, {
+              headers: { Authorization: `Bearer ${token}` }
+          });
+          setShowSetupModal(false);
+          const res = await axios.get(`${API_BASE}/api/parent/dashboard/${activeChild.id}`, { headers: { Authorization: `Bearer ${token}` } });
+          setDashboardData(res.data);
+      } catch (error) {
+          alert("Failed to save progress");
+      } finally {
+          setIsSaving(false);
+      }
+  };
 
   const stats = dashboardData?.stats;
   const completionRate = stats?.completionRate || 0;
@@ -745,10 +787,72 @@ const ParentsView = ({ activeChild, getToken }: any) => {
       </div>
       {showSetupModal && (
           <div className="fixed inset-0 z-[200] bg-black/80 flex items-center justify-center p-4">
-             <div className="bg-[#022c22] p-8 rounded-[3rem] border border-emerald-500/30 w-full max-w-xl text-center">
-                <h3 className="text-2xl font-serif font-bold text-white mb-4">Setup Quran Progress</h3>
-                <p className="text-emerald-200/60 mb-8">This module allows you to manually mark historical progress.</p>
-                <button onClick={() => setShowSetupModal(false)} className="bg-emerald-500 text-[#022c22] px-8 py-3 rounded-2xl font-bold">Close Setup</button>
+             <div className="bg-[#022c22] p-8 rounded-[3rem] border border-emerald-500/30 w-full max-w-4xl max-h-[90vh] overflow-y-auto custom-scrollbar shadow-2xl relative">
+                <button onClick={() => setShowSetupModal(false)} className="absolute top-8 right-8 text-white/50 hover:text-white font-bold flex items-center gap-2">✕ Close</button>
+                <div className="text-center mb-8 mt-4">
+                    <h3 className="text-3xl font-serif font-bold text-white mb-2">Setup Quran Progress</h3>
+                    <p className="text-emerald-200/60 flex items-center justify-center gap-2">
+                        <BookOpen size={16} /> Mark the parts your child has already completed.
+                    </p>
+                </div>
+                
+                <div className="space-y-8">
+                    <div className="space-y-3">
+                        <label className="text-xs font-bold text-emerald-300 uppercase tracking-widest ml-1">Select Juz</label>
+                        <div className="flex flex-wrap gap-2">
+                            {[...Array(30)].map((_, i) => (
+                                <button
+                                    key={i+1}
+                                    onClick={() => setJuz(i+1)}
+                                    className={`px-4 py-2 rounded-xl text-sm font-bold transition-all border ${juz === i+1 ? 'bg-emerald-500 border-emerald-400 text-[#022c22] shadow-lg' : 'bg-black/40 border-emerald-500/10 text-emerald-100 hover:border-emerald-500/30'}`}
+                                >
+                                    Juz {i+1}
+                                </button>
+                            ))}
+                        </div>
+                    </div>
+
+                    <div className="space-y-4 bg-black/20 p-6 rounded-[2rem] border border-white/5">
+                        <div className="flex items-center justify-between">
+                            <label className="text-xs font-bold text-emerald-300 uppercase tracking-widest ml-1">Select Subparts (1-15)</label>
+                            <div className="flex gap-2">
+                                <button onClick={selectAllCurrentJuz} className="text-[10px] bg-emerald-500/20 text-emerald-300 px-3 py-1.5 rounded-lg hover:bg-emerald-500/30 transition-all font-bold uppercase tracking-tighter">Select All</button>
+                                <button onClick={clearCurrentJuz} className="text-[10px] bg-red-500/20 text-red-300 px-3 py-1.5 rounded-lg hover:bg-red-500/30 transition-all font-bold uppercase tracking-tighter">Clear</button>
+                            </div>
+                        </div>
+                        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-3">
+                            {[...Array(15)].map((_, i) => {
+                                const partNum = i + 1;
+                                const metadata = QURAN_METADATA[juz]?.find((m: any) => m.part === partNum);
+                                const key = `J${juz}P${partNum}`;
+                                const isSelected = completedParts.includes(key);
+                                return (
+                                    <button 
+                                        key={partNum} 
+                                        onClick={() => togglePart(juz, partNum)}
+                                        className={`p-3 rounded-2xl border transition-all text-left flex flex-col gap-1 relative overflow-hidden group ${isSelected ? 'bg-emerald-500 border-emerald-400 text-[#022c22] shadow-lg scale-[1.02]' : 'bg-black/40 border-white/5 text-emerald-100 hover:border-emerald-500/30'}`}
+                                    >
+                                        <div className="flex items-center justify-between mb-1">
+                                            <span className={`text-[10px] font-black ${isSelected ? 'text-[#022c22]/70' : 'text-emerald-500/70'}`}>PART {partNum}</span>
+                                            {isSelected && <div className="bg-[#022c22] text-emerald-400 rounded-full p-0.5"><CheckCircle size={10} /></div>}
+                                        </div>
+                                        <div className={`text-xs font-bold leading-tight line-clamp-2 ${isSelected ? 'text-[#022c22]' : 'text-white'}`}>
+                                            {metadata?.label || `Part ${partNum}`}
+                                        </div>
+                                        {!isSelected && <div className="absolute inset-0 bg-emerald-500/0 group-hover:bg-emerald-500/5 transition-all" />}
+                                    </button>
+                                );
+                            })}
+                        </div>
+                    </div>
+                    
+                    <div className="mt-8 flex flex-col sm:flex-row gap-4">
+                        <button onClick={() => setShowSetupModal(false)} className="flex-1 bg-white/10 hover:bg-white/20 text-white px-8 py-4 rounded-2xl font-bold transition-all">Cancel</button>
+                        <button onClick={handleSaveProgress} disabled={isSaving} className="flex-1 bg-emerald-500 hover:bg-emerald-400 text-[#022c22] px-8 py-4 rounded-2xl font-bold transition-all flex items-center justify-center shadow-[0_0_20px_rgba(16,185,129,0.3)] disabled:opacity-50 blur-[0px]">
+                            {isSaving ? <Loader2 size={24} className="animate-spin" /> : 'Save Progress'}
+                        </button>
+                    </div>
+                </div>
              </div>
           </div>
       )}

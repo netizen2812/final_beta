@@ -23,9 +23,14 @@ const HomeHub: React.FC<HomeHubProps> = ({ onNavigate }) => {
             entries.forEach(entry => {
                 if (entry.isIntersecting) {
                     entry.target.classList.add('visible');
+                    // Once visible, we can stop observing this element
+                    observer.unobserve(entry.target);
                 }
             });
-        }, { threshold: 0.1 });
+        }, { 
+            threshold: 0.05, // Lower threshold for more reliable triggering on small screens
+            rootMargin: '50px' // Start loading slightly before they enter viewport
+        });
 
         const observeElements = () => {
             document.querySelectorAll('.reveal-on-scroll').forEach(el => observer.observe(el));
@@ -111,12 +116,19 @@ const HomeHub: React.FC<HomeHubProps> = ({ onNavigate }) => {
         }
         .reveal-on-scroll {
           opacity: 0;
-          transform: translateY(30px);
-          transition: all 0.8s cubic-bezier(0.2, 0.8, 0.2, 1);
+          transform: translateY(20px);
+          transition: opacity 0.6s ease-out, transform 0.6s ease-out;
+          will-change: opacity, transform;
         }
         .reveal-on-scroll.visible {
           opacity: 1;
           transform: translateY(0);
+        }
+        /* Fallback for components that might not trigger observer immediately on small viewports */
+        @media (max-width: 768px) {
+           .reveal-on-scroll {
+              opacity: 0.1; /* Show a ghost of the element so user knows to scroll */
+           }
         }
       `}</style>
         </div>

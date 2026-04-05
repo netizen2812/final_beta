@@ -13,7 +13,7 @@ const generateUUID = () => {
     });
 };
 
-const API_BASE = API_BASE + "/api/analytics";
+const ANALYTICS_ENDPOINT = API_BASE + "/api/analytics";
 const SESSION_TIMEOUT = 30 * 60 * 1000; // 30 minutes
 
 class AnalyticsService {
@@ -53,7 +53,7 @@ class AnalyticsService {
             const token = await this.getToken();
             if (!token) return;
 
-            await axios.post(`${API_BASE}/event`, {
+            await axios.post(`${ANALYTICS_ENDPOINT}/event`, {
                 eventType,
                 role: this.userRole,
                 sessionId: this.sessionId,

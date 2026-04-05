@@ -107,11 +107,7 @@
       "quranicReferences": "Quranic References"
     }
   },
-  "welcome": {
-    "welcomeToImam": "Welcome to IMAM",
-    "enterApp": "Enter App",
-    "skip": "Skip"
-  },
+
   "common": {
     "loading": "Loading...",
     "error": "Something went wrong",

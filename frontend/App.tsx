@@ -1,16 +1,16 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, lazy, Suspense } from "react";
 import { AppTab, Madhab, Tone } from "./types";
 import { Icons } from "./constants";
 import { ChildProvider } from "./contexts/ChildContext";
-import CoreChat from "./features/CoreChat";
-import IbadahDashboard from "./features/IbadahDashboard";
-import LiveClassRoom from "./features/LiveClassRoom";
-import ProfilePage from "./features/ProfilePage";
-import AdminDashboard from "./features/AdminDashboard";
-import AdminLiveDashboard from "./features/AdminLiveDashboard";
-import HomeHub from "./features/home/HomeHub";
-import Privacy from "./pages/Privacy";
-import Terms from "./pages/Terms";
+const CoreChat = lazy(() => import("./features/CoreChat"));
+const IbadahDashboard = lazy(() => import("./features/IbadahDashboard"));
+const LiveClassRoom = lazy(() => import("./features/LiveClassRoom"));
+const ProfilePage = lazy(() => import("./features/ProfilePage"));
+const AdminDashboard = lazy(() => import("./features/AdminDashboard"));
+const AdminLiveDashboard = lazy(() => import("./features/AdminLiveDashboard"));
+const HomeHub = lazy(() => import("./features/home/HomeHub"));
+const Privacy = lazy(() => import("./pages/Privacy"));
+const Terms = lazy(() => import("./pages/Terms"));
 import Footer from "./components/Footer";
 import XPRewardEffect from "./components/XPRewardEffect";
 import { User, Settings, Radio, Home, Globe } from "lucide-react";
@@ -49,6 +49,11 @@ const getTabFromPath = (path: string): AppTab => {
   if (path.startsWith("/home")) return AppTab.HOME;
   return AppTab.HOME;
 };
+const LoadingFallback = () => (
+  <div className="flex-1 flex items-center justify-center p-8">
+    <div className="w-10 h-10 border-4 border-emerald-500/10 border-t-emerald-500 rounded-full animate-spin" />
+  </div>
+);
 
 const App: React.FC = () => {
   const [activeTab, setActiveTab] = useState<AppTab>(() => getTabFromPath(window.location.pathname));
@@ -190,31 +195,37 @@ const App: React.FC = () => {
       );
     }
 
-    switch (activeTab) {
-      case AppTab.HOME:
-        return <HomeHub onNavigate={(tab) => setActiveTab(tab)} />;
-      case AppTab.CORE:
-        return (
-          <CoreChat
-            madhab={madhab}
-            setMadhab={setMadhab}
-            tone={tone}
-            setTone={setTone}
-          />
-        );
-      case AppTab.IBADAH:
-        return <IbadahDashboard />;
-      case AppTab.LIVE:
-        return <LiveClassRoom />;
-      case AppTab.ADMIN:
-        return <AdminDashboard onNavigateToLive={() => setActiveTab(AppTab.ADMIN_LIVE)} />;
-      case AppTab.ADMIN_LIVE:
-        return <AdminLiveDashboard />;
-      case AppTab.PROFILE:
-        return <ProfilePage />;
-      default:
-        return <HomeHub onNavigate={(tab) => setActiveTab(tab)} />;
-    }
+    return (
+      <Suspense fallback={<LoadingFallback />}>
+        {(() => {
+          switch (activeTab) {
+            case AppTab.HOME:
+              return <HomeHub onNavigate={(tab) => setActiveTab(tab)} />;
+            case AppTab.CORE:
+              return (
+                <CoreChat
+                  madhab={madhab}
+                  setMadhab={setMadhab}
+                  tone={tone}
+                  setTone={setTone}
+                />
+              );
+            case AppTab.IBADAH:
+              return <IbadahDashboard />;
+            case AppTab.LIVE:
+              return <LiveClassRoom />;
+            case AppTab.ADMIN:
+              return <AdminDashboard onNavigateToLive={() => setActiveTab(AppTab.ADMIN_LIVE)} />;
+            case AppTab.ADMIN_LIVE:
+              return <AdminLiveDashboard />;
+            case AppTab.PROFILE:
+              return <ProfilePage />;
+            default:
+              return <HomeHub onNavigate={(tab) => setActiveTab(tab)} />;
+          }
+        })()}
+      </Suspense>
+    );
   };
 
   const navItems = [
@@ -239,7 +250,9 @@ const App: React.FC = () => {
   if (path === "/privacy") {
     return (
       <div className="flex flex-col min-h-screen">
-        <Privacy />
+        <Suspense fallback={<LoadingFallback />}>
+          <Privacy />
+        </Suspense>
         <Footer />
       </div>
     );
@@ -248,7 +261,9 @@ const App: React.FC = () => {
   if (path === "/terms") {
     return (
       <div className="flex flex-col min-h-screen">
-        <Terms />
+        <Suspense fallback={<LoadingFallback />}>
+          <Terms />
+        </Suspense>
         <Footer />
       </div>
     );

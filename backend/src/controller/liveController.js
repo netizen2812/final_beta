@@ -282,10 +282,23 @@ export const startBatch = async (req, res) => {
         const { id } = req.params;
 
         let batch = await Batch.findById(id);
+        const AGORA_APP_ID = process.env.AGORA_APP_ID;
         if (batch && batch.status === 'active' && batch.activeSessionId) {
              const existingSession = await Session.findById(batch.activeSessionId);
              if (existingSession && existingSession.status === 'live') {
-                return res.json({ message: "Batch already active", activeSessionId: batch.activeSessionId, dailyRoomName: batch.dailyRoomName });
+                const agoraToken = generateAgoraToken(id, 0, 'publisher');
+                return res.json({ 
+                    success: true,
+                    session: {
+                        _id: batch.activeSessionId,
+                        batchId: id,
+                        status: 'active',
+                        title: batch.name,
+                        dailyRoomName: batch.dailyRoomName,
+                        agoraToken: agoraToken || null,
+                        agoraAppId: AGORA_APP_ID || null
+                    }
+                });
              }
         }
 
@@ -331,15 +344,19 @@ export const startBatch = async (req, res) => {
             }
         }, { new: true });
 
-        const AGORA_APP_ID = process.env.AGORA_APP_ID;
         const agoraToken = generateAgoraToken(id, 0, 'publisher');
 
         res.json({ 
-            message: "Batch started", 
-            activeSessionId: session._id, 
-            dailyRoomName: batch.dailyRoomName,
-            agoraToken: agoraToken || null,
-            agoraAppId: AGORA_APP_ID || null
+            success: true,
+            session: {
+                _id: session._id,
+                batchId: id,
+                status: 'active',
+                title: batch.name,
+                dailyRoomName: batch.dailyRoomName,
+                agoraToken: agoraToken || null,
+                agoraAppId: AGORA_APP_ID || null
+            }
         });
     } catch (error) {
         console.error("Start batch error:", error);

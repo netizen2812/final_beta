@@ -752,7 +752,7 @@ export const getBatchState = async (req, res) => {
         const { default: Session } = await import("../models/Session.js");
         const { default: LiveScore } = await import("../models/LiveScore.js");
 
-        const batch = await Batch.findById(id).select("activeChildId activeSessionId status dailyRoomName promptEvaluated currentPromptAnswers pastSessions");
+        const batch = await Batch.findById(id).select("activeChildId activeSessionId status dailyRoomName promptEvaluated currentPromptAnswers pastSessions activeParticipants");
         if (!batch) return res.status(404).json({ message: "Batch not found" });
 
         let session = null;
@@ -760,12 +760,12 @@ export const getBatchState = async (req, res) => {
             session = await Session.findById(batch.activeSessionId);
         }
 
-        const activeParticipants = session?.attendance || [];
+        const activeParticipants = batch.activeParticipants || [];
         
         let activeSurah = null;
         let activeAyah = null;
         if (batch.activeChildId) {
-            const activeParticipant = activeParticipants.find(p => p.childId.toString() === batch.activeChildId);
+            const activeParticipant = activeParticipants.find(p => p.childId === batch.activeChildId);
             if (activeParticipant) {
                 activeSurah = activeParticipant.currentSurah;
                 activeAyah = activeParticipant.currentAyah;

@@ -55,12 +55,22 @@ interface PromptAnswer {
   answer: 'yes' | 'no';
 }
 
+interface ActiveParticipant {
+  childId: string;
+  childName?: string;
+  currentSurah?: number;
+  currentAyah?: number;
+  isActive: boolean;
+  lastSeen?: string;
+}
+
 interface BatchState {
   activeChildId: string | null;
   activeSessionId: string | null;
   status: string;
   currentPromptAnswers?: PromptAnswer[];
   promptEvaluated?: boolean;
+  activeParticipants?: ActiveParticipant[];
   pastSessions?: { sessionId: string; startedAt: string; endedAt: string }[];
 }
 

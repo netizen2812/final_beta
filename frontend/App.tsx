@@ -25,7 +25,9 @@ import {
 } from "@clerk/clerk-react";
 
 import axios from "axios";
-import { API_BASE as API_URL } from "./lib/api";
+import { APPLICATION_API_URL } from "./lib/api";
+
+console.log("💓 App.tsx: Module Evaluation");
 
 import { useHeartbeat } from "./hooks/useHeartbeat";
 import { Analytics } from "./utils/analytics";
@@ -115,7 +117,7 @@ const App: React.FC = () => {
       try {
         const token = await getToken();
         await axios.patch(
-          `${API_URL}/api/users/language`,
+          `${APPLICATION_API_URL}/api/users/language`,
           { language: langCode },
           { headers: { Authorization: `Bearer ${token}` } }
         );
@@ -136,7 +138,7 @@ const App: React.FC = () => {
         const token = await getToken();
 
         const response = await axios.post(
-          `${API_URL}/api/users/sync`,
+          `${APPLICATION_API_URL}/api/users/sync`,
           {
             email: user.primaryEmailAddress?.emailAddress,
             name: user.fullName,

@@ -1,6 +1,6 @@
 import axios from 'axios';
 
-import { API_BASE } from '../lib/api';
+import { APPLICATION_API_URL } from '../lib/api';
 
 export interface TarbiyahDashboardStats {
     timeThisWeek: string;
@@ -47,7 +47,7 @@ export interface ParentDashboardData {
 export const tarbiyahService = {
   getParentDashboard: async (childId: string, getToken: () => Promise<string | null>): Promise<ParentDashboardData> => {
     const token = await getToken();
-    const response = await axios.get(`${API_BASE}/api/parent/dashboard/${childId}`, {
+    const response = await axios.get(`${APPLICATION_API_URL}/api/parent/dashboard/${childId}`, {
       headers: { Authorization: `Bearer ${token}` }
     });
     return response.data;
@@ -55,7 +55,7 @@ export const tarbiyahService = {
 
   updateParentSettings: async (childId: string, settings: { dailyLimitMinutes: number }, getToken: () => Promise<string | null>): Promise<void> => {
     const token = await getToken();
-    await axios.put(`${API_BASE}/api/parent/settings/${childId}`, settings, {
+    await axios.put(`${APPLICATION_API_URL}/api/parent/settings/${childId}`, settings, {
       headers: { Authorization: `Bearer ${token}` }
     });
   }

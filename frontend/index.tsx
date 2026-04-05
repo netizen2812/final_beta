@@ -1,3 +1,4 @@
+console.log("💓 index.tsx: Module Evaluation");
 import React from "react";
 import ReactDOM from "react-dom/client";
 import "./src/i18n";
@@ -15,6 +16,7 @@ if (!clerkPubKey) {
 }
 console.log("🔐 Clerk Key Loaded:", clerkPubKey.startsWith("pk_test") ? "TEST MODE" : "LIVE MODE");
 const root = ReactDOM.createRoot(rootElement);
+console.log("💓 index.tsx: Attempting to Mount React");
 root.render(
   <React.StrictMode>
     <ClerkProvider 
@@ -31,5 +33,6 @@ root.render(
     </ClerkProvider>
   </React.StrictMode>,
 );
+console.log("💓 index.tsx: Render called");
 
 (window as any).__REACT_HYDRATED__ = true;

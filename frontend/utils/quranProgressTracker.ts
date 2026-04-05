@@ -1,5 +1,5 @@
 import axios from 'axios';
-import { API_BASE as CENTRAL_API_BASE } from '../lib/api';
+import { APPLICATION_API_URL } from '../lib/api';
 
 interface QuranProgressData {
     readAyahs: string[]; // Set of "SurahNum:AyahNum"
@@ -10,7 +10,7 @@ interface QuranProgressData {
 
 class QuranProgressTracker {
     private readonly STORAGE_KEY = 'faithtech_quran_progress';
-    private readonly API_BASE = CENTRAL_API_BASE + "/api/ibadah/quran";
+    private readonly API_BASE = APPLICATION_API_URL + "/api/ibadah/quran";
     private data: QuranProgressData;
     private timerInterval: ReturnType<typeof setInterval> | null = null;
     private isTrackingTime = false;

@@ -1,4 +1,4 @@
-import { API_BASE } from '../lib/api';
+import { APPLICATION_API_URL } from '../lib/api';
 import axios from 'axios';
 
 // Native UUID generator fallback
@@ -13,7 +13,7 @@ const generateUUID = () => {
     });
 };
 
-const ANALYTICS_ENDPOINT = API_BASE + "/api/analytics";
+const ANALYTICS_ENDPOINT = APPLICATION_API_URL + "/api/analytics";
 const SESSION_TIMEOUT = 30 * 60 * 1000; // 30 minutes
 
 class AnalyticsService {

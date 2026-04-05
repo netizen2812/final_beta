@@ -3,8 +3,7 @@ import { Madhab } from "./types";
 import { useAuth } from "@clerk/clerk-react";
 import i18n from "./src/i18n";
 
-import { API_BASE } from './lib/api';
-console.log("🔌 API_BASE:", API_BASE);
+import { APPLICATION_API_URL } from './lib/api';
 
 
 export const identifyRecitation = async (
@@ -15,7 +14,7 @@ export const identifyRecitation = async (
     const token = await getToken();
 
     const response = await axios.post(
-      `${API_BASE}/api/recitation`,
+      `${APPLICATION_API_URL}/api/recitation`,
       { base64Audio },
       {
         headers: {
@@ -45,7 +44,7 @@ export const getImamResponse = async (
 ) => {
   try {
     const response = await axios.post(
-      `${API_BASE}/api/chat`,
+      `${APPLICATION_API_URL}/api/chat`,
       {
         prompt,
         madhab,

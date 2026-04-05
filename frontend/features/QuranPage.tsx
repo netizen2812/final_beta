@@ -1,4 +1,4 @@
-import { API_BASE } from '../lib/api';
+import { APPLICATION_API_URL } from '../lib/api';
 
 // (No changes needed, file is already compliant with requirements)
 // Justification: User has already implemented onPositionChange and scroll detection.
@@ -238,8 +238,7 @@ const QuranPage: React.FC<QuranPageProps> = ({
 
   const fetchSurahs = async () => {
     try {
-      const API_URL = API_BASE;
-      const response = await fetch(`${API_URL}/api/ibadah/quran/surahs`);
+      const response = await fetch(`${APPLICATION_API_URL}/api/ibadah/quran/surahs`);
       const data = await response.json();
       setSurahs(data.data);
     } catch (error) {
@@ -251,8 +250,7 @@ const QuranPage: React.FC<QuranPageProps> = ({
     setIsLoading(true);
     setSelectedJuz(null);
     try {
-      const API_URL = API_BASE;
-      const res = await fetch(`${API_URL}/api/ibadah/quran/surah/${number}?lang=${i18n.language}`);
+      const res = await fetch(`${APPLICATION_API_URL}/api/ibadah/quran/surah/${number}?lang=${i18n.language}`);
       const data = await res.json();
 
       const { text, trans, audio } = data;
@@ -308,8 +306,7 @@ const QuranPage: React.FC<QuranPageProps> = ({
     setSelectedSurah(null);
     setSelectedJuz(juzNumber);
     try {
-      const API_URL = API_BASE;
-      const res = await fetch(`${API_URL}/api/ibadah/quran/juz/${juzNumber}?lang=${i18n.language}`);
+      const res = await fetch(`${APPLICATION_API_URL}/api/ibadah/quran/juz/${juzNumber}?lang=${i18n.language}`);
       const data = await res.json();
 
       const { text, trans, audio } = data;

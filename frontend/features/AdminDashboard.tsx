@@ -10,7 +10,7 @@ import {
 } from 'lucide-react';
 import ScholarQuranManager from './ScholarQuranManager';
 
-import { API_BASE } from '../lib/api';
+import { APPLICATION_API_URL } from '../lib/api';
 
 interface AdminDashboardProps {
     onNavigateToLive?: () => void;
@@ -36,10 +36,10 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onNavigateToLive }) => 
             const token = await getToken();
             const headers = { Authorization: `Bearer ${token}` };
 
-            const statsRes = await axios.get(`${API_BASE}/api/admin/stats`, { headers });
+            const statsRes = await axios.get(`${APPLICATION_API_URL}/api/admin/stats`, { headers });
             setStats(statsRes.data);
 
-            const usersRes = await axios.get(`${API_BASE}/api/admin/users`, { headers });
+            const usersRes = await axios.get(`${APPLICATION_API_URL}/api/admin/users`, { headers });
             setUsers(usersRes.data);
 
             // Fetch batches/sessions if in management mode
@@ -48,13 +48,39 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onNavigateToLive }) => 
         } catch (err: any) {
             console.error("Fetch error", err);
             setError("Failed to load dashboard. Access Denied.");
-        } finally { setLoading(false); }
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    const fetchBatches = async () => {
+        try {
+            const token = await getToken();
+            const res = await axios.get(`${APPLICATION_API_URL}/api/admin/batches`, {
+                headers: { Authorization: `Bearer ${token}` }
+            });
+            setBatches(res.data);
+        } catch (e) {
+            console.error("Batches error", e);
+        }
+    };
+
+    const fetchSessions = async () => {
+        try {
+            const token = await getToken();
+            const res = await axios.get(`${APPLICATION_API_URL}/api/admin/sessions`, {
+                headers: { Authorization: `Bearer ${token}` }
+            });
+            setSessions(res.data);
+        } catch (e) {
+            console.error("Sessions error", e);
+        }
     };
 
     const fetchAnalytics = async () => {
         try {
             const token = await getToken();
-            const res = await axios.get(`${API_BASE}/api/analytics/metrics`, {
+            const res = await axios.get(`${APPLICATION_API_URL}/api/analytics/metrics`, {
                 headers: { Authorization: `Bearer ${token}` }
             });
             setAnalytics(res.data);
@@ -68,8 +94,8 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onNavigateToLive }) => 
             const token = await getToken();
             const headers = { Authorization: `Bearer ${token}` };
             const [b, s] = await Promise.all([
-                axios.get(`${API_BASE}/api/admin/batches`, { headers }),
-                axios.get(`${API_BASE}/api/admin/sessions`, { headers })
+                axios.get(`${APPLICATION_API_URL}/api/admin/batches`, { headers }),
+                axios.get(`${APPLICATION_API_URL}/api/admin/sessions`, { headers })
             ]);
             setBatches(b.data);
             setSessions(s.data);
@@ -79,7 +105,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onNavigateToLive }) => 
     const fetchAiLogs = async () => {
         try {
             const token = await getToken();
-            const res = await axios.get(`${API_BASE}/api/admin/ai-logs`, {
+            const res = await axios.get(`${APPLICATION_API_URL}/api/admin/ai-logs`, {
                 headers: { Authorization: `Bearer ${token}` }
             });
             setAiLogs(res.data);
@@ -103,7 +129,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onNavigateToLive }) => 
         if (!confirm(`Change role to ${newRole}?`)) return;
         try {
             const token = await getToken();
-            await axios.patch(`${API_BASE}/api/admin/user/${userId}`, { role: newRole.toLowerCase() }, {
+            await axios.patch(`${APPLICATION_API_URL}/api/admin/user/${userId}`, { role: newRole.toLowerCase() }, {
                 headers: { Authorization: `Bearer ${token}` }
             });
             fetchData(); // Refresh list

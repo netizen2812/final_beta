@@ -1,8 +1,8 @@
 import axios from "axios";
-import { API_BASE } from '../lib/api';
+import { APPLICATION_API_URL } from '../lib/api';
 
 const api = axios.create({
-  baseURL: API_BASE,
+  baseURL: APPLICATION_API_URL,
 });
 
 export default api;

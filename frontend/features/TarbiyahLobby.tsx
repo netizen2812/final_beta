@@ -673,7 +673,7 @@ const ParentsView = ({ activeChild, getToken }: any) => {
       setIsSaving(true);
       try {
           const token = await getToken();
-          await axios.post(`${API_BASE}/api/parent/completion/${activeChild.id}`, {
+          await axios.post(`${APPLICATION_API_URL}/api/parent/completion/${activeChild.id}`, {
               parts: completedParts
           }, {
               headers: { Authorization: `Bearer ${token}` }

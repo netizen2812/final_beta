@@ -26,6 +26,7 @@ import {
 } from "@clerk/clerk-react";
 
 import axios from "axios";
+import { API_BASE as API_URL } from "./lib/api";
 
 import { useHeartbeat } from "./hooks/useHeartbeat";
 import { Analytics } from "./utils/analytics";
@@ -109,7 +110,6 @@ const App: React.FC = () => {
     if (user) {
       try {
         const token = await getToken();
-        import { API_BASE as API_URL } from './lib/api';
         await axios.patch(
           `${API_URL}/api/users/language`,
           { language: langCode },
@@ -148,7 +148,6 @@ const App: React.FC = () => {
 
         const token = await getToken();
 
-        import { API_BASE as API_URL } from './lib/api';
         const response = await axios.post(
           `${API_URL}/api/users/sync`,
           {

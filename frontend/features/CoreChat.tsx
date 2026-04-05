@@ -13,7 +13,7 @@ import { Analytics } from '../utils/analytics';
 import { useTranslation } from 'react-i18next';
 import { ChatLimitModal } from './ChatLimitModal';
 
-import { API_BASE as API_URL } from '../lib/api';
+import { APPLICATION_API_URL } from '../lib/api';
 
 // ─── Animated Background ────────────────────────────────────────────────────
 const AnimatedBackground: React.FC = () => (
@@ -228,7 +228,7 @@ const CoreChat: React.FC<CoreChatProps> = ({ madhab, setMadhab, tone: mood, setT
     setIsHistoryLoading(true);
     try {
       const token = await getToken();
-      const res = await fetch(`${API_URL}/api/conversations`, {
+      const res = await fetch(`${APPLICATION_API_URL}/api/conversations`, {
         headers: { Authorization: `Bearer ${token}` },
       });
       if (res.ok) {
@@ -249,7 +249,7 @@ const CoreChat: React.FC<CoreChatProps> = ({ madhab, setMadhab, tone: mood, setT
   const handleNewChat = async () => {
     try {
       const token = await getToken();
-      const res = await fetch(`${API_URL}/api/conversations`, {
+      const res = await fetch(`${APPLICATION_API_URL}/api/conversations`, {
         method: 'POST',
         headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
       });
@@ -275,7 +275,7 @@ const CoreChat: React.FC<CoreChatProps> = ({ madhab, setMadhab, tone: mood, setT
     setIsLoading(true);
     try {
       const token = await getToken();
-      const res = await fetch(`${API_URL}/api/conversations/${id}`, {
+      const res = await fetch(`${APPLICATION_API_URL}/api/conversations/${id}`, {
         headers: { Authorization: `Bearer ${token}` },
       });
       if (res.ok) {
@@ -299,7 +299,7 @@ const CoreChat: React.FC<CoreChatProps> = ({ madhab, setMadhab, tone: mood, setT
   const handleDeleteConversation = async (id: string) => {
     try {
       const token = await getToken();
-      await fetch(`${API_URL}/api/conversations/${id}`, {
+      await fetch(`${APPLICATION_API_URL}/api/conversations/${id}`, {
         method: 'DELETE',
         headers: { Authorization: `Bearer ${token}` },
       });
@@ -322,7 +322,7 @@ const CoreChat: React.FC<CoreChatProps> = ({ madhab, setMadhab, tone: mood, setT
     if (!convId) {
       try {
         const token = await getToken();
-        const res = await fetch(`${API_URL}/api/conversations`, {
+        const res = await fetch(`${APPLICATION_API_URL}/api/conversations`, {
           method: 'POST',
           headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
         });

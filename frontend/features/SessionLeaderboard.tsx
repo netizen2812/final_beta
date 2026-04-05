@@ -5,7 +5,7 @@ import { useTranslation } from 'react-i18next';
 import { useAuth } from '@clerk/clerk-react';
 import { MovingBackground } from './TarbiyahLobby';
 
-import { API_BASE } from '../lib/api';
+import { APPLICATION_API_URL } from '../lib/api';
 
 interface SessionLeaderboardProps {
   batchId: string;
@@ -24,7 +24,7 @@ const SessionLeaderboard: React.FC<SessionLeaderboardProps> = ({ batchId, sessio
       try {
         const token = await getToken();
         // Updated backend handles ?sessionId=...
-        const res = await axios.get(`${API_BASE}/api/live/batch/${batchId}/leaderboard?sessionId=${sessionId}`, {
+        const res = await axios.get(`${APPLICATION_API_URL}/api/live/batch/${batchId}/leaderboard?sessionId=${sessionId}`, {
           headers: { Authorization: `Bearer ${token}` }
         });
         setLeaderboard(res.data.leaderboard || []);

@@ -1,9 +1,9 @@
-import { API_BASE as API_URL } from '../lib/api';
+import { APPLICATION_API_URL } from '../lib/api';
 
 export const getPrayerTimings = async (lat?: number, lng?: number) => {
   try {
     const query = lat && lng ? `?lat=${lat}&lng=${lng}` : '';
-    const res = await fetch(`${API_URL}/api/ibadah/timings${query}`);
+    const res = await fetch(`${APPLICATION_API_URL}/api/ibadah/timings${query}`);
     const data = await res.json();
     return data; // Return full object to get metadata (method)
   } catch (e) {
@@ -14,7 +14,7 @@ export const getPrayerTimings = async (lat?: number, lng?: number) => {
 
 export const getHijriDate = async () => {
   try {
-    const res = await fetch(`${API_URL}/api/ibadah/hijri`);
+    const res = await fetch(`${APPLICATION_API_URL}/api/ibadah/hijri`);
     const data = await res.json();
     return data.data;
   } catch (e) {
@@ -26,7 +26,7 @@ export const getHijriDate = async () => {
 export const getCalendarMonth = async (lat: number | null, lng: number | null, month: number, year: number) => {
   try {
     const locQuery = lat && lng ? `&lat=${lat}&lng=${lng}` : '';
-    const res = await fetch(`${API_URL}/api/ibadah/calendar?month=${month}&year=${year}${locQuery}`);
+    const res = await fetch(`${APPLICATION_API_URL}/api/ibadah/calendar?month=${month}&year=${year}${locQuery}`);
     const data = await res.json();
     return data.data;
   } catch (e) {
@@ -75,7 +75,7 @@ export const calculateQibla = (lat: number, lng: number): number => {
  */
 export const getMagneticDeclination = async (lat: number, lng: number): Promise<number> => {
   try {
-    const url = `${API_URL}/api/ibadah/declination?lat=${lat}&lng=${lng}`;
+    const url = `${APPLICATION_API_URL}/api/ibadah/declination?lat=${lat}&lng=${lng}`;
     const res = await fetch(url, { mode: 'cors' });
     if (!res.ok) return 0;
     const data = await res.json();

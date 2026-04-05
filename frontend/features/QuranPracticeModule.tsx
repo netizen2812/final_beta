@@ -4,7 +4,7 @@ import { BookOpen, CheckCircle2, XCircle, ChevronRight, Award, HelpCircle, Align
 import { useAuth } from '@clerk/clerk-react';
 import { QURAN_METADATA } from '../quranMetadata';
 
-import { API_BASE } from '../lib/api';
+import { APPLICATION_API_URL } from '../lib/api';
 
 interface QuranPracticeModuleProps {
     childId: string;
@@ -54,7 +54,7 @@ const QuranPracticeModule: React.FC<QuranPracticeModuleProps> = ({
         setLoading(true);
         try {
             const token = await getToken();
-            const res = await axios.get(`${API_BASE}/api/quran/assignments/child/${childId}/active`, {
+            const res = await axios.get(`${APPLICATION_API_URL}/api/quran/assignments/child/${childId}/active`, {
                 headers: { Authorization: `Bearer ${token}` }
             });
             if (res.data) {
@@ -62,7 +62,7 @@ const QuranPracticeModule: React.FC<QuranPracticeModuleProps> = ({
                 setQuestions(res.data.questions);
                 
                 // Fetch Revision Text
-                const textRes = await axios.get(`${API_BASE}/api/quran/assignments/juz/${res.data.assignment.juz}/subpart/${res.data.assignment.subpart}`, {
+                const textRes = await axios.get(`${APPLICATION_API_URL}/api/quran/assignments/juz/${res.data.assignment.juz}/subpart/${res.data.assignment.subpart}`, {
                     headers: { Authorization: `Bearer ${token}` }
                 });
                 setRevisionText(textRes.data);
@@ -97,7 +97,7 @@ const QuranPracticeModule: React.FC<QuranPracticeModuleProps> = ({
         const finalScore = Math.round((score / questions.length) * 100);
         try {
             const token = await getToken();
-            const res = await axios.patch(`${API_BASE}/api/quran/assignments/${assignment._id}/progress`, {
+            const res = await axios.patch(`${APPLICATION_API_URL}/api/quran/assignments/${assignment._id}/progress`, {
                 score: finalScore,
                 totalQuestions: questions.length,
                 userId: userId
@@ -123,7 +123,7 @@ const QuranPracticeModule: React.FC<QuranPracticeModuleProps> = ({
         try {
             stopAudio();
             const token = await getToken();
-            const res = await axios.post(`${API_BASE}/api/quran/assignments/${assignment._id}/complete-revision`, {
+            const res = await axios.post(`${APPLICATION_API_URL}/api/quran/assignments/${assignment._id}/complete-revision`, {
                 userId: userId
             }, {
                 headers: { Authorization: `Bearer ${token}` }

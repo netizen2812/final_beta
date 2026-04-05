@@ -4,7 +4,7 @@ import { loadRazorpayScript } from '../utils/razorpay';
 import axios from 'axios';
 import { useAuth } from '@clerk/clerk-react';
 
-import { API_BASE as API_URL } from '../lib/api';
+import { APPLICATION_API_URL } from '../lib/api';
 
 export const ChatLimitModal = ({ isOpen, onClose, onSuccess }: { isOpen: boolean; onClose: () => void; onSuccess: () => void }) => {
   const { getToken } = useAuth();
@@ -23,7 +23,7 @@ export const ChatLimitModal = ({ isOpen, onClose, onSuccess }: { isOpen: boolean
       }
 
       const token = await getToken();
-      const { data: order } = await axios.post(`${API_URL}/api/payment/create-order`, {
+      const { data: order } = await axios.post(`${APPLICATION_API_URL}/api/payment/create-order`, {
         planType: 'AI_MONTHLY'
       }, { headers: { Authorization: `Bearer ${token}` } });
 
@@ -36,7 +36,7 @@ export const ChatLimitModal = ({ isOpen, onClose, onSuccess }: { isOpen: boolean
         order_id: order.id,
         handler: async function (response: any) {
              // Verify payment
-             await axios.post(`${API_URL}/api/payment/verify`, {
+             await axios.post(`${APPLICATION_API_URL}/api/payment/verify`, {
                  ...response,
                  planType: 'AI_MONTHLY'
              }, { headers: { Authorization: `Bearer ${token}` } });

@@ -10,7 +10,7 @@ interface QuranProgressData {
 
 class QuranProgressTracker {
     private readonly STORAGE_KEY = 'faithtech_quran_progress';
-    private readonly API_BASE = APPLICATION_API_URL + "/api/ibadah/quran";
+    private readonly QURAN_API_URL = APPLICATION_API_URL + "/api/ibadah/quran";
     private data: QuranProgressData;
     private timerInterval: ReturnType<typeof setInterval> | null = null;
     private isTrackingTime = false;
@@ -128,7 +128,7 @@ class QuranProgressTracker {
             const token = await getToken();
             if (!token) return;
 
-            const res = await axios.get(`${this.API_BASE}/progress`, {
+            const res = await axios.get(`${this.QURAN_API_URL}/progress`, {
                 headers: { Authorization: `Bearer ${token}` }
             });
 
@@ -165,7 +165,7 @@ class QuranProgressTracker {
             // Only send if we have some data
             if (this.data.readAyahs.length === 0 && this.data.activeSeconds === 0) return;
 
-            await axios.post(`${this.API_BASE}/sync-progress`, {
+            await axios.post(`${this.QURAN_API_URL}/sync-progress`, {
                 readAyahs: this.data.readAyahs,
                 activeSeconds: this.data.activeSeconds,
                 streak: this.data.streak,

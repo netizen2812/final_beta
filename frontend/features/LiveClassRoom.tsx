@@ -25,7 +25,7 @@ import { loadRazorpayScript } from '../utils/razorpay';
 import { getNumericUid } from '../utils/tarbiyahUtils';
 
 const POSITION_THROTTLE_MS = 500;
-import { API_BASE } from '../lib/api';
+import { APPLICATION_API_URL } from '../lib/api';
 
 // Types
 interface LiveSession {
@@ -138,7 +138,7 @@ const LiveClassRoom: React.FC = () => {
     try {
       const token = await getToken();
       if (!token) return;
-      await axios.get(`${API_BASE}/api/live/access/status`, {
+      await axios.get(`${APPLICATION_API_URL}/api/live/access/status`, {
         headers: { Authorization: `Bearer ${token}` }
       });
     } catch (e) {}
@@ -151,7 +151,7 @@ const LiveClassRoom: React.FC = () => {
     const fetchBatches = async () => {
       try {
         const token = await getToken();
-        const res = await axios.get(`${API_BASE}/api/live/scholar/batches`, {
+        const res = await axios.get(`${APPLICATION_API_URL}/api/live/scholar/batches`, {
           headers: { Authorization: `Bearer ${token}` }
         });
         setScholarBatches(Array.isArray(res.data.batches) ? res.data.batches : []);
@@ -171,7 +171,7 @@ const LiveClassRoom: React.FC = () => {
     const fetchBatchState = async () => {
       try {
         const token = await getToken();
-        const res = await axios.get(`${API_BASE}/api/live/batch/${currentSession.batchId}/state?childId=${currentSession.childId}`, {
+        const res = await axios.get(`${APPLICATION_API_URL}/api/live/batch/${currentSession.batchId}/state?childId=${currentSession.childId}`, {
           headers: { Authorization: `Bearer ${token}` }
         });
         
@@ -230,7 +230,7 @@ const LiveClassRoom: React.FC = () => {
     const fetchLeaderboard = async () => {
       try {
         const token = await getToken();
-        const res = await axios.get(`${API_BASE}/api/live/batch/${currentSession.batchId}/leaderboard`, {
+        const res = await axios.get(`${APPLICATION_API_URL}/api/live/batch/${currentSession.batchId}/leaderboard`, {
           headers: { Authorization: `Bearer ${token}` }
         });
         setLeaderboard(res.data.leaderboard);
@@ -250,7 +250,7 @@ const LiveClassRoom: React.FC = () => {
       const batchId = typeof batchOrId === 'string' ? batchOrId : batchOrId?._id;
       if (!batchId) return;
       const token = await getToken();
-      const res = await axios.post(`${API_BASE}/api/live/${batchId}/start`, {}, {
+      const res = await axios.post(`${APPLICATION_API_URL}/api/live/${batchId}/start`, {}, {
         headers: { Authorization: `Bearer ${token}` }
       });
       setCurrentSession(res.data.session);
@@ -260,7 +260,7 @@ const LiveClassRoom: React.FC = () => {
   const handleSetTurn = async (childId: string, batchId: string) => {
     try {
       const token = await getToken();
-      await axios.post(`${API_BASE}/api/live/batch/${batchId}/select-turn`, { childId }, {
+      await axios.post(`${APPLICATION_API_URL}/api/live/batch/${batchId}/select-turn`, { childId }, {
         headers: { Authorization: `Bearer ${token}` }
       });
     } catch (err) { alert("Failed to set student turn."); }
@@ -269,7 +269,7 @@ const LiveClassRoom: React.FC = () => {
   const handleScoreRecitation = async (childId: string, batchId: string, score: number) => {
     try {
       const token = await getToken();
-      await axios.post(`${API_BASE}/api/live/batch/${batchId}/score-recitation`, { 
+      await axios.post(`${APPLICATION_API_URL}/api/live/batch/${batchId}/score-recitation`, { 
         childId, 
         score 
       }, { headers: { Authorization: `Bearer ${token}` } });
@@ -279,7 +279,7 @@ const LiveClassRoom: React.FC = () => {
   const handleScoreParticipation = async (childId: string, batchId: string) => {
     try {
       const token = await getToken();
-      await axios.post(`${API_BASE}/api/live/batch/${batchId}/score-participation`, { 
+      await axios.post(`${APPLICATION_API_URL}/api/live/batch/${batchId}/score-participation`, { 
         childId, 
         points: 2 
       }, { headers: { Authorization: `Bearer ${token}` } });
@@ -290,7 +290,7 @@ const LiveClassRoom: React.FC = () => {
     if (!currentSession?.batchId) return;
     try {
       const token = await getToken();
-      await axios.post(`${API_BASE}/api/live/batch/${currentSession.batchId}/evaluate-prompt`, { 
+      await axios.post(`${APPLICATION_API_URL}/api/live/batch/${currentSession.batchId}/evaluate-prompt`, { 
         correctAnswer 
       }, { headers: { Authorization: `Bearer ${token}` } });
       setPromptDecision(null);
@@ -301,7 +301,7 @@ const LiveClassRoom: React.FC = () => {
     if (!currentSession?.batchId || !activeChild) return;
     try {
       const token = await getToken();
-      await axios.post(`${API_BASE}/api/live/batch/${currentSession.batchId}/submit-prompt`, { 
+      await axios.post(`${APPLICATION_API_URL}/api/live/batch/${currentSession.batchId}/submit-prompt`, { 
         childId: activeChild.id, answer 
       }, { headers: { Authorization: `Bearer ${token}` } });
     } catch (e) { alert("Failed to submit answer. Please try again."); }
@@ -310,7 +310,7 @@ const LiveClassRoom: React.FC = () => {
   const handleEndClass = async (batchId: string) => {
     try {
       const token = await getToken();
-      await axios.post(`${API_BASE}/api/live/batch/${batchId}/end`, {}, {
+      await axios.post(`${APPLICATION_API_URL}/api/live/batch/${batchId}/end`, {}, {
         headers: { Authorization: `Bearer ${token}` }
       });
       setCurrentSession(null);
@@ -326,7 +326,7 @@ const LiveClassRoom: React.FC = () => {
     if (!currentSession?.batchId || userRole === 'scholar') return;
     try {
       const token = await getToken();
-      await axios.post(`${API_BASE}/api/live/update-progress`, {
+      await axios.post(`${APPLICATION_API_URL}/api/live/update-progress`, {
         batchId: currentSession.batchId, childId: currentSession.childId, surah: surahNumber, ayah: ayahNumber
       }, { headers: { Authorization: `Bearer ${token}` } });
     } catch (e) {}

@@ -4,7 +4,7 @@ import { BookOpen, User, Calendar, CheckCircle, Clock, ChevronRight, Users, Info
 import { useAuth } from '@clerk/clerk-react';
 import { QURAN_METADATA } from '../quranMetadata';
 
-import { API_BASE } from '../lib/api';
+import { APPLICATION_API_URL } from '../lib/api';
 
 interface ScholarQuranManagerProps {
     batchId?: string;
@@ -35,7 +35,7 @@ const ScholarQuranManager: React.FC<ScholarQuranManagerProps> = ({ batchId, batc
             if (!batchId) return;
             try {
                 const token = await getToken();
-                const res = await axios.get(`${API_BASE}/api/live/batch/${batchId}/students`, {
+                const res = await axios.get(`${APPLICATION_API_URL}/api/live/batch/${batchId}/students`, {
                     headers: { Authorization: `Bearer ${token}` }
                 });
                 setStudents(res.data || []);
@@ -49,7 +49,7 @@ const ScholarQuranManager: React.FC<ScholarQuranManagerProps> = ({ batchId, batc
             if (!batchId) return; // Always fetch assignments to show "Recent" even in assign tab
             try {
                 const token = await getToken();
-                const res = await axios.get(`${API_BASE}/api/quran/assignments/batch/${batchId}`, {
+                const res = await axios.get(`${APPLICATION_API_URL}/api/quran/assignments/batch/${batchId}`, {
                     headers: { Authorization: `Bearer ${token}` }
                 });
                 setActiveAssignments(res.data || []);
@@ -82,8 +82,8 @@ const ScholarQuranManager: React.FC<ScholarQuranManagerProps> = ({ batchId, batc
                 : { childId: selectedChild._id, juz, subparts: selectedSubparts };
 
             const endpoint = isBatchMode 
-                ? `${API_BASE}/api/quran/assignments/batch-assign`
-                : `${API_BASE}/api/quran/assignments/assign`;
+                ? `${APPLICATION_API_URL}/api/quran/assignments/batch-assign`
+                : `${APPLICATION_API_URL}/api/quran/assignments/assign`;
 
             await axios.post(endpoint, payload, {
                 headers: { Authorization: `Bearer ${token}` }
@@ -105,7 +105,7 @@ const ScholarQuranManager: React.FC<ScholarQuranManagerProps> = ({ batchId, batc
         try {
             setLoading(true);
             const token = await getToken();
-            await axios.patch(`${API_BASE}/api/quran/assignments/${assignmentId}/complete`, {}, {
+            await axios.patch(`${APPLICATION_API_URL}/api/quran/assignments/${assignmentId}/complete`, {}, {
                 headers: { Authorization: `Bearer ${token}` }
             });
             setRefreshTrigger(prev => prev + 1);

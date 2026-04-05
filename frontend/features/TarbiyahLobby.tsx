@@ -25,7 +25,7 @@ import { useClerk, useUser } from '@clerk/clerk-react';
 import { quranTracker } from '../utils/quranProgressTracker';
 
 // --- DATA & CONSTANTS ---
-import { API_BASE } from '../lib/api';
+import { APPLICATION_API_URL } from '../lib/api';
 
 // Dynamic stages count
 const STAGES_COUNT = 30;
@@ -140,8 +140,8 @@ export const TarbiyahLobby = ({
         if (!token) return;
         
         const [batchesRes, accessRes] = await Promise.all([
-           axios.get(`${API_BASE}/api/live/my-sessions`, { headers: { Authorization: `Bearer ${token}` } }),
-           axios.get(`${API_BASE}/api/live/access/status`, { headers: { Authorization: `Bearer ${token}` } })
+           axios.get(`${APPLICATION_API_URL}/api/live/my-sessions`, { headers: { Authorization: `Bearer ${token}` } }),
+           axios.get(`${APPLICATION_API_URL}/api/live/access/status`, { headers: { Authorization: `Bearer ${token}` } })
         ]);
 
         setBatches(batchesRes.data || []);
@@ -172,7 +172,7 @@ export const TarbiyahLobby = ({
 
     try {
       const token = await getToken();
-      const res = await axios.post(`${API_BASE}/api/live/${batchToJoin._id}/join`, {
+      const res = await axios.post(`${APPLICATION_API_URL}/api/live/${batchToJoin._id}/join`, {
         childId: activeChild.id
       }, {
         headers: { Authorization: `Bearer ${token}` }
@@ -192,7 +192,7 @@ export const TarbiyahLobby = ({
       const res = await loadRazorpayScript();
       if (!res) { alert("Razorpay SDK failed to load."); setIsLoading(false); return; }
       
-      const { data: order } = await axios.post(`${API_BASE}/api/payment/create-order`, 
+      const { data: order } = await axios.post(`${APPLICATION_API_URL}/api/payment/create-order`, 
         { planType: 'TARBIYAH_LIFETIME', email: guestEmail }, 
         { headers: token ? { Authorization: `Bearer ${token}` } : {} }
       );
@@ -206,7 +206,7 @@ export const TarbiyahLobby = ({
         order_id: order.id,
         prefill: guestEmail ? { email: guestEmail } : undefined,
         handler: async function (response: any) {
-             await axios.post(`${API_BASE}/api/payment/verify`, 
+             await axios.post(`${APPLICATION_API_URL}/api/payment/verify`, 
                { ...response, planType: 'TARBIYAH_LIFETIME', email: guestEmail }, 
                { headers: token ? { Authorization: `Bearer ${token}` } : {} }
              );
@@ -643,7 +643,7 @@ const ParentsView = ({ activeChild, getToken }: any) => {
     if (!activeChild?.id) return;
     const fetch = async () => {
        const token = await getToken();
-       const res = await axios.get(`${API_BASE}/api/parent/dashboard/${activeChild.id}`, { headers: { Authorization: `Bearer ${token}` } });
+       const res = await axios.get(`${APPLICATION_API_URL}/api/parent/dashboard/${activeChild.id}`, { headers: { Authorization: `Bearer ${token}` } });
        setDashboardData(res.data);
        if (res.data?.stats?.completed_quran_parts) {
            setCompletedParts(res.data.stats.completed_quran_parts);
@@ -679,7 +679,7 @@ const ParentsView = ({ activeChild, getToken }: any) => {
               headers: { Authorization: `Bearer ${token}` }
           });
           setShowSetupModal(false);
-          const res = await axios.get(`${API_BASE}/api/parent/dashboard/${activeChild.id}`, { headers: { Authorization: `Bearer ${token}` } });
+          const res = await axios.get(`${APPLICATION_API_URL}/api/parent/dashboard/${activeChild.id}`, { headers: { Authorization: `Bearer ${token}` } });
           setDashboardData(res.data);
       } catch (error) {
           alert("Failed to save progress");

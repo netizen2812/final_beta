@@ -250,7 +250,7 @@ const LiveClassRoom: React.FC = () => {
   const handleSetTurn = async (childId: string, batchId: string) => {
     try {
       const token = await getToken();
-      await axios.post(`${API_BASE}/api/live/batch/${batchId}/set-turn`, { childId }, {
+      await axios.post(`${API_BASE}/api/live/batch/${batchId}/select-turn`, { childId }, {
         headers: { Authorization: `Bearer ${token}` }
       });
     } catch (err) { alert("Failed to set student turn."); }
@@ -259,19 +259,29 @@ const LiveClassRoom: React.FC = () => {
   const handleScoreRecitation = async (childId: string, batchId: string, score: number) => {
     try {
       const token = await getToken();
-      await axios.post(`${API_BASE}/api/live/batch/${batchId}/score`, { 
+      await axios.post(`${API_BASE}/api/live/batch/${batchId}/score-recitation`, { 
         childId, 
-        accuracyScore: score 
+        score 
       }, { headers: { Authorization: `Bearer ${token}` } });
     } catch (err) { alert("Failed to score recitation. Please retry."); }
   };
 
-  const handleEvaluatePrompt = async (decision: 'yes' | 'no') => {
+  const handleScoreParticipation = async (childId: string, batchId: string) => {
+    try {
+      const token = await getToken();
+      await axios.post(`${API_BASE}/api/live/batch/${batchId}/score-participation`, { 
+        childId, 
+        points: 2 
+      }, { headers: { Authorization: `Bearer ${token}` } });
+    } catch (err) { alert("Failed to reward participation."); }
+  };
+
+  const handleEvaluatePrompt = async (correctAnswer: 'yes' | 'no') => {
     if (!currentSession?.batchId) return;
     try {
       const token = await getToken();
       await axios.post(`${API_BASE}/api/live/batch/${currentSession.batchId}/evaluate-prompt`, { 
-        decision 
+        correctAnswer 
       }, { headers: { Authorization: `Bearer ${token}` } });
       setPromptDecision(null);
     } catch (err) { alert("Failed to evaluate prompt."); }
@@ -412,14 +422,17 @@ const LiveClassRoom: React.FC = () => {
          </div>
 
          {isMobile && batchState?.activeChildId && (
-            <div className="fixed bottom-0 left-0 right-0 p-6 bg-black/80 backdrop-blur-3xl border-t border-white/5 rounded-t-[3rem] z-30 flex items-center gap-4 animate-in slide-in-from-bottom duration-500">
-               <div className="flex gap-2 grow">
+            <div className="fixed bottom-0 left-0 right-0 p-6 bg-black/80 backdrop-blur-3xl border-t border-white/5 rounded-t-[3rem] z-30 flex flex-col gap-4 animate-in slide-in-from-bottom duration-500">
+               <div className="flex gap-2">
                   <button onClick={() => handleScoreRecitation(batchState.activeChildId!, currentSession.batchId!, 3)} className="bg-emerald-500 hover:bg-emerald-400 text-black py-4 rounded-2xl font-black text-[10px] uppercase grow shadow-2xl transition-all">Award +10 XP</button>
                   <button onClick={() => handleScoreRecitation(batchState.activeChildId!, currentSession.batchId!, 2)} className="bg-amber-500 hover:bg-amber-400 text-black py-4 rounded-2xl font-black text-[10px] uppercase grow shadow-2xl transition-all">Award +7 XP</button>
                </div>
-               <button onClick={() => setShowAssignModal(true)} className="bg-white/10 text-white px-6 py-4 rounded-2xl font-black text-[10px] uppercase border border-white/10 shrink-0">Lesson</button>
+               <div className="flex gap-2">
+                  <button onClick={() => handleScoreParticipation(batchState.activeChildId!, currentSession.batchId!)} className="bg-white/10 text-emerald-400 px-6 py-4 rounded-2xl font-black text-[10px] uppercase border border-white/10 grow">Award +2 Participation XP</button>
+                  <button onClick={() => setShowAssignModal(true)} className="bg-indigo-500 text-white px-6 py-4 rounded-2xl font-black text-[10px] uppercase border border-indigo-500/20 shrink-0">Lesson</button>
+               </div>
             </div>
-         )}
+          )}
       </div>
     );
   };

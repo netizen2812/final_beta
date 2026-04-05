@@ -38,6 +38,7 @@ import QuranPage from './QuranPage';
 import { Analytics } from '../utils/analytics';
 import { getPrayerTimings, getHijriDate, getCalendarMonth, formatDateForAPI } from '../services/aladhan';
 import { useTranslation } from 'react-i18next';
+import { API_BASE as API_URL } from '../lib/api';
 
 // --- TYPES & CONSTANTS ---
 
@@ -190,7 +191,6 @@ const HadithPage = ({ onBack }: { onBack: () => void }) => {
   const fetchHadith = async () => {
     setLoading(true);
     try {
-      import { API_BASE as API_URL } from '../lib/api';
       const res = await fetch(`${API_URL}/api/ibadah/hadith/daily`);
       const data = await res.json();
       setHadith(data);
@@ -300,7 +300,6 @@ const ZakatCalcPage = ({ onResult, onBack }: { onResult: (result: any) => void; 
   useEffect(() => {
     const fetchPrices = async () => {
       try {
-        import { API_BASE as API_URL } from '../lib/api';
         const res = await fetch(`${API_URL}/api/ibadah/zakat/prices`);
         const data = await res.json();
         setMarketPrices(data);
@@ -322,7 +321,6 @@ const ZakatCalcPage = ({ onResult, onBack }: { onResult: (result: any) => void; 
   const calculate = async () => {
     setLoading(true);
     try {
-      import { API_BASE as API_URL } from '../lib/api';
       const response = await fetch(`${API_URL}/api/zakat/calculate`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },

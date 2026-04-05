@@ -104,11 +104,6 @@
       "quranicReferences": "কুরআনের সূত্র"
     }
   },
-  "welcome": {
-    "welcomeToImam": "ইমামে স্বাগতম",
-    "enterApp": "অ্যাপে প্রবেশ করুন",
-    "skip": "এড়িয়ে যান"
-  },
   "common": {
     "loading": "লোড হচ্ছে...",
     "error": "কিছু ভুল হয়েছে",

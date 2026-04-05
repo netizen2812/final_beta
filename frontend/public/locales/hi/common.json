@@ -104,11 +104,6 @@
       "quranicReferences": "कुरान के हवाले"
     }
   },
-  "welcome": {
-    "welcomeToImam": "इमाम में आपका स्वागत है",
-    "enterApp": "ऐप में दाखिला करें",
-    "skip": "छोड़ें"
-  },
   "common": {
     "loading": "लोड हो रहा है...",
     "error": "कुछ गलत हो गया",

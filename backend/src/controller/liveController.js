@@ -894,11 +894,11 @@ export const scoreRecitation = async (req, res) => {
         const batch = await Batch.findById(id);
         if (!batch || !batch.activeSessionId) return res.status(400).json({ message: "Batch not active or found" });
 
-        // Enforce strict limit maps
-        if (![1, 2, 3].includes(Number(score))) {
-            return res.status(400).json({ message: "Score must be 1, 2, or 3" });
+        // Enforce strict limit maps (4=Excellent, 3=Good, 2=Average, 1=Needs Improvement)
+        if (![1, 2, 3, 4].includes(Number(score))) {
+            return res.status(400).json({ message: "Score must be 1, 2, 3, or 4" });
         }
-        const xpAward = Number(score) === 3 ? 10 : Number(score) === 2 ? 7 : Number(score) === 1 ? 5 : 2;
+        const xpAward = Number(score) === 4 ? 10 : Number(score) === 3 ? 7 : Number(score) === 2 ? 5 : 2;
 
         await LiveScore.findOneAndUpdate(
             { batchId: id, sessionId: batch.activeSessionId, childId },

@@ -312,12 +312,12 @@ const LiveClassRoom: React.FC = () => {
     setBatchState(null);
   };
 
-  const emitPosition = async (surah: number, ayah: number) => {
+  const emitPosition = async (surahNumber: number, ayahNumber: number) => {
     if (!currentSession?.batchId || userRole === 'scholar') return;
     try {
       const token = await getToken();
-      await axios.patch(`${API_BASE}/api/live/batch/${currentSession.batchId}/position`, {
-        childId: currentSession.childId, surah, ayah
+      await axios.post(`${API_BASE}/api/live/update-progress`, {
+        batchId: currentSession.batchId, childId: currentSession.childId, surah: surahNumber, ayah: ayahNumber
       }, { headers: { Authorization: `Bearer ${token}` } });
     } catch (e) {}
   };
@@ -361,9 +361,10 @@ const LiveClassRoom: React.FC = () => {
             </div>
          </div>
 
-         {/* MAIN STAGE */}
+         {/* MAIN STAGE (DUAL PANE) */}
          <div className="flex-1 relative flex flex-col md:flex-row gap-4 p-4 overflow-hidden">
-            <div className="flex-1 bg-black rounded-[3rem] border border-white/5 shadow-2xl overflow-hidden relative group">
+            {/* LEFT: VIDEO GRID */}
+            <div className={`flex-1 bg-black rounded-[3rem] border border-white/5 shadow-2xl overflow-hidden relative group transition-all duration-700 ${batchState?.activeChildId ? 'md:flex-[0.4]' : 'md:flex-1'}`}>
                <AgoraVideoPane
                  appId={currentSession.agoraAppId || ""}
                  token={currentSession.agoraToken || ""}
@@ -378,6 +379,23 @@ const LiveClassRoom: React.FC = () => {
                   <span className="text-[9px] text-white font-black uppercase tracking-widest">Active Class • {activeSessions.length} Participants</span>
                </div>
             </div>
+
+            {/* RIGHT: SYNCED QURAN (Scholar Exclusive follow student) */}
+            {batchState?.activeChildId && (
+               <div className="flex-1 bg-[#fdfaf3] rounded-[3rem] border border-black/5 shadow-2xl overflow-hidden relative group flex flex-col md:flex-1 animate-in slide-in-from-right duration-700">
+                  <div className="absolute top-8 left-8 py-2 px-4 bg-black/5 backdrop-blur-3xl border border-black/10 rounded-2xl flex items-center gap-3 z-30">
+                    <BookOpen size={12} className="text-emerald-700" />
+                    <span className="text-[9px] text-emerald-900 font-black uppercase tracking-widest">Monitoring Student Quran</span>
+                  </div>
+                  <QuranPage
+                    onBack={() => {}}
+                    sessionCurrentSurah={batchState.activeParticipants?.find(p => p.childId === batchState.activeChildId)?.currentSurah}
+                    sessionCurrentAyah={batchState.activeParticipants?.find(p => p.childId === batchState.activeChildId)?.currentAyah}
+                    onAyahClick={() => {}}
+                    readOnly={true}
+                  />
+               </div>
+            )}
 
             {!isMobile && batchState?.activeChildId && (
                <div className="w-[280px] bg-[#0c0c0c] rounded-[2rem] border border-white/5 p-6 flex flex-col gap-6 shadow-2xl animate-in slide-in-from-right-12 duration-700">
@@ -410,9 +428,12 @@ const LiveClassRoom: React.FC = () => {
                      </div>
 
                      <div className="grid grid-cols-2 gap-2">
-                        <button onClick={() => handleScoreRecitation(batchState.activeChildId!, currentSession.batchId!, 3)} className="bg-emerald-500 hover:bg-emerald-400 text-black py-3 rounded-xl font-black text-[9px] uppercase transition-all shadow-lg active:scale-95">Award +10 XP</button>
-                        <button onClick={() => handleScoreRecitation(batchState.activeChildId!, currentSession.batchId!, 2)} className="bg-amber-500 hover:bg-amber-400 text-black py-3 rounded-xl font-black text-[9px] uppercase transition-all shadow-lg active:scale-95">Award +7 XP</button>
-                        <button onClick={() => setShowAssignModal(true)} className="col-span-2 bg-indigo-500 hover:bg-indigo-400 text-white py-3 rounded-xl font-black text-[9px] uppercase flex items-center justify-center gap-2 transition-all active:scale-95"><BookOpen size={14}/> Setup Lesson</button>
+                        <button onClick={() => handleScoreRecitation(batchState.activeChildId!, currentSession.batchId!, 4)} className="bg-emerald-500 hover:bg-emerald-400 text-black py-3 rounded-xl font-black text-[9px] uppercase transition-all shadow-lg active:scale-95">Excel (+10)</button>
+                        <button onClick={() => handleScoreRecitation(batchState.activeChildId!, currentSession.batchId!, 3)} className="bg-emerald-600 hover:bg-emerald-500 text-white py-3 rounded-xl font-black text-[9px] uppercase transition-all shadow-lg active:scale-95">Good (+7)</button>
+                        <button onClick={() => handleScoreRecitation(batchState.activeChildId!, currentSession.batchId!, 2)} className="bg-amber-500 hover:bg-amber-400 text-black py-3 rounded-xl font-black text-[9px] uppercase transition-all shadow-lg active:scale-95">Avg (+5)</button>
+                        <button onClick={() => handleScoreRecitation(batchState.activeChildId!, currentSession.batchId!, 1)} className="bg-red-500/20 hover:bg-red-500/30 text-red-500 py-3 rounded-xl font-black text-[9px] uppercase transition-all shadow-lg active:scale-95 border border-red-500/10">Need (+2)</button>
+                        <button onClick={() => handleScoreParticipation(batchState.activeChildId!, currentSession.batchId!)} className="col-span-1 bg-white/10 hover:bg-white/20 text-emerald-400 py-3 rounded-xl font-black text-[9px] uppercase border border-emerald-500/10 transition-all active:scale-95">Partic (+2)</button>
+                        <button onClick={() => setShowAssignModal(true)} className="bg-indigo-500 hover:bg-indigo-400 text-white py-3 rounded-xl font-black text-[9px] uppercase flex items-center justify-center gap-2 transition-all active:scale-95"><BookOpen size={14}/> Lesson</button>
                      </div>
                   </div>
 
@@ -423,16 +444,18 @@ const LiveClassRoom: React.FC = () => {
 
          {isMobile && batchState?.activeChildId && (
             <div className="fixed bottom-0 left-0 right-0 p-6 bg-black/80 backdrop-blur-3xl border-t border-white/5 rounded-t-[3rem] z-30 flex flex-col gap-4 animate-in slide-in-from-bottom duration-500">
-               <div className="flex gap-2">
-                  <button onClick={() => handleScoreRecitation(batchState.activeChildId!, currentSession.batchId!, 3)} className="bg-emerald-500 hover:bg-emerald-400 text-black py-4 rounded-2xl font-black text-[10px] uppercase grow shadow-2xl transition-all">Award +10 XP</button>
-                  <button onClick={() => handleScoreRecitation(batchState.activeChildId!, currentSession.batchId!, 2)} className="bg-amber-500 hover:bg-amber-400 text-black py-4 rounded-2xl font-black text-[10px] uppercase grow shadow-2xl transition-all">Award +7 XP</button>
+               <div className="grid grid-cols-2 gap-2">
+                  <button onClick={() => handleScoreRecitation(batchState.activeChildId!, currentSession.batchId!, 4)} className="bg-emerald-500 hover:bg-emerald-400 text-black py-3 rounded-2xl font-black text-[10px] uppercase grow shadow-2xl transition-all">Excel (+10)</button>
+                  <button onClick={() => handleScoreRecitation(batchState.activeChildId!, currentSession.batchId!, 3)} className="bg-emerald-600 hover:bg-emerald-500 text-white py-3 rounded-2xl font-black text-[10px] uppercase grow shadow-2xl transition-all">Good (+7)</button>
+                  <button onClick={() => handleScoreRecitation(batchState.activeChildId!, currentSession.batchId!, 2)} className="bg-amber-500 hover:bg-amber-400 text-black py-3 rounded-2xl font-black text-[10px] uppercase grow shadow-2xl transition-all">Avg (+5)</button>
+                  <button onClick={() => handleScoreRecitation(batchState.activeChildId!, currentSession.batchId!, 1)} className="bg-red-500/20 hover:bg-red-500/30 text-red-500 py-3 rounded-2xl font-black text-[10px] uppercase grow shadow-2xl transition-all border border-red-500/10">Need (+2)</button>
                </div>
                <div className="flex gap-2">
-                  <button onClick={() => handleScoreParticipation(batchState.activeChildId!, currentSession.batchId!)} className="bg-white/10 text-emerald-400 px-6 py-4 rounded-2xl font-black text-[10px] uppercase border border-white/10 grow">Award +2 Participation XP</button>
+                  <button onClick={() => handleScoreParticipation(batchState.activeChildId!, currentSession.batchId!)} className="bg-white/10 text-emerald-400 px-6 py-4 rounded-2xl font-black text-[10px] uppercase border border-white/10 grow">Participation</button>
                   <button onClick={() => setShowAssignModal(true)} className="bg-indigo-500 text-white px-6 py-4 rounded-2xl font-black text-[10px] uppercase border border-indigo-500/20 shrink-0">Lesson</button>
                </div>
             </div>
-          )}
+         )}
       </div>
     );
   };
@@ -543,19 +566,9 @@ const LiveClassRoom: React.FC = () => {
             {batchState?.activeChildId && batchState.activeChildId !== currentSession.childId && (
                (() => {
                  const myAnswer = batchState?.currentPromptAnswers?.find(a => a.childId === currentSession.childId);
-                 if (batchState?.promptEvaluated || myAnswer) {
-                    return (
-                        <div className="bg-[#111]/90 backdrop-blur-3xl p-8 rounded-[3rem] border border-emerald-500/20 shadow-3xl text-center flex flex-col items-center gap-4 animate-in slide-in-from-bottom-12 duration-700">
-                          <div className="w-16 h-16 bg-emerald-500/10 rounded-full flex items-center justify-center border border-emerald-500/20">
-                             <CheckCircle className="text-emerald-500" size={36} />
-                          </div>
-                          <div>
-                            <h4 className="text-white font-black text-base uppercase tracking-tight">Active Engagement!</h4>
-                            <p className="text-[10px] text-white/30 font-black uppercase tracking-[0.1em] mt-1">Class participation XP added</p>
-                          </div>
-                       </div>
-                    );
-                 }
+                  if (batchState?.promptEvaluated || myAnswer) {
+                     return null;
+                  }
                  return (
                     <div className="bg-[#111]/90 backdrop-blur-3xl p-10 rounded-[3rem] border border-white/10 shadow-[0_50px_100px_-30px_rgba(0,0,0,0.8)] animate-in slide-in-from-bottom-12 duration-700">
                        <h4 className="text-center text-white/50 font-black uppercase text-[10px] tracking-[0.3em] mb-10">Listen and Evaluate</h4>

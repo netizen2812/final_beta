@@ -450,3 +450,5 @@ const App: React.FC = () => {
     </ChildProvider>
   );
 };
+
+export default App;

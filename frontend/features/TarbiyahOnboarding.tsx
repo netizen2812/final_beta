@@ -281,6 +281,65 @@ export const TarbiyahOnboarding = ({ getToken, isPaid = false, handleGuestJoin }
           </div>
         </div>
       </section>
+      
+      {/* ═══════════════════════════════════════ */}
+      {/* SECTION 3.5 — MEET THE SCHOLAR           */}
+      {/* ═══════════════════════════════════════ */}
+      <section className="relative py-24 px-6 bg-emerald-950/20">
+         <div className="max-w-4xl mx-auto bg-white/5 border border-white/10 rounded-[3rem] overflow-hidden backdrop-blur-xl transition-all hover:border-emerald-500/30 shadow-[0_0_50px_rgba(16,185,129,0.05)]">
+            <div className="flex flex-col md:flex-row items-center gap-12 p-8 md:p-16">
+               <div className="w-full md:w-1/3 shrink-0">
+                  <div className="relative group">
+                     {/* Decorative ring */}
+                     <div className="absolute -inset-4 bg-emerald-500/20 rounded-full blur-2xl opacity-0 group-hover:opacity-100 transition-opacity duration-700"></div>
+                     <div className="absolute inset-0 bg-emerald-500 rounded-[2.5rem] rotate-6 group-hover:rotate-3 transition-transform duration-500 opacity-20"></div>
+                     <img 
+                        src="/images/maulana_masood.jpeg" 
+                        alt="Maulana Masood Raza Misbahi Farig"
+                        className="relative w-full aspect-[4/5] object-cover rounded-[2.5rem] shadow-2xl border-4 border-emerald-500/20 grayscale-[0.2] hover:grayscale-0 transition-all duration-500"
+                     />
+                     <div className="absolute -bottom-4 -right-4 bg-gradient-to-r from-amber-400 to-amber-600 text-[#052e16] px-4 py-2 rounded-xl font-black text-[10px] uppercase tracking-tighter shadow-xl border border-white/20">
+                        Verified Scholar
+                     </div>
+                  </div>
+               </div>
+               <div className="flex-1 space-y-6 text-center md:text-left">
+                  <div className="space-y-1">
+                    <p className="text-emerald-400 text-xs font-bold uppercase tracking-[0.3em]">Lead Scholar Profile</p>
+                    <h2 className="text-3xl md:text-5xl font-serif font-black text-white leading-tight">
+                      Maulana Masood Raza Misbahi Farig
+                    </h2>
+                  </div>
+                  <div className="space-y-4">
+                     <div className="flex items-center gap-4 justify-center md:justify-start group/loc">
+                        <div className="w-12 h-12 rounded-2xl bg-emerald-500/10 flex items-center justify-center border border-emerald-500/20 group-hover/loc:bg-emerald-500/20 transition-colors shrink-0">
+                           <Award className="text-emerald-400" size={24} />
+                        </div>
+                        <div className="text-left">
+                           <div className="text-[10px] text-emerald-400/60 uppercase font-black tracking-widest">Education</div>
+                           <span className="text-emerald-50 text-sm md:text-base font-bold leading-snug">Al Jamiatul Ashrafiya, Mubarakpur (Azamgarh)</span>
+                        </div>
+                     </div>
+                     <div className="flex items-center gap-4 justify-center md:justify-start group/exp">
+                        <div className="w-12 h-12 rounded-2xl bg-amber-500/10 flex items-center justify-center border border-amber-500/20 group-hover/exp:bg-amber-500/20 transition-colors shrink-0">
+                           <Clock className="text-amber-400" size={24} />
+                        </div>
+                        <div className="text-left">
+                           <div className="text-[10px] text-amber-400/60 uppercase font-black tracking-widest">Experience</div>
+                           <span className="text-emerald-50 text-sm md:text-base font-bold">5+ Years of Dedicated Teaching</span>
+                        </div>
+                     </div>
+                  </div>
+                  <div className="pt-6 border-t border-white/5 relative">
+                    <p className="text-emerald-100/60 leading-relaxed italic text-sm md:text-lg font-serif">
+                      "My mission is to ensure every child doesn't just read the Quran, but loves the journey of learning it. We focus on Tajweed, active engagement, and building a strong spiritual foundation."
+                    </p>
+                    <div className="absolute top-2 -left-2 text-emerald-500/10 font-serif text-6xl pointer-events-none">"</div>
+                  </div>
+               </div>
+            </div>
+         </div>
+      </section>
 
       {/* ═══════════════════════════════════════ */}
       {/* SECTION 4 — THE ECOSYSTEM (XP / MAP)     */}

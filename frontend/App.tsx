@@ -314,9 +314,9 @@ const App: React.FC = () => {
           </header>
 
           {/* 📱 MAIN CONTENT (Scrollable Area) */}
-          <main className={`flex-1 flex flex-col ${activeTab === AppTab.CORE ? 'overflow-hidden' : 'overflow-y-auto'} pt-20 pb-20 no-scrollbar`}>
+          <main className={`flex-1 flex flex-col ${activeTab === AppTab.CORE ? 'overflow-hidden' : 'overflow-y-auto'} pt-20 pb-20 no-scrollbar overscroll-behavior-y-contain`}>
             {renderContent()}
-            {activeTab !== AppTab.CORE && <Footer />}
+            {activeTab !== AppTab.CORE && activeTab !== AppTab.HOME && <Footer />}
           </main>
 
           {/* 🧭 BOTTOM NAV (Instagram Style) */}
@@ -442,9 +442,9 @@ const App: React.FC = () => {
           )}
 
           {/* MAIN CONTENT */}
-          <main className={`flex-1 flex flex-col ${activeTab === AppTab.CORE ? 'overflow-hidden' : 'overflow-y-auto'} pt-20 pb-24 ${isDesktop ? "ml-64" : ""}`}>
+          <main className={`flex-1 flex flex-col ${activeTab === AppTab.CORE ? 'overflow-hidden' : 'overflow-y-auto'} pt-20 pb-24 ${isDesktop ? "ml-64" : ""} overscroll-behavior-y-contain`}>
             {renderContent()}
-            <Footer />
+            {activeTab !== AppTab.HOME && <Footer />}
           </main>
 
           {/* MOBILE NAV */}

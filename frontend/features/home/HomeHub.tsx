@@ -50,7 +50,7 @@ const HomeHub: React.FC<HomeHubProps> = ({ onNavigate }) => {
     }, []);
 
     return (
-        <div className="relative min-h-screen bg-[#FDFCF8] overflow-hidden selection:bg-emerald-100 selection:text-emerald-900">
+        <div className="relative min-h-screen bg-[#FDFCF8] selection:bg-emerald-100 selection:text-emerald-900">
             {/* Dynamic CSS Pattern Background */}
             <div className="fixed inset-0 pointer-events-none opacity-[0.03] moving-pattern" />
 
@@ -115,20 +115,16 @@ const HomeHub: React.FC<HomeHubProps> = ({ onNavigate }) => {
           to { opacity: 1; filter: blur(0); }
         }
         .reveal-on-scroll {
-          opacity: 0;
+          opacity: 1; /* Always visible by default to prevent stuck screen */
+          transform: translateY(0);
+          transition: transform 0.6s ease-out;
+          will-change: transform;
+        }
+        .reveal-on-scroll:not(.visible) {
           transform: translateY(20px);
-          transition: opacity 0.6s ease-out, transform 0.6s ease-out;
-          will-change: opacity, transform;
         }
         .reveal-on-scroll.visible {
-          opacity: 1;
           transform: translateY(0);
-        }
-        /* Fallback for components that might not trigger observer immediately on small viewports */
-        @media (max-width: 768px) {
-           .reveal-on-scroll {
-              opacity: 0.1; /* Show a ghost of the element so user knows to scroll */
-           }
         }
       `}</style>
         </div>

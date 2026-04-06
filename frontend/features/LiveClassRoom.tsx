@@ -26,6 +26,7 @@ import { getNumericUid } from '../utils/tarbiyahUtils';
 
 const POSITION_THROTTLE_MS = 500;
 import { APPLICATION_API_URL } from '../lib/api';
+import { supabase } from '../lib/supabase';
 
 // Types
 interface LiveSession {
@@ -103,6 +104,8 @@ const LiveClassRoom: React.FC = () => {
   const [selectedBatchId, setSelectedBatchId] = useState<string | null>(null);
   
   const lastSeenScoreRef = useRef<number | null>(null);
+  const lastSyncTsRef = useRef<number>(0);
+  const syncChannelRef = useRef<any>(null);
 
   // Responsive Detection
   useEffect(() => {
@@ -220,9 +223,42 @@ const LiveClassRoom: React.FC = () => {
     fetchBatchState();
     const interval = setInterval(() => {
       if (document.visibilityState === 'visible') fetchBatchState();
-    }, 4000); // Increased polling interval to 4s to reduce server load
+    }, 15000); // 15s Fallback Heartbeat (Heartbeat decreased from 4s)
     return () => clearInterval(interval);
   }, [currentSession?.batchId, userRole]);
+
+  // 📡 REAL-TIME SYNC (Supabase Broadcast)
+  useEffect(() => {
+    if (!currentSession?.batchId) return;
+
+    const channel = supabase.channel(`class-sync:${currentSession.batchId}`)
+      .on('broadcast', { event: 'ayah-change' }, ({ payload }) => {
+        // Scholar hears student
+        if (userRole === 'scholar' && payload.ts > lastSyncTsRef.current && payload.childId === batchState?.activeChildId) {
+          lastSyncTsRef.current = payload.ts;
+          
+          setBatchState(prev => {
+            if (!prev) return null;
+            return {
+              ...prev,
+              activeParticipants: prev.activeParticipants?.map(p => 
+                p.childId === payload.childId 
+                ? { ...p, currentSurah: payload.surah, currentAyah: payload.ayah } 
+                : p
+              )
+            };
+          });
+        }
+      })
+      .subscribe();
+
+    syncChannelRef.current = channel;
+
+    return () => { 
+      channel.unsubscribe(); 
+      syncChannelRef.current = null;
+    };
+  }, [currentSession?.batchId, userRole, batchState?.activeChildId]);
 
   // 📡 LEADERBOARD POLLING
   useEffect(() => {
@@ -329,6 +365,15 @@ const LiveClassRoom: React.FC = () => {
       await axios.post(`${APPLICATION_API_URL}/api/live/update-progress`, {
         batchId: currentSession.batchId, childId: currentSession.childId, surah: surahNumber, ayah: ayahNumber
       }, { headers: { Authorization: `Bearer ${token}` } });
+
+      // 📡 Instant Broadcast to Scholar
+      if (syncChannelRef.current) {
+        syncChannelRef.current.send({
+          type: 'broadcast',
+          event: 'ayah-change',
+          payload: { surah: surahNumber, ayah: ayahNumber, childId: currentSession.childId, ts: Date.now() }
+        });
+      }
     } catch (e) {}
   };
 

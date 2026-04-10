@@ -174,14 +174,35 @@ export const addStudentToBatch = async (req, res) => {
     try {
         const { id } = req.params;
         const { childId } = req.body;
+        
         const { default: Batch } = await import("../models/Batch.js");
+        const { default: Child } = await import("../models/Child.js");
+        const { default: User } = await import("../models/User.js");
 
         const batch = await Batch.findById(id);
         if (!batch) return res.status(404).json({ message: "Batch not found" });
 
-        if (!batch.students.includes(childId)) {
+        // 1. Update Batch model (using string comparison for safety)
+        const studentExists = (batch.students || []).map(s => s.toString()).includes(childId.toString());
+        if (!studentExists) {
             batch.students.push(childId);
             await batch.save();
+        }
+
+        // 2. Update Child model (Link to Batch)
+        const child = await Child.findById(childId);
+        if (child) {
+            child.batch = id;
+            await child.save();
+
+            // 3. Grant Parent User Live Access
+            const parent = await User.findById(child.parent_id);
+            if (parent) {
+                if (!parent.features) parent.features = {};
+                parent.features.liveAccess = true;
+                parent.markModified('features');
+                await parent.save();
+            }
         }
 
         res.json(batch);

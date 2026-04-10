@@ -18,7 +18,7 @@ import { APPLICATION_API_URL } from '../lib/api';
 
 const AdminLiveDashboard = () => {
     const { getToken } = useAuth();
-    const [activeTab, setActiveTab] = useState<'requests' | 'batches' | 'debug'>('requests');
+    const [activeTab, setActiveTab] = useState<'batches' | 'debug'>('batches');
 
     return (
         <div className="max-w-6xl mx-auto p-8 space-y-8 animate-in fade-in">
@@ -28,12 +28,6 @@ const AdminLiveDashboard = () => {
                     <p className="text-slate-500">Manage access requests and teaching batches.</p>
                 </div>
                 <div className="flex bg-slate-100 p-1 rounded-xl">
-                    <button
-                        onClick={() => setActiveTab('requests')}
-                        className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${activeTab === 'requests' ? 'bg-white text-[#052e16] shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}
-                    >
-                        Access Requests
-                    </button>
                     <button
                         onClick={() => setActiveTab('batches')}
                         className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${activeTab === 'batches' ? 'bg-white text-[#052e16] shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}
@@ -49,7 +43,6 @@ const AdminLiveDashboard = () => {
                 </div>
             </div>
 
-            {activeTab === 'requests' && <AccessRequests token={getToken} />}
             {activeTab === 'batches' && <BatchManager token={getToken} />}
             {activeTab === 'debug' && <DebugPanel token={getToken} />}
         </div>
@@ -129,10 +122,11 @@ const BatchManager = ({ token }: { token: any }) => {
     const fetchScholars = async () => {
         try {
             const t = await token();
-            const res = await axios.get(`${APPLICATION_API_URL}/api/admin/users`, {
+            const res = await axios.get(`${APPLICATION_API_URL}/api/admin/users?limit=1000`, {
                 headers: { Authorization: `Bearer ${t}` }
             });
-            setScholars(res.data.filter((u: any) => u.role === 'scholar'));
+            const users = res.data.users || [];
+            setScholars(users.filter((u: any) => u.role === 'scholar'));
         } catch (err) {
             console.error("Failed to load scholars");
         }
@@ -159,11 +153,13 @@ const BatchManager = ({ token }: { token: any }) => {
     const searchParents = async () => {
         try {
             const t = await token();
-            const res = await axios.get(`${APPLICATION_API_URL}/api/admin/users`, {
+            const res = await axios.get(`${APPLICATION_API_URL}/api/admin/users?limit=1000`, {
                 headers: { Authorization: `Bearer ${t}` }
             });
-            setFoundUsers(res.data.filter((u: any) =>
-                u.email.includes(studentSearch) || u.name.toLowerCase().includes(studentSearch.toLowerCase())
+            const users = res.data.users || [];
+            setFoundUsers(users.filter((u: any) =>
+                u.email?.toLowerCase().includes(studentSearch.toLowerCase()) || 
+                u.name?.toLowerCase().includes(studentSearch.toLowerCase())
             ));
         } catch (err) { console.error(err); }
     };

@@ -329,7 +329,9 @@ export const startBatch = async (req, res) => {
                         title: batch.name,
                         dailyRoomName: batch.dailyRoomName,
                         agoraToken: agoraToken || null,
-                        agoraAppId: AGORA_APP_ID || null
+                        agoraAppId: AGORA_APP_ID || null,
+                        channel: id,
+                        scholarId: req.auth.userId
                     }
                 });
              }
@@ -389,7 +391,9 @@ export const startBatch = async (req, res) => {
                 title: batch.name,
                 dailyRoomName: batch.dailyRoomName,
                 agoraToken: agoraToken || null,
-                agoraAppId: AGORA_APP_ID || null
+                agoraAppId: AGORA_APP_ID || null,
+                channel: id,
+                scholarId: req.auth.userId
             }
         });
     } catch (error) {

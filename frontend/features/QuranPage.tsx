@@ -116,7 +116,8 @@ const QuranPage: React.FC<QuranPageProps> = ({
   // Sync with prop updates (for Live Session) — scholar view: autoscroll to student position
   useEffect(() => {
     if (sessionCurrentSurah && sessionCurrentAyah) {
-      if (selectedSurah?.number === sessionCurrentSurah) {
+      if (selectedSurah?.number === sessionCurrentSurah && surahContent.length > 0) {
+        // Same surah already loaded — just jump to the right ayah
         const ayahIndex = surahContent.findIndex(a => a.numberInSurah === sessionCurrentAyah);
         if (ayahIndex !== -1) {
           setCurrentAyahIndex(ayahIndex);
@@ -124,16 +125,15 @@ const QuranPage: React.FC<QuranPageProps> = ({
           el?.scrollIntoView({ behavior: 'smooth', block: 'center' });
         }
       } else {
+        // Different surah OR surahs list not yet loaded — fetch directly by number (always safe)
+        // Also update selectedSurah from local cache if available
         const surahObj = surahs.find(s => s.number === sessionCurrentSurah);
-        if (surahObj) {
-          setSelectedSurah(surahObj);
-          fetchSurahContent(sessionCurrentSurah, sessionCurrentAyah);
-        } else if (surahs.length > 0) {
-          fetchSurahContent(sessionCurrentSurah, sessionCurrentAyah);
-        }
+        if (surahObj) setSelectedSurah(surahObj);
+        // Always fetch — fetchSurahContent sets selectedSurah fallback internally via setView/setSurahContent
+        fetchSurahContent(sessionCurrentSurah, sessionCurrentAyah);
       }
     }
-  }, [sessionCurrentSurah, sessionCurrentAyah, surahs, surahContent]);
+  }, [sessionCurrentSurah, sessionCurrentAyah]);
 
   // Autoscroll to active ayah precisely when index is updated (e.g. from nextAyah, next button, audio, or prop sync)
   useEffect(() => {
@@ -164,6 +164,7 @@ const QuranPage: React.FC<QuranPageProps> = ({
     if (!container) return;
 
     // Find the scrollable parent (the QuranPage container's parent)
+    // Walk up from the inner content div to find an element with overflow scroll/auto
     let scrollParent: HTMLElement | null = container.parentElement;
     while (scrollParent && scrollParent !== document.body) {
       const style = window.getComputedStyle(scrollParent);
@@ -172,51 +173,60 @@ const QuranPage: React.FC<QuranPageProps> = ({
       }
       scrollParent = scrollParent.parentElement;
     }
-    
-    // FALLBACK: If no scroll parent found, use the container itself
-    const effectiveScrollParent = scrollParent || container;
 
-    // Enable momentum scrolling on iOS
+    // Use the found scroll parent, or fall back to the container itself
+    // NOTE: scrollParent===document.body here means we fell through the loop without finding one
+    const effectiveScrollParent: HTMLElement | Window =
+      (scrollParent && scrollParent !== document.body) ? scrollParent : window;
+
+    // Enable momentum scrolling on iOS for HTML elements
     if (effectiveScrollParent instanceof HTMLElement) {
       (effectiveScrollParent.style as any).webkitOverflowScrolling = 'touch';
     }
+
+    const findVisibleAyah = () => {
+      // Determine the viewport rect for hit-testing
+      let viewportCenterY: number;
+      if (effectiveScrollParent instanceof Window) {
+        viewportCenterY = window.innerHeight / 2;
+      } else {
+        const parentRect = effectiveScrollParent.getBoundingClientRect();
+        viewportCenterY = parentRect.top + parentRect.height / 2;
+      }
+
+      let bestIdx = 0;
+      let bestDist = Infinity;
+
+      surahContent.forEach((_, idx) => {
+        const el = document.getElementById(`ayah-${idx}`);
+        if (!el) return;
+        const rect = el.getBoundingClientRect();
+        const elCenterY = rect.top + rect.height / 2;
+        const dist = Math.abs(elCenterY - viewportCenterY);
+        if (dist < bestDist) {
+          bestDist = dist;
+          bestIdx = idx;
+        }
+      });
+
+      const ayah = surahContent[bestIdx];
+      if (ayah) {
+        quranTracker.markAyahRead(selectedSurah.number, ayah.numberInSurah);
+        if (onPositionChange && !readOnly) {
+          onPositionChange(selectedSurah.number, ayah.numberInSurah);
+        }
+      }
+    };
 
     const onScroll = () => {
       if (scrollThrottleRef.current) return;
       scrollThrottleRef.current = setTimeout(() => {
         scrollThrottleRef.current = null;
-        
-        // Find which ayah is closest to viewport center
-        const parentRect = effectiveScrollParent.getBoundingClientRect();
-        const viewportCenterY = parentRect.top + parentRect.height / 2;
-        
-        let bestIdx = 0;
-        let bestDist = Infinity;
-        
-        surahContent.forEach((_, idx) => {
-          const el = document.getElementById(`ayah-${idx}`);
-          if (!el) return;
-          
-          const rect = el.getBoundingClientRect();
-          const elCenterY = rect.top + rect.height / 2;
-          const dist = Math.abs(elCenterY - viewportCenterY);
-          
-          if (dist < bestDist) {
-            bestDist = dist;
-            bestIdx = idx;
-          }
-        });
-
-        const ayah = surahContent[bestIdx];
-        if (ayah) {
-          quranTracker.markAyahRead(selectedSurah.number, ayah.numberInSurah);
-          if (onPositionChange && !readOnly) {
-            onPositionChange(selectedSurah.number, ayah.numberInSurah);
-          }
-        }
+        findVisibleAyah();
       }, 500);
     };
 
+    // Attach to the found scroll container (could be window for iOS Safari)
     effectiveScrollParent.addEventListener('scroll', onScroll, { passive: true });
     return () => {
       effectiveScrollParent.removeEventListener('scroll', onScroll);
@@ -428,8 +438,12 @@ const QuranPage: React.FC<QuranPageProps> = ({
   ];
   const COLORS = ['#10b981', '#f3f4f6'];
 
+  // In session mode (student is reciting live), use flex/grow layout instead of min-h-screen
+  // to avoid conflicting with the bounded overflow-y-auto parent container in LiveClassRoom
+  const inSessionMode = !!onPositionChange || readOnly;
+
   return (
-    <div className="min-h-screen bg-white pb-24 lg:pb-32 animate-in fade-in duration-500 overflow-x-hidden">
+    <div className={`${inSessionMode ? 'flex flex-col' : 'min-h-screen'} bg-white pb-24 lg:pb-32 animate-in fade-in duration-500 overflow-x-hidden`}>
       <header className="sticky top-0 z-50 bg-white/80 backdrop-blur-xl border-b border-emerald-50 px-4 sm:px-6 lg:px-8 py-4 sm:py-6 flex items-center justify-between">
         <div className="flex items-center gap-4">
           <button

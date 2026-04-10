@@ -509,6 +509,8 @@ const KidsView = ({ scrollProgress, activeChild, onJoinLive, currentBatchStatus,
                  setShowGuestModal(true);
               } else if (!hasPremium) {
                  handleRequestAccess();
+              } else if (isActuallyLive) {
+                 setShowJoinChoice(true);
               } else if (isHistorical && historicalSession?.sessionId) {
                  setSelectedSessionId(historicalSession.sessionId);
               } else {
@@ -601,10 +603,10 @@ const ScholarJourneyView = ({ scrollProgress, batches, onJoinSession, initialBat
 
             return (
               <div key={index} className="flex md:justify-center items-center relative group">
-                <div onClick={() => isCurrent ? onJoinSession(activeBatch) : (historicalSession?.sessionId && setSelectedSessionId(historicalSession.sessionId))} className={`absolute left-[2rem] md:left-1/2 -translate-x-1/2 w-14 h-14 rounded-full border-4 border-[#022c22] z-20 flex items-center justify-center shadow-xl transition-all cursor-pointer ${isLocked ? 'bg-gray-800 text-gray-500' : isCurrent ? 'bg-amber-400 text-amber-900 scale-125 shadow-lg' : 'bg-emerald-400'}`}>
+                <div onClick={() => isActuallyLive ? onJoinSession(activeBatch) : (isCurrent ? onJoinSession(activeBatch) : (historicalSession?.sessionId && setSelectedSessionId(historicalSession.sessionId)))} className={`absolute left-[2rem] md:left-1/2 -translate-x-1/2 w-14 h-14 rounded-full border-4 border-[#022c22] z-20 flex items-center justify-center shadow-xl transition-all cursor-pointer ${isLocked ? 'bg-gray-800 text-gray-500' : isCurrent ? 'bg-amber-400 text-amber-900 scale-125 shadow-lg' : 'bg-emerald-400'}`}>
                   {isLocked ? <Lock size={20} /> : <Play size={20} fill="currentColor" />}
                 </div>
-                <div onClick={() => isCurrent ? onJoinSession(activeBatch) : (historicalSession?.sessionId && setSelectedSessionId(historicalSession.sessionId))} className={`w-full md:w-[45%] cursor-pointer ${index % 2 === 0 ? 'md:mr-auto ml-20 md:pr-16 text-left md:text-right' : 'md:ml-auto ml-20 md:pl-16 text-left'}`}>
+                <div onClick={() => isActuallyLive ? onJoinSession(activeBatch) : (isCurrent ? onJoinSession(activeBatch) : (historicalSession?.sessionId && setSelectedSessionId(historicalSession.sessionId)))} className={`w-full md:w-[45%] cursor-pointer ${index % 2 === 0 ? 'md:mr-auto ml-20 md:pr-16 text-left md:text-right' : 'md:ml-auto ml-20 md:pl-16 text-left'}`}>
                   <div className={`bg-white/5 p-6 rounded-3xl border ${isCurrent ? 'border-amber-400/50 bg-amber-400/5' : ''}`}><h3 className="text-2xl font-bold text-white">Live Session {index + 1}</h3><div className="text-[10px] font-black uppercase tracking-widest text-emerald-400">{isActuallyLive ? 'Live Now' : (isHistorical ? 'Completed' : 'Upcoming')}</div></div>
                 </div>
               </div>

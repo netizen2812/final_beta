@@ -110,6 +110,8 @@ const LiveClassRoom: React.FC = () => {
   const syncChannelRef = useRef<any>(null);
   // Stable ref for activeChildId to avoid Supabase channel re-subscription stale closure bug
   const activeChildIdRef = useRef<string | null>(null);
+  // Track the session the student explicitly joined — never show leaderboard for this session while in it
+  const joinedSessionIdRef = useRef<string | null>(null);
 
   // Responsive Detection
   useEffect(() => {
@@ -219,11 +221,12 @@ const LiveClassRoom: React.FC = () => {
         // Keep the ref in sync with data so the Supabase handler always has the latest value
         activeChildIdRef.current = data.activeChildId || null;
 
-        // Auto-Results Trigger — only show leaderboard for parent/students, not scholars
-        // Also only trigger if we haven't shown it yet for this session
+        // Auto-Results Trigger — only show leaderboard when the session has genuinely ended
+        // NEVER trigger if the student just joined or rejoined this session (joinedSessionIdRef)
         if (data.status === 'ended' && userRole === 'parent' && data.activeSessionId) {
-            // Check if we already showed the results for THIS specific session
-            if (showLeaderboard !== data.activeSessionId) {
+            const alreadyShown = showLeaderboard === data.activeSessionId;
+            const isSessionWeJoined = joinedSessionIdRef.current === data.activeSessionId;
+            if (!alreadyShown && !isSessionWeJoined) {
                 setShowLeaderboard(data.activeSessionId);
                 setActiveDrawer('leaderboard');
             }
@@ -370,6 +373,8 @@ const LiveClassRoom: React.FC = () => {
   };
 
   const handleExitSession = () => {
+    // Clear the joined session ref so the leaderboard CAN appear if the session ends later
+    joinedSessionIdRef.current = null;
     setCurrentSession(null);
     setBatchState(null);
   };
@@ -732,8 +737,6 @@ const LiveClassRoom: React.FC = () => {
   // 🏁 MAIN RENDER
   // -------------------------------------------------------------------
 
-
-
   if (currentSession) {
     return (
       <div className="fixed inset-0 z-[1000] bg-[#020202] flex flex-col font-sans selection:bg-emerald-500/20 overflow-hidden text-white">
@@ -870,13 +873,11 @@ const LiveClassRoom: React.FC = () => {
     <TarbiyahLobby 
       getToken={getToken} 
       onJoinSession={(session) => {
-
+          // Mark this session as explicitly joined — suppresses leaderboard auto-trigger for this session
+          joinedSessionIdRef.current = session?.sessionId || session?._id || null;
           setShowLeaderboard(false);
-
           setActiveDrawer('none');
-
           setCurrentSession(session);
-
        }} 
       userRole={userRole}
       scholarBatches={scholarBatches}

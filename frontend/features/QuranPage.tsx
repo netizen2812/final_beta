@@ -587,8 +587,6 @@ const QuranPage: React.FC<QuranPageProps> = ({
             </div>
           )}
 
-
-
           {activeTab === 'progress' && (
             <div className="space-y-12 animate-in slide-in-from-right-8 duration-500 pb-20">
               <div className="grid grid-cols-1 md:grid-cols-3 gap-6">

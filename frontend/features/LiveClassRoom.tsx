@@ -426,7 +426,7 @@ const LiveClassRoom: React.FC = () => {
       <div className="flex flex-col h-full bg-[#040404]">
          {/* STUDENT SPEED DOCK */}
          <div className="flex-none p-4 pb-0 z-20">
-            <div className="flex gap-4 overflow-x-auto no-scrollbar pb-4 items-center">
+            <div className="flex gap-4 overflow-x-auto pb-4 items-center">
               {activeSessions.map(session => (
                 <div 
                   key={session._id} 
@@ -487,7 +487,7 @@ const LiveClassRoom: React.FC = () => {
 
             {/* RIGHT: SYNCED QURAN (Scholar Exclusive follow student) */}
             {batchState?.activeChildId && (
-               <div id="quran-reading-container" className="flex-1 bg-[#fdfaf3] rounded-[3rem] border border-black/5 shadow-2xl overflow-y-auto custom-scrollbar relative group flex flex-col md:flex-1 animate-in slide-in-from-right duration-700">
+               <div id="quran-reading-container" className="flex-1 bg-[#fdfaf3] rounded-[3rem] border border-black/5 shadow-2xl overflow-y-auto relative group flex flex-col md:flex-1 animate-in slide-in-from-right duration-700">
                   <div className="absolute top-8 left-8 py-2 px-4 bg-black/5 backdrop-blur-3xl border border-black/10 rounded-2xl flex items-center gap-3 z-30">
                     <BookOpen size={12} className="text-emerald-700" />
                     <span className="text-[9px] text-emerald-900 font-black uppercase tracking-widest">Monitoring Student Quran</span>
@@ -667,7 +667,7 @@ const LiveClassRoom: React.FC = () => {
             {!isMobile && (
                <div className="flex-1 bg-white/[0.02] border border-white/5 rounded-[3.5rem] p-10 flex flex-col shadow-inner">
                   <h4 className="text-[10px] text-gray-500 font-black uppercase tracking-[0.3em] mb-10 text-center">Class Activity</h4>
-                  <div className="space-y-4 overflow-y-auto no-scrollbar">
+                  <div className="space-y-4 overflow-y-auto">
                      {leaderboard?.slice(0, 6).map((l, idx) => (
                         <div key={l.childId} className="flex items-center justify-between p-5 bg-white/5 rounded-3xl border border-white/5 group hover:border-emerald-500/30 transition-all">
                            <div className="flex items-center gap-4 text-xs font-bold text-white/70">
@@ -802,7 +802,7 @@ const LiveClassRoom: React.FC = () => {
         {/* MODALS & DRAWERS */}
         {showAssignModal && currentSession?.batchId && (
           <div className="fixed inset-0 z-[6000] bg-black/95 backdrop-blur-3xl flex items-center justify-center p-6 animate-in fade-in duration-500">
-             <div className="w-full max-w-6xl h-[90vh] bg-[#0a0a0a] border border-white/10 rounded-[4rem] shadow-3xl overflow-y-auto no-scrollbar relative animate-in zoom-in-95">
+             <div className="w-full max-w-6xl h-[90vh] bg-[#0a0a0a] border border-white/10 rounded-[4rem] shadow-3xl overflow-y-auto relative animate-in zoom-in-95">
                 <ScholarQuranManager 
                   batchId={currentSession.batchId} 
                   batchName="Curriculum Management" 
@@ -844,7 +844,7 @@ const LiveClassRoom: React.FC = () => {
                        <XCircle size={40} />
                     </button>
                  </div>
-                 <div className="flex-1 overflow-y-auto no-scrollbar space-y-4 pb-12">
+                 <div className="flex-1 overflow-y-auto space-y-4 pb-12">
                     {leaderboard?.map((l, idx) => (
                        <div key={idx} className="flex items-center justify-between p-8 bg-white/[0.03] rounded-[2.5rem] border border-white/5 group hover:border-emerald-500/20 transition-all">
                           <div className="flex items-center gap-7">

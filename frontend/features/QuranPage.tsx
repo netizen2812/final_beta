@@ -159,63 +159,67 @@ const QuranPage: React.FC<QuranPageProps> = ({
   // Student: on scroll stop (throttle 500ms), find visible ayah and report position
   useEffect(() => {
     if (!onPositionChange || readOnly || !selectedSurah || !surahContent.length) return;
+    
     const container = readingContainerRef.current;
     if (!container) return;
 
-    // The scroll happens on the container's direct parent (the overflow-y-auto div in LiveClassRoom)
-    // We walk UP to find the nearest scrollable ancestor
-    let scrollParent: HTMLElement | Window = window;
-    let el: HTMLElement | null = container.parentElement;
-    while (el) {
-      if (el.id === 'quran-reading-container') {
-         scrollParent = el;
-         break;
-      }
-      const style = window.getComputedStyle(el);
-      const overflow = style.overflowY;
-      if (overflow === 'auto' || overflow === 'scroll' || overflow === 'overlay') {
-        scrollParent = el;
+    // Find the scrollable parent (the QuranPage container's parent)
+    let scrollParent: HTMLElement | null = container.parentElement;
+    while (scrollParent && scrollParent !== document.body) {
+      const style = window.getComputedStyle(scrollParent);
+      if (['auto', 'scroll', 'overlay'].includes(style.overflowY)) {
         break;
       }
-      el = el.parentElement;
+      scrollParent = scrollParent.parentElement;
     }
+    
+    // FALLBACK: If no scroll parent found, use the container itself
+    const effectiveScrollParent = scrollParent || container;
 
     // Enable momentum scrolling on iOS
-    if (scrollParent instanceof HTMLElement) {
-      (scrollParent.style as any).webkitOverflowScrolling = 'touch';
+    if (effectiveScrollParent instanceof HTMLElement) {
+      (effectiveScrollParent.style as any).webkitOverflowScrolling = 'touch';
     }
 
     const onScroll = () => {
       if (scrollThrottleRef.current) return;
       scrollThrottleRef.current = setTimeout(() => {
         scrollThrottleRef.current = null;
-        const parent = scrollParent instanceof HTMLElement ? scrollParent : document.documentElement;
-        const parentRect = parent.getBoundingClientRect();
+        
+        // Find which ayah is closest to viewport center
+        const parentRect = effectiveScrollParent.getBoundingClientRect();
         const viewportCenterY = parentRect.top + parentRect.height / 2;
+        
         let bestIdx = 0;
         let bestDist = Infinity;
+        
         surahContent.forEach((_, idx) => {
           const el = document.getElementById(`ayah-${idx}`);
           if (!el) return;
+          
           const rect = el.getBoundingClientRect();
           const elCenterY = rect.top + rect.height / 2;
           const dist = Math.abs(elCenterY - viewportCenterY);
+          
           if (dist < bestDist) {
             bestDist = dist;
             bestIdx = idx;
           }
         });
+
         const ayah = surahContent[bestIdx];
         if (ayah) {
           quranTracker.markAyahRead(selectedSurah.number, ayah.numberInSurah);
-          if (onPositionChange && !readOnly) onPositionChange(selectedSurah.number, ayah.numberInSurah);
+          if (onPositionChange && !readOnly) {
+            onPositionChange(selectedSurah.number, ayah.numberInSurah);
+          }
         }
       }, 500);
     };
 
-    scrollParent.addEventListener('scroll', onScroll, { passive: true });
+    effectiveScrollParent.addEventListener('scroll', onScroll, { passive: true });
     return () => {
-      scrollParent.removeEventListener('scroll', onScroll);
+      effectiveScrollParent.removeEventListener('scroll', onScroll);
       if (scrollThrottleRef.current) clearTimeout(scrollThrottleRef.current);
     };
   }, [onPositionChange, readOnly, selectedSurah, surahContent]);

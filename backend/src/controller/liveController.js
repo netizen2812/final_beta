@@ -248,10 +248,21 @@ export const removeStudentFromBatch = async (req, res) => {
         const { id } = req.params;
         const { childId } = req.body;
         const { default: Batch } = await import("../models/Batch.js");
+        const { default: Child } = await import("../models/Child.js");
 
+        // 1. Pull from batch students array
         await Batch.findByIdAndUpdate(id, { $pull: { students: childId } });
+
+        // 2. Clear the child's batch link
+        const child = await Child.findById(childId);
+        if (child && child.batch?.toString() === id.toString()) {
+            child.batch = null;
+            await child.save();
+        }
+
         res.json({ message: "Student removed" });
     } catch (error) {
+        console.error("Remove student error:", error);
         res.status(500).json({ message: "Server error" });
     }
 };

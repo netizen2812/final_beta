@@ -108,6 +108,8 @@ const LiveClassRoom: React.FC = () => {
   const lastSeenScoreRef = useRef<number | null>(null);
   const lastSyncTsRef = useRef<number>(0);
   const syncChannelRef = useRef<any>(null);
+  // Stable ref for activeChildId to avoid Supabase channel re-subscription stale closure bug
+  const activeChildIdRef = useRef<string | null>(null);
 
   // Responsive Detection
   useEffect(() => {
@@ -214,6 +216,8 @@ const LiveClassRoom: React.FC = () => {
               status: 'active'
             } as any)));
         }
+        // Keep the ref in sync with data so the Supabase handler always has the latest value
+        activeChildIdRef.current = data.activeChildId || null;
 
         // Auto-Results Trigger
         if (data.status === 'ended' && !showLeaderboard) {
@@ -230,19 +234,18 @@ const LiveClassRoom: React.FC = () => {
   }, [currentSession?.batchId, userRole]);
 
   // 📡 REAL-TIME SYNC (Supabase Broadcast)
+  // IMPORTANT: Do NOT include batchState in the dep array — use a stable ref for activeChildId
+  // to avoid channel being torn down and rebuilt on every poll cycle.
   useEffect(() => {
     if (!currentSession?.batchId) return;
 
     const channel = supabase.channel(`class-sync:${currentSession.batchId}`)
       .on('broadcast', { event: 'ayah-change' }, ({ payload }) => {
-        // Scholar hears student
+        // Scholar hears student — use ref to get the current activeChildId without stale closure
         if (userRole === 'scholar' && payload.ts > lastSyncTsRef.current) {
-          // If a student broadcasts correctly, the scholar follows them
-          // We prioritize the 'activeChildId' if set, but we allow sync from any student
-          // if they are the one actively sending updates to the channel.
-          if (payload.childId === batchState?.activeChildId || !batchState?.activeChildId) {
+          const currentActiveChildId = activeChildIdRef.current;
+          if (payload.childId === currentActiveChildId || !currentActiveChildId) {
             lastSyncTsRef.current = payload.ts;
-            
             setBatchState(prev => {
               if (!prev) return null;
               return {
@@ -265,7 +268,8 @@ const LiveClassRoom: React.FC = () => {
       channel.unsubscribe(); 
       syncChannelRef.current = null;
     };
-  }, [currentSession?.batchId, userRole, batchState?.activeChildId]);
+    // Only re-subscribe when the batchId or role changes, NOT when batchState changes
+  }, [currentSession?.batchId, userRole]);
 
   // 📡 LEADERBOARD POLLING
   useEffect(() => {
@@ -441,13 +445,20 @@ const LiveClassRoom: React.FC = () => {
                   <span className="text-[9px] text-white font-black uppercase tracking-widest">Active Class • {activeSessions.length} Participants</span>
                </div>
                
-               {/* 🔒 Scholar Quick Exit/Terminate */}
-               <div className="absolute bottom-6 right-8 flex items-center gap-4 z-40">
+               {/* 🔒 Scholar Exit + End Session — always visible */}
+               <div className="absolute bottom-6 left-8 right-8 flex items-center justify-between gap-4 z-40">
+                 {/* Qaida always accessible */}
+                 <button 
+                   onClick={() => setShowQaidaViewer(true)}
+                   className="px-5 py-2 bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-400 border border-emerald-500/20 rounded-xl text-[9px] font-black uppercase tracking-widest transition-all"
+                 >
+                   📖 Qaida
+                 </button>
                  <button 
                    onClick={() => setConfirmEndClass(currentSession.batchId!)}
                    className="px-6 py-2 bg-red-500/10 hover:bg-red-500 text-red-500 hover:text-white border border-red-500/20 rounded-xl text-[9px] font-black uppercase tracking-widest transition-all shadow-2xl"
                  >
-                   Terminate Session
+                   End Class
                  </button>
                </div>
             </div>
@@ -505,7 +516,6 @@ const LiveClassRoom: React.FC = () => {
                         <button onClick={() => handleScoreRecitation(batchState.activeChildId!, currentSession.batchId!, 2)} className="bg-amber-500 hover:bg-amber-400 text-black py-3 rounded-xl font-black text-[9px] uppercase transition-all shadow-lg active:scale-95">Avg (+5)</button>
                         <button onClick={() => handleScoreRecitation(batchState.activeChildId!, currentSession.batchId!, 1)} className="bg-red-500/20 hover:bg-red-500/30 text-red-500 py-3 rounded-xl font-black text-[9px] uppercase transition-all shadow-lg active:scale-95 border border-red-500/10">Need (+2)</button>
                         <button onClick={() => handleScoreParticipation(batchState.activeChildId!, currentSession.batchId!)} className="col-span-1 bg-white/10 hover:bg-white/20 text-emerald-400 py-3 rounded-xl font-black text-[9px] uppercase border border-emerald-500/10 transition-all active:scale-95">Partic (+2)</button>
-                        <button onClick={() => setShowQaidaViewer(true)} className="bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-400 py-3 rounded-xl font-black text-[9px] uppercase border border-emerald-500/20 transition-all active:scale-95">Qaida</button>
                         <button onClick={() => setShowAssignModal(true)} className="bg-indigo-500 hover:bg-indigo-400 text-white py-3 rounded-xl font-black text-[9px] uppercase flex items-center justify-center gap-2 transition-all active:scale-95"><BookOpen size={14}/> Lesson</button>
                      </div>
                   </div>
@@ -513,17 +523,31 @@ const LiveClassRoom: React.FC = () => {
             )}
          </div>
 
-         {isMobile && batchState?.activeChildId && (
-            <div className="fixed bottom-0 left-0 right-0 p-6 bg-black/80 backdrop-blur-3xl border-t border-white/5 rounded-t-[3rem] z-30 flex flex-col gap-4 animate-in slide-in-from-bottom duration-500">
-               <div className="grid grid-cols-2 gap-2">
-                  <button onClick={() => handleScoreRecitation(batchState.activeChildId!, currentSession.batchId!, 4)} className="bg-emerald-500 hover:bg-emerald-400 text-black py-3 rounded-2xl font-black text-[10px] uppercase grow shadow-2xl transition-all">Excel (+10)</button>
-                  <button onClick={() => handleScoreRecitation(batchState.activeChildId!, currentSession.batchId!, 3)} className="bg-emerald-600 hover:bg-emerald-500 text-white py-3 rounded-2xl font-black text-[10px] uppercase grow shadow-2xl transition-all">Good (+7)</button>
-                  <button onClick={() => handleScoreRecitation(batchState.activeChildId!, currentSession.batchId!, 2)} className="bg-amber-500 hover:bg-amber-400 text-black py-3 rounded-2xl font-black text-[10px] uppercase grow shadow-2xl transition-all">Avg (+5)</button>
-                  <button onClick={() => handleScoreRecitation(batchState.activeChildId!, currentSession.batchId!, 1)} className="bg-red-500/20 hover:bg-red-500/30 text-red-500 py-3 rounded-2xl font-black text-[10px] uppercase grow shadow-2xl transition-all border border-red-500/10">Need (+2)</button>
-               </div>
+         {/* Mobile bottom bar: always shown for scholar — shows End + Qaida, and evaluation when a student is active */}
+         {isMobile && (
+            <div className="fixed bottom-0 left-0 right-0 bg-black/80 backdrop-blur-3xl border-t border-white/5 rounded-t-[3rem] z-30 flex flex-col gap-4 animate-in slide-in-from-bottom duration-500 p-6">
+               {batchState?.activeChildId && (
+                  <div className="grid grid-cols-2 gap-2">
+                     <button onClick={() => handleScoreRecitation(batchState.activeChildId!, currentSession.batchId!, 4)} className="bg-emerald-500 hover:bg-emerald-400 text-black py-3 rounded-2xl font-black text-[10px] uppercase grow shadow-2xl transition-all">Excel (+10)</button>
+                     <button onClick={() => handleScoreRecitation(batchState.activeChildId!, currentSession.batchId!, 3)} className="bg-emerald-600 hover:bg-emerald-500 text-white py-3 rounded-2xl font-black text-[10px] uppercase grow shadow-2xl transition-all">Good (+7)</button>
+                     <button onClick={() => handleScoreRecitation(batchState.activeChildId!, currentSession.batchId!, 2)} className="bg-amber-500 hover:bg-amber-400 text-black py-3 rounded-2xl font-black text-[10px] uppercase grow shadow-2xl transition-all">Avg (+5)</button>
+                     <button onClick={() => handleScoreRecitation(batchState.activeChildId!, currentSession.batchId!, 1)} className="bg-red-500/20 hover:bg-red-500/30 text-red-500 py-3 rounded-2xl font-black text-[10px] uppercase grow shadow-2xl transition-all border border-red-500/10">Need (+2)</button>
+                  </div>
+               )}
+               {batchState?.activeChildId && (
+                  <div className="flex gap-2">
+                     <button onClick={() => handleScoreParticipation(batchState.activeChildId!, currentSession.batchId!)} className="bg-white/10 text-emerald-400 px-6 py-4 rounded-2xl font-black text-[10px] uppercase border border-white/10 grow">Participation</button>
+                     <button onClick={() => setShowAssignModal(true)} className="bg-indigo-500 text-white px-6 py-4 rounded-2xl font-black text-[10px] uppercase border border-indigo-500/20 shrink-0">Lesson</button>
+                  </div>
+               )}
+               {/* Always-visible controls */}
                <div className="flex gap-2">
-                  <button onClick={() => handleScoreParticipation(batchState.activeChildId!, currentSession.batchId!)} className="bg-white/10 text-emerald-400 px-6 py-4 rounded-2xl font-black text-[10px] uppercase border border-white/10 grow">Participation</button>
-                  <button onClick={() => setShowAssignModal(true)} className="bg-indigo-500 text-white px-6 py-4 rounded-2xl font-black text-[10px] uppercase border border-indigo-500/20 shrink-0">Lesson</button>
+                  <button onClick={() => setShowQaidaViewer(true)} className="bg-emerald-500/10 text-emerald-400 px-6 py-4 rounded-2xl font-black text-[10px] uppercase border border-emerald-500/20 grow">
+                     📖 Qaida
+                  </button>
+                  <button onClick={() => setConfirmEndClass(currentSession.batchId!)} className="bg-red-500/10 text-red-400 px-6 py-4 rounded-2xl font-black text-[10px] uppercase border border-red-500/20 shrink-0">
+                     End Class
+                  </button>
                </div>
             </div>
          )}
@@ -552,7 +576,10 @@ const LiveClassRoom: React.FC = () => {
          </div>
 
          <div className="flex-1 relative p-6 mb-4">
-            <div className="w-full h-full bg-[#fdfaf3] rounded-[3.5rem] overflow-y-auto no-scrollbar shadow-[0_50px_100px_-20px_rgba(0,0,0,0.5)] border border-black/5 relative">
+            <div 
+              className="w-full h-full bg-[#fdfaf3] rounded-[3.5rem] overflow-y-auto no-scrollbar shadow-[0_50px_100px_-20px_rgba(0,0,0,0.5)] border border-black/5 relative"
+              style={{ WebkitOverflowScrolling: 'touch', touchAction: 'pan-y' }}
+            >
                <QuranPage
                  onBack={handleExitSession}
                  sessionCurrentSurah={currentSession.currentSurah}

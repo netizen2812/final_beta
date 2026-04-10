@@ -506,12 +506,11 @@ const KidsView = ({ scrollProgress, activeChild, onJoinLive, currentBatchStatus,
                  setShowGuestModal(true);
               } else if (!hasPremium) {
                  handleRequestAccess();
-              } else if (isActuallyLive) {
-                 setShowJoinChoice(true);
               } else if (isHistorical && historicalSession?.sessionId) {
                  setSelectedSessionId(historicalSession.sessionId);
               } else {
-                 setShowQuranPractice({ active: true, mode: 'REVISE' });
+                 // Always show the portal for premium users (Revise/Practice/Qaida/Join)
+                 setShowJoinChoice(true);
               }
             };
 

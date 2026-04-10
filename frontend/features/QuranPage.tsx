@@ -79,6 +79,9 @@ interface QuranPageProps {
   /** Called when student changes surah/ayah (ayah click, surah switch, scroll). Throttled by parent. */
   onPositionChange?: (surah: number, ayah: number) => void;
   readOnly?: boolean;
+  /** ID of the scrollable container element (in LiveClassRoom: 'quran-reading-container').
+   *  Pass this so iOS/iPad doesn't need to walk the DOM to find the scroll parent. */
+  scrollContainerId?: string;
 }
 
 const QuranPage: React.FC<QuranPageProps> = ({
@@ -87,7 +90,8 @@ const QuranPage: React.FC<QuranPageProps> = ({
   sessionCurrentAyah,
   onAyahClick,
   onPositionChange,
-  readOnly
+  readOnly,
+  scrollContainerId
 }) => {
   const { t, i18n } = useTranslation();
   const { getToken, isSignedIn } = useAuth();
@@ -112,6 +116,13 @@ const QuranPage: React.FC<QuranPageProps> = ({
   const [playbackSpeed, setPlaybackSpeed] = useState(1);
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const [statsKey, setStatsKey] = useState(0); // Used to force progress re-render on sync
+
+  // Force 'reading' view if a session is active but we are on 'home'
+  useEffect(() => {
+    if (sessionCurrentSurah && view === 'home') {
+      fetchSurahContent(sessionCurrentSurah, sessionCurrentAyah || 1);
+    }
+  }, [sessionCurrentSurah, view]);
 
   // Sync with prop updates (for Live Session) — scholar view: autoscroll to student position
   useEffect(() => {
@@ -163,21 +174,23 @@ const QuranPage: React.FC<QuranPageProps> = ({
     const container = readingContainerRef.current;
     if (!container) return;
 
-    // Find the scrollable parent (the QuranPage container's parent)
-    // Walk up from the inner content div to find an element with overflow scroll/auto
-    let scrollParent: HTMLElement | null = container.parentElement;
-    while (scrollParent && scrollParent !== document.body) {
-      const style = window.getComputedStyle(scrollParent);
-      if (['auto', 'scroll', 'overlay'].includes(style.overflowY)) {
-        break;
+    // PRIORITY: If scrollContainerId is given (LiveClassRoom recitation pane), use it directly.
+    // This is far more reliable than DOM walking on iOS/iPad.
+    let effectiveScrollParent: HTMLElement | Window;
+    if (scrollContainerId) {
+      const el = document.getElementById(scrollContainerId);
+      effectiveScrollParent = el || window;
+    } else {
+      // Fall back: walk up DOM to find a scrollable parent
+      let scrollParent: HTMLElement | null = container.parentElement;
+      while (scrollParent && scrollParent !== document.body) {
+        const style = window.getComputedStyle(scrollParent);
+        if (['auto', 'scroll', 'overlay'].includes(style.overflowY)) break;
+        scrollParent = scrollParent.parentElement;
       }
-      scrollParent = scrollParent.parentElement;
+      effectiveScrollParent =
+        (scrollParent && scrollParent !== document.body) ? scrollParent : window;
     }
-
-    // Use the found scroll parent, or fall back to the container itself
-    // NOTE: scrollParent===document.body here means we fell through the loop without finding one
-    const effectiveScrollParent: HTMLElement | Window =
-      (scrollParent && scrollParent !== document.body) ? scrollParent : window;
 
     // Enable momentum scrolling on iOS for HTML elements
     if (effectiveScrollParent instanceof HTMLElement) {
@@ -185,12 +198,11 @@ const QuranPage: React.FC<QuranPageProps> = ({
     }
 
     const findVisibleAyah = () => {
-      // Determine the viewport rect for hit-testing
       let viewportCenterY: number;
       if (effectiveScrollParent instanceof Window) {
         viewportCenterY = window.innerHeight / 2;
       } else {
-        const parentRect = effectiveScrollParent.getBoundingClientRect();
+        const parentRect = (effectiveScrollParent as HTMLElement).getBoundingClientRect();
         viewportCenterY = parentRect.top + parentRect.height / 2;
       }
 
@@ -226,13 +238,12 @@ const QuranPage: React.FC<QuranPageProps> = ({
       }, 500);
     };
 
-    // Attach to the found scroll container (could be window for iOS Safari)
     effectiveScrollParent.addEventListener('scroll', onScroll, { passive: true });
     return () => {
       effectiveScrollParent.removeEventListener('scroll', onScroll);
       if (scrollThrottleRef.current) clearTimeout(scrollThrottleRef.current);
     };
-  }, [onPositionChange, readOnly, selectedSurah, surahContent]);
+  }, [onPositionChange, readOnly, selectedSurah, surahContent, scrollContainerId]);
 
   useEffect(() => {
     fetchSurahs();

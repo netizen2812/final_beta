@@ -293,6 +293,23 @@ const LiveClassRoom: React.FC = () => {
           }
         }
       })
+      // ⚡ Student receives instant turn notification from scholar
+      .on('broadcast', { event: 'turn-assigned' }, ({ payload }) => {
+        if (userRole === 'parent') {
+          // Update activeChildId immediately — no need to wait for 15s poll
+          setBatchState(prev => prev ? { ...prev, activeChildId: payload.activeChildId } : null);
+          activeChildIdRef.current = payload.activeChildId;
+
+          // If it's my turn and position is provided, jump to it instantly
+          if (payload.activeChildId === activeChild?.id && payload.surah) {
+            setCurrentSession(prev => prev ? {
+              ...prev,
+              currentSurah: payload.surah,
+              currentAyah: payload.ayah
+            } : null);
+          }
+        }
+      })
       .subscribe();
 
     syncChannelRef.current = channel;
@@ -343,6 +360,27 @@ const LiveClassRoom: React.FC = () => {
       await axios.post(`${APPLICATION_API_URL}/api/live/batch/${batchId}/select-turn`, { childId }, {
         headers: { Authorization: `Bearer ${token}` }
       });
+
+      // Find this child's last known position to broadcast it
+      const childData = batchState?.activeParticipants?.find(p => p.childId === childId);
+
+      // ⚡ Instantly broadcast to all students — no waiting for 15s poll
+      if (syncChannelRef.current) {
+        syncChannelRef.current.send({
+          type: 'broadcast',
+          event: 'turn-assigned',
+          payload: { 
+            activeChildId: childId, 
+            batchId, 
+            surah: childData?.currentSurah,
+            ayah: childData?.currentAyah,
+            ts: Date.now() 
+          }
+        });
+      }
+      // Update scholar's own local state immediately
+      setBatchState(prev => prev ? { ...prev, activeChildId: childId } : null);
+      activeChildIdRef.current = childId;
     } catch (err) { alert("Failed to set student turn."); }
   };
 
@@ -657,6 +695,7 @@ const LiveClassRoom: React.FC = () => {
                 onAyahClick={handleAyahClick}
                 onPositionChange={emitPosition}
                 readOnly={false}
+                scrollContainerId="quran-reading-container"
               />
               {/* Scholar video pip — warm glassy border */}
               <div className="absolute top-8 right-8 w-44 md:w-64 aspect-video z-30 rounded-3xl overflow-hidden group border border-emerald-900/40 shadow-[0_20px_60px_rgba(0,0,0,0.5)] transition-transform duration-500 hover:scale-105">

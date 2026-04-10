@@ -231,6 +231,18 @@ const LiveClassRoom: React.FC = () => {
                 setActiveDrawer('leaderboard');
             }
         }
+
+        // 🔄 Sync active student's current position to scholar/observer currentSession
+        if (data.activeParticipants && data.activeChildId) {
+          const activeStudent = data.activeParticipants.find((p: any) => p.childId === data.activeChildId);
+          if (activeStudent?.currentSurah && activeStudent?.currentAyah) {
+            setCurrentSession(prev => prev ? {
+              ...prev,
+              currentSurah: activeStudent.currentSurah,
+              currentAyah: activeStudent.currentAyah
+            } : null);
+          }
+        }
       } catch (err) {}
     };
 
@@ -587,7 +599,7 @@ const LiveClassRoom: React.FC = () => {
 
          <div className="flex-1 relative p-6 mb-4">
             <div 
-              id="quran-reading-container" className="w-full h-full bg-[#fdfaf3] rounded-[3.5rem] overflow-y-auto no-scrollbar shadow-[0_50px_100px_-20px_rgba(0,0,0,0.5)] border border-black/5 relative"
+              id="quran-reading-container" className="w-full h-full bg-[#fdfaf3] rounded-[3.5rem] overflow-y-auto shadow-[0_50px_100px_-20px_rgba(0,0,0,0.5)] border border-black/5 relative"
               style={{ WebkitOverflowScrolling: 'touch', touchAction: 'pan-y' }}
             >
                <QuranPage
@@ -726,7 +738,8 @@ const LiveClassRoom: React.FC = () => {
   useEffect(() => {
     if (userRole !== 'scholar' || !currentSession?.batchId) return;
     
-    supabase.channel(`class-sync:${currentSession.batchId}`).send({
+    const channel = supabase.channel(`class-sync:${currentSession.batchId}`);
+    channel.send({
       type: 'broadcast',
       event: 'qaida-sync',
       payload: { isOpen: showQaidaViewer, ts: Date.now() }

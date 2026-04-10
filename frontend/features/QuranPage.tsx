@@ -166,6 +166,10 @@ const QuranPage: React.FC<QuranPageProps> = ({
       scrollParent = scrollParent.parentElement;
     }
     if (!scrollParent) return;
+
+    // 📱 Support smooth momentum scrolling on iOS/iPad
+    scrollParent.style.webkitOverflowScrolling = 'touch';
+
     const onScroll = () => {
       if (scrollThrottleRef.current) return;
       scrollThrottleRef.current = setTimeout(() => {
@@ -659,6 +663,7 @@ const QuranPage: React.FC<QuranPageProps> = ({
                   <div
                     id={`ayah-${idx}`}
                     onClick={() => {
+                      if (readOnly) return;
                       if (onAyahClick) {
                         onAyahClick(selectedSurah?.number || 1, ayah.numberInSurah);
                         onPositionChange?.(selectedSurah?.number ?? 1, ayah.numberInSurah);

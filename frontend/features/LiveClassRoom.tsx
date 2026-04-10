@@ -23,6 +23,7 @@ import ScholarQuranManager from './ScholarQuranManager';
 import AgoraVideoPane from './AgoraVideoPane';
 import { loadRazorpayScript } from '../utils/razorpay';
 import { getNumericUid } from '../utils/tarbiyahUtils';
+import { QaidaViewer } from './QaidaViewer';
 
 const POSITION_THROTTLE_MS = 500;
 import { APPLICATION_API_URL } from '../lib/api';
@@ -102,6 +103,7 @@ const LiveClassRoom: React.FC = () => {
   const [showAssignModal, setShowAssignModal] = useState(false);
   const [currentSessionScore, setCurrentSessionScore] = useState<number>(0);
   const [selectedBatchId, setSelectedBatchId] = useState<string | null>(null);
+  const [showQaidaViewer, setShowQaidaViewer] = useState(false);
   
   const lastSeenScoreRef = useRef<number | null>(null);
   const lastSyncTsRef = useRef<number>(0);
@@ -234,20 +236,25 @@ const LiveClassRoom: React.FC = () => {
     const channel = supabase.channel(`class-sync:${currentSession.batchId}`)
       .on('broadcast', { event: 'ayah-change' }, ({ payload }) => {
         // Scholar hears student
-        if (userRole === 'scholar' && payload.ts > lastSyncTsRef.current && payload.childId === batchState?.activeChildId) {
-          lastSyncTsRef.current = payload.ts;
-          
-          setBatchState(prev => {
-            if (!prev) return null;
-            return {
-              ...prev,
-              activeParticipants: prev.activeParticipants?.map(p => 
-                p.childId === payload.childId 
-                ? { ...p, currentSurah: payload.surah, currentAyah: payload.ayah } 
-                : p
-              )
-            };
-          });
+        if (userRole === 'scholar' && payload.ts > lastSyncTsRef.current) {
+          // If a student broadcasts correctly, the scholar follows them
+          // We prioritize the 'activeChildId' if set, but we allow sync from any student
+          // if they are the one actively sending updates to the channel.
+          if (payload.childId === batchState?.activeChildId || !batchState?.activeChildId) {
+            lastSyncTsRef.current = payload.ts;
+            
+            setBatchState(prev => {
+              if (!prev) return null;
+              return {
+                ...prev,
+                activeParticipants: prev.activeParticipants?.map(p => 
+                  p.childId === payload.childId 
+                  ? { ...p, currentSurah: payload.surah, currentAyah: payload.ayah } 
+                  : p
+                )
+              };
+            });
+          }
         }
       })
       .subscribe();
@@ -433,6 +440,16 @@ const LiveClassRoom: React.FC = () => {
                   <div className="w-1.5 h-1.5 bg-emerald-500 rounded-full animate-pulse" />
                   <span className="text-[9px] text-white font-black uppercase tracking-widest">Active Class • {activeSessions.length} Participants</span>
                </div>
+               
+               {/* 🔒 Scholar Quick Exit/Terminate */}
+               <div className="absolute bottom-6 right-8 flex items-center gap-4 z-40">
+                 <button 
+                   onClick={() => setConfirmEndClass(currentSession.batchId!)}
+                   className="px-6 py-2 bg-red-500/10 hover:bg-red-500 text-red-500 hover:text-white border border-red-500/20 rounded-xl text-[9px] font-black uppercase tracking-widest transition-all shadow-2xl"
+                 >
+                   Terminate Session
+                 </button>
+               </div>
             </div>
 
             {/* RIGHT: SYNCED QURAN (Scholar Exclusive follow student) */}
@@ -488,11 +505,10 @@ const LiveClassRoom: React.FC = () => {
                         <button onClick={() => handleScoreRecitation(batchState.activeChildId!, currentSession.batchId!, 2)} className="bg-amber-500 hover:bg-amber-400 text-black py-3 rounded-xl font-black text-[9px] uppercase transition-all shadow-lg active:scale-95">Avg (+5)</button>
                         <button onClick={() => handleScoreRecitation(batchState.activeChildId!, currentSession.batchId!, 1)} className="bg-red-500/20 hover:bg-red-500/30 text-red-500 py-3 rounded-xl font-black text-[9px] uppercase transition-all shadow-lg active:scale-95 border border-red-500/10">Need (+2)</button>
                         <button onClick={() => handleScoreParticipation(batchState.activeChildId!, currentSession.batchId!)} className="col-span-1 bg-white/10 hover:bg-white/20 text-emerald-400 py-3 rounded-xl font-black text-[9px] uppercase border border-emerald-500/10 transition-all active:scale-95">Partic (+2)</button>
+                        <button onClick={() => setShowQaidaViewer(true)} className="bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-400 py-3 rounded-xl font-black text-[9px] uppercase border border-emerald-500/20 transition-all active:scale-95">Qaida</button>
                         <button onClick={() => setShowAssignModal(true)} className="bg-indigo-500 hover:bg-indigo-400 text-white py-3 rounded-xl font-black text-[9px] uppercase flex items-center justify-center gap-2 transition-all active:scale-95"><BookOpen size={14}/> Lesson</button>
                      </div>
                   </div>
-
-                  <button onClick={() => setConfirmEndClass(currentSession.batchId!)} className="mt-auto w-full py-3 text-red-500/60 hover:text-red-400 font-black text-[10px] uppercase tracking-widest transition-colors mb-2">Terminate Classroom</button>
                </div>
             )}
          </div>
@@ -654,6 +670,32 @@ const LiveClassRoom: React.FC = () => {
     return renderObservationStage();
   };
 
+  // 📡 Listen for Scholar opening Qaida
+  useEffect(() => {
+    if (userRole !== 'parent' || !currentSession?.batchId) return;
+
+    const channel = supabase.channel(`class-sync:${currentSession.batchId}`)
+      .on('broadcast', { event: 'qaida-sync' }, ({ payload }) => {
+        if (payload.isOpen !== undefined) {
+          setShowQaidaViewer(payload.isOpen);
+        }
+      })
+      .subscribe();
+
+    return () => { channel.unsubscribe(); };
+  }, [currentSession?.batchId, userRole]);
+
+  // 📡 Broadcast Opening/Closing (Scholar only)
+  useEffect(() => {
+    if (userRole !== 'scholar' || !currentSession?.batchId) return;
+    
+    supabase.channel(`class-sync:${currentSession.batchId}`).send({
+      type: 'broadcast',
+      event: 'qaida-sync',
+      payload: { isOpen: showQaidaViewer, ts: Date.now() }
+    });
+  }, [showQaidaViewer, userRole, currentSession?.batchId]);
+
   // -------------------------------------------------------------------
   // 🏁 MAIN RENDER
   // -------------------------------------------------------------------
@@ -768,6 +810,15 @@ const LiveClassRoom: React.FC = () => {
                  </div>
               </div>
            </div>
+        )}
+
+        {showQaidaViewer && currentSession && (
+          <QaidaViewer 
+            onClose={() => setShowQaidaViewer(false)}
+            isScholar={userRole === 'scholar'}
+            batchId={currentSession.batchId || ""}
+            followScholar={true}
+          />
         )}
       </div>
     );

@@ -23,6 +23,7 @@ import ErrorBoundary from '../components/ErrorBoundary';
 import { GuestEmailModal } from './GuestEmailModal';
 import { useClerk, useUser } from '@clerk/clerk-react';
 import { quranTracker } from '../utils/quranProgressTracker';
+import { QaidaViewer } from './QaidaViewer';
 
 // --- DATA & CONSTANTS ---
 import { APPLICATION_API_URL } from '../lib/api';
@@ -117,6 +118,7 @@ export const TarbiyahLobby = ({
   const [showQuranPractice, setShowQuranPractice] = useState<{ active: boolean, mode: 'REVISE' | 'PRACTICE' }>({ active: false, mode: 'REVISE' });
   const [showJoinChoice, setShowJoinChoice] = useState(false);
   const [showScholarManage, setShowScholarManage] = useState<any>(null); // To store batch for scholar managemnt
+  const [showQaidaViewer, setShowQaidaViewer] = useState(false);
   const [showGuestModal, setShowGuestModal] = useState(false);
   const [showSuccessOverlay, setShowSuccessOverlay] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
@@ -363,10 +365,22 @@ export const TarbiyahLobby = ({
                        <div className="text-left font-bold text-lg">Join the live session</div>
                     </button>
                  )}
+                 <button onClick={() => { setShowJoinChoice(false); setShowQaidaViewer(true); }} className="flex items-center gap-4 p-5 rounded-2xl transition-all group border-b-4 bg-white/10 hover:bg-white/20 text-white border-white/20">
+                    <div className="bg-emerald-500/20 text-emerald-400 p-3 rounded-xl"><Book size={24} /></div>
+                    <div className="text-left font-bold text-lg">Qaida (قاعدہ)</div>
+                 </button>
                  <button onClick={() => setShowJoinChoice(false)} className="mt-4 text-emerald-400 font-black text-sm uppercase tracking-widest py-2">Close Portal</button>
               </div>
            </div>
         </div>
+      )}
+
+      {showQaidaViewer && (
+        <QaidaViewer 
+          onClose={() => setShowQaidaViewer(false)}
+          isScholar={userRole === 'scholar'}
+          batchId={selectedBatchId || batches?.[0]?._id}
+        />
       )}
 
       {showScholarManage && (

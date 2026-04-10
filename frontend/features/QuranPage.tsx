@@ -133,7 +133,7 @@ const QuranPage: React.FC<QuranPageProps> = ({
         }
       }
     }
-  }, [sessionCurrentSurah, sessionCurrentAyah, surahs]);
+  }, [sessionCurrentSurah, sessionCurrentAyah, surahs, surahContent]);
 
   // Autoscroll to active ayah precisely when index is updated (e.g. from nextAyah, next button, audio, or prop sync)
   useEffect(() => {
@@ -161,20 +161,36 @@ const QuranPage: React.FC<QuranPageProps> = ({
     if (!onPositionChange || readOnly || !selectedSurah || !surahContent.length) return;
     const container = readingContainerRef.current;
     if (!container) return;
-    let scrollParent: HTMLElement | null = container.parentElement;
-    while (scrollParent && !['auto', 'scroll', 'overlay'].includes(getComputedStyle(scrollParent).overflowY)) {
-      scrollParent = scrollParent.parentElement;
-    }
-    if (!scrollParent) return;
 
-    // 📱 Support smooth momentum scrolling on iOS/iPad
-    scrollParent.style.webkitOverflowScrolling = 'touch';
+    // The scroll happens on the container's direct parent (the overflow-y-auto div in LiveClassRoom)
+    // We walk UP to find the nearest scrollable ancestor
+    let scrollParent: HTMLElement | Window = window;
+    let el: HTMLElement | null = container.parentElement;
+    while (el) {
+      if (el.id === 'quran-reading-container') {
+         scrollParent = el;
+         break;
+      }
+      const style = window.getComputedStyle(el);
+      const overflow = style.overflowY;
+      if (overflow === 'auto' || overflow === 'scroll' || overflow === 'overlay') {
+        scrollParent = el;
+        break;
+      }
+      el = el.parentElement;
+    }
+
+    // Enable momentum scrolling on iOS
+    if (scrollParent instanceof HTMLElement) {
+      (scrollParent.style as any).webkitOverflowScrolling = 'touch';
+    }
 
     const onScroll = () => {
       if (scrollThrottleRef.current) return;
       scrollThrottleRef.current = setTimeout(() => {
         scrollThrottleRef.current = null;
-        const parentRect = scrollParent!.getBoundingClientRect();
+        const parent = scrollParent instanceof HTMLElement ? scrollParent : document.documentElement;
+        const parentRect = parent.getBoundingClientRect();
         const viewportCenterY = parentRect.top + parentRect.height / 2;
         let bestIdx = 0;
         let bestDist = Infinity;
@@ -196,9 +212,10 @@ const QuranPage: React.FC<QuranPageProps> = ({
         }
       }, 500);
     };
+
     scrollParent.addEventListener('scroll', onScroll, { passive: true });
     return () => {
-      scrollParent!.removeEventListener('scroll', onScroll);
+      scrollParent.removeEventListener('scroll', onScroll);
       if (scrollThrottleRef.current) clearTimeout(scrollThrottleRef.current);
     };
   }, [onPositionChange, readOnly, selectedSurah, surahContent]);
@@ -622,7 +639,12 @@ const QuranPage: React.FC<QuranPageProps> = ({
           )}
         </div>
       ) : (
-        <div ref={readingContainerRef} className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-10 lg:py-12 space-y-8 sm:space-y-12 pb-32 sm:pb-40">
+        <div 
+          ref={readingContainerRef} 
+          id="quran-reading-container-inner"
+          className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-10 lg:py-12 space-y-8 sm:space-y-12 pb-32 sm:pb-40"
+          style={{ touchAction: 'pan-y' }}
+        >
           <div className="flex items-center gap-4 overflow-x-auto pb-6 scrollbar-hide snap-x border-b border-emerald-50">
             {surahContent.map((ayah, idx) => (
               <button

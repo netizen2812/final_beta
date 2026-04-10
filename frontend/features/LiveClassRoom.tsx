@@ -219,9 +219,14 @@ const LiveClassRoom: React.FC = () => {
         // Keep the ref in sync with data so the Supabase handler always has the latest value
         activeChildIdRef.current = data.activeChildId || null;
 
-        // Auto-Results Trigger
-        if (data.status === 'ended' && !showLeaderboard) {
-            setShowLeaderboard(data.activeSessionId || true);
+        // Auto-Results Trigger — only show leaderboard for parent/students, not scholars
+        // Also only trigger if we haven't shown it yet for this session
+        if (data.status === 'ended' && userRole === 'parent' && data.activeSessionId) {
+            // Check if we already showed the results for THIS specific session
+            if (showLeaderboard !== data.activeSessionId) {
+                setShowLeaderboard(data.activeSessionId);
+                setActiveDrawer('leaderboard');
+            }
         }
       } catch (err) {}
     };
@@ -465,7 +470,7 @@ const LiveClassRoom: React.FC = () => {
 
             {/* RIGHT: SYNCED QURAN (Scholar Exclusive follow student) */}
             {batchState?.activeChildId && (
-               <div className="flex-1 bg-[#fdfaf3] rounded-[3rem] border border-black/5 shadow-2xl overflow-y-auto custom-scrollbar relative group flex flex-col md:flex-1 animate-in slide-in-from-right duration-700">
+               <div id="quran-reading-container" className="flex-1 bg-[#fdfaf3] rounded-[3rem] border border-black/5 shadow-2xl overflow-y-auto custom-scrollbar relative group flex flex-col md:flex-1 animate-in slide-in-from-right duration-700">
                   <div className="absolute top-8 left-8 py-2 px-4 bg-black/5 backdrop-blur-3xl border border-black/10 rounded-2xl flex items-center gap-3 z-30">
                     <BookOpen size={12} className="text-emerald-700" />
                     <span className="text-[9px] text-emerald-900 font-black uppercase tracking-widest">Monitoring Student Quran</span>
@@ -577,7 +582,7 @@ const LiveClassRoom: React.FC = () => {
 
          <div className="flex-1 relative p-6 mb-4">
             <div 
-              className="w-full h-full bg-[#fdfaf3] rounded-[3.5rem] overflow-y-auto no-scrollbar shadow-[0_50px_100px_-20px_rgba(0,0,0,0.5)] border border-black/5 relative"
+              id="quran-reading-container" className="w-full h-full bg-[#fdfaf3] rounded-[3.5rem] overflow-y-auto no-scrollbar shadow-[0_50px_100px_-20px_rgba(0,0,0,0.5)] border border-black/5 relative"
               style={{ WebkitOverflowScrolling: 'touch', touchAction: 'pan-y' }}
             >
                <QuranPage
@@ -753,7 +758,17 @@ const LiveClassRoom: React.FC = () => {
               </div>
            </div>
 
-           <div className="flex items-center gap-5">
+           <div className="flex items-center gap-3">
+              {/* End Class — always visible for scholars */}
+              {(userRole === 'scholar' || user?.primaryEmailAddress?.emailAddress?.toLowerCase() === "scholar1.imam@gmail.com") && (
+                <button
+                  onClick={() => setConfirmEndClass(currentSession.batchId!)}
+                  className="flex items-center gap-2 bg-red-500/10 hover:bg-red-500 text-red-400 hover:text-white border border-red-500/20 px-5 py-2.5 rounded-2xl transition-all active:scale-95"
+                >
+                  <XCircle size={16} />
+                  <span className="text-[9px] font-black uppercase tracking-widest">End Class</span>
+                </button>
+              )}
               <button 
                 onClick={handleExitSession}
                 className="group flex items-center gap-4 bg-white/5 hover:bg-white/10 text-white/60 hover:text-white border border-white/10 px-6 py-2.5 rounded-2xl transition-all active:scale-95"
@@ -854,7 +869,15 @@ const LiveClassRoom: React.FC = () => {
   return (
     <TarbiyahLobby 
       getToken={getToken} 
-      onJoinSession={setCurrentSession} 
+      onJoinSession={(session) => {
+
+          setShowLeaderboard(false);
+
+          setActiveDrawer('none');
+
+          setCurrentSession(session);
+
+       }} 
       userRole={userRole}
       scholarBatches={scholarBatches}
       onScholarJoinSession={handleScholarJoinBatch}

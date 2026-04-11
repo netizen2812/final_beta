@@ -477,7 +477,7 @@ const QuranPage: React.FC<QuranPageProps> = ({
             )}
           </div>
         </div>
-        {!readOnly && (
+        {!inSessionMode && (
           <div className="flex gap-2">
             <button className="p-3 text-gray-400 hover:text-[#0D4433]"><Bookmark size={20} /></button>
             <button className="p-3 text-gray-400 hover:text-[#0D4433]"><Settings size={20} /></button>
@@ -487,7 +487,7 @@ const QuranPage: React.FC<QuranPageProps> = ({
 
       {view === 'home' ? (
         <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 pt-8 sm:pt-10 lg:pt-12 space-y-8 sm:space-y-12">
-          {!readOnly && (
+          {!inSessionMode && (
             <div className="flex bg-gray-100 p-1.5 rounded-3xl w-full max-w-md mx-auto">
               {['read', 'progress'].map(tab => (
                 <button

@@ -61,6 +61,20 @@
 .no-scrollbar::-webkit-scrollbar { display: none; }
 .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
 
+.classroom-scrollbar::-webkit-scrollbar {
+  width: 6px;
+}
+.classroom-scrollbar::-webkit-scrollbar-track {
+  background: transparent;
+}
+.classroom-scrollbar::-webkit-scrollbar-thumb {
+  background: rgba(16, 185, 129, 0.4); /* emerald-500 with opacity */
+  border-radius: 20px;
+}
+.classroom-scrollbar::-webkit-scrollbar-thumb:hover {
+  background: rgba(16, 185, 129, 0.6);
+}
+
 .arabic-text {
     font-family: 'Amiri', serif;
     line-height: 2.2;

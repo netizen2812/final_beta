@@ -117,12 +117,7 @@ const QuranPage: React.FC<QuranPageProps> = ({
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const [statsKey, setStatsKey] = useState(0); // Used to force progress re-render on sync
 
-  // Force 'reading' view if a session is active but we are on 'home'
-  useEffect(() => {
-    if (sessionCurrentSurah && view === 'home') {
-      fetchSurahContent(sessionCurrentSurah, sessionCurrentAyah || 1);
-    }
-  }, [sessionCurrentSurah, view]);
+
 
   // Sync with prop updates (for Live Session) — scholar view: autoscroll to student position
   useEffect(() => {
@@ -176,11 +171,17 @@ const QuranPage: React.FC<QuranPageProps> = ({
 
     // PRIORITY: If scrollContainerId is given (LiveClassRoom recitation pane), use it directly.
     // This is far more reliable than DOM walking on iOS/iPad.
-    let effectiveScrollParent: HTMLElement | Window;
+    let effectiveScrollParent: HTMLElement | Window | null = null;
     if (scrollContainerId) {
       const el = document.getElementById(scrollContainerId);
-      effectiveScrollParent = el || window;
-    } else {
+      if (!el) {
+        console.warn(`[QuranPage] Scroll container with ID "${scrollContainerId}" not found. Falling back to DOM walk.`);
+      } else {
+        effectiveScrollParent = el;
+      }
+    }
+
+    if (!effectiveScrollParent) {
       // Fall back: walk up DOM to find a scrollable parent
       let scrollParent: HTMLElement | null = container.parentElement;
       while (scrollParent && scrollParent !== document.body) {

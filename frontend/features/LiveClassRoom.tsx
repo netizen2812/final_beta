@@ -110,6 +110,8 @@ const LiveClassRoom: React.FC = () => {
   const syncChannelRef = useRef<any>(null);
   // Stable ref for activeChildId to avoid Supabase channel re-subscription stale closure bug
   const activeChildIdRef = useRef<string | null>(null);
+  const activeStudentSurahRef = useRef<number | undefined>(undefined);
+  const activeStudentAyahRef = useRef<number | undefined>(undefined);
   // Track the session the student explicitly joined — never show leaderboard for this session while in it
   const joinedSessionIdRef = useRef<string | null>(null);
   // Throttle ref for emitPosition — prevents API spam on rapid ayah navigation
@@ -310,7 +312,55 @@ const LiveClassRoom: React.FC = () => {
           }
         }
       })
-      .subscribe();
+      // 🔄 Smarter Sync: Handle handshake between scholar and student
+      .on('broadcast', { event: 'sync-request' }, () => {
+        if (userRole === 'scholar') {
+          // Scholar is the source of truth — reply with current state
+          if (syncChannelRef.current) {
+            syncChannelRef.current.send({
+              type: 'broadcast',
+              event: 'current-state',
+              payload: {
+                activeChildId: activeChildIdRef.current,
+                surah: activeStudentSurahRef.current,
+                ayah: activeStudentAyahRef.current,
+                ts: Date.now()
+              }
+            });
+          }
+        }
+      })
+      .on('broadcast', { event: 'current-state' }, ({ payload }) => {
+        if (userRole === 'parent' && payload.ts > lastSyncTsRef.current) {
+          lastSyncTsRef.current = payload.ts;
+          // Apply scholar's source-of-truth state
+          setBatchState(prev => prev ? { ...prev, activeChildId: payload.activeChildId } : null);
+          activeChildIdRef.current = payload.activeChildId;
+
+          if (payload.activeChildId === activeChild?.id && payload.surah) {
+            setCurrentSession(prev => prev ? {
+              ...prev,
+              currentSurah: payload.surah,
+              currentAyah: payload.ayah
+            } : null);
+          }
+        }
+      })
+      .subscribe((status, err) => {
+        if (status === 'SUBSCRIBED') {
+          console.log('[Supabase] Real-time sync connected');
+          // 🆕 Student broadcasts a sync request upon connection to align instantly
+          if (userRole === 'parent') {
+            syncChannelRef.current?.send({
+              type: 'broadcast',
+              event: 'sync-request',
+              payload: { ts: Date.now() }
+            });
+          }
+        } else if (status === 'CHANNEL_ERROR' || err) {
+          console.warn('[Supabase] Real-time sync failed, falling back to polling', err);
+        }
+      });
 
     syncChannelRef.current = channel;
 
@@ -486,6 +536,23 @@ const LiveClassRoom: React.FC = () => {
   // 🎭 RENDER STAGES
   // -------------------------------------------------------------------
 
+  // Bug #3 Memoization: Extract these to avoid re-running .find() on every poll cycle/render
+  const activeStudentSurah = useMemo(() => 
+    batchState?.activeParticipants?.find(p => p.childId === batchState?.activeChildId)?.currentSurah,
+    [batchState?.activeParticipants, batchState?.activeChildId]
+  );
+  
+  const activeStudentAyah = useMemo(() =>
+    batchState?.activeParticipants?.find(p => p.childId === batchState?.activeChildId)?.currentAyah,
+    [batchState?.activeParticipants, batchState?.activeChildId]
+  );
+
+  // Sync refs for Supabase closure safety
+  useEffect(() => {
+    activeStudentSurahRef.current = activeStudentSurah;
+    activeStudentAyahRef.current = activeStudentAyah;
+  }, [activeStudentSurah, activeStudentAyah]);
+
   const renderScholarStage = () => {
     if (!currentSession) return null;
     return (
@@ -567,7 +634,7 @@ const LiveClassRoom: React.FC = () => {
 
             {/* RIGHT: SYNCED QURAN (Scholar Exclusive follow student) */}
             {batchState?.activeChildId && (
-               <div id="quran-reading-container" className="flex-1 rounded-[2.5rem] border border-emerald-900/40 shadow-2xl overflow-y-auto relative group flex flex-col md:flex-1 animate-in slide-in-from-right duration-700" style={{ background: '#fdfaf3' }}>
+               <div id="scholar-quran-container" className="flex-1 rounded-[2.5rem] border border-emerald-900/40 shadow-2xl overflow-y-auto relative group flex flex-col md:flex-1 animate-in slide-in-from-right duration-700" style={{ background: '#fdfaf3' }}>
                   <div className="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-emerald-400/40 to-transparent z-40" />
                   <div className="absolute top-5 left-5 py-2 px-4 bg-[#022c22]/80 backdrop-blur-xl border border-emerald-700/40 rounded-2xl flex items-center gap-3 z-30">
                     <BookOpen size={11} className="text-emerald-300" />
@@ -575,10 +642,11 @@ const LiveClassRoom: React.FC = () => {
                   </div>
                   <QuranPage
                     onBack={() => {}}
-                    sessionCurrentSurah={batchState.activeParticipants?.find(p => p.childId === batchState.activeChildId)?.currentSurah}
-                    sessionCurrentAyah={batchState.activeParticipants?.find(p => p.childId === batchState.activeChildId)?.currentAyah}
+                    sessionCurrentSurah={activeStudentSurah}
+                    sessionCurrentAyah={activeStudentAyah}
                     onAyahClick={() => {}}
                     readOnly={true}
+                    scrollContainerId="scholar-quran-container"
                   />
                </div>
             )}
@@ -683,7 +751,7 @@ const LiveClassRoom: React.FC = () => {
 
         <div className="flex-1 relative px-4 pb-4 z-10">
            <div 
-             id="quran-reading-container" className="w-full h-full rounded-[2.5rem] overflow-y-auto shadow-[0_30px_80px_-20px_rgba(0,0,0,0.6)] border border-emerald-900/30 relative"
+             id="student-quran-container" className="w-full h-full rounded-[2.5rem] overflow-y-auto shadow-[0_30px_80px_-20px_rgba(0,0,0,0.6)] border border-emerald-900/30 relative"
              style={{ background: '#fdfaf3', WebkitOverflowScrolling: 'touch', touchAction: 'pan-y' }}
            >
               {/* Shimmer top border */}
@@ -695,7 +763,7 @@ const LiveClassRoom: React.FC = () => {
                 onAyahClick={handleAyahClick}
                 onPositionChange={emitPosition}
                 readOnly={false}
-                scrollContainerId="quran-reading-container"
+                scrollContainerId="student-quran-container"
               />
               {/* Scholar video pip — warm glassy border */}
               <div className="absolute top-8 right-8 w-44 md:w-64 aspect-video z-30 rounded-3xl overflow-hidden group border border-emerald-900/40 shadow-[0_20px_60px_rgba(0,0,0,0.5)] transition-transform duration-500 hover:scale-105">

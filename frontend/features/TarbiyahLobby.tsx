@@ -489,9 +489,9 @@ const KidsView = ({ scrollProgress, activeChild, onJoinLive, currentBatchStatus,
             const index = startOffset + i;
             const historicalSession = pastSessions[index];
             const isActuallyLive = hasActiveSession && historicalSession?.sessionId === activeSessionId;
-            const isCurrent = isActuallyLive || (!hasActiveSession && index === totalClassesPassed);
-            const isHistorical = index < totalClassesPassed;
-            const isLocked = index > totalClassesPassed;
+            const isHistorical = index < pastSessions.length && !isActuallyLive;
+            const isCurrent = isActuallyLive || (!hasActiveSession && index === pastSessions.length);
+            const isLocked = index > pastSessions.length || (index === pastSessions.length && hasActiveSession);
             const wasPresent = historicalSession?.attendedChildren?.includes(String(activeChild?.id)) || false;
 
             const handleNodeClick = () => {
@@ -511,7 +511,7 @@ const KidsView = ({ scrollProgress, activeChild, onJoinLive, currentBatchStatus,
             return (
               <div key={index} className="flex md:justify-center items-center relative group">
                 <div onClick={handleNodeClick} className={`absolute left-[2rem] md:left-1/2 -translate-x-1/2 w-14 h-14 rounded-full border-4 border-[#022c22] z-20 flex items-center justify-center shadow-xl transition-all cursor-pointer hover:scale-110 active:scale-95 ${isLocked ? 'bg-gray-800 text-gray-400' : isActuallyLive ? 'bg-emerald-400 text-black scale-110 animate-pulse' : isHistorical ? (wasPresent ? 'bg-emerald-600' : 'bg-red-500/80') : 'bg-emerald-800 text-emerald-300'}`}>
-                  {isHistorical ? (wasPresent ? <CheckCircle size={18} /> : <XCircle size={18} />) : <Play size={18} fill="currentColor" />}
+                  {isActuallyLive ? <Play size={18} fill="currentColor" /> : isHistorical ? (wasPresent ? <CheckCircle size={18} /> : <XCircle size={18} />) : <Lock size={18} />}
                 </div>
                 <div onClick={handleNodeClick} className={`w-full md:w-[45%] pl-24 md:pl-0 cursor-pointer ${index % 2 !== 0 ? 'md:ml-auto md:pl-20' : 'md:mr-auto md:pr-20 md:text-right'}`}>
                    <div className={`backdrop-blur-xl rounded-[2rem] p-6 border transition-all ${isLocked ? 'bg-white/5 opacity-50' : isCurrent ? 'bg-emerald-500/10 border-emerald-500/40 shadow-xl' : 'bg-white/10'}`}>

@@ -400,9 +400,11 @@ const KidsView = ({ scrollProgress, activeChild, onJoinLive, currentBatchStatus,
   const WINDOW_SIZE = 30;
   let startOffset = 0;
   if (totalClassesPassed >= 20) startOffset = Math.max(0, totalClassesPassed - 15);
-  const lastUnlockedIndex = Math.max(0, Math.min(totalClassesPassed, startOffset + 29));
-  const stagesCount = STAGES_COUNT;
-  const maxPercentage = (lastUnlockedIndex / (stagesCount - 1)) * 100;
+  
+  // The light should terminate exactly at the active session, relative to the windowed timeline
+  const relativeUnlockedIndex = Math.max(0, pastSessions.length - startOffset);
+  const maxPercentage = Math.min(100, (relativeUnlockedIndex / (WINDOW_SIZE - 1)) * 100);
+  
   const currentDraw = (scrollProgress || 0) * 2.0;
   const fillPercentage = Math.min(currentDraw, maxPercentage || 0);
 
@@ -553,7 +555,12 @@ const ScholarJourneyView = ({ scrollProgress, batches, onJoinSession, initialBat
   const WINDOW_SIZE = 30;
   let startOffset = 0;
   if (totalClassesPassed >= 20) startOffset = Math.max(0, totalClassesPassed - 15);
-  const fillPercentage = Math.min(scrollProgress * 2.0, 100);
+  
+  const relativeUnlockedIndex = Math.max(0, totalClassesPassed - startOffset);
+  const maxPercentage = Math.min(100, (relativeUnlockedIndex / (WINDOW_SIZE - 1)) * 100);
+
+  const currentDraw = (scrollProgress || 0) * 2.0;
+  const fillPercentage = Math.min(currentDraw, maxPercentage || 0);
 
   if (!batches || batches.length === 0) return <div className="pt-36 text-center text-emerald-200/50">No Batches Assigned</div>;
 

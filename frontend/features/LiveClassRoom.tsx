@@ -265,6 +265,8 @@ const LiveClassRoom: React.FC = () => {
   // IMPORTANT: Do NOT include batchState in the dep array — use a stable ref for activeChildId
   // to avoid channel being torn down and rebuilt on every poll cycle.
   useEffect(() => {
+    if (!currentSession?.batchId) return;
+
     const channel = supabase.channel(`class-sync:${currentSession.batchId}`, {
       config: { broadcast: { ack: false } }
     })

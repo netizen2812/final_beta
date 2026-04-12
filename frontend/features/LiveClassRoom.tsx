@@ -265,9 +265,9 @@ const LiveClassRoom: React.FC = () => {
   // IMPORTANT: Do NOT include batchState in the dep array — use a stable ref for activeChildId
   // to avoid channel being torn down and rebuilt on every poll cycle.
   useEffect(() => {
-    if (!currentSession?.batchId) return;
-
-    const channel = supabase.channel(`class-sync:${currentSession.batchId}`)
+    const channel = supabase.channel(`class-sync:${currentSession.batchId}`, {
+      config: { broadcast: { ack: false } }
+    })
       .on('broadcast', { event: 'ayah-change' }, ({ payload }) => {
         // Scholar hears student — use ref to get the current activeChildId without stale closure
         if (userRole === 'scholar' && payload.ts > lastSyncTsRef.current) {
@@ -404,17 +404,10 @@ const LiveClassRoom: React.FC = () => {
     } catch (err) { alert("Failed to start class. Please try again."); }
   };
 
-  const handleSetTurn = async (childId: string, batchId: string) => {
+  const handleSetTurn = (childId: string, batchId: string) => {
     try {
-      const token = await getToken();
-      await axios.post(`${APPLICATION_API_URL}/api/live/batch/${batchId}/select-turn`, { childId }, {
-        headers: { Authorization: `Bearer ${token}` }
-      });
-
-      // Find this child's last known position to broadcast it
+      // ⚡ Optimistic UI + Instant Broadcast 
       const childData = batchState?.activeParticipants?.find(p => p.childId === childId);
-
-      // ⚡ Instantly broadcast to all students — no waiting for 15s poll
       if (syncChannelRef.current) {
         syncChannelRef.current.send({
           type: 'broadcast',
@@ -431,27 +424,50 @@ const LiveClassRoom: React.FC = () => {
       // Update scholar's own local state immediately
       setBatchState(prev => prev ? { ...prev, activeChildId: childId } : null);
       activeChildIdRef.current = childId;
-    } catch (err) { alert("Failed to set student turn."); }
+
+      // Unblocked API call
+      getToken().then(token => {
+        axios.post(`${APPLICATION_API_URL}/api/live/batch/${batchId}/select-turn`, { childId }, {
+          headers: { Authorization: `Bearer ${token}` }
+        }).catch(err => console.error("Failed to set student turn.", err));
+      });
+    } catch (err) {}
   };
 
-  const handleScoreRecitation = async (childId: string, batchId: string, score: number) => {
+  const handleScoreRecitation = (childId: string, batchId: string, score: number) => {
     try {
-      const token = await getToken();
-      await axios.post(`${APPLICATION_API_URL}/api/live/batch/${batchId}/score-recitation`, { 
-        childId, 
-        score 
-      }, { headers: { Authorization: `Bearer ${token}` } });
-    } catch (err) { alert("Failed to score recitation. Please retry."); }
+      // ⚡ Optimistic Visual Feedback
+      const target = document.activeElement as HTMLElement;
+      if (target && target.tagName === 'BUTTON') {
+         const oldColor = target.style.backgroundColor;
+         target.style.backgroundColor = '#10b981'; // Success green
+         setTimeout(() => { if (target) target.style.backgroundColor = oldColor; }, 1000);
+      }
+
+      getToken().then(token => {
+        axios.post(`${APPLICATION_API_URL}/api/live/batch/${batchId}/score-recitation`, { 
+          childId, score 
+        }, { headers: { Authorization: `Bearer ${token}` } }).catch(err => console.error(err));
+      });
+    } catch (err) {}
   };
 
-  const handleScoreParticipation = async (childId: string, batchId: string) => {
+  const handleScoreParticipation = (childId: string, batchId: string) => {
     try {
-      const token = await getToken();
-      await axios.post(`${APPLICATION_API_URL}/api/live/batch/${batchId}/score-participation`, { 
-        childId, 
-        points: 2 
-      }, { headers: { Authorization: `Bearer ${token}` } });
-    } catch (err) { alert("Failed to reward participation."); }
+      // ⚡ Optimistic Visual Feedback
+      const target = document.activeElement as HTMLElement;
+      if (target && target.tagName === 'BUTTON') {
+         const oldColor = target.style.backgroundColor;
+         target.style.backgroundColor = '#10b981'; // Success green
+         setTimeout(() => { if (target) target.style.backgroundColor = oldColor; }, 1000);
+      }
+
+      getToken().then(token => {
+        axios.post(`${APPLICATION_API_URL}/api/live/batch/${batchId}/score-participation`, { 
+          childId, points: 2 
+        }, { headers: { Authorization: `Bearer ${token}` } }).catch(err => console.error(err));
+      });
+    } catch (err) {}
   };
 
   const handleEvaluatePrompt = async (correctAnswer: 'yes' | 'no') => {
@@ -558,9 +574,7 @@ const LiveClassRoom: React.FC = () => {
     return (
       <div className="flex flex-col h-full relative overflow-hidden">
         {/* Tarbiyah-themed ambient background */}
-        <div className="absolute inset-0 bg-[#011a11] pointer-events-none" />
-        <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top_left,rgba(16,185,129,0.12)_0%,transparent_60%)] pointer-events-none" />
-        <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_bottom_right,rgba(245,158,11,0.06)_0%,transparent_60%)] pointer-events-none" />
+        <MovingBackground />
 
          {/* STUDENT SPEED DOCK */}
          <div className="flex-none p-4 pb-0 z-20 relative">
@@ -610,10 +624,6 @@ const LiveClassRoom: React.FC = () => {
                  layout="grid"
                  scholarId={currentSession.scholarId}
                />
-               <div className="absolute top-6 left-6 py-2 px-4 bg-[#022c22]/80 backdrop-blur-xl border border-emerald-500/30 rounded-2xl flex items-center gap-3 z-30">
-                  <div className="w-2 h-2 bg-emerald-400 rounded-full animate-pulse shadow-[0_0_8px_#34d399]" />
-                  <span className="text-[9px] text-emerald-200 font-black uppercase tracking-widest">Live Class · {activeSessions.length} Students</span>
-               </div>
                
                {/* Scholar controls: Qaida + End Class */}
                <div className="absolute bottom-6 left-6 right-6 flex items-center justify-between gap-3 z-40">
@@ -636,10 +646,6 @@ const LiveClassRoom: React.FC = () => {
             {batchState?.activeChildId && (
                <div id="scholar-quran-container" className="flex-1 rounded-[2.5rem] border border-emerald-900/40 shadow-2xl overflow-hidden relative group flex flex-col md:flex-1 animate-in slide-in-from-right duration-700 pointer-events-none" style={{ background: '#fdfaf3' }}>
                   <div className="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-emerald-400/40 to-transparent z-40" />
-                  <div className="absolute top-5 left-5 py-2 px-4 bg-[#022c22]/80 backdrop-blur-xl border border-emerald-700/40 rounded-2xl flex items-center gap-3 z-30">
-                    <BookOpen size={11} className="text-emerald-300" />
-                    <span className="text-[9px] text-emerald-200 font-black uppercase tracking-widest">Following Student</span>
-                  </div>
                   <QuranPage
                     onBack={() => {}}
                     sessionCurrentSurah={activeStudentSurah}
@@ -677,8 +683,8 @@ const LiveClassRoom: React.FC = () => {
                         
                         {!batchState?.promptEvaluated && (batchState?.currentPromptAnswers?.length || 0) > 0 && (
                            <div className="grid grid-cols-2 gap-2 mt-4">
-                              <button onClick={() => handleEvaluatePrompt('yes')} className="bg-emerald-500/20 hover:bg-emerald-500/30 text-emerald-300 py-2 rounded-xl font-black text-[9px] uppercase border border-emerald-500/30 transition-all">✓ Perfect</button>
-                              <button onClick={() => handleEvaluatePrompt('no')} className="bg-red-500/10 hover:bg-red-500/20 text-red-400 py-2 rounded-xl font-black text-[9px] uppercase border border-red-500/20 transition-all">✗ Mistake</button>
+                              <button onClick={(e) => { handleEvaluatePrompt('yes'); e.currentTarget.style.backgroundColor='#10b981'; }} className="bg-emerald-500/20 hover:bg-emerald-500/30 text-emerald-300 py-2 rounded-xl font-black text-[9px] uppercase border border-emerald-500/30 transition-all">✓ Perfect</button>
+                              <button onClick={(e) => { handleEvaluatePrompt('no'); e.currentTarget.style.backgroundColor='#10b981'; }} className="bg-red-500/10 hover:bg-red-500/20 text-red-400 py-2 rounded-xl font-black text-[9px] uppercase border border-red-500/20 transition-all">✗ Mistake</button>
                            </div>
                         )}
                      </div>
@@ -776,9 +782,6 @@ const LiveClassRoom: React.FC = () => {
                    layout="inset"
                    scholarId={currentSession.scholarId}
                  />
-                 <div className="absolute inset-x-0 bottom-0 py-2 bg-gradient-to-t from-[#022c22]/90 to-transparent flex justify-center opacity-0 group-hover:opacity-100 transition-opacity">
-                    <span className="text-[9px] text-emerald-200 font-black uppercase tracking-widest">Scholar Stream</span>
-                 </div>
               </div>
            </div>
         </div>
@@ -791,8 +794,7 @@ const LiveClassRoom: React.FC = () => {
     return (
       <div className="flex flex-col h-full relative overflow-hidden">
         {/* Tarbiyah background */}
-        <div className="absolute inset-0 bg-[#011a11] pointer-events-none" />
-        <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_bottom,rgba(245,158,11,0.05)_0%,transparent_70%)] pointer-events-none" />
+        <MovingBackground />
 
         <div className="relative z-20 px-6 pt-4 pb-2 flex items-center justify-between">
            <div className="flex flex-col">

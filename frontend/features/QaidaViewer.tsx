@@ -44,7 +44,7 @@ export const QaidaViewer: React.FC<QaidaViewerProps> = ({
   const broadcastSync = useCallback((lang: string, page: number) => {
     if (!isScholar || !batchId || !syncEnabled) return;
     
-    supabase.channel(`class-sync:${batchId}`).send({
+    supabase.channel(`class-sync:${batchId}`, { config: { broadcast: { ack: false } } }).send({
       type: 'broadcast',
       event: 'qaida-sync',
       payload: { 
@@ -60,10 +60,12 @@ export const QaidaViewer: React.FC<QaidaViewerProps> = ({
   useEffect(() => {
     if (isScholar || !batchId || !followScholar) return;
 
-    const channel = supabase.channel(`class-sync:${batchId}`)
+    const channel = supabase.channel(`class-sync:${batchId}`, { config: { broadcast: { ack: false } } })
       .on('broadcast', { event: 'qaida-sync' }, ({ payload }) => {
-        setLanguage(payload.language as any);
-        setPageNumber(payload.pageNumber);
+        if (payload.language && payload.pageNumber) {
+          setLanguage(payload.language as any);
+          setPageNumber(payload.pageNumber);
+        }
       })
       .subscribe();
 

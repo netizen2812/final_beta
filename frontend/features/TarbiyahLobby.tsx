@@ -320,6 +320,7 @@ export const TarbiyahLobby = ({
                   loadingChildren={loadingChildren}
                   setShowGuestModal={setShowGuestModal}
                   handleRequestAccess={handleRequestAccess}
+                  setShowQaidaViewer={setShowQaidaViewer}
                 />
               );
             }
@@ -343,40 +344,8 @@ export const TarbiyahLobby = ({
         </div>
       )}
 
-      {showJoinChoice && (
-        <div className="fixed inset-0 z-[120] bg-black/80 backdrop-blur-xl flex items-center justify-center p-6">
-           <div className="bg-[#052e16] border border-emerald-500/30 rounded-[2.5rem] p-8 max-w-lg w-full shadow-2xl relative overflow-hidden text-center">
-              <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-emerald-500 via-amber-400 to-emerald-500" />
-              <h3 className="text-3xl font-serif font-bold text-white mb-2">Quran Portal</h3>
-              <p className="text-emerald-200 mb-8">Choose your path for today's lesson</p>
-              
-              <div className="grid grid-cols-1 gap-4">
-                 <button onClick={() => { setShowJoinChoice(false); setShowQuranPractice({ active: true, mode: 'REVISE' }); }} className="flex items-center gap-4 p-5 bg-emerald-100 hover:bg-white text-emerald-950 rounded-2xl transition-all group border-b-4 border-emerald-300">
-                    <div className="bg-emerald-900 text-white p-3 rounded-xl shadow-lg"><BookOpen size={24} /></div>
-                    <div className="text-left font-bold text-lg">Revise Lesson</div>
-                 </button>
-                 <button onClick={() => { setShowJoinChoice(false); setShowQuranPractice({ active: true, mode: 'PRACTICE' }); }} className="flex items-center gap-4 p-5 bg-indigo-600 hover:bg-indigo-500 text-white rounded-2xl transition-all group border-b-4 border-indigo-800">
-                    <div className="bg-white/20 p-3 rounded-xl"><Target size={24} /></div>
-                    <div className="text-left font-bold text-lg">Practice Quiz</div>
-                 </button>
-                 {(batches.some((b: any) => b.status === 'active' && b.activeSessionId) || currentBatchStatus === 'active') && (
-                    <button onClick={() => { setShowJoinChoice(false); handleJoinLive(); }} className="flex items-center gap-4 p-5 rounded-2xl transition-all group border-b-4 bg-amber-500 hover:bg-amber-400 text-amber-950 border-amber-600 shadow-lg animate-pulse">
-                       <div className="bg-white/20 p-3 rounded-xl"><Users size={24} /></div>
-                       <div className="text-left">
-                          <div className="font-bold text-lg">Join Live Session</div>
-                          <div className="text-[10px] font-black uppercase tracking-widest opacity-60">Scholar is online now</div>
-                       </div>
-                    </button>
-                 )}
-                 <button onClick={() => { setShowJoinChoice(false); setShowQaidaViewer(true); }} className="flex items-center gap-4 p-5 rounded-2xl transition-all group border-b-4 bg-white/10 hover:bg-white/20 text-white border-white/20">
-                    <div className="bg-emerald-500/20 text-emerald-400 p-3 rounded-xl"><Book size={24} /></div>
-                    <div className="text-left font-bold text-lg">Qaida (قاعدہ)</div>
-                 </button>
-                 <button onClick={() => setShowJoinChoice(false)} className="mt-4 text-emerald-400 font-black text-sm uppercase tracking-widest py-2">Close Portal</button>
-              </div>
-           </div>
-        </div>
-      )}
+      {/* JoinChoice modal fully removed to improve UX */}
+
 
       {showQaidaViewer && (
         <QaidaViewer 
@@ -410,7 +379,7 @@ export const TarbiyahLobby = ({
   );
 };
 
-const KidsView = ({ scrollProgress, activeChild, onJoinLive, currentBatchStatus, batches, accessStatus, getToken, setShowQuranPractice, setShowJoinChoice, attendedSessionIds = [], attendanceHistory = [], childrenList = [], userRole = 'parent', selectedBatchId, setSelectedBatchId, loadingChildren, setShowGuestModal, handleRequestAccess }: any) => {
+const KidsView = ({ scrollProgress, activeChild, onJoinLive, currentBatchStatus, batches, accessStatus, getToken, setShowQuranPractice, setShowJoinChoice, attendedSessionIds = [], attendanceHistory = [], childrenList = [], userRole = 'parent', selectedBatchId, setSelectedBatchId, loadingChildren, setShowGuestModal, handleRequestAccess, setShowQaidaViewer }: any) => {
   const progress = activeChild?.child_progress?.[0];
   const activeBatch = useMemo(() => {
     if (!batches || batches.length === 0) return null;
@@ -484,6 +453,27 @@ const KidsView = ({ scrollProgress, activeChild, onJoinLive, currentBatchStatus,
             </div>
           )}
         </div>
+
+        {/* Quick Study Actions */}
+        <div className="mt-8 grid grid-cols-3 gap-3">
+           <button onClick={() => setShowQuranPractice({ active: true, mode: 'REVISE' })} className="bg-emerald-900/40 hover:bg-emerald-800/60 backdrop-blur-xl border border-emerald-500/30 text-emerald-100 p-4 rounded-3xl flex flex-col items-center justify-center gap-3 transition-all hover:scale-105 hover:-translate-y-1 shadow-xl group cursor-pointer relative overflow-hidden">
+              <div className="absolute inset-0 bg-gradient-to-tr from-emerald-500/0 via-emerald-400/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
+              <div className="bg-emerald-500/20 p-4 rounded-full text-emerald-300 group-hover:scale-110 group-hover:bg-emerald-500/30 transition-all duration-300 shadow-[0_0_15px_rgba(16,185,129,0.2)]"><BookOpen size={26} strokeWidth={1.5} /></div>
+              <span className="font-bold text-[11px] uppercase tracking-[0.1em] text-emerald-200 group-hover:text-emerald-100 drop-shadow-md">Revise</span>
+           </button>
+           
+           <button onClick={() => setShowQuranPractice({ active: true, mode: 'PRACTICE' })} className="bg-indigo-900/40 hover:bg-indigo-800/60 backdrop-blur-xl border border-indigo-500/30 text-indigo-100 p-4 rounded-3xl flex flex-col items-center justify-center gap-3 transition-all hover:scale-105 hover:-translate-y-1 shadow-xl group cursor-pointer relative overflow-hidden">
+              <div className="absolute inset-0 bg-gradient-to-tr from-indigo-500/0 via-indigo-400/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
+              <div className="bg-indigo-500/20 p-4 rounded-full text-indigo-300 group-hover:scale-110 group-hover:bg-indigo-500/30 transition-all duration-300 shadow-[0_0_15px_rgba(99,102,241,0.2)]"><Target size={26} strokeWidth={1.5} /></div>
+              <span className="font-bold text-[11px] uppercase tracking-[0.1em] text-indigo-200 group-hover:text-indigo-100 drop-shadow-md">Practice</span>
+           </button>
+           
+           <button onClick={() => setShowQaidaViewer(true)} className="bg-amber-900/40 hover:bg-amber-800/60 backdrop-blur-xl border border-amber-500/30 text-amber-100 p-4 rounded-3xl flex flex-col items-center justify-center gap-3 transition-all hover:scale-105 hover:-translate-y-1 shadow-xl group cursor-pointer relative overflow-hidden">
+              <div className="absolute inset-0 bg-gradient-to-tr from-amber-500/0 via-amber-400/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
+              <div className="bg-amber-500/20 p-4 rounded-full text-amber-300 group-hover:scale-110 group-hover:bg-amber-500/30 transition-all duration-300 shadow-[0_0_15px_rgba(245,158,11,0.2)]"><Book size={26} strokeWidth={1.5} /></div>
+              <span className="font-bold text-[11px] uppercase tracking-[0.1em] text-amber-200 group-hover:text-amber-100 drop-shadow-md">Qaida</span>
+           </button>
+        </div>
       </div>
 
       <div className="relative max-w-2xl mx-auto px-4 pb-32">
@@ -510,12 +500,11 @@ const KidsView = ({ scrollProgress, activeChild, onJoinLive, currentBatchStatus,
               } else if (!hasPremium) {
                  handleRequestAccess();
               } else if (isActuallyLive) {
-                 setShowJoinChoice(true);
+                 onJoinLive();
               } else if (isHistorical && historicalSession?.sessionId) {
                  setSelectedSessionId(historicalSession.sessionId);
               } else {
-                 // Always show the portal for premium users (Revise/Practice/Qaida/Join)
-                 setShowJoinChoice(true);
+                 alert("Session is not live yet. The scholar has not started the class.");
               }
             };
 

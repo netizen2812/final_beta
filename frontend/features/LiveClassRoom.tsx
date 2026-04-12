@@ -492,8 +492,17 @@ const LiveClassRoom: React.FC = () => {
     setBatchState(null);
   };
 
-  const emitPosition = useCallback(async (surahNumber: number, ayahNumber: number) => {
+  const emitPosition = useCallback((surahNumber: number, ayahNumber: number) => {
     if (!currentSession?.batchId || userRole === 'scholar') return;
+    
+    // 📡 Instant Broadcast to Scholar (Zero Lag)
+    if (syncChannelRef.current) {
+      syncChannelRef.current.send({
+        type: 'broadcast',
+        event: 'ayah-change',
+        payload: { surah: surahNumber, ayah: ayahNumber, childId: currentSession.childId, ts: Date.now() }
+      });
+    }
 
     // Store the latest pending position (overwrite any not-yet-fired pending call)
     emitPendingRef.current = { surah: surahNumber, ayah: ayahNumber };
@@ -513,15 +522,6 @@ const LiveClassRoom: React.FC = () => {
           batchId: currentSession.batchId, childId: currentSession.childId,
           surah: pending.surah, ayah: pending.ayah
         }, { headers: { Authorization: `Bearer ${token}` } });
-
-        // 📡 Instant Broadcast to Scholar
-        if (syncChannelRef.current) {
-          syncChannelRef.current.send({
-            type: 'broadcast',
-            event: 'ayah-change',
-            payload: { surah: pending.surah, ayah: pending.ayah, childId: currentSession.childId, ts: Date.now() }
-          });
-        }
       } catch (e) {}
     }, POSITION_THROTTLE_MS);
   }, [currentSession?.batchId, currentSession?.childId, userRole, getToken]);
@@ -634,7 +634,7 @@ const LiveClassRoom: React.FC = () => {
 
             {/* RIGHT: SYNCED QURAN (Scholar Exclusive follow student) */}
             {batchState?.activeChildId && (
-               <div id="scholar-quran-container" className="flex-1 rounded-[2.5rem] border border-emerald-900/40 shadow-2xl overflow-y-auto classroom-scrollbar relative group flex flex-col md:flex-1 animate-in slide-in-from-right duration-700" style={{ background: '#fdfaf3' }}>
+               <div id="scholar-quran-container" className="flex-1 rounded-[2.5rem] border border-emerald-900/40 shadow-2xl overflow-hidden relative group flex flex-col md:flex-1 animate-in slide-in-from-right duration-700 pointer-events-none" style={{ background: '#fdfaf3' }}>
                   <div className="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-emerald-400/40 to-transparent z-40" />
                   <div className="absolute top-5 left-5 py-2 px-4 bg-[#022c22]/80 backdrop-blur-xl border border-emerald-700/40 rounded-2xl flex items-center gap-3 z-30">
                     <BookOpen size={11} className="text-emerald-300" />
@@ -749,7 +749,7 @@ const LiveClassRoom: React.FC = () => {
            </div>
         </div>
 
-        <div className="flex-1 relative px-4 pb-4 z-10">
+        <div className="flex-1 min-h-0 relative px-4 pb-4 z-10">
            <div 
              id="student-quran-container" className="w-full h-full rounded-[2.5rem] overflow-y-auto classroom-scrollbar shadow-[0_30px_80px_-20px_rgba(0,0,0,0.6)] border border-emerald-900/30 relative"
              style={{ background: '#fdfaf3', WebkitOverflowScrolling: 'touch', touchAction: 'pan-y' }}

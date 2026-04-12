@@ -140,7 +140,8 @@ export const awardXP = async (childId, action, data = {}) => {
                 "child_progress.0.total_correct_recitations": (action === "recitation" && (data.score >= 7)) ? 1 : 0
             },
             $set: {
-                "child_progress.0.last_active_date": new Date()
+                "child_progress.0.last_active_date": new Date(),
+                "child_progress.0.streak_days": progress.streak_days
             }
         };
 

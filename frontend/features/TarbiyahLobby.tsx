@@ -456,13 +456,13 @@ const KidsView = ({ scrollProgress, activeChild, onJoinLive, currentBatchStatus,
 
         {/* Quick Study Actions */}
         <div className="mt-8 grid grid-cols-3 gap-3">
-           <button onClick={() => setShowQuranPractice({ active: true, mode: 'REVISE' })} className="bg-emerald-900/40 hover:bg-emerald-800/60 backdrop-blur-xl border border-emerald-500/30 text-emerald-100 p-4 rounded-3xl flex flex-col items-center justify-center gap-3 transition-all hover:scale-105 hover:-translate-y-1 shadow-xl group cursor-pointer relative overflow-hidden">
+           <button onClick={() => setShowQuranPractice('REVISE')} className="bg-emerald-900/40 hover:bg-emerald-800/60 backdrop-blur-xl border border-emerald-500/30 text-emerald-100 p-4 rounded-3xl flex flex-col items-center justify-center gap-3 transition-all hover:scale-105 hover:-translate-y-1 shadow-xl group cursor-pointer relative overflow-hidden">
               <div className="absolute inset-0 bg-gradient-to-tr from-emerald-500/0 via-emerald-400/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
               <div className="bg-emerald-500/20 p-4 rounded-full text-emerald-300 group-hover:scale-110 group-hover:bg-emerald-500/30 transition-all duration-300 shadow-[0_0_15px_rgba(16,185,129,0.2)]"><BookOpen size={26} strokeWidth={1.5} /></div>
               <span className="font-bold text-[11px] uppercase tracking-[0.1em] text-emerald-200 group-hover:text-emerald-100 drop-shadow-md">Revise</span>
            </button>
            
-           <button onClick={() => setShowQuranPractice({ active: true, mode: 'PRACTICE' })} className="bg-indigo-900/40 hover:bg-indigo-800/60 backdrop-blur-xl border border-indigo-500/30 text-indigo-100 p-4 rounded-3xl flex flex-col items-center justify-center gap-3 transition-all hover:scale-105 hover:-translate-y-1 shadow-xl group cursor-pointer relative overflow-hidden">
+           <button onClick={() => setShowQuranPractice('PRACTICE')} className="bg-indigo-900/40 hover:bg-indigo-800/60 backdrop-blur-xl border border-indigo-500/30 text-indigo-100 p-4 rounded-3xl flex flex-col items-center justify-center gap-3 transition-all hover:scale-105 hover:-translate-y-1 shadow-xl group cursor-pointer relative overflow-hidden">
               <div className="absolute inset-0 bg-gradient-to-tr from-indigo-500/0 via-indigo-400/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
               <div className="bg-indigo-500/20 p-4 rounded-full text-indigo-300 group-hover:scale-110 group-hover:bg-indigo-500/30 transition-all duration-300 shadow-[0_0_15px_rgba(99,102,241,0.2)]"><Target size={26} strokeWidth={1.5} /></div>
               <span className="font-bold text-[11px] uppercase tracking-[0.1em] text-indigo-200 group-hover:text-indigo-100 drop-shadow-md">Practice</span>

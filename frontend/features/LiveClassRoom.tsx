@@ -799,9 +799,9 @@ const LiveClassRoom: React.FC = () => {
         <MovingBackground />
 
         <div className="relative z-20 px-6 pt-4 pb-2 flex items-center justify-between">
-           <div className="flex flex-col">
-              <h3 className="text-white font-serif font-bold text-base mb-0.5 leading-none">Observer Mode</h3>
-              <p className="text-emerald-400/50 text-[10px] font-bold uppercase tracking-widest">A classmate is reciting</p>
+           <div className="flex flex-col max-w-xl">
+              <h3 className="text-white font-serif font-bold text-lg mb-1 leading-tight">Focus & Learn 🌟</h3>
+              <p className="text-emerald-400/80 text-xs font-medium leading-relaxed">Listen closely as your classmate recites. Pay attention to prompts and engage in the class to earn XP and perfect your Tajweed with the scholar.</p>
            </div>
            {leaderboard && (
               <button onClick={() => setActiveDrawer('leaderboard')} className="flex items-center gap-3 px-5 py-2.5 bg-amber-500/10 backdrop-blur-xl border border-amber-500/30 rounded-2xl hover:bg-amber-500/20 transition-all group shadow-lg">
@@ -823,10 +823,6 @@ const LiveClassRoom: React.FC = () => {
                 layout="spotlight"
                 scholarId={currentSession.scholarId}
               />
-              <div className="absolute top-6 left-6 py-2 px-4 bg-[#022c22]/80 backdrop-blur-xl border border-emerald-700/30 rounded-2xl flex items-center gap-3 z-30">
-                 <div className="w-2 h-2 bg-emerald-400 rounded-full animate-pulse shadow-[0_0_8px_#34d399]" />
-                 <span className="text-[9px] text-emerald-200 font-black uppercase tracking-widest">Scholar Stream</span>
-              </div>
            </div>
 
            {!isMobile && (
@@ -929,20 +925,7 @@ const LiveClassRoom: React.FC = () => {
           <div className="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-emerald-400/50 to-transparent" />
 
           <div className="flex items-center gap-6">
-             <div className="flex items-center gap-3">
-                <div className="w-8 h-8 rounded-xl bg-gradient-to-br from-emerald-500/20 to-emerald-700/20 flex items-center justify-center border border-emerald-500/30 shadow-lg shadow-emerald-500/10">
-                   <Leaf className="text-emerald-400" size={15} />
-                </div>
-                <div className="flex flex-col">
-                   <span className="text-[11px] text-emerald-100 font-serif font-bold leading-none">Imam Live</span>
-                   <span className="text-[8px] text-emerald-500/50 font-bold tracking-wider mt-0.5">Classroom Session</span>
-                </div>
-             </div>
-             <div className="h-4 w-px bg-emerald-700/40 hidden md:block" />
-             <div className="hidden md:flex items-center gap-2 bg-emerald-500/10 px-3 py-1.5 rounded-full border border-emerald-500/20">
-                <div className="w-1.5 h-1.5 bg-emerald-400 rounded-full animate-pulse shadow-[0_0_6px_#34d399]" />
-                <span className="text-[9px] text-emerald-300 font-black uppercase tracking-widest">Live Sync Active</span>
-             </div>
+             {/* Left side empty or reserved for subtle branding if needed later */}
           </div>
 
           <div className="flex items-center gap-2">

@@ -29,6 +29,8 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onNavigateToLive }) => 
     const [tab, setTab] = useState<'overview' | 'users' | 'paid' | 'batches' | 'sessions' | 'ailogs'>('overview');
     const [error, setError] = useState<string | null>(null);
     const [searchQuery, setSearchQuery] = useState('');
+    const [paidSearchQuery, setPaidSearchQuery] = useState('');
+
     
     // Pagination state
     const [userPage, setUserPage] = useState(1);
@@ -37,6 +39,8 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onNavigateToLive }) => 
     const [batchTotalPages, setBatchTotalPages] = useState(1);
     const [paidPage, setPaidPage] = useState(1);
     const [paidTotalPages, setPaidTotalPages] = useState(1);
+    const [sessionPage, setSessionPage] = useState(1);
+    const [sessionTotalPages, setSessionTotalPages] = useState(1);
 
     // --- FETCH DATA ---
     const fetchData = async () => {
@@ -79,10 +83,11 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onNavigateToLive }) => 
     const fetchSessions = async () => {
         try {
             const token = await getToken();
-            const res = await axios.get(`${APPLICATION_API_URL}/api/admin/sessions`, {
+            const res = await axios.get(`${APPLICATION_API_URL}/api/admin/sessions?page=${sessionPage}&limit=20`, {
                 headers: { Authorization: `Bearer ${token}` }
             });
-            setSessions(res.data);
+            setSessions(res.data.sessions || []);
+            setSessionTotalPages(res.data.pagination?.pages || 1);
         } catch (e) {
             console.error("Sessions error", e);
         }
@@ -101,17 +106,25 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onNavigateToLive }) => 
     };
 
     const fetchManagementData = async () => {
+        setLoading(true);
         try {
             const token = await getToken();
             const headers = { Authorization: `Bearer ${token}` };
-            const [b, s] = await Promise.all([
-                axios.get(`${APPLICATION_API_URL}/api/admin/batches`, { headers }),
-                axios.get(`${APPLICATION_API_URL}/api/admin/sessions`, { headers })
+            const [bRes, sRes] = await Promise.all([
+                axios.get(`${APPLICATION_API_URL}/api/admin/batches?page=${batchPage}&limit=20`, { headers }),
+                axios.get(`${APPLICATION_API_URL}/api/admin/sessions?page=${sessionPage}&limit=20`, { headers })
             ]);
-            setBatches(b.data);
-            setSessions(s.data);
-        } catch (e) { }
+            setBatches(bRes.data.batches || []);
+            setBatchTotalPages(bRes.data.pagination?.pages || 1);
+            setSessions(sRes.data.sessions || []);
+            setSessionTotalPages(sRes.data.pagination?.pages || 1);
+        } catch (e) { 
+            console.error("Management data error", e);
+        } finally {
+            setLoading(false);
+        }
     };
+
 
     const fetchAiLogs = async () => {
         try {
@@ -129,9 +142,10 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onNavigateToLive }) => 
         setLoading(true);
         try {
             const token = await getToken();
-            const res = await axios.get(`${APPLICATION_API_URL}/api/admin/users?isPaid=true&page=${paidPage}&limit=50`, {
+            const res = await axios.get(`${APPLICATION_API_URL}/api/admin/users?isPaid=true&page=${paidPage}&limit=50&q=${paidSearchQuery}`, {
                 headers: { Authorization: `Bearer ${token}` }
             });
+
             setUsers(res.data.users || []);
             setPaidTotalPages(res.data.pagination?.pages || 1);
         } catch (e) {
@@ -147,11 +161,15 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onNavigateToLive }) => 
     }, []);
 
     useEffect(() => {
+        // Clear data when switching tabs to prevent "flicker" of old data
+        if (tab === 'users' || tab === 'paid') setUsers([]);
+        
         if (tab === 'users') fetchData();
         if (tab === 'paid') fetchPaidUsers();
         if (tab === 'batches' || tab === 'sessions') fetchManagementData();
         if (tab === 'ailogs') fetchAiLogs();
-    }, [tab, userPage, batchPage, paidPage]);
+    }, [tab, userPage, batchPage, paidPage, sessionPage, paidSearchQuery]);
+
 
     // --- ACTIONS ---
     const handleRoleUpdate = async (userId: string, newRole: string) => {
@@ -190,6 +208,8 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onNavigateToLive }) => 
                         { id: 'overview', icon: BarChart2, label: 'Analytics' },
                         { id: 'users', icon: Users, label: 'User Roles' },
                         { id: 'paid', icon: UserCheck, label: 'Paid Users' },
+                        { id: 'batches', icon: Layers, label: 'Batches' },
+                        { id: 'sessions', icon: Calendar, label: 'Sessions' },
                         { id: 'ailogs', icon: MessageCircle, label: 'AI Logs' },
                     ].map(t => (
                         <button key={t.id} onClick={() => setTab(t.id as any)} className={`px-4 py-2 rounded-lg text-sm font-bold flex items-center gap-2 transition-all ${tab === t.id ? 'bg-emerald-600' : 'hover:bg-white/10 text-emerald-200'}`}>
@@ -265,15 +285,6 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onNavigateToLive }) => 
                                 <StatCard label="3+ Days Active Users" value={stats.cumulative.usersWithThreeDays} />
                             </Section>
                         ) : stats ? (
-                            <div className="bg-orange-50 border border-orange-200 text-orange-800 p-4 rounded-xl text-sm mb-6 flex items-start gap-3">
-                                <AlertTriangle className="shrink-0 mt-0.5" size={18} />
-                                <div>
-                                    <strong>Frontend Updated, but Data Missing:</strong>
-                                    <p className="mt-1">
-                                        This UI snippet means your frontend has successfully loaded the new code.<br />
-                                        However, the backend is not sending the <code>cumulative</code> metrics object.<br />
-                                        <strong>Fix:</strong> Please verify your Node/Express backend on Render successfully built and restarted.
-                                    </p>
                                 </div>
                             </div>
                         ) : null}
@@ -341,86 +352,100 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onNavigateToLive }) => 
                                 ))}
                             </tbody>
                         </table>
+                        
+                        <PaginationControls 
+                            currentPage={userPage} 
+                            totalPages={userTotalPages} 
+                            onPageChange={setUserPage} 
+                        />
                     </div>
                 )}
 
                 {/* 💳 PART 2.5 — PAID USERS */}
-                {tab === 'paid' && (() => {
-                    const paidUsers = users.filter(u => 
-                        u.features?.liveAccess === true || 
-                        (u.features?.aiPremiumUntil && new Date(u.features.aiPremiumUntil) > new Date())
-                    );
-                    
-                    return (
-                        <div className="bg-white rounded-xl shadow-sm border border-emerald-200 overflow-hidden">
-                            <div className="p-6 border-b border-emerald-100 flex justify-between items-center bg-emerald-50">
-                                <div>
-                                    <h2 className="font-bold text-lg text-emerald-900 flex items-center gap-2">
-                                        <UserCheck size={20} className="text-emerald-600" /> Premium / Paid Users
-                                    </h2>
-                                    <p className="text-xs text-emerald-600 font-medium">Users with active Live Tarbiyah or AI subscriptions</p>
-                                </div>
-                                <div className="bg-emerald-600 text-white font-bold px-4 py-2 rounded-lg text-sm shadow-sm">
-                                    Total: {paidUsers.length}
-                                </div>
+                {tab === 'paid' && (
+                    <div className="bg-white rounded-xl shadow-sm border border-emerald-200 overflow-hidden">
+                        <div className="p-6 border-b border-emerald-100 flex justify-between items-center bg-emerald-50">
+                            <div>
+                                <h2 className="font-bold text-lg text-emerald-900 flex items-center gap-2">
+                                    <UserCheck size={20} className="text-emerald-600" /> Premium / Paid Users
+                                </h2>
+                                <p className="text-xs text-emerald-600 font-medium">Users with active Live Tarbiyah or AI subscriptions</p>
                             </div>
-                            <div className="overflow-x-auto">
-                                <table className="w-full text-sm text-left">
-                                    <thead className="bg-slate-50 text-slate-500 font-bold uppercase text-xs">
-                                        <tr>
-                                            <th className="px-6 py-4">User</th>
-                                            <th className="px-6 py-4">Plan Status</th>
-                                            <th className="px-6 py-4">Current Role</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody className="divide-y divide-slate-100">
-                                        {paidUsers.length > 0 ? paidUsers.map(u => {
-                                            const hasLive = u.features?.liveAccess === true;
-                                            const aiUntil = u.features?.aiPremiumUntil ? new Date(u.features.aiPremiumUntil) : null;
-                                            const hasAi = aiUntil && aiUntil > new Date();
-
-                                            return (
-                                                <tr key={u._id} className="hover:bg-slate-50 transition-colors">
-                                                    <td className="px-6 py-4 align-top">
-                                                        <div className="font-bold text-slate-800">{u.name}</div>
-                                                        <div className="text-xs text-slate-500">{u.email}</div>
-                                                        <div className="text-[10px] font-mono text-slate-300 mt-1">{u._id}</div>
-                                                    </td>
-                                                    <td className="px-6 py-4 align-top space-y-2">
-                                                        {hasLive && (
-                                                            <div className="inline-flex items-center gap-1.5 bg-emerald-100 text-emerald-800 px-2.5 py-1 rounded border border-emerald-200 text-xs font-bold w-max">
-                                                                <Video size={12} /> Tarbiyah Lifetime
-                                                            </div>
-                                                        )}
-                                                        {hasAi && (
-                                                            <div className="inline-flex items-center gap-1.5 bg-blue-100 text-blue-800 px-2.5 py-1 rounded border border-blue-200 text-xs font-bold w-max">
-                                                                <MessageCircle size={12} /> AI Premium (Until {aiUntil.toLocaleDateString()})
-                                                            </div>
-                                                        )}
-                                                    </td>
-                                                    <td className="px-6 py-4 align-top">
-                                                        <span className={`px-2 py-1 rounded uppercase font-bold text-[10px] tracking-wide ${
-                                                            u.role === 'admin' ? 'bg-red-100 text-red-700' :
-                                                            u.role === 'scholar' ? 'bg-purple-100 text-purple-700' : 'bg-slate-100 text-slate-600'
-                                                        }`}>
-                                                            {u.role || 'parent'}
-                                                        </span>
-                                                    </td>
-                                                </tr>
-                                            );
-                                        }) : (
-                                            <tr>
-                                                <td colSpan={3} className="px-6 py-12 text-center text-slate-400 italic">
-                                                    No premium users found in the system yet.
-                                                </td>
-                                            </tr>
-                                        )}
-                                    </tbody>
-                                </table>
+                            <div className="flex items-center gap-4">
+                                <input 
+                                    className="border border-emerald-200 rounded-lg px-3 py-1.5 text-sm bg-white focus:ring-2 focus:ring-emerald-400 outline-none w-64" 
+                                    placeholder="Search premium users..." 
+                                    value={paidSearchQuery} 
+                                    onChange={e => setPaidSearchQuery(e.target.value)} 
+                                />
+                                <div className="bg-emerald-600 text-white font-bold px-4 py-2 rounded-lg text-sm shadow-sm whitespace-nowrap">
+                                    Total: {users.length}
+                                </div>
                             </div>
                         </div>
-                    );
-                })()}
+
+                        <div className="overflow-x-auto">
+                            <table className="w-full text-sm text-left">
+                                <thead className="bg-slate-50 text-slate-500 font-bold uppercase text-xs">
+                                    <tr>
+                                        <th className="px-6 py-4">User</th>
+                                        <th className="px-6 py-4">Plan Status</th>
+                                        <th className="px-6 py-4">Current Role</th>
+                                    </tr>
+                                </thead>
+                                <tbody className="divide-y divide-slate-100">
+                                    {users.length > 0 ? users.map(u => {
+                                        const hasLive = u.features?.liveAccess === true;
+                                        const aiUntil = u.features?.aiPremiumUntil ? new Date(u.features.aiPremiumUntil) : null;
+                                        const hasAi = aiUntil && aiUntil > new Date();
+
+                                        return (
+                                            <tr key={u._id} className="hover:bg-slate-50 transition-colors">
+                                                <td className="px-6 py-4 align-top">
+                                                    <div className="font-bold text-slate-800">{u.name}</div>
+                                                    <div className="text-xs text-slate-500">{u.email}</div>
+                                                    <div className="text-[10px] font-mono text-slate-300 mt-1">{u._id}</div>
+                                                </td>
+                                                <td className="px-6 py-4 align-top space-y-2">
+                                                    {hasLive && (
+                                                        <div className="inline-flex items-center gap-1.5 bg-emerald-100 text-emerald-800 px-2.5 py-1 rounded border border-emerald-200 text-xs font-bold w-max">
+                                                            <Video size={12} /> Tarbiyah Lifetime
+                                                        </div>
+                                                    )}
+                                                    {hasAi && (
+                                                        <div className="inline-flex items-center gap-1.5 bg-blue-100 text-blue-800 px-2.5 py-1 rounded border border-blue-200 text-xs font-bold w-max">
+                                                            <MessageCircle size={12} /> AI Premium (Until {aiUntil.toLocaleDateString()})
+                                                        </div>
+                                                    )}
+                                                </td>
+                                                <td className="px-6 py-4 align-top">
+                                                    <span className={`px-2 py-1 rounded uppercase font-bold text-[10px] tracking-wide ${
+                                                        u.role === 'admin' ? 'bg-red-100 text-red-700' :
+                                                        u.role === 'scholar' ? 'bg-purple-100 text-purple-700' : 'bg-slate-100 text-slate-600'
+                                                    }`}>
+                                                        {u.role || 'parent'}
+                                                    </span>
+                                                </td>
+                                            </tr>
+                                        );
+                                    }) : (
+                                        <tr>
+                                            <td colSpan={3} className="px-6 py-12 text-center text-slate-400 italic">
+                                                No premium users found in the system yet.
+                                            </td>
+                                        </tr>
+                                    )}
+                                </tbody>
+                            </table>
+                            
+                            <PaginationControls 
+                                currentPage={paidPage} 
+                                totalPages={paidTotalPages} 
+                                onPageChange={setPaidPage} 
+                            />
+                        </div>
+                    </div>
+                )}
 
                 {/* 💬 PART 3 — AI CONVERSATION LOGS */}
                 {tab === 'ailogs' && (
@@ -480,12 +505,102 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onNavigateToLive }) => 
                     </div>
                 )}
 
-                {/* Placeholder for Batches/Sessions (Previously Implemented) */}
-                {(tab === 'batches' || tab === 'sessions') && (
-                    <div className="p-10 text-center text-slate-400 bg-slate-50 border-dashed border-2 rounded-xl">
-                        Batch/Session Management Active (Refer to previous implementation)
+                {/* 📦 PART 4 — BATCH & SESSION MANAGEMENT */}
+                {tab === 'batches' && (
+                    <div className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
+                        <div className="p-6 border-b border-slate-100 flex justify-between items-center bg-slate-50">
+                            <h2 className="font-bold text-lg flex items-center gap-2"><Layers size={20} className="text-emerald-600" /> Active Batches</h2>
+                            <button className="bg-emerald-600 text-white px-3 py-1.5 rounded-lg text-xs font-bold flex items-center gap-2"><Plus size={14} /> New Batch</button>
+                        </div>
+                        <div className="overflow-x-auto">
+                            <table className="w-full text-sm text-left">
+                                <thead className="bg-slate-100 text-slate-600 font-bold uppercase text-[10px] tracking-wider">
+                                    <tr>
+                                        <th className="px-6 py-4">Batch Name</th>
+                                        <th className="px-6 py-4">Scholar</th>
+                                        <th className="px-6 py-4">Level</th>
+                                        <th className="px-6 py-4">Schedule</th>
+                                        <th className="px-6 py-4">Students</th>
+                                        <th className="px-6 py-4">Status</th>
+                                    </tr>
+                                </thead>
+                                <tbody className="divide-y divide-slate-100">
+                                    {batches.length > 0 ? batches.map(b => (
+                                        <tr key={b._id} className="hover:bg-slate-50 transition-colors">
+                                            <td className="px-6 py-4 align-top">
+                                                <div className="font-bold text-slate-800">{b.name}</div>
+                                                <div className="text-[10px] font-mono text-slate-300 mt-1">{b._id}</div>
+                                            </td>
+                                            <td className="px-6 py-4 align-top text-slate-600">{b.scholar?.name || 'Unassigned'}</td>
+                                            <td className="px-6 py-4 align-top">
+                                                <span className={`px-2 py-1 rounded text-[10px] font-bold uppercase ${
+                                                    b.level === 'Advanced' ? 'bg-purple-100 text-purple-700' :
+                                                    b.level === 'Intermediate' ? 'bg-blue-100 text-blue-700' : 'bg-slate-100 text-slate-600'
+                                                }`}>
+                                                    {b.level || 'Beginner'}
+                                                </span>
+                                            </td>
+                                            <td className="px-6 py-4 align-top text-xs text-slate-500">
+                                                {b.schedule?.days?.join(', ') || 'No days'}
+                                                <div className="mt-1 font-mono text-[10px]">{b.schedule?.time || 'No time'}</div>
+                                            </td>
+                                            <td className="px-6 py-4 align-top text-slate-500">{b.students?.length || 0} enrolled</td>
+                                            <td className="px-6 py-4 align-top">
+                                                <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold uppercase ${
+                                                    b.status === 'active' ? 'bg-emerald-100 text-emerald-700' :
+                                                    b.status === 'upcoming' ? 'bg-amber-100 text-amber-700' : 'bg-slate-100 text-slate-500'
+                                                }`}>
+                                                    {b.status || 'Active'}
+                                                </span>
+                                            </td>
+                                        </tr>
+                                    )) : (
+                                        <tr><td colSpan={6} className="px-6 py-10 text-center text-slate-400 italic">No batches found.</td></tr>
+                                    )}
+                                </tbody>
+                            </table>
+                        </div>
+                        <PaginationControls currentPage={batchPage} totalPages={batchTotalPages} onPageChange={setBatchPage} />
                     </div>
                 )}
+
+                {tab === 'sessions' && (
+                    <div className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
+                        <div className="p-6 border-b border-slate-100 flex justify-between items-center bg-slate-50">
+                            <h2 className="font-bold text-lg flex items-center gap-2"><Video size={20} className="text-emerald-600" /> Academic Sessions</h2>
+                        </div>
+                        <div className="overflow-x-auto">
+                            <table className="w-full text-sm text-left">
+                                <thead className="bg-slate-100 text-slate-600 font-bold uppercase text-[10px] tracking-wider">
+                                    <tr>
+                                        <th className="px-6 py-4">Session Date</th>
+                                        <th className="px-6 py-4">Batch</th>
+                                        <th className="px-6 py-4">Scholar</th>
+                                        <th className="px-6 py-4">Type</th>
+                                    </tr>
+                                </thead>
+                                <tbody className="divide-y divide-slate-100">
+                                    {sessions.length > 0 ? sessions.map(s => (
+                                        <tr key={s._id} className="hover:bg-slate-50">
+                                            <td className="px-6 py-4 font-mono text-xs text-slate-600">
+                                                {new Date(s.scheduledAt).toLocaleString()}
+                                            </td>
+                                            <td className="px-6 py-4 font-bold text-slate-800">{s.batchId?.name || 'Unknown'}</td>
+                                            <td className="px-6 py-4 text-slate-600">{s.scholarId?.name || 'N/A'}</td>
+                                            <td className="px-6 py-4">
+                                                <span className="bg-blue-100 text-blue-700 px-2 py-0.5 rounded-full text-[10px] font-bold uppercase">{s.type || 'Lecture'}</span>
+                                            </td>
+                                        </tr>
+                                    )) : (
+                                        <tr><td colSpan={4} className="px-6 py-10 text-center text-slate-400 italic">No historical sessions recorded.</td></tr>
+                                    )}
+                                </tbody>
+                            </table>
+                        </div>
+                        <PaginationControls currentPage={sessionPage} totalPages={sessionTotalPages} onPageChange={setSessionPage} />
+                    </div>
+                )}
+
 
             </div>
         </div>
@@ -514,5 +629,30 @@ const StatCard = ({ label, value, trend, icon }: any) => (
         {trend && <div className="text-xs font-bold text-emerald-600 mt-2 bg-emerald-50 w-fit px-2 py-1 rounded">{trend}</div>}
     </div>
 );
+
+const PaginationControls = ({ currentPage, totalPages, onPageChange }: any) => {
+    if (totalPages <= 1) return null;
+    return (
+        <div className="flex justify-center items-center gap-4 py-6 bg-slate-50/50 border-t border-slate-100">
+            <button 
+                disabled={currentPage === 1} 
+                onClick={() => onPageChange(currentPage - 1)}
+                className="px-4 py-2 border rounded-lg font-bold disabled:opacity-30 bg-white shadow-sm hover:bg-slate-50 transition-colors"
+            >
+                Previous
+            </button>
+            <span className="font-mono text-sm font-bold text-slate-500">
+                Page <span className="text-emerald-600">{currentPage}</span> / {totalPages}
+            </span>
+            <button 
+                disabled={currentPage === totalPages} 
+                onClick={() => onPageChange(currentPage + 1)}
+                className="px-4 py-2 border rounded-lg font-bold disabled:opacity-30 bg-white shadow-sm hover:bg-slate-50 transition-colors"
+            >
+                Next
+            </button>
+        </div>
+    );
+};
 
 export default AdminDashboard;

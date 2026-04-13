@@ -16,7 +16,11 @@ interface QaidaViewerProps {
   batchId?: string;
   initialLanguage?: 'english' | 'hindi' | 'urdu';
   followScholar?: boolean;
+  onSyncUpdate?: (lang: string, page: number) => void;
+  forcedLanguage?: 'english' | 'hindi' | 'urdu';
+  forcedPage?: number;
 }
+
 
 const LANGUAGES = [
   { id: 'english', label: 'English', native: 'English', maxPage: 70 },
@@ -40,44 +44,21 @@ export const QaidaViewer: React.FC<QaidaViewerProps> = ({
 
   const currentLangConfig = LANGUAGES.find(l => l.id === language)!;
 
-  // 📡 Broadcast Sync (Scholar -> Students)
-  const broadcastSync = useCallback((lang: string, page: number) => {
-    if (!isScholar || !batchId || !syncEnabled) return;
-    
-    supabase.channel(`class-sync:${batchId}`, { config: { broadcast: { ack: false } } }).send({
-      type: 'broadcast',
-      event: 'qaida-sync',
-      payload: { 
-        language: lang, 
-        pageNumber: page, 
-        scholarId: 'current', // Could be dynamic if needed
-        ts: Date.now() 
-      }
-    });
-  }, [isScholar, batchId, syncEnabled]);
-
-  // 📡 Listen for Sync (Student -> Follow Scholar)
+  // 📡 Broadcast Sync (Report to Parent)
   useEffect(() => {
-    if (isScholar || !batchId || !followScholar) return;
-
-    const channel = supabase.channel(`class-sync:${batchId}`, { config: { broadcast: { ack: false } } })
-      .on('broadcast', { event: 'qaida-sync' }, ({ payload }) => {
-        if (payload.language && payload.pageNumber) {
-          setLanguage(payload.language as any);
-          setPageNumber(payload.pageNumber);
-        }
-      })
-      .subscribe();
-
-    return () => { channel.unsubscribe(); };
-  }, [isScholar, batchId, followScholar]);
-
-  // Effect to broadcast whenever scholar changes state
-  useEffect(() => {
-    if (isScholar) {
-      broadcastSync(language, pageNumber);
+    if (isScholar && onSyncUpdate) {
+      onSyncUpdate(language, pageNumber);
     }
-  }, [language, pageNumber, isScholar, broadcastSync]);
+  }, [language, pageNumber, isScholar, onSyncUpdate]);
+
+  // 📡 Follow Mode (React to Parent)
+  useEffect(() => {
+    if (!isScholar && followScholar) {
+      if (forcedLanguage) setLanguage(forcedLanguage);
+      if (forcedPage) setPageNumber(forcedPage);
+    }
+  }, [forcedLanguage, forcedPage, isScholar, followScholar]);
+
 
   const onDocumentLoadSuccess = ({ numPages }: { numPages: number }) => {
     setNumPages(numPages);

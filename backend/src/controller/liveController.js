@@ -1045,20 +1045,34 @@ export const scoreRecitation = async (req, res) => {
             { upsert: true, new: true }
         );
 
-        // Reset Turn (Return Scholar to Observer Mode)
-        batch.activeChildId = null;
-        batch.currentPromptAnswers = [];
-        batch.promptEvaluated = false;
-        await batch.save();
+        // Atomic Turn Reset (prevents race conditions during simultaneous status updates)
+        // LOCK: Only proceed if activeChildId matches the expected student
+        const lockBatch = await Batch.findOneAndUpdate(
+            { _id: id, activeChildId: childId },
+            { 
+                $set: { 
+                    activeChildId: null,
+                    currentPromptAnswers: [],
+                    promptEvaluated: false
+                } 
+            },
+            { new: false }
+        );
+
+        if (!lockBatch) {
+            return res.status(400).json({ message: "Turn already scored or expired." });
+        }
 
         // Award Gamification XP for Recitation
-        const xpResult = await awardXP(childId, "recitation", { score: xpAward, rawScore: score });
+        const xpResult = await awardXP(childId, "recitation", { score: xpAward, rawScore: score, batchId: id, sessionId: batch.activeSessionId });
 
         res.json({ message: "Score saved", nextChildId: null, xpResult });
     } catch (error) {
         res.status(500).json({ error: error.message });
     }
 };
+
+
 
 // POST /api/live/batch/:id/score-participation
 export const scoreParticipation = async (req, res) => {
@@ -1110,20 +1124,28 @@ export const submitPrompt = async (req, res) => {
             return res.status(403).json({ message: "Access denied: Not your child profile" });
         }
 
-        // Update or add the answer
-        const existingIdx = batch.currentPromptAnswers.findIndex(a => a.childId === childId);
-        if (existingIdx > -1) {
-            batch.currentPromptAnswers[existingIdx].answer = answer;
-        } else {
-            batch.currentPromptAnswers.push({ childId, answer });
-        }
-        await batch.save();
+        // Atomic update or add answer (Standardizes currentPromptAnswers mutations)
+        // This avoids Mongoose parallel save errors when 50+ students answer at once
+        const updateResult = await Batch.updateOne(
+            { _id: id },
+            { 
+                $pull: { currentPromptAnswers: { childId: childId } }
+            }
+        );
+        
+        await Batch.updateOne(
+            { _id: id },
+            {
+                $push: { currentPromptAnswers: { childId, answer } }
+            }
+        );
 
         res.json({ message: "Prompt submitted successfully" });
     } catch (error) {
         res.status(500).json({ error: error.message });
     }
 };
+
 
 // POST /api/live/batch/:id/evaluate-prompt
 export const evaluatePrompt = async (req, res) => {
@@ -1132,44 +1154,45 @@ export const evaluatePrompt = async (req, res) => {
         const { correctAnswer } = req.body; // 'yes' or 'no'
         const { default: Batch } = await import("../models/Batch.js");
         const { default: LiveScore } = await import("../models/LiveScore.js");
-        const { awardXP } = await import("../services/gamificationService.js");
 
-        const batch = await Batch.findById(id);
-        if (!batch || !batch.activeSessionId) return res.status(404).json({ message: "Batch not found or not active" });
+        // ATOMIC LOCK: Claim the evaluation lock. If promptEvaluated is already true, this fails.
+        // This prevents 33x XP exploits if the scholar double-clicks.
+        const batch = await Batch.findOneAndUpdate(
+            { _id: id, activeSessionId: { $ne: null }, promptEvaluated: false },
+            { $set: { promptEvaluated: true } },
+            { new: false } // Get the list of answers BEFORE we mark it evaluated
+        );
 
-        if (batch.promptEvaluated) {
-            return res.status(400).json({ message: "Prompt already evaluated for this turn" });
+        if (!batch) {
+            return res.status(400).json({ message: "Prompt already evaluated or session ended" });
         }
 
-        // Find all students who answered correctly and incorrectly
+        // Find all students who answered correctly
         const correctStudents = batch.currentPromptAnswers.filter(a => a.answer === correctAnswer);
-        const incorrectStudents = batch.currentPromptAnswers.filter(a => a.answer !== correctAnswer);
+        const correctStudentIds = correctStudents.map(s => s.childId);
 
-        // Award XP asynchronously and update LiveScores
-        const correctPromises = correctStudents.map(async (student) => {
-            await LiveScore.findOneAndUpdate(
-                { batchId: id, sessionId: batch.activeSessionId, childId: student.childId },
-                { $inc: { participationScore: 1 } }, // Correct answer = 1 point
-                { upsert: true }
-            );
-            return awardXP(student.childId, "participation", { points: 1 });
-        });
+        if (correctStudentIds.length > 0) {
+            // 1. Bulk Update LiveScores for this session
+            const scoreBulkOps = correctStudentIds.map(childId => ({
+                updateOne: {
+                    filter: { batchId: id, sessionId: batch.activeSessionId, childId },
+                    update: { $inc: { participationScore: 1 } },
+                    upsert: true
+                }
+            }));
+            await LiveScore.bulkWrite(scoreBulkOps);
 
-        const incorrectPromises = incorrectStudents.map(async (student) => {
-            // Incorrect = 0 XP
-            return Promise.resolve();
-        });
+            // 2. Bulk Award XP (Atomic persistence at scale)
+            const { awardXPBulk } = await import("../services/gamificationService.js");
+            await awardXPBulk(correctStudentIds, "participation", { points: 1, batchId: id, sessionId: batch.activeSessionId });
+        }
 
-        await Promise.allSettled([...correctPromises, ...incorrectPromises]);
-
-        batch.promptEvaluated = true;
-        await batch.save();
-
-        res.json({ message: "Observers evaluated and XP awarded", correctCount: correctStudents.length });
+        res.json({ message: "Observers evaluated and XP awarded", correctCount: correctStudentIds.length });
     } catch (error) {
         res.status(500).json({ error: error.message });
     }
 };
+
 
 // GET /api/live/batch/:id/leaderboard
 export const getLeaderboard = async (req, res) => {

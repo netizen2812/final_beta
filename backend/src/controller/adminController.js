@@ -5,6 +5,8 @@ import Session from "../models/Session.js";
 import AnalyticsEvent from "../models/AnalyticsEvent.js";
 import mongoose from "mongoose";
 import { clerkClient } from "@clerk/clerk-sdk-node";
+import Conversation from "../models/Conversation.js";
+
 
 // --- PART 1: REPLACE ADMIN KPIs (TIER-BASED STRUCTURE) ---
 
@@ -238,15 +240,32 @@ export const getAllUsers = async (req, res) => {
         const limit = parseInt(req.query.limit) || 100;
         const skip = (page - 1) * limit;
         const isPaid = req.query.isPaid === 'true';
+        const search = req.query.q || "";
 
         let $match = {};
+        const conditions = [];
+
         if (isPaid) {
-            $match = {
+            conditions.push({
                 $or: [
                     { "features.liveAccess": true },
                     { "features.aiPremiumUntil": { $gt: new Date() } }
                 ]
-            };
+            });
+        }
+
+        if (search) {
+            const regex = new RegExp(search, 'i');
+            conditions.push({
+                $or: [
+                    { email: regex },
+                    { name: regex }
+                ]
+            });
+        }
+
+        if (conditions.length > 0) {
+            $match = conditions.length === 1 ? conditions[0] : { $and: conditions };
         }
 
         const users = await User.aggregate([
@@ -441,11 +460,27 @@ export const updateBatch = async (req, res) => {
 
 export const getSessions = async (req, res) => {
     try {
+        const page = parseInt(req.query.page) || 1;
+        const limit = parseInt(req.query.limit) || 20;
+        const skip = (page - 1) * limit;
+
         const sessions = await Session.find()
             .populate('batchId', 'name')
             .populate('scholarId', 'name')
-            .sort({ scheduledAt: 1 });
-        res.json(sessions);
+            .sort({ scheduledAt: -1 }) // Sort by newest first for better admin audit
+            .skip(skip)
+            .limit(limit);
+            
+        const total = await Session.countDocuments();
+
+        res.json({
+            sessions,
+            pagination: {
+                total,
+                page,
+                pages: Math.ceil(total / limit)
+            }
+        });
     } catch (err) { res.status(500).json({ message: err.message }); }
 };
 

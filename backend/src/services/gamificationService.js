@@ -11,17 +11,21 @@ export const calculateLevel = (xp) => {
 
 const updateStreak = (progress) => {
     const now = new Date();
+    // Use UTC boundaries specifically if reporting "inaccuracies" due to local time shifts, 
+    // or just local server day boundaries. Here we stick to local server day for simplicity 
+    // but ensure streak_days is properly initialized.
     const today = new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime();
     
-    if (!progress.last_active_date) {
+    if (!progress.last_active_date || progress.streak_days === 0) {
         progress.streak_days = 1;
         progress.last_active_date = now;
-        return;
+        return now;
     }
 
-    const lastDate = progress.last_active_date;
+    const lastDate = new Date(progress.last_active_date);
     const lastActiveDay = new Date(lastDate.getFullYear(), lastDate.getMonth(), lastDate.getDate()).getTime();
     
+    // Exact day difference
     const diffDays = Math.round((today - lastActiveDay) / (1000 * 60 * 60 * 24));
 
     if (diffDays === 1) {
@@ -29,17 +33,118 @@ const updateStreak = (progress) => {
     } else if (diffDays > 1) {
         progress.streak_days = 1; 
     }
+    // If diffDays === 0, streak remains same, but we update last_active_date
     progress.last_active_date = now;
+    return now;
 };
 
 /**
- * Awards XP to a child and updates their gamification stats.
- * @param {string} childId The MongoDB ID of the child.
- * @param {string} action "recitation", "participation", or "session_complete".
- * @param {Object} data Context data like { score: 3 } or { points: 5 }.
- * @returns {Object} { xpGained, newLevel }
+ * Awards XP to multiple children efficiently using bulkWrite.
+ * @param {Array} studentIds Array of child MongoDB IDs.
+ * @param {string} action "participation" or "session_complete".
+ * @param {Object} commonData Shared context like { batchId, sessionId, points }.
  */
+export const awardXPBulk = async (studentIds, action, commonData = {}) => {
+    if (!studentIds || studentIds.length === 0) return { success: true };
+    
+    try {
+        const { default: Child } = await import("../models/Child.js");
+        const { default: ChildActivity } = await import("../models/ChildActivity.js");
+        const { default: XPLog } = await import("../models/XPLog.js");
+
+        let xpGained = 0;
+        let activityType = "";
+        let activityDuration = 0;
+        const now = new Date();
+        const todayAtZero = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+
+        if (action === "participation") {
+            xpGained = commonData.points || 2;
+            activityType = "Class Participation";
+            activityDuration = 5;
+        } else if (action === "session_complete") {
+            xpGained = 2;
+            activityType = "Live Class";
+            activityDuration = commonData.duration || 45;
+        }
+
+        const childBulkOps = [];
+        const activityBulkOps = [];
+        const xpLogs = [];
+
+        for (const childId of studentIds) {
+            // 1. Child XP Update
+            const xpUpdate = {
+                $inc: {
+                    "child_progress.0.total_xp": xpGained,
+                    "child_progress.0.total_sessions_attended": (action === "session_complete") ? 1 : 0
+                },
+                $set: {
+                    "child_progress.0.last_active_date": now
+                }
+            };
+
+            if (action === "session_complete" && (commonData.batchId || commonData.sessionId)) {
+                xpUpdate.$push = {
+                    "child_progress.0.attendance": {
+                        batchId: commonData.batchId || null,
+                        sessionId: commonData.sessionId || null,
+                        date: now,
+                        status: 'present',
+                        type: 'session_complete'
+                    }
+                };
+            }
+
+            childBulkOps.push({
+                updateOne: {
+                    filter: { _id: childId },
+                    update: xpUpdate
+                }
+            });
+
+            // 2. Activity Logging
+            activityBulkOps.push({
+                updateOne: {
+                    filter: { child_id: childId, date: todayAtZero },
+                    update: {
+                        $inc: {
+                            minutes_spent: activityDuration,
+                            sessions_attended: (action === "session_complete") ? 1 : 0,
+                            [`topics_studied.${activityType}`]: activityDuration
+                        }
+                    },
+                    upsert: true
+                }
+            });
+
+            // 3. XP Transaction Logs
+            xpLogs.push({
+                childId,
+                action,
+                xpGained,
+                batchId: commonData.batchId || null,
+                sessionId: commonData.sessionId || null,
+                metadata: commonData
+            });
+        }
+
+        // Execute all batches
+        await Promise.all([
+            Child.bulkWrite(childBulkOps),
+            ChildActivity.bulkWrite(activityBulkOps),
+            XPLog.insertMany(xpLogs)
+        ]);
+
+        return { success: true, count: studentIds.length };
+    } catch (err) {
+        console.error("Error in awardXPBulk:", err);
+        return { success: false, error: err.message };
+    }
+};
+
 export const awardXP = async (childId, action, data = {}) => {
+
     try {
         const { default: Child } = await import("../models/Child.js");
         const child = await Child.findById(childId);
@@ -58,7 +163,7 @@ export const awardXP = async (childId, action, data = {}) => {
         let activityDuration = 0;
 
         // Daily Streak Validation
-        updateStreak(progress);
+        const now = updateStreak(progress);
 
         if (action === "recitation") {
             const { score } = data; 
@@ -140,7 +245,7 @@ export const awardXP = async (childId, action, data = {}) => {
                 "child_progress.0.total_correct_recitations": (action === "recitation" && (data.score >= 7)) ? 1 : 0
             },
             $set: {
-                "child_progress.0.last_active_date": new Date(),
+                "child_progress.0.last_active_date": now,
                 "child_progress.0.streak_days": progress.streak_days
             }
         };

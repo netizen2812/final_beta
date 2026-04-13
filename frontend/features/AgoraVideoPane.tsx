@@ -70,11 +70,16 @@ const AgoraVideoPane: React.FC<AgoraVideoPaneProps> = ({
       try {
         await client.join(appId, channel, token, uid);
         
-        // Create Local Tracks
+        // Create Local Tracks with tiered resolution based on role
+        // Higher resolution for Scholar (480p), Lower for Students (240p) to optimize performance
+        // Downgrading from 720p to prevent lag in large classrooms
+        const videoProfile = role === 'scholar' ? '480p_1' : '240p_1';
+        
         const [audioTrack, videoTrack] = await AgoraRTC.createMicrophoneAndCameraTracks(
           { AEC: true, ANS: true },
-          { encoderConfig: '720p_1' }
+          { encoderConfig: videoProfile }
         );
+
         
         setLocalAudioTrack(audioTrack);
         setLocalVideoTrack(videoTrack);

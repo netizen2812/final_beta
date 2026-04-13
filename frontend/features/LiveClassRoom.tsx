@@ -104,6 +104,10 @@ const LiveClassRoom: React.FC = () => {
   const [currentSessionScore, setCurrentSessionScore] = useState<number>(0);
   const [selectedBatchId, setSelectedBatchId] = useState<string | null>(null);
   const [showQaidaViewer, setShowQaidaViewer] = useState(false);
+  const [showSubmissionModal, setShowSubmissionModal] = useState(false);
+  const [qaidaSyncData, setQaidaSyncData] = useState<{ language: any, pageNumber: number }>({ language: 'english', pageNumber: 1 });
+
+
   
   const lastSeenScoreRef = useRef<number | null>(null);
   const lastSyncTsRef = useRef<number>(0);
@@ -297,7 +301,40 @@ const LiveClassRoom: React.FC = () => {
           }
         }
       })
+      // ⚡ Instant Qaida Sync
+      .on('broadcast', { event: 'qaida-sync' }, ({ payload }) => {
+        if (payload.isOpen !== undefined) setShowQaidaViewer(payload.isOpen);
+        if (payload.language && payload.pageNumber) {
+          setQaidaSyncData({ language: payload.language, pageNumber: payload.pageNumber });
+        }
+      })
+      // ⚡ Instant Score Feedback (Eliminates Polling Lag)
+
+      .on('broadcast', { event: 'score-updated' }, ({ payload }) => {
+        if (userRole === 'parent' && payload.childId === activeChild?.id) {
+          triggerRewardAnimation(payload.xpGained);
+          setCurrentSessionScore(prev => prev + payload.xpGained);
+        }
+      })
+      // ⚡ Instant Prompt Updates (Consensus Sync)
+      .on('broadcast', { event: 'prompt-event' }, ({ payload }) => {
+        if (payload.type === 'submission') {
+          setBatchState(prev => {
+            if (!prev) return null;
+            const answers = [...(prev.currentPromptAnswers || [])];
+            const idx = answers.findIndex(a => a.childId === payload.childId);
+            if (idx > -1) answers[idx].answer = payload.answer;
+            else answers.push({ childId: payload.childId, answer: payload.answer });
+            return { ...prev, currentPromptAnswers: answers };
+          });
+        } else if (payload.type === 'evaluation') {
+          setBatchState(prev => prev ? { ...prev, promptEvaluated: true } : null);
+          setPromptDecision(null);
+          setShowSubmissionModal(false); // Reset submission state when scholar evaluates
+        }
+      })
       // ⚡ Student receives instant turn notification from scholar
+
       .on('broadcast', { event: 'turn-assigned' }, ({ payload }) => {
         if (userRole === 'parent') {
           // Update activeChildId immediately — no need to wait for 15s poll
@@ -426,6 +463,8 @@ const LiveClassRoom: React.FC = () => {
       // Update scholar's own local state immediately
       setBatchState(prev => prev ? { ...prev, activeChildId: childId } : null);
       activeChildIdRef.current = childId;
+      setShowSubmissionModal(false); // Reset for participants on new turn
+
 
       // Unblocked API call
       getToken().then(token => {
@@ -449,8 +488,18 @@ const LiveClassRoom: React.FC = () => {
       getToken().then(token => {
         axios.post(`${APPLICATION_API_URL}/api/live/batch/${batchId}/score-recitation`, { 
           childId, score 
-        }, { headers: { Authorization: `Bearer ${token}` } }).catch(err => console.error(err));
+        }, { headers: { Authorization: `Bearer ${token}` } }).then(res => {
+            // Broadcast the exact XP gained for instant student animation
+            if (syncChannelRef.current && res.data.xpResult) {
+                syncChannelRef.current.send({
+                    type: 'broadcast',
+                    event: 'score-updated',
+                    payload: { childId, xpGained: res.data.xpResult.xpGained, ts: Date.now() }
+                });
+            }
+        }).catch(err => console.error(err));
       });
+
     } catch (err) {}
   };
 
@@ -479,17 +528,39 @@ const LiveClassRoom: React.FC = () => {
       await axios.post(`${APPLICATION_API_URL}/api/live/batch/${currentSession.batchId}/evaluate-prompt`, { 
         correctAnswer 
       }, { headers: { Authorization: `Bearer ${token}` } });
+      
+      // ⚡ Broadcast evaluation event
+      if (syncChannelRef.current) {
+        syncChannelRef.current.send({
+          type: 'broadcast',
+          event: 'prompt-event',
+          payload: { type: 'evaluation', correctAnswer, ts: Date.now() }
+        });
+      }
+      
       setPromptDecision(null);
+
     } catch (err) { alert("Failed to evaluate prompt."); }
   };
 
   const handleSubmitPrompt = async (answer: 'yes' | 'no') => {
-    if (!currentSession?.batchId || !activeChild) return;
     try {
+      setShowSubmissionModal(true); // Show confirmation dialog instantly
       const token = await getToken();
       await axios.post(`${APPLICATION_API_URL}/api/live/batch/${currentSession.batchId}/submit-prompt`, { 
         childId: activeChild.id, answer 
       }, { headers: { Authorization: `Bearer ${token}` } });
+
+
+      // ⚡ Broadcast submission event for real-time consensus board
+      if (syncChannelRef.current) {
+        syncChannelRef.current.send({
+          type: 'broadcast',
+          event: 'prompt-event',
+          payload: { type: 'submission', childId: activeChild.id, answer, ts: Date.now() }
+        });
+      }
+
     } catch (e) { alert("Failed to submit answer. Please try again."); }
   };
 
@@ -849,7 +920,18 @@ const LiveClassRoom: React.FC = () => {
            {batchState?.activeChildId && batchState.activeChildId !== currentSession.childId && (
               (() => {
                 const myAnswer = batchState?.currentPromptAnswers?.find(a => a.childId === currentSession.childId);
-                 if (batchState?.promptEvaluated || myAnswer) return null;
+                  if (batchState?.promptEvaluated || myAnswer) {
+                     if (myAnswer && !batchState?.promptEvaluated) {
+                        return (
+                           <div className="bg-[#022c22]/95 backdrop-blur-3xl p-8 rounded-[2.5rem] border border-emerald-700/40 shadow-2xl text-center animate-in zoom-in-95 duration-500">
+                              <CheckCircle size={32} className="mx-auto text-emerald-400 mb-4" />
+                              <h4 className="text-white font-serif font-bold text-lg mb-2">Answer Submitted!</h4>
+                              <p className="text-emerald-200/50 text-[10px] font-black uppercase tracking-widest">Waiting for scholar's evaluation...</p>
+                           </div>
+                        );
+                     }
+                     return null;
+                  }
                 return (
                    <div className="bg-[#022c22]/95 backdrop-blur-3xl p-8 rounded-[2.5rem] border border-emerald-700/40 shadow-[0_30px_80px_rgba(0,0,0,0.7)] animate-in slide-in-from-bottom-12 duration-700">
                       <div className="h-px bg-gradient-to-r from-transparent via-emerald-400/40 to-transparent mb-6" />
@@ -881,32 +963,25 @@ const LiveClassRoom: React.FC = () => {
     return renderObservationStage();
   };
 
-  // 📡 Listen for Scholar opening Qaida
-  useEffect(() => {
-    if (userRole !== 'parent' || !currentSession?.batchId) return;
+  // 📡 Cleanup legacy Qaida logic: Consolidated into the main classroom sync channel above
 
-    const channel = supabase.channel(`class-sync:${currentSession.batchId}`)
-      .on('broadcast', { event: 'qaida-sync' }, ({ payload }) => {
-        if (payload.isOpen !== undefined) {
-          setShowQaidaViewer(payload.isOpen);
-        }
-      })
-      .subscribe();
-
-    return () => { channel.unsubscribe(); };
-  }, [currentSession?.batchId, userRole]);
 
   // 📡 Broadcast Qaida open/close state to students (Scholar only)
-  // Reuses the already-subscribed syncChannelRef to avoid creating orphan channel objects
   useEffect(() => {
     if (userRole !== 'scholar' || !currentSession?.batchId || !syncChannelRef.current) return;
 
     syncChannelRef.current.send({
       type: 'broadcast',
       event: 'qaida-sync',
-      payload: { isOpen: showQaidaViewer, ts: Date.now() }
+      payload: { 
+        isOpen: showQaidaViewer, 
+        language: qaidaSyncData.language, 
+        pageNumber: qaidaSyncData.pageNumber, 
+        ts: Date.now() 
+      }
     });
-  }, [showQaidaViewer, userRole, currentSession?.batchId]);
+  }, [showQaidaViewer, userRole, currentSession?.batchId, qaidaSyncData]);
+
 
   // -------------------------------------------------------------------
   // 🏁 MAIN RENDER
@@ -1036,8 +1111,16 @@ const LiveClassRoom: React.FC = () => {
             isScholar={userRole === 'scholar'}
             batchId={currentSession.batchId || ""}
             followScholar={true}
+            onSyncUpdate={(lang, page) => {
+              if (userRole === 'scholar') {
+                setQaidaSyncData({ language: lang, pageNumber: page });
+              }
+            }}
+            forcedLanguage={qaidaSyncData.language}
+            forcedPage={qaidaSyncData.pageNumber}
           />
         )}
+
       </div>
     );
   }

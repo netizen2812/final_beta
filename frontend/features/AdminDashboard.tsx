@@ -285,7 +285,8 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onNavigateToLive }) => 
                                 <StatCard label="3+ Days Active Users" value={stats.cumulative.usersWithThreeDays} />
                             </Section>
                         ) : stats ? (
-                                </div>
+                            <div className="col-span-4 p-6 bg-white rounded-xl border border-slate-200 animate-pulse text-slate-400 text-center">
+                                Calculating Platform Totals...
                             </div>
                         ) : null}
                     </>

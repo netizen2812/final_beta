@@ -33,8 +33,12 @@ export const QaidaViewer: React.FC<QaidaViewerProps> = ({
   isScholar = false, 
   batchId, 
   initialLanguage = 'english',
-  followScholar = true 
+  followScholar = true,
+  onSyncUpdate,
+  forcedLanguage,
+  forcedPage
 }) => {
+
   const [language, setLanguage] = useState<'english' | 'hindi' | 'urdu'>(initialLanguage);
   const [pageNumber, setPageNumber] = useState(1);
   const [numPages, setNumPages] = useState<number | null>(null);

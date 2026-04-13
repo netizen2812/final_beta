@@ -132,9 +132,23 @@ const AgoraVideoPane: React.FC<AgoraVideoPaneProps> = ({
       )}
 
       {/* VIDEO STAGE */}
-      <div className={`w-full h-full p-2 transition-all duration-700 ${layout === 'grid' ? 'grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 overflow-y-auto' : 'flex items-center justify-center'}`}>
+      <div className={`w-full h-full p-2 transition-all duration-700 ${
+        layout === 'grid' 
+          ? (() => {
+              const count = remoteUsers.length;
+              if (count === 0) return 'flex items-center justify-center';
+              if (count === 1) return 'grid grid-cols-1 max-w-3xl mx-auto items-center content-center h-full';
+              if (count === 2) return 'grid grid-cols-1 md:grid-cols-2 items-center content-center h-full gap-4 max-w-5xl mx-auto';
+              if (count <= 4) return 'grid grid-cols-2 grid-rows-2 items-center content-center h-full gap-4';
+              if (count <= 6) return 'grid grid-cols-2 md:grid-cols-3 grid-rows-2 items-center content-center h-full gap-3 md:gap-4';
+              if (count <= 9) return 'grid grid-cols-2 md:grid-cols-3 grid-rows-3 items-center content-center h-full gap-3';
+              return 'grid grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3 overflow-y-auto content-start';
+            })()
+          : 'flex items-center justify-center'
+      }`}>
         
         {/* LOCAL PREVIEW */}
+
         <div 
           ref={localVideoRef}
           className={`group bg-[#111] border border-white/5 shadow-2xl transition-all duration-500 z-50 ${layout === 'inset'

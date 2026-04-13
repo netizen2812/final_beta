@@ -92,11 +92,10 @@ const LiveClassRoom: React.FC = () => {
   const [currentSession, setCurrentSession] = useState<LiveSession | null>(null);
   const [batchState, setBatchState] = useState<BatchState | null>(null);
   
-  const [hasStartedReciting, setHasStartedReciting] = useState(false);
-  const [selectedScore, setSelectedScore] = useState<number | null>(null);
   const [promptDecision, setPromptDecision] = useState<'yes' | 'no' | null>(null);
   const [leaderboard, setLeaderboard] = useState<any[] | null>(null);
   const [showLeaderboard, setShowLeaderboard] = useState<boolean | string>(false);
+
   const [attendedSessionIds, setAttendedSessionIds] = useState<string[]>([]);
   const [attendanceHistory, setAttendanceHistory] = useState<any[]>([]);
   const [confirmEndClass, setConfirmEndClass] = useState<string | null>(null);
@@ -114,10 +113,9 @@ const LiveClassRoom: React.FC = () => {
   const syncChannelRef = useRef<any>(null);
   // Stable ref for activeChildId to avoid Supabase channel re-subscription stale closure bug
   const activeChildIdRef = useRef<string | null>(null);
-  const activeStudentSurahRef = useRef<number | undefined>(undefined);
-  const activeStudentAyahRef = useRef<number | undefined>(undefined);
   // Track the session the student explicitly joined — never show leaderboard for this session while in it
   const joinedSessionIdRef = useRef<string | null>(null);
+
   // Throttle ref for emitPosition — prevents API spam on rapid ayah navigation
   const emitThrottleTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const emitPendingRef = useRef<{ surah: number; ayah: number } | null>(null);

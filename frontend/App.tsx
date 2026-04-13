@@ -19,10 +19,12 @@ import {
   SignedIn,
   SignedOut,
   SignIn,
+  SignInButton,
   UserButton,
   useUser,
   useAuth,
 } from "@clerk/clerk-react";
+
 
 import axios from "axios";
 import { APPLICATION_API_URL } from "./lib/api";
@@ -181,8 +183,9 @@ const App: React.FC = () => {
   const appMode = import.meta.env.VITE_APP_MODE; // 'web' or 'app'
 
   const renderContent = () => {
-    // 🛡️ AUTH CHECK: Some tabs require login
-    const requiresAuth = [AppTab.IBADAH, AppTab.ADMIN, AppTab.ADMIN_LIVE, AppTab.PROFILE].includes(activeTab);
+    // 🛡️ AUTH CHECK: Some tabs require login (Ibadah is now guest-accessible)
+    const requiresAuth = [AppTab.ADMIN, AppTab.ADMIN_LIVE, AppTab.PROFILE].includes(activeTab);
+
     
     if (requiresAuth && isLoaded && !user) {
       return (
@@ -309,7 +312,17 @@ const App: React.FC = () => {
                   </div>
                 )}
               </div>
-              <UserButton afterSignOutUrl="/" appearance={{ elements: { avatarBox: "h-8 w-8" } }} />
+              <SignedOut>
+                <SignInButton mode="modal">
+                  <button className="px-4 py-1.5 bg-[#052e16] text-white rounded-full text-[10px] font-black uppercase tracking-widest shadow-lg active:scale-95 transition-all">
+                    {t('nav.signIn', 'Sign In')}
+                  </button>
+                </SignInButton>
+              </SignedOut>
+              <SignedIn>
+                <UserButton afterSignOutUrl="/" appearance={{ elements: { avatarBox: "h-8 w-8" } }} />
+              </SignedIn>
+
             </div>
           </header>
 
@@ -406,7 +419,17 @@ const App: React.FC = () => {
               >
                 <User size={16} />
               </button>
-              <UserButton afterSignOutUrl="/" appearance={{ elements: { avatarBox: "h-9 w-9" } }} />
+              <SignedOut>
+                <SignInButton mode="modal">
+                  <button className="px-5 py-2 bg-[#052e16] text-white rounded-full text-xs font-black uppercase tracking-widest shadow-xl hover:bg-[#052e16]/90 active:scale-95 transition-all">
+                    {t('nav.signIn', 'Sign In')}
+                  </button>
+                </SignInButton>
+              </SignedOut>
+              <SignedIn>
+                <UserButton afterSignOutUrl="/" appearance={{ elements: { avatarBox: "h-9 w-9" } }} />
+              </SignedIn>
+
             </div>
           </header>
 

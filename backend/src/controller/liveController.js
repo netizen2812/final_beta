@@ -87,8 +87,8 @@ export const createBatch = async (req, res) => {
             durationMinutes: typeof schedule?.durationMinutes === 'number' ? schedule.durationMinutes : 60
         };
 
-        const { default: Batch } = await import("../models/Batch.js");
         const mongoose = (await import("mongoose")).default;
+
 
         // --- RESOLVE SCHOLAR EMAIL TO ID ---
         if (typeof scholar === 'string' && scholar.includes('@')) {
@@ -1001,7 +1001,7 @@ export const selectTurn = async (req, res) => {
     try {
         const { id } = req.params;
         const { childId } = req.body;
-        const { default: Batch } = await import("../models/Batch.js");
+
 
         const batch = await Batch.findByIdAndUpdate(id, { 
             activeChildId: childId,
@@ -1026,9 +1026,9 @@ export const scoreRecitation = async (req, res) => {
     try {
         const { id } = req.params;
         const { childId, score } = req.body;
-        const { default: Batch } = await import("../models/Batch.js");
         const { default: LiveScore } = await import("../models/LiveScore.js");
         const { awardXP } = await import("../services/gamificationService.js");
+
 
         const batch = await Batch.findById(id);
         if (!batch || !batch.activeSessionId) return res.status(400).json({ message: "Batch not active or found" });

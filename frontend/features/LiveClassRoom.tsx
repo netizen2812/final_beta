@@ -111,6 +111,8 @@ const LiveClassRoom: React.FC = () => {
   const lastSeenScoreRef = useRef<number | null>(null);
   const lastSyncTsRef = useRef<number>(0);
   const syncChannelRef = useRef<any>(null);
+  const activeStudentSurahRef = useRef<number | undefined>(undefined);
+  const activeStudentAyahRef = useRef<number | undefined>(undefined);
   // Stable ref for activeChildId to avoid Supabase channel re-subscription stale closure bug
   const activeChildIdRef = useRef<string | null>(null);
   // Track the session the student explicitly joined — never show leaderboard for this session while in it

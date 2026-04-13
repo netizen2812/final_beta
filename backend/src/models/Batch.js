@@ -44,7 +44,7 @@ const batchSchema = new mongoose.Schema({
         default: null
     },
     currentPromptAnswers: [{
-        childId: String,
+        childId: { type: mongoose.Schema.Types.ObjectId, ref: "Child" },
         answer: { type: String, enum: ['yes', 'no'] }
     }],
     promptEvaluated: {
@@ -62,7 +62,7 @@ const batchSchema = new mongoose.Schema({
         attendedChildren: [{ type: String }] // Store as exact string to prevent $addToSet type matching failures!
     }],
     activeParticipants: [{
-        childId: { type: String, required: true },
+        childId: { type: mongoose.Schema.Types.ObjectId, ref: "Child", required: true },
         childName: { type: String, default: 'Student' },
         currentSurah: { type: Number, default: null },
         currentAyah: { type: Number, default: null },

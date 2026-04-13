@@ -11,7 +11,8 @@ import {
     Plus,
     Trash2,
     BookOpen,
-    StopCircle
+    StopCircle,
+    Edit
 } from 'lucide-react';
 
 import { APPLICATION_API_URL } from '../lib/api';
@@ -113,11 +114,16 @@ const BatchManager = ({ token }: { token: any }) => {
         level: 'Beginner',
         status: 'active',
     });
+    const [editItem, setEditItem] = useState<any>(null);
     const [scholars, setScholars] = useState<any[]>([]);
     const [showManageStudents, setShowManageStudents] = useState<string | null>(null);
     const [selectedBatch, setSelectedBatch] = useState<any>(null);
     const [studentSearch, setStudentSearch] = useState('');
     const [foundUsers, setFoundUsers] = useState<any[]>([]);
+    const [isSubmitting, setIsSubmitting] = useState(false);
+    const [error, setError] = useState<string | null>(null);
+    const [currentPage, setCurrentPage] = useState(1);
+    const [totalPages, setTotalPages] = useState(1);
 
     const fetchScholars = async () => {
         try {
@@ -136,62 +142,82 @@ const BatchManager = ({ token }: { token: any }) => {
         if (showCreate) fetchScholars();
     }, [showCreate]);
 
-    const fetchBatches = async () => {
+    const fetchBatches = async (page = currentPage) => {
         try {
             const t = await token();
-            const res = await axios.get(`${APPLICATION_API_URL}/api/live/admin/batches`, {
+            const res = await axios.get(`${APPLICATION_API_URL}/api/live/admin/batches?page=${page}&limit=10`, {
                 headers: { Authorization: `Bearer ${t}` }
             });
-            setBatches(res.data);
+            setBatches(res.data.batches);
+            setTotalPages(res.data.pagination.pages);
         } catch (err) {
             console.error(err);
         }
     };
 
-    useEffect(() => { fetchBatches(); }, []);
+    useEffect(() => { fetchBatches(currentPage); }, [currentPage]);
 
     const searchParents = async () => {
+        if (isSubmitting) return;
+        setIsSubmitting(true);
+        setError(null);
         try {
             const t = await token();
-            const res = await axios.get(`${APPLICATION_API_URL}/api/admin/users?limit=1000`, {
+            const res = await axios.get(`${APPLICATION_API_URL}/api/admin/users/search?q=${studentSearch}`, {
                 headers: { Authorization: `Bearer ${t}` }
             });
-            const users = res.data.users || [];
-            setFoundUsers(users.filter((u: any) =>
-                u.email?.toLowerCase().includes(studentSearch.toLowerCase()) || 
-                u.name?.toLowerCase().includes(studentSearch.toLowerCase())
-            ));
-        } catch (err) { console.error(err); }
+            setFoundUsers(res.data.users || []);
+        } catch (err: any) { 
+            setError("Search failed: " + (err.response?.data?.message || err.message)); 
+        } finally {
+            setIsSubmitting(false);
+        }
     };
 
     const addStudent = async (childId: string) => {
-        if (!selectedBatch) return;
+        if (!selectedBatch || isSubmitting) return;
+        setIsSubmitting(true);
+        setError(null);
         try {
             const t = await token();
             await axios.post(`${APPLICATION_API_URL}/api/live/admin/batch/${selectedBatch._id}/add-student`, { childId }, {
                 headers: { Authorization: `Bearer ${t}` }
             });
             fetchBatches();
-        } catch (err) { alert("Failed to add student"); }
+        } catch (err: any) { 
+            setError("Failed to add student: " + (err.response?.data?.message || err.message)); 
+        } finally {
+            setIsSubmitting(false);
+        }
     };
 
     const removeStudent = async (childId: string) => {
-        if (!confirm("Remove student?")) return;
+        if (!confirm("Remove student?") || isSubmitting) return;
+        setIsSubmitting(true);
+        setError(null);
         try {
             const t = await token();
             await axios.post(`${APPLICATION_API_URL}/api/live/admin/batch/${selectedBatch._id}/remove-student`, { childId }, {
                 headers: { Authorization: `Bearer ${t}` }
             });
             fetchBatches();
-        } catch (err) { alert("Failed to remove"); }
+        } catch (err: any) { 
+            setError("Failed to remove: " + (err.response?.data?.message || err.message)); 
+        } finally {
+            setIsSubmitting(false);
+        }
     };
 
     const openManage = (batch: any) => {
         setSelectedBatch(batch);
         setShowManageStudents(batch._id);
+        setError(null);
     };
 
     const createBatch = async () => {
+        if (isSubmitting) return;
+        setIsSubmitting(true);
+        setError(null);
         try {
             const t = await token();
             await axios.post(`${APPLICATION_API_URL}/api/live/admin/batch`, newItem, {
@@ -200,39 +226,77 @@ const BatchManager = ({ token }: { token: any }) => {
             setShowCreate(false);
             fetchBatches();
         } catch (err: any) {
-            alert("Create failed: " + err.message);
+            setError("Create failed: " + (err.response?.data?.message || err.message));
+        } finally {
+            setIsSubmitting(false);
+        }
+    };
+
+    const saveEditBatch = async () => {
+        if (!editItem || isSubmitting) return;
+        setIsSubmitting(true);
+        setError(null);
+        try {
+            const t = await token();
+            await axios.patch(`${APPLICATION_API_URL}/api/live/admin/batch/${editItem._id}`, editItem, {
+                headers: { Authorization: `Bearer ${t}` }
+            });
+            setEditItem(null);
+            fetchBatches();
+        } catch (err: any) {
+            setError("Update failed: " + (err.response?.data?.message || err.message));
+        } finally {
+            setIsSubmitting(false);
         }
     };
 
     const deleteBatch = async (id: string) => {
-        if (!confirm("Delete this batch?")) return;
+        if (!confirm("Delete this batch?") || isSubmitting) return;
+        setIsSubmitting(true);
+        setError(null);
         try {
             const t = await token();
             await axios.delete(`${APPLICATION_API_URL}/api/live/admin/batch/${id}`, {
                 headers: { Authorization: `Bearer ${t}` }
             });
             fetchBatches();
-        } catch (err) {
-            alert("Delete failed");
+        } catch (err: any) {
+            setError("Delete failed: " + (err.response?.data?.message || err.message));
+        } finally {
+            setIsSubmitting(false);
         }
     };
 
     const handleForceEnd = async (batchId: string) => {
-        if (!confirm("EMERGENCY: Force reset this batch session?")) return;
+        if (!confirm("EMERGENCY: Force reset this batch session?") || isSubmitting) return;
+        setIsSubmitting(true);
+        setError(null);
         try {
             const t = await token();
             await axios.post(`${APPLICATION_API_URL}/api/live/admin/batch/${batchId}/force-end`, {}, {
                 headers: { Authorization: `Bearer ${t}` }
             });
             fetchBatches();
-        } catch (err) {
-            alert("Force end failed");
+        } catch (err: any) {
+            setError("Force end failed: " + (err.response?.data?.message || err.message));
+        } finally {
+            setIsSubmitting(false);
         }
     };
 
     return (
         <div className="space-y-6">
-            <button onClick={() => setShowCreate(!showCreate)} className="bg-[#052e16] text-white px-4 py-2 rounded-lg font-bold flex items-center gap-2">
+            {error && (
+                <div className="bg-red-50 border-l-4 border-red-500 p-4 rounded text-red-700 flex justify-between">
+                    <div>
+                        <p className="font-bold">Error</p>
+                        <p className="text-sm">{error}</p>
+                    </div>
+                    <button onClick={() => setError(null)} className="text-red-500 hover:text-red-700"><X size={16} /></button>
+                </div>
+            )}
+            
+            <button disabled={isSubmitting} onClick={() => setShowCreate(!showCreate)} className="bg-[#052e16] disabled:opacity-50 text-white px-4 py-2 rounded-lg font-bold flex items-center gap-2">
                 <Plus size={18} /> Create New Batch
             </button>
 
@@ -255,7 +319,9 @@ const BatchManager = ({ token }: { token: any }) => {
                         <option value="">Select Scholar</option>
                         {scholars.map(s => <option key={s._id} value={s._id}>{s.name}</option>)}
                     </select>
-                    <button onClick={createBatch} className="bg-emerald-600 text-white px-6 py-2 rounded-lg font-bold">Save Batch</button>
+                    <button disabled={isSubmitting} onClick={createBatch} className="bg-emerald-600 disabled:opacity-50 text-white px-6 py-2 rounded-lg font-bold">
+                        {isSubmitting ? <Loader2 className="animate-spin inline" size={16} /> : 'Save Batch'}
+                    </button>
                 </div>
             )}
 
@@ -271,16 +337,70 @@ const BatchManager = ({ token }: { token: any }) => {
                         </div>
                         <div className="flex gap-2">
                             {b.status === 'active' && (
-                                <button onClick={() => handleForceEnd(b._id)} className="text-red-400 hover:text-red-600 p-2 bg-red-50 rounded-lg">
+                                <button disabled={isSubmitting} onClick={() => handleForceEnd(b._id)} className="text-red-400 hover:text-red-600 p-2 bg-red-50 rounded-lg disabled:opacity-50">
                                     <StopCircle size={18} />
                                 </button>
                             )}
-                            <button onClick={() => openManage(b)} className="text-slate-400 hover:text-blue-500 p-2"><Users size={18} /></button>
-                            <button onClick={() => deleteBatch(b._id)} className="text-slate-400 hover:text-red-500 p-2"><Trash2 size={18} /></button>
+                            <button disabled={isSubmitting} onClick={() => { setEditItem(b); fetchScholars(); }} className="text-slate-400 hover:text-emerald-500 p-2 disabled:opacity-50"><Edit size={18} /></button>
+                            <button disabled={isSubmitting} onClick={() => openManage(b)} className="text-slate-400 hover:text-blue-500 p-2 disabled:opacity-50"><Users size={18} /></button>
+                            <button disabled={isSubmitting} onClick={() => deleteBatch(b._id)} className="text-slate-400 hover:text-red-500 p-2 disabled:opacity-50"><Trash2 size={18} /></button>
                         </div>
                     </div>
                 ))}
             </div>
+            
+            {totalPages > 1 && (
+                <div className="flex justify-center items-center gap-4 py-4">
+                    <button 
+                        disabled={currentPage === 1 || isSubmitting} 
+                        onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+                        className="px-4 py-2 border rounded font-bold disabled:opacity-50"
+                    >
+                        Previous
+                    </button>
+                    <span className="font-bold text-slate-500">Page {currentPage} of {totalPages}</span>
+                    <button 
+                        disabled={currentPage === totalPages || isSubmitting} 
+                        onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
+                        className="px-4 py-2 border rounded font-bold disabled:opacity-50"
+                    >
+                        Next
+                    </button>
+                </div>
+            )}
+
+            {editItem && (
+                <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
+                    <div className="bg-white rounded-2xl w-full max-w-md p-6 space-y-6">
+                        <div className="flex justify-between items-center">
+                            <h3 className="font-bold text-xl">Edit Batch</h3>
+                            <button onClick={() => setEditItem(null)} className="p-2 hover:bg-slate-100 rounded-full"><X size={20} /></button>
+                        </div>
+                        <div className="space-y-4">
+                            <input className="w-full border p-2 rounded" placeholder="Batch Name" value={editItem.name} onChange={e => setEditItem({ ...editItem, name: e.target.value })} />
+                            <div className="grid grid-cols-2 gap-4">
+                                <select className="w-full border p-2 rounded" value={editItem.level} onChange={e => setEditItem({ ...editItem, level: e.target.value })}>
+                                    <option value="Beginner">Beginner</option>
+                                    <option value="Intermediate">Intermediate</option>
+                                    <option value="Advanced">Advanced</option>
+                                </select>
+                                <select className="w-full border p-2 rounded" value={editItem.status} onChange={e => setEditItem({ ...editItem, status: e.target.value })}>
+                                    <option value="active">Active</option>
+                                    <option value="upcoming">Upcoming</option>
+                                    <option value="archived">Archived</option>
+                                </select>
+                            </div>
+                            <select className="w-full border p-2 rounded" value={typeof editItem.scholar === 'object' ? editItem.scholar?._id : editItem.scholar} onChange={e => setEditItem({ ...editItem, scholar: e.target.value })}>
+                                <option value="">Select Scholar</option>
+                                {scholars.map(s => <option key={s._id} value={s._id}>{s.name}</option>)}
+                            </select>
+                            <button disabled={isSubmitting} onClick={saveEditBatch} className="w-full bg-emerald-600 disabled:opacity-50 text-white px-6 py-2 rounded-lg font-bold">
+                                {isSubmitting ? <Loader2 className="animate-spin mx-auto" size={16} /> : 'Save Changes'}
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
 
             {showManageStudents && selectedBatch && (
                 <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
@@ -294,14 +414,16 @@ const BatchManager = ({ token }: { token: any }) => {
                                 <h4 className="font-bold text-sm text-slate-500 uppercase">Add Student</h4>
                                 <div className="flex gap-2">
                                     <input className="border p-2 rounded w-full text-sm" placeholder="Search..." value={studentSearch} onChange={e => setStudentSearch(e.target.value)} />
-                                    <button onClick={searchParents} className="bg-blue-600 text-white px-3 rounded text-sm font-bold">Search</button>
+                                    <button disabled={isSubmitting} onClick={searchParents} className="bg-blue-600 text-white px-3 rounded text-sm font-bold disabled:opacity-50">
+                                        {isSubmitting ? <Loader2 className="animate-spin" size={16} /> : 'Search'}
+                                    </button>
                                 </div>
                                 <div className="space-y-2 max-h-60 overflow-y-auto">
                                     {foundUsers.map(u => (
                                         <div key={u._id} className="p-2 border rounded">
                                             <div className="font-bold text-xs">{u.name}</div>
                                             {u.children?.map((c: any) => (
-                                                <button key={c._id} onClick={() => addStudent(c._id)} className="w-full text-left text-xs p-1 bg-slate-100 hover:bg-slate-200 mt-1 rounded">
+                                                <button disabled={isSubmitting} key={c._id} onClick={() => addStudent(c._id)} className="w-full text-left text-xs p-1 bg-slate-100 hover:bg-slate-200 mt-1 rounded disabled:opacity-50">
                                                     Add {c.name}
                                                 </button>
                                             ))}
@@ -315,7 +437,7 @@ const BatchManager = ({ token }: { token: any }) => {
                                     {selectedBatch.students?.map((s: any) => (
                                         <div key={s._id || s} className="flex justify-between items-center bg-slate-50 p-2 rounded">
                                             <span className="text-xs">{s.name || 'Student'}</span>
-                                            <button onClick={() => removeStudent(s._id || s)} className="text-red-400"><Trash2 size={14} /></button>
+                                            <button disabled={isSubmitting} onClick={() => removeStudent(s._id || s)} className="text-red-400 disabled:opacity-50"><Trash2 size={14} /></button>
                                         </div>
                                     ))}
                                 </div>

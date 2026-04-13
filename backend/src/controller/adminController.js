@@ -201,14 +201,56 @@ export const getAdminStats = async (req, res) => {
 
 // --- PART 2: USER DASHBOARD ROLE MANAGEMENT ---
 
-// GET /api/admin/users?page=1&limit=50
+// GET /api/admin/users/search?q=query
+export const searchUsers = async (req, res) => {
+    try {
+        const query = req.query.q || '';
+        if (!query) return res.json({ users: [] });
+
+        const regex = new RegExp(query, 'i');
+        const users = await User.aggregate([
+            { $match: { $or: [{ email: regex }, { name: regex }] } },
+            { $limit: 20 },
+            {
+                $lookup: {
+                    from: "children",
+                    localField: "_id",
+                    foreignField: "parent_id",
+                    as: "children"
+                }
+            },
+            {
+                $addFields: { childCount: { $size: "$children" } }
+            }
+        ]);
+
+        res.json({ users });
+    } catch (error) {
+        console.error("Search users error:", error);
+        res.status(500).json({ message: "Error searching users. " + error.message });
+    }
+};
+
+// GET /api/admin/users?page=1&limit=50&isPaid=true
 export const getAllUsers = async (req, res) => {
     try {
         const page = parseInt(req.query.page) || 1;
         const limit = parseInt(req.query.limit) || 100;
         const skip = (page - 1) * limit;
+        const isPaid = req.query.isPaid === 'true';
+
+        let $match = {};
+        if (isPaid) {
+            $match = {
+                $or: [
+                    { "features.liveAccess": true },
+                    { "features.aiPremiumUntil": { $gt: new Date() } }
+                ]
+            };
+        }
 
         const users = await User.aggregate([
+            { $match },
             { $sort: { createdAt: -1 } },
             { $skip: skip },
             { $limit: limit },
@@ -227,7 +269,7 @@ export const getAllUsers = async (req, res) => {
             }
         ]);
 
-        const total = await User.countDocuments();
+        const total = await User.countDocuments($match);
 
         res.json({
             users,
@@ -355,10 +397,30 @@ export const getAiLogs = async (req, res) => {
 
 // --- EXISTING BATCH/SESSION METHODS (Keep for functionality) ---
 
+// GET /api/admin/batches?page=1&limit=20
 export const getBatches = async (req, res) => {
     try {
-        const batches = await Batch.find().populate('scholar', 'name').populate('students', 'name');
-        res.json(batches);
+        const page = parseInt(req.query.page) || 1;
+        const limit = parseInt(req.query.limit) || 20;
+        const skip = (page - 1) * limit;
+
+        const batches = await Batch.find()
+            .sort({ createdAt: -1 })
+            .skip(skip)
+            .limit(limit)
+            .populate('scholar', 'name')
+            .populate('students', 'name');
+            
+        const total = await Batch.countDocuments();
+
+        res.json({
+            batches,
+            pagination: {
+                total,
+                page,
+                pages: Math.ceil(total / limit)
+            }
+        });
     } catch (err) { res.status(500).json({ message: err.message }); }
 };
 

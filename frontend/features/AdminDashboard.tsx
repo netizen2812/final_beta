@@ -29,6 +29,14 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onNavigateToLive }) => 
     const [tab, setTab] = useState<'overview' | 'users' | 'paid' | 'batches' | 'sessions' | 'ailogs'>('overview');
     const [error, setError] = useState<string | null>(null);
     const [searchQuery, setSearchQuery] = useState('');
+    
+    // Pagination state
+    const [userPage, setUserPage] = useState(1);
+    const [userTotalPages, setUserTotalPages] = useState(1);
+    const [batchPage, setBatchPage] = useState(1);
+    const [batchTotalPages, setBatchTotalPages] = useState(1);
+    const [paidPage, setPaidPage] = useState(1);
+    const [paidTotalPages, setPaidTotalPages] = useState(1);
 
     // --- FETCH DATA ---
     const fetchData = async () => {
@@ -39,11 +47,13 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onNavigateToLive }) => 
             const statsRes = await axios.get(`${APPLICATION_API_URL}/api/admin/stats`, { headers });
             setStats(statsRes.data);
 
-            const usersRes = await axios.get(`${APPLICATION_API_URL}/api/admin/users`, { headers });
-            setUsers(usersRes.data);
+            const usersRes = await axios.get(`${APPLICATION_API_URL}/api/admin/users?page=${userPage}&limit=50`, { headers });
+            setUsers(usersRes.data.users || []);
+            setUserTotalPages(usersRes.data.pagination?.pages || 1);
 
-            // Fetch batches/sessions if in management mode
-            // For now lazy load them.
+            const batchesRes = await axios.get(`${APPLICATION_API_URL}/api/admin/batches?page=${batchPage}&limit=10`, { headers });
+            setBatches(batchesRes.data.batches || []);
+            setBatchTotalPages(batchesRes.data.pagination?.pages || 1);
             setError(null);
         } catch (err: any) {
             console.error("Fetch error", err);
@@ -56,10 +66,11 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onNavigateToLive }) => 
     const fetchBatches = async () => {
         try {
             const token = await getToken();
-            const res = await axios.get(`${APPLICATION_API_URL}/api/admin/batches`, {
+            const res = await axios.get(`${APPLICATION_API_URL}/api/admin/batches?page=${batchPage}&limit=10`, {
                 headers: { Authorization: `Bearer ${token}` }
             });
-            setBatches(res.data);
+            setBatches(res.data.batches || []);
+            setBatchTotalPages(res.data.pagination?.pages || 1);
         } catch (e) {
             console.error("Batches error", e);
         }
@@ -114,15 +125,33 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onNavigateToLive }) => 
         }
     };
 
+    const fetchPaidUsers = async () => {
+        setLoading(true);
+        try {
+            const token = await getToken();
+            const res = await axios.get(`${APPLICATION_API_URL}/api/admin/users?isPaid=true&page=${paidPage}&limit=50`, {
+                headers: { Authorization: `Bearer ${token}` }
+            });
+            setUsers(res.data.users || []);
+            setPaidTotalPages(res.data.pagination?.pages || 1);
+        } catch (e) {
+            console.error("Paid users error", e);
+        } finally {
+            setLoading(false);
+        }
+    };
+
     useEffect(() => {
         fetchData();
         fetchAnalytics();
     }, []);
 
     useEffect(() => {
+        if (tab === 'users') fetchData();
+        if (tab === 'paid') fetchPaidUsers();
         if (tab === 'batches' || tab === 'sessions') fetchManagementData();
         if (tab === 'ailogs') fetchAiLogs();
-    }, [tab]);
+    }, [tab, userPage, batchPage, paidPage]);
 
     // --- ACTIONS ---
     const handleRoleUpdate = async (userId: string, newRole: string) => {

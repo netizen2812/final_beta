@@ -80,7 +80,15 @@ export const createBatch = async (req, res) => {
             return res.status(400).json({ message: "Missing required fields (name, scholar)" });
         }
 
+        // Schedule validation
+        const validSchedule = {
+            days: Array.isArray(schedule?.days) ? schedule.days : [],
+            time: typeof schedule?.time === 'string' ? schedule.time : "00:00 UTC",
+            durationMinutes: typeof schedule?.durationMinutes === 'number' ? schedule.durationMinutes : 60
+        };
+
         const { default: Batch } = await import("../models/Batch.js");
+        const mongoose = (await import("mongoose")).default;
 
         // --- RESOLVE SCHOLAR EMAIL TO ID ---
         if (typeof scholar === 'string' && scholar.includes('@')) {
@@ -90,12 +98,25 @@ export const createBatch = async (req, res) => {
             } else {
                 return res.status(404).json({ message: `Scholar with email ${scholar} not found` });
             }
+        } else if (typeof scholar === 'string') {
+            if (!mongoose.Types.ObjectId.isValid(scholar)) {
+                return res.status(400).json({ message: "Invalid Scholar ID format" });
+            }
+            const resolvedScholar = await User.findById(scholar);
+            if (!resolvedScholar) {
+                return res.status(404).json({ message: "Scholar not found" });
+            }
+        }
+
+        const duplicate = await Batch.findOne({ name, scholar });
+        if (duplicate) {
+            return res.status(400).json({ message: "A batch with this name already exists for this scholar." });
         }
 
         const batch = await Batch.create({
             name,
             scholar,
-            schedule: schedule || {},
+            schedule: validSchedule,
             level: level || 'Beginner',
             status: status || 'upcoming'
         });
@@ -122,11 +143,27 @@ export const createBatch = async (req, res) => {
 // ADMIN: GET /api/live/admin/batches - List all batches
 export const getAdminBatches = async (req, res) => {
     try {
+        const page = parseInt(req.query.page) || 1;
+        const limit = parseInt(req.query.limit) || 20;
+        const skip = (page - 1) * limit;
+
         const { default: Batch } = await import("../models/Batch.js");
         const batches = await Batch.find({}).sort({ createdAt: -1 })
+            .skip(skip)
+            .limit(limit)
             .populate('scholar', 'name email')
-            .populate('students', 'name email'); // Populate students with name and email for Admin UI
-        res.json(batches);
+            .populate('students', 'name email');
+
+        const total = await Batch.countDocuments();
+
+        res.json({
+            batches,
+            pagination: {
+                total,
+                page,
+                pages: Math.ceil(total / limit)
+            }
+        });
     } catch (error) {
         console.error("Get admin batches error:", error);
         res.status(500).json({ message: "Server error" });
@@ -162,7 +199,17 @@ export const updateBatch = async (req, res) => {
 export const deleteBatch = async (req, res) => {
     try {
         const { default: Batch } = await import("../models/Batch.js");
+        const { default: Session } = await import("../models/Session.js");
+        const { default: Child } = await import("../models/Child.js");
+
+        const batch = await Batch.findById(req.params.id);
+        if (!batch) return res.status(404).json({ message: "Batch not found" });
+
+        await Session.deleteMany({ batchId: batch._id });
+        await Child.updateMany({ batch: batch._id }, { $set: { batch: null } });
+        
         await Batch.findByIdAndDelete(req.params.id);
+
         res.json({ message: "Batch deleted" });
     } catch (error) {
         res.status(500).json({ message: "Server error" });
@@ -446,7 +493,7 @@ export const joinBatch = async (req, res) => {
         await session.save();
 
         // 🔥 SYNC: Add to Batch.activeParticipants for real-time scholar view
-        const pIdxBatch = batch.activeParticipants.findIndex(p => p.childId === childId);
+        const pIdxBatch = batch.activeParticipants.findIndex(p => p.childId.toString() === childId.toString());
         if (pIdxBatch > -1) {
             batch.activeParticipants[pIdxBatch].isActive = true;
             batch.activeParticipants[pIdxBatch].lastSeen = new Date();
@@ -786,17 +833,23 @@ export const getBatchActiveParticipants = async (req, res) => {
         if (!batch) return res.status(404).json({ message: "Batch not found" });
 
         const nowMs = Date.now();
+        const expiredIds = [];
 
-        let dirty = false;
         batch.activeParticipants.forEach(p => {
             const lastSeenMs = p.lastSeen ? new Date(p.lastSeen).getTime() : 0;
             if (p.isActive && (nowMs - lastSeenMs > PARTICIPANT_ACTIVE_MS)) {
                 p.isActive = false;
-                dirty = true;
+                expiredIds.push(p.childId);
             }
         });
 
-        if (dirty) await batch.save();
+        if (expiredIds.length > 0) {
+            await Batch.updateOne(
+                { _id: id },
+                { $set: { "activeParticipants.$[elem].isActive": false } },
+                { arrayFilters: [{ "elem.childId": { $in: expiredIds } }] }
+            );
+        }
 
         const liveParticipants = batch.activeParticipants.filter(p => p.isActive);
 

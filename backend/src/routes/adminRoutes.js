@@ -2,6 +2,7 @@ import express from "express";
 import { requireAuth, isAdmin } from "../middleware/authmiddleware.js";
 import {
     getAdminStats,
+    searchUsers,
     getAllUsers,
     updateUser,
     resetUserProgress,
@@ -23,6 +24,7 @@ router.use(requireAuth, isAdmin);
 router.get("/stats", getAdminStats);
 
 // User Management
+router.get("/users/search", searchUsers);
 router.get("/users", getAllUsers);
 router.patch("/user/:id", updateUser); // specific field updates
 router.post("/user/:id/reset-progress", resetUserProgress);

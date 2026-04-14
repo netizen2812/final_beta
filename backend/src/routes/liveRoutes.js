@@ -48,6 +48,7 @@ router.get("/batch/:id/students", requireAuth, canAccessBatch, getBatchStudents)
 router.get("/batch/:id/state", requireAuth, canAccessBatch, getBatchState);
 router.get("/batch/:id/attendance/:childId", requireAuth, canAccessBatch, getBatchAttendance);
 router.post("/batch/:id/select-turn", requireAuth, isScholar, selectTurn);
+router.post("/batch/:id/set-turn", requireAuth, isScholar, selectTurn); // Alias for backward compatibility
 router.post("/batch/:id/score-recitation", requireAuth, isScholar, scoreRecitation);
 
 router.post("/batch/:id/score-participation", requireAuth, isScholar, scoreParticipation);

@@ -113,6 +113,20 @@ export const useClassroomSync = (
         });
       }
     })
+    .on('broadcast', { event: 'turn-assigned' }, ({ payload }) => {
+      if (payload.ts > lastSyncTsRef.current) {
+        lastSyncTsRef.current = payload.ts;
+        queryClient.setQueryData(['batchState', batchId, childId], (old: any) => {
+          if (!old) return old;
+          return { ...old, activeChildId: payload.activeChildId };
+        });
+
+        // If it's my turn as a student, sync to the specified surah/ayah
+        if (userRole === 'parent' && payload.activeChildId === childId && payload.surah) {
+          onSync?.(payload.surah, payload.ayah);
+        }
+      }
+    })
     .on('broadcast', { event: 'qaida-sync' }, ({ payload }) => {
       if (payload.isOpen !== undefined) setShowQaidaViewer(payload.isOpen);
       if (payload.language && payload.pageNumber) {

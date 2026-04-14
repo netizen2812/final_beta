@@ -6,7 +6,7 @@ export const useClassroomActions = (getToken: () => Promise<string | null>, sync
   const handleSetTurn = async (childId: string, batchId: string, surah?: number, ayah?: number) => {
     try {
       const token = await getToken();
-      await axios.post(`${APPLICATION_API_URL}/api/live/batch/${batchId}/set-turn`, { 
+      await axios.post(`${APPLICATION_API_URL}/api/live/batch/${batchId}/select-turn`, { 
         activeChildId: childId 
       }, { headers: { Authorization: `Bearer ${token}` } });
       

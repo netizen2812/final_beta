@@ -88,7 +88,6 @@ export const TarbiyahLobby = ({
   getToken, 
   onJoinSession,
   userRole = 'parent',
-  scholarBatches = [],
   onScholarJoinSession,
   attendedSessionIds = [],
   attendanceHistory = [],
@@ -99,7 +98,6 @@ export const TarbiyahLobby = ({
   getToken: any, 
   onJoinSession: (s: any) => void,
   userRole?: 'parent' | 'scholar',
-  scholarBatches?: any[],
   onScholarJoinSession?: (b: any) => void,
   attendedSessionIds?: string[],
   attendanceHistory?: any[],
@@ -273,7 +271,7 @@ export const TarbiyahLobby = ({
               return (
                 <ScholarJourneyView 
                   scrollProgress={scrollProgress} 
-                  batches={scholarBatches} 
+                  batches={batches} 
                   onJoinSession={onScholarJoinSession!} 
                   initialBatchId={targetBatchId} 
                 />
@@ -282,7 +280,7 @@ export const TarbiyahLobby = ({
             if (view === 'scholar_dashboard') {
               return (
                 <ScholarDashboardView 
-                  batches={scholarBatches} 
+                  batches={batches} 
                   onJoinSession={(batch: any) => { if (batch?._id) { setTargetBatchId(batch._id); setView('scholar_journey'); } }} 
                   attendedSessionIds={attendedSessionIds}
                   setShowScholarManage={setShowScholarManage}

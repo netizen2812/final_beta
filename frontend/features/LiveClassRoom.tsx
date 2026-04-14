@@ -151,6 +151,21 @@ const LiveClassRoom: React.FC = () => {
     setCurrentSession(null);
   };
 
+  const handleScholarJoinSession = async (batch: any) => {
+    try {
+      const token = await getToken();
+      const res = await axios.post(`${APPLICATION_API_URL}/api/live/${batch._id}/start`, {}, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      if (res.data.session) {
+        joinedSessionIdRef.current = res.data.session.sessionId || res.data.session._id || null;
+        setCurrentSession(res.data.session);
+      }
+    } catch (err: any) {
+      alert(err.response?.data?.message || "Failed to start live session");
+    }
+  };
+
   const emitPosition = useCallback((surahNumber: number, ayahNumber: number) => {
     if (!currentSession?.batchId || userRole === 'scholar') return;
     
@@ -372,7 +387,8 @@ const LiveClassRoom: React.FC = () => {
     <TarbiyahLobby 
       getToken={getToken} 
       onJoinSession={(session) => { joinedSessionIdRef.current = session?.sessionId || session?._id || null; setCurrentSession(session); }} 
-      userRole={userRole}
+      onScholarJoinSession={handleScholarJoinSession}
+      userRole={userRole as 'parent' | 'scholar'}
       attendedSessionIds={attendedSessionIds}
       attendanceHistory={attendanceHistory}
       isAdmin={tarbiyahIsAdmin}

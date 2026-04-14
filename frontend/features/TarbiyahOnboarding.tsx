@@ -10,6 +10,8 @@ import {
 } from 'lucide-react';
 import { useAuth, SignInButton } from '@clerk/clerk-react';
 import { useTranslation } from 'react-i18next';
+import axios from 'axios';
+import { loadRazorpayScript } from '../utils/razorpay';
 import { MovingBackground } from './TarbiyahLobby';
 
 import { useChildContext } from '../contexts/ChildContext';

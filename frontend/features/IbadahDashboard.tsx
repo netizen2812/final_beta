@@ -39,6 +39,7 @@ import { Analytics } from '../utils/analytics';
 import { getPrayerTimings, getHijriDate, getCalendarMonth, formatDateForAPI } from '../services/aladhan';
 import { useTranslation } from 'react-i18next';
 import { APPLICATION_API_URL } from '../lib/api';
+import axios from 'axios';
 
 // --- TYPES & CONSTANTS ---
 

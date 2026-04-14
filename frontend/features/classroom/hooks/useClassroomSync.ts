@@ -29,7 +29,8 @@ export const useClassroomSync = (
   childId: string | undefined, 
   getToken: () => Promise<string | null>,
   userRole: string,
-  onXpGain?: (amount: number) => void
+  onXpGain?: (amount: number) => void,
+  onSync?: (surah: number, ayah: number) => void
 ) => {
   const queryClient = useQueryClient();
   const [activeSessions, setActiveSessions] = useState<any[]>([]);
@@ -127,7 +128,47 @@ export const useClassroomSync = (
         });
       }
     })
-    .subscribe();
+    // ⚡ Handshake: Scholar responds to sync requests
+    .on('broadcast', { event: 'sync-request' }, () => {
+      if (userRole === 'scholar' && batchState?.activeChildId) {
+        const activeStudent = batchState.activeParticipants?.find(p => p.childId === batchState.activeChildId);
+        channel.send({
+          type: 'broadcast',
+          event: 'current-state',
+          payload: {
+            activeChildId: batchState.activeChildId,
+            surah: activeStudent?.currentSurah,
+            ayah: activeStudent?.currentAyah,
+            ts: Date.now()
+          }
+        });
+      }
+    })
+    // ⚡ Handshake: Student receives current state from scholar
+    .on('broadcast', { event: 'current-state' }, ({ payload }) => {
+      if (userRole === 'parent' && payload.ts > lastSyncTsRef.current) {
+        lastSyncTsRef.current = payload.ts;
+        queryClient.setQueryData(['batchState', batchId, childId], (old: any) => {
+           if (!old) return old;
+           return { ...old, activeChildId: payload.activeChildId };
+        });
+        
+        // ⚡ Trigger local jump if it's my turn
+        if (payload.activeChildId === childId && payload.surah) {
+          onSync?.(payload.surah, payload.ayah);
+        }
+      }
+    })
+    .subscribe((status) => {
+      if (status === 'SUBSCRIBED' && userRole === 'parent') {
+        // 🆕 Student broadcasts a sync request upon connection to align instantly
+        channel.send({
+          type: 'broadcast',
+          event: 'sync-request',
+          payload: { ts: Date.now() }
+        });
+      }
+    });
 
     return () => {
       supabase.removeChannel(channel);

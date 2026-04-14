@@ -191,11 +191,11 @@ const HadithPage = ({ onBack }: { onBack: () => void }) => {
   const fetchHadith = async () => {
     setLoading(true);
     try {
-      const res = await fetch(`${APPLICATION_API_URL}/api/ibadah/hadith/daily`);
-      const data = await res.json();
-      setHadith(data);
+      const res = await axios.get(`${APPLICATION_API_URL}/api/ibadah/hadith/daily`);
+      setHadith(res.data);
     } catch (e) {
       console.error("Hadith fetch failed", e);
+      // Optional: Set a fallback hadith here if needed
     } finally {
       setLoading(false);
     }
@@ -300,9 +300,8 @@ const ZakatCalcPage = ({ onResult, onBack }: { onResult: (result: any) => void; 
   useEffect(() => {
     const fetchPrices = async () => {
       try {
-        const res = await fetch(`${APPLICATION_API_URL}/api/ibadah/zakat/prices`);
-        const data = await res.json();
-        setMarketPrices(data);
+        const res = await axios.get(`${APPLICATION_API_URL}/api/ibadah/zakat/prices`);
+        setMarketPrices(res.data);
       } catch (e) {
         console.warn("Metal prices fetch failed", e);
       }
@@ -321,19 +320,15 @@ const ZakatCalcPage = ({ onResult, onBack }: { onResult: (result: any) => void; 
   const calculate = async () => {
     setLoading(true);
     try {
-      const response = await fetch(`${APPLICATION_API_URL}/api/ibadah/zakat/calculate`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          cash: parseFloat(cash) || 0,
-          gold_grams: parseFloat(gold) || 0,
-          silver_grams: parseFloat(silver) || 0,
-          investments: parseFloat(investments) || 0,
-          liabilities: parseFloat(liabilities) || 0,
-          prices: marketPrices // Send live prices to backend if available
-        })
+      const response = await axios.post(`${APPLICATION_API_URL}/api/ibadah/zakat/calculate`, {
+        cash: parseFloat(cash) || 0,
+        gold_grams: parseFloat(gold) || 0,
+        silver_grams: parseFloat(silver) || 0,
+        investments: parseFloat(investments) || 0,
+        liabilities: parseFloat(liabilities) || 0,
+        prices: marketPrices 
       });
-      const result = await response.json();
+      const result = response.data;
       setLoading(false);
 
       Analytics.trackEvent('zakat_calculated', {

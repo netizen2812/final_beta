@@ -98,6 +98,11 @@ const LiveClassRoom: React.FC = () => {
     (gain) => {
         triggerRewardAnimation(gain);
         setCurrentSessionScore(prev => prev + gain);
+    },
+    (surah, ayah) => {
+      if (userRole === 'parent') {
+        setCurrentSession(prev => prev ? { ...prev, currentSurah: surah, currentAyah: ayah } : null);
+      }
     }
   );
 

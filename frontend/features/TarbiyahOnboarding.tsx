@@ -8,8 +8,8 @@ import {
   Trophy, Flame, Target, Zap, Eye, Mic,
   Award, Map, BarChart2, Heart, HelpCircle, User
 } from 'lucide-react';
-import axios from 'axios';
-import { loadRazorpayScript } from '../utils/razorpay';
+import { useAuth, SignInButton } from '@clerk/clerk-react';
+import { useTranslation } from 'react-i18next';
 import { MovingBackground } from './TarbiyahLobby';
 
 import { useChildContext } from '../contexts/ChildContext';
@@ -58,8 +58,8 @@ export const TarbiyahOnboarding = ({ getToken, isPaid = false, handleGuestJoin }
             <div className="w-20 h-20 bg-emerald-500/20 rounded-3xl flex items-center justify-center mx-auto mb-6 border border-emerald-500/30">
               <User size={40} className="text-emerald-400" />
             </div>
-            <h2 className="text-3xl font-serif font-black mb-2">Create Profile</h2>
-            <p className="text-emerald-200/60">Let's set up your child's journey</p>
+            <h2 className="text-3xl font-serif font-black mb-2">Welcome Back!</h2>
+            <p className="text-emerald-200/60 font-medium">Let's set up your child's journey profile to get started.</p>
           </div>
 
           <form onSubmit={handleCreateProfile} className="space-y-6">
@@ -204,6 +204,15 @@ export const TarbiyahOnboarding = ({ getToken, isPaid = false, handleGuestJoin }
             >
               Learn More / FAQs <MessageCircle size={20} />
             </button>
+          </div>
+
+          <div className="pt-4 animate-in fade-in duration-1000 delay-500">
+             <p className="text-emerald-100/40 text-sm font-medium">
+                Already a member? 
+                <SignInButton mode="modal">
+                  <button className="ml-2 text-emerald-400 font-bold hover:text-emerald-300 underline underline-offset-4 decoration-emerald-500/30">Sign In to Continue</button>
+                </SignInButton>
+             </p>
           </div>
           
           {/* Floating Stats */}

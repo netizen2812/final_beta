@@ -24,33 +24,13 @@ export const DAILY_QUEST = {
 export const JOURNEY_STAGES = [
   {
     id: 1,
-    title: 'Welcome to Ramadan',
-    subtitle: 'The Month of the Quran',
-    type: 'Ramadan',
-    duration: '5 min',
-    icon: React.createElement(Moon, { size: 24 }),
-    color: 'bg-emerald-500/20 text-emerald-300 border-emerald-500/50',
-    locked: false,
-    progress: 0,
-    stars: 0,
-    description: "Discover why Ramadan is called the 'Month of the Quran' and learn about the special blessings of this month.",
-    xpReward: 50,
-    videoUrl: "https://www.youtube.com/embed/5tAmtxn76a0",
-    mcqs: [
-      { q: "Why is Ramadan also called the 'Month of the Quran'?", options: ["Because Muslims fast during the day", "Because the Quran was revealed to the Prophet ﷺ in this month", "Because Eid is celebrated after Ramadan"], answer: "Because the Quran was revealed to the Prophet ﷺ in this month", reference: "Surah Al-Baqarah 2:185" },
-      { q: "What happens to Shaytan (Satan) during Ramadan?", options: ["He becomes more powerful", "He is imprisoned / locked away", "He travels to other planets"], answer: "He is imprisoned / locked away", reference: "Ramadan Virtues" },
-      { q: "Who is the Quran's final revealed message for?", options: ["Only for adults", "Only for Arabs", "All of humanity, as guidance and light"], answer: "All of humanity, as guidance and light", reference: "Purpose of the Quran" },
-    ]
-  },
-  {
-    id: 2,
     title: 'The Wise Little Ant',
     subtitle: 'Lessons from Surah An-Naml',
     type: 'Stories',
     duration: '8 min',
     icon: React.createElement(Bug, { size: 24 }),
     color: 'bg-amber-500/20 text-amber-300 border-amber-500/50',
-    locked: true,
+    locked: false, // Unlock the new first stage
     progress: 0,
     stars: 0,
     description: "Explore the story of Prophet Sulayman (AS) and the ant colony, learning about teamwork and gratitude.",

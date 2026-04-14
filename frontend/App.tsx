@@ -282,7 +282,7 @@ const App: React.FC = () => {
         <div className="h-[100dvh] w-full flex flex-col bg-white relative overflow-hidden transition-all duration-500">
           {/* 🏥 HEADER */}
           <header
-            className="absolute top-0 left-0 right-0 h-16 flex items-center justify-between px-6 z-50 bg-white/80 backdrop-blur-xl border-b border-emerald-50/50"
+            className="absolute top-0 left-0 right-0 h-16 flex items-center justify-between px-6 z-[100] bg-white/90 backdrop-blur-xl border-b border-emerald-50/50 shadow-sm"
           >
             <div className="flex items-center gap-2">
               <img src="/imam_logo.png" alt="Logo" className="h-7 object-contain" />
@@ -314,7 +314,7 @@ const App: React.FC = () => {
               </div>
               <SignedOut>
                 <SignInButton mode="modal">
-                  <button className="px-4 py-1.5 bg-[#052e16] text-white rounded-full text-[10px] font-black uppercase tracking-widest shadow-lg active:scale-95 transition-all">
+                  <button className="px-5 py-2 bg-[#052e16] text-white rounded-full text-[11px] font-black uppercase tracking-widest shadow-[0_10px_30px_rgba(5,46,22,0.3)] active:scale-95 transition-all animate-in fade-in slide-in-from-top-2 duration-500">
                     {t('nav.signIn', 'Sign In')}
                   </button>
                 </SignInButton>

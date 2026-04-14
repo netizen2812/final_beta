@@ -233,23 +233,13 @@ export const TarbiyahLobby = ({
     return <div className="min-h-screen flex items-center justify-center bg-[#020202]"><Loader2 className="animate-spin text-emerald-400" size={48} /></div>;
   }
 
-  if (!isLoggedIn) {
+  // RESTORED LOGIN WALL: Guests must see Onboarding/Payment screen before access to Map
+  if (!isLoggedIn && userRole !== 'scholar') {
      return (
-       <div className="min-h-screen relative font-sans selection:bg-emerald-500 bg-[#020202]">
-         <TarbiyahOnboarding 
-           getToken={getToken} 
-           isPaid={false} 
-           handleGuestJoin={() => setShowGuestModal(true)} 
-         />
-         <GuestEmailModal 
-           isOpen={showGuestModal} 
-           onClose={() => setShowGuestModal(false)} 
-           onConfirm={(email) => { setShowGuestModal(false); handleRequestAccess(email); }}
-         />
-         {showSuccessOverlay && (
-           <SuccessOverlay onSignUp={() => openSignUp({ afterSignUpUrl: '/tarbiyah' })} />
-         )}
-       </div>
+       <TarbiyahOnboarding 
+         getToken={getToken} 
+         handleGuestJoin={() => setShowGuestModal(true)} 
+       />
      );
   }
 
@@ -408,13 +398,17 @@ const KidsView = ({ scrollProgress, activeChild, onJoinLive, currentBatchStatus,
   const currentDraw = (scrollProgress || 0) * 2.0;
   const fillPercentage = Math.min(currentDraw, maxPercentage || 0);
 
-  // GUESTS CAN PASS THROUGH: Logic moved to handleNodeClick
-  // Auth state now handled at the root TarbiyahLobby level
-  const isLoggedIn = true; // Always true because guests bypass KidsView now
+  // Simplified auth check for internal view logic
+  const { isSignedIn: clerkIsSignedIn } = useUser();
+  const isLoggedIn = clerkIsSignedIn;
 
   if (isLoggedIn && !userRole.includes('scholar')) {
-    if (loadingChildren || !accessStatus) return <div className="min-h-screen flex items-center justify-center"><Loader2 className="animate-spin text-emerald-400" size={48} /></div>;
-    if (!hasPremium || (accessStatus?.hasAccess && (!childrenList || childrenList.length === 0))) return <TarbiyahOnboarding getToken={getToken} isPaid={accessStatus?.hasAccess} />;
+    if (loadingChildren) return <div className="min-h-screen flex items-center justify-center bg-[#022c22]"><Loader2 className="animate-spin text-emerald-400" size={48} /></div>;
+    
+    // Only show onboarding if they are logged in but have no children or no premium (unless they are a guest)
+    if (!hasPremium || (accessStatus?.hasAccess && (!childrenList || childrenList.length === 0))) {
+       return <TarbiyahOnboarding getToken={getToken} isPaid={accessStatus?.hasAccess} />;
+    }
   }
 
   return (

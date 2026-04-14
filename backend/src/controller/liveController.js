@@ -471,41 +471,70 @@ export const joinBatch = async (req, res) => {
         if (!session) return res.status(404).json({ success: false, message: "Active session metadata not found" });
 
         const childName = child.name || "Student";
-        const participantIdx = session.attendance.findIndex(p => p.childId.toString() === childId);
-        let isFirstJoin = false;
+        
+        // 1. Atomically add to Session attendance if not already there
+        const atomicSession = await Session.findOneAndUpdate(
+            { _id: batch.activeSessionId, "attendance.childId": { $ne: childId } },
+            { 
+                $push: { 
+                    attendance: {
+                        childId,
+                        childName,
+                        isActive: true,
+                        lastSeen: new Date(),
+                        joinedAt: new Date(),
+                        status: 'present'
+                    }
+                }
+            },
+            { new: true }
+        );
 
-        if (participantIdx > -1) {
-            if (!session.attendance[participantIdx].isActive) isFirstJoin = true;
-            session.attendance[participantIdx].isActive = true;
-            session.attendance[participantIdx].lastSeen = new Date();
+        // If atomicSession is null, it means child was already in attendance, so just update isActive/lastSeen
+        let isFirstJoin = false;
+        if (!atomicSession) {
+            await Session.findOneAndUpdate(
+                { _id: batch.activeSessionId, "attendance.childId": childId },
+                { 
+                    $set: { 
+                        "attendance.$.isActive": true, 
+                        "attendance.$.lastSeen": new Date() 
+                    } 
+                },
+                { new: true }
+            );
         } else {
             isFirstJoin = true;
-            session.attendance.push({
-                childId,
-                childName,
-                isActive: true,
-                lastSeen: new Date(),
-                joinedAt: new Date(),
-                status: 'present'
-            });
         }
 
-        await session.save();
+        // 2. Atomically update Batch.activeParticipants for real-time scholar view
+        const updatedBatch = await Batch.findOneAndUpdate(
+            { _id: id, "activeParticipants.childId": { $ne: childId } },
+            {
+                $push: {
+                    activeParticipants: {
+                        childId,
+                        childName,
+                        isActive: true,
+                        lastSeen: new Date()
+                    }
+                }
+            },
+            { new: true }
+        );
 
-        // 🔥 SYNC: Add to Batch.activeParticipants for real-time scholar view
-        const pIdxBatch = batch.activeParticipants.findIndex(p => p.childId.toString() === childId.toString());
-        if (pIdxBatch > -1) {
-            batch.activeParticipants[pIdxBatch].isActive = true;
-            batch.activeParticipants[pIdxBatch].lastSeen = new Date();
-        } else {
-            batch.activeParticipants.push({
-                childId,
-                childName,
-                isActive: true,
-                lastSeen: new Date()
-            });
+        if (!updatedBatch) {
+            // Child already in activeParticipants, just update activity
+            await Batch.updateOne(
+                { _id: id, "activeParticipants.childId": childId },
+                { 
+                    $set: { 
+                        "activeParticipants.$.isActive": true, 
+                        "activeParticipants.$.lastSeen": new Date() 
+                    } 
+                }
+            );
         }
-        await batch.save();
 
         if (isFirstJoin) {
             const { awardXP } = await import("../services/gamificationService.js");

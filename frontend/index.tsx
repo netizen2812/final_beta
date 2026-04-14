@@ -15,22 +15,35 @@ if (!clerkPubKey) {
   throw new Error("Missing VITE_CLERK_PUBLISHABLE_KEY");
 }
 console.log("🔐 Clerk Key Loaded:", clerkPubKey.startsWith("pk_test") ? "TEST MODE" : "LIVE MODE");
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+
+const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      retry: 1,
+      refetchOnWindowFocus: false,
+    },
+  },
+});
+
 const root = ReactDOM.createRoot(rootElement);
 console.log("💓 index.tsx: Attempting to Mount React");
 root.render(
   <React.StrictMode>
-    <ClerkProvider 
-      publishableKey={clerkPubKey}
-      localization={{
-        signIn: {
-          start: {
-            title: "Sign in to Imam",
+    <QueryClientProvider client={queryClient}>
+      <ClerkProvider 
+        publishableKey={clerkPubKey}
+        localization={{
+          signIn: {
+            start: {
+              title: "Sign in to Imam",
+            },
           },
-        },
-      }}
-    >
-      <App />
-    </ClerkProvider>
+        }}
+      >
+        <App />
+      </ClerkProvider>
+    </QueryClientProvider>
   </React.StrictMode>,
 );
 console.log("💓 index.tsx: Render called");

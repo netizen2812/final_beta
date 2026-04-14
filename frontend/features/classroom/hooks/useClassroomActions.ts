@@ -1,7 +1,9 @@
+import { useQueryClient } from '@tanstack/react-query';
 import axios from 'axios';
 import { APPLICATION_API_URL } from '../../../lib/api';
 
-export const useClassroomActions = (getToken: () => Promise<string | null>, syncChannelRef: React.MutableRefObject<any>) => {
+export const useClassroomActions = (syncChannelRef: React.MutableRefObject<any>, getToken: () => Promise<string | null>) => {
+  const queryClient = useQueryClient();
   
   const handleSetTurn = async (childId: string, batchId: string, surah?: number, ayah?: number) => {
     try {
@@ -9,6 +11,12 @@ export const useClassroomActions = (getToken: () => Promise<string | null>, sync
       await axios.post(`${APPLICATION_API_URL}/api/live/batch/${batchId}/select-turn`, { 
         activeChildId: childId 
       }, { headers: { Authorization: `Bearer ${token}` } });
+      
+      // ⚡ INSTANT LOCAL UPDATE: Update React Query cache so Scholar sees Quran immediately
+      queryClient.setQueryData(['batchState', batchId, undefined], (old: any) => {
+        if (!old) return old;
+        return { ...old, activeChildId: childId };
+      });
       
       if (syncChannelRef.current) {
         syncChannelRef.current.send({

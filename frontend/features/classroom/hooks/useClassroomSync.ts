@@ -114,6 +114,7 @@ export const useClassroomSync = (
       }
     })
     .on('broadcast', { event: 'turn-assigned' }, ({ payload }) => {
+      // ⚡ Update local state instantly when turn is assigned (for both scholar and student)
       if (payload.ts > lastSyncTsRef.current) {
         lastSyncTsRef.current = payload.ts;
         queryClient.setQueryData(['batchState', batchId, childId], (old: any) => {

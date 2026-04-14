@@ -15,10 +15,11 @@ export const ObservationControls: React.FC<ObservationControlsProps> = ({
   onSubmitPrompt
 }) => {
   const [hasVoted, setHasVoted] = useState(false);
-
-  // Reset vote status if activeChildId changes (new turn)
-  const currentTurnId = batchState?.activeChildId;
   const [lastTurnId, setLastTurnId] = useState<string | null>(null);
+
+  if (!batchState?.activeChildId) return null;
+
+  const currentTurnId = batchState.activeChildId;
 
   if (currentTurnId !== lastTurnId) {
     setLastTurnId(currentTurnId);
@@ -38,7 +39,7 @@ export const ObservationControls: React.FC<ObservationControlsProps> = ({
         </div>
         <div className="text-center">
           <p className="text-white font-bold">Vote Recorded!</p>
-          <p className="text-emerald-400/60 text-[10px] uppercase font-black tracking-widest mt-1">Thanks for participating</p>
+          <p className="text-emerald-400/60 text-[10px] uppercase font-black tracking-widest mt-1">Waiting for scholar's evaluation...</p>
         </div>
       </div>
     );

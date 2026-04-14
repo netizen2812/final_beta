@@ -28,14 +28,14 @@ export const useClassroomActions = (syncChannelRef: React.MutableRefObject<any>,
     } catch (err) { console.error(err); }
   };
 
-  const handleScoreRecitation = async (childId: string, batchId: string, rating: number) => {
+  const handleScoreRecitation = async (childId: string, batchId: string, rating: number, correctAnswer?: 'yes' | 'no') => {
     try {
       const token = await getToken();
       const pointsMap = [0, 2, 5, 7, 10];
       const xpGained = pointsMap[rating] || 0;
       
       await axios.post(`${APPLICATION_API_URL}/api/live/batch/${batchId}/score-recitation`, { 
-        childId, rating 
+        childId, score: rating, correctAnswer 
       }, { headers: { Authorization: `Bearer ${token}` } });
 
       if (syncChannelRef.current) {

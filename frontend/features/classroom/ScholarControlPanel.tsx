@@ -6,7 +6,7 @@ interface ScholarControlPanelProps {
   batchId: string;
   activeSessions: any[];
   batchState: any;
-  onScoreRecitation: (childId: string, batchId: string, rating: number) => void;
+  onScoreRecitation: (childId: string, batchId: string, rating: number, correctAnswer?: 'yes' | 'no') => void;
   onScoreParticipation: (childId: string, batchId: string) => void;
   onEvaluatePrompt: (correctAnswer: 'yes' | 'no') => void;
   onSetTurn: (childId: string | null, batchId: string) => void;
@@ -27,6 +27,7 @@ export const ScholarControlPanel: React.FC<ScholarControlPanelProps> = ({
   isMobile
 }) => {
   const [selectedRating, setSelectedRating] = useState<number | null>(null);
+  const [selectedCorrectAnswer, setSelectedCorrectAnswer] = useState<'yes' | 'no' | null>(null);
 
   if (!activeChildId) return null;
 
@@ -34,11 +35,12 @@ export const ScholarControlPanel: React.FC<ScholarControlPanelProps> = ({
 
   const handleFinishRecitation = () => {
     if (selectedRating !== null) {
-      onScoreRecitation(activeChildId, batchId, selectedRating);
+      onScoreRecitation(activeChildId, batchId, selectedRating, selectedCorrectAnswer || undefined);
       // Wait a tiny bit for the XP event to broadcast before shutting the view
       setTimeout(() => {
         onSetTurn(null, batchId);
         setSelectedRating(null);
+        setSelectedCorrectAnswer(null);
       }, 500);
     }
   };
@@ -59,12 +61,20 @@ export const ScholarControlPanel: React.FC<ScholarControlPanelProps> = ({
           </div>
         </div>
         
-        {!batchState?.promptEvaluated && (batchState?.currentPromptAnswers?.length || 0) > 0 && (
-          <div className="grid grid-cols-2 gap-2 mt-4">
-            <button onClick={() => onEvaluatePrompt('yes')} className="bg-emerald-500/20 hover:bg-emerald-500/30 text-emerald-300 py-2 rounded-xl font-black text-[9px] uppercase border border-emerald-500/30 transition-all">✓ Perfect</button>
-            <button onClick={() => onEvaluatePrompt('no')} className="bg-red-500/10 hover:bg-red-500/20 text-red-400 py-2 rounded-xl font-black text-[9px] uppercase border border-red-500/20 transition-all">✗ Mistake</button>
-          </div>
-        )}
+        <div className="grid grid-cols-2 gap-2 mt-4">
+          <button 
+            onClick={() => setSelectedCorrectAnswer('yes')} 
+            className={`py-2 rounded-xl font-black text-[9px] uppercase border transition-all ${selectedCorrectAnswer === 'yes' ? 'bg-emerald-500 text-black border-white shadow-lg' : 'bg-emerald-500/10 text-emerald-300 border-emerald-500/30'}`}
+          >
+            ✓ Perfect
+          </button>
+          <button 
+            onClick={() => setSelectedCorrectAnswer('no')} 
+            className={`py-2 rounded-xl font-black text-[9px] uppercase border transition-all ${selectedCorrectAnswer === 'no' ? 'bg-red-500 text-white border-white shadow-lg' : 'bg-red-500/10 text-red-400 border-red-500/20'}`}
+          >
+            ✗ Mistake
+          </button>
+        </div>
       </div>
 
       <div className="grid grid-cols-2 gap-2">
@@ -91,6 +101,20 @@ export const ScholarControlPanel: React.FC<ScholarControlPanelProps> = ({
     return (
       <div className="fixed bottom-0 left-0 right-0 bg-[#011a11]/95 backdrop-blur-3xl border-t border-emerald-700/30 rounded-t-[2.5rem] z-30 flex flex-col gap-3 p-5 animate-in slide-in-from-bottom duration-500">
         <div className="w-12 h-1 bg-emerald-700/40 rounded-full mx-auto mb-2" />
+        <div className="grid grid-cols-2 gap-2 mb-2">
+          <button 
+            onClick={() => setSelectedCorrectAnswer('yes')} 
+            className={`py-3 rounded-xl font-black text-[8px] uppercase border transition-all ${selectedCorrectAnswer === 'yes' ? 'bg-emerald-500 text-black border-white' : 'bg-white/5 text-emerald-400 border-white/5'}`}
+          >
+            ✓ Perfect
+          </button>
+          <button 
+            onClick={() => setSelectedCorrectAnswer('no')} 
+            className={`py-3 rounded-xl font-black text-[8px] uppercase border transition-all ${selectedCorrectAnswer === 'no' ? 'bg-red-500 text-white border-white' : 'bg-white/5 text-red-400 border-white/5'}`}
+          >
+            ✗ Mistake
+          </button>
+        </div>
         <div className="grid grid-cols-4 gap-2 mb-2">
            {[4,3,2,1].map(r => (
              <button 

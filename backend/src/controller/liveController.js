@@ -1054,9 +1054,9 @@ export const selectTurn = async (req, res) => {
 export const scoreRecitation = async (req, res) => {
     try {
         const { id } = req.params;
-        const { childId, score } = req.body;
+        const { childId, score, correctAnswer } = req.body;
         const { default: LiveScore } = await import("../models/LiveScore.js");
-        const { awardXP } = await import("../services/gamificationService.js");
+        const { awardXP, awardXPBulk } = await import("../services/gamificationService.js");
 
 
         const batch = await Batch.findById(id);
@@ -1077,7 +1077,36 @@ export const scoreRecitation = async (req, res) => {
         // Award Gamification XP for Recitation
         const xpResult = await awardXP(childId, "recitation", { score: xpAward, rawScore: score, batchId: id, sessionId: batch.activeSessionId });
 
-        res.json({ message: "Score saved", xpResult });
+        // --- NEW: SYNCHRONIZED PROMPT EVALUATION ---
+        let observerCount = 0;
+        if (correctAnswer && !batch.promptEvaluated && batch.currentPromptAnswers?.length > 0) {
+            const correctStudents = batch.currentPromptAnswers.filter(a => a.answer === correctAnswer);
+            const correctIds = correctStudents.map(s => s.childId);
+            
+            if (correctIds.length > 0) {
+                // 1. Bulk Update LiveScores for this session
+                const scoreBulkOps = correctIds.map(cid => ({
+                    updateOne: {
+                        filter: { batchId: id, sessionId: batch.activeSessionId, childId: cid },
+                        update: { $inc: { participationScore: 1 } },
+                        upsert: true
+                    }
+                }));
+                await LiveScore.bulkWrite(scoreBulkOps);
+
+                // 2. Bulk Award XP
+                await awardXPBulk(correctIds, "participation", { points: 1, batchId: id, sessionId: batch.activeSessionId });
+                observerCount = correctIds.length;
+            }
+
+            // Mark evaluated and clear answers
+            await Batch.updateOne(
+                { _id: id },
+                { $set: { promptEvaluated: true } }
+            );
+        }
+
+        res.json({ message: "Score saved", xpResult, observerCount });
     } catch (error) {
         res.status(500).json({ error: error.message });
     }

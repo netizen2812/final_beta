@@ -1,4 +1,15 @@
 console.log("💓 index.tsx: Module Evaluation");
+
+// Handle Vite dynamic import errors (Chunk Load Errors)
+window.addEventListener('vite:preloadError', (event) => {
+  console.error('Vite preload error detected, reloading page:', event);
+  const hasReloaded = sessionStorage.getItem("chunk_load_retry_on_going");
+  if (!hasReloaded) {
+    sessionStorage.setItem("chunk_load_retry_on_going", "true");
+    window.location.reload();
+  }
+});
+
 import React from "react";
 import ReactDOM from "react-dom/client";
 import "./src/i18n";
@@ -49,3 +60,6 @@ root.render(
 console.log("💓 index.tsx: Render called");
 
 (window as any).__REACT_HYDRATED__ = true;
+// Clear the retry flag since we successfully loaded/mounted
+sessionStorage.removeItem("chunk_load_retry_on_going");
+

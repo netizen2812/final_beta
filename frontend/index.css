@@ -1,4 +1,9 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
 :root {
+
   /* Fluid Typography Scale */
   --font-xs: clamp(0.7rem, 1.5vw, 0.8rem);
   --font-sm: clamp(0.8rem, 2vw, 0.9rem);

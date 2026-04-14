@@ -62,7 +62,7 @@ const DebugPanel = ({ token }: { token: any }) => {
     try {
       const t = await token();
       const res = await axios.get(`${API_BASE}/api/live/admin/batches`, { headers: { Authorization: `Bearer ${t}` } });
-      const list = res.data || [];
+      const list = Array.isArray(res.data) ? res.data : (res.data?.batches || []);
       setBatches(list);
       const byBatch: Record<string, any[]> = {};
       for (const b of list) {
@@ -139,7 +139,7 @@ const AccessRequests = ({ token }: { token: any }) => {
       const res = await axios.get(`${API_BASE}/api/live/access/admin/requests`, {
         headers: { Authorization: `Bearer ${t}` },
       });
-      setRequests(res.data);
+      setRequests(Array.isArray(res.data) ? res.data : []);
     } catch {
       console.error("Failed to load requests");
     } finally {
@@ -206,7 +206,8 @@ const BatchManager = ({ token }: { token: any }) => {
       const res = await axios.get(`${API_BASE}/api/admin/users`, {
         headers: { Authorization: `Bearer ${t}` },
       });
-      const scholarList = res.data.filter((u: any) => u.role === 'scholar');
+      const data = Array.isArray(res.data) ? res.data : (res.data?.users || []);
+      const scholarList = data.filter((u: any) => u.role === 'scholar');
       setScholars(scholarList);
     } catch {
       console.error("Failed to load scholars");
@@ -223,7 +224,7 @@ const BatchManager = ({ token }: { token: any }) => {
       const res = await axios.get(`${API_BASE}/api/live/admin/batches`, {
         headers: { Authorization: `Bearer ${t}` },
       });
-      setBatches(res.data);
+      setBatches(Array.isArray(res.data) ? res.data : (res.data?.batches || []));
     } catch (err) {
       console.error(err);
     }
@@ -235,8 +236,9 @@ const BatchManager = ({ token }: { token: any }) => {
       const res = await axios.get(`${API_BASE}/api/admin/users`, {
         headers: { Authorization: `Bearer ${t}` },
       });
-      const matches = res.data.filter((u: any) =>
-        u.email.includes(studentSearch) || u.name.toLowerCase().includes(studentSearch.toLowerCase())
+      const data = Array.isArray(res.data) ? res.data : (res.data?.users || []);
+      const matches = data.filter((u: any) =>
+        u.email.includes(studentSearch) || (u.name && u.name.toLowerCase().includes(studentSearch.toLowerCase()))
       );
       setFoundUsers(matches);
     } catch (err) {

@@ -1,16 +1,19 @@
 import React, { useState, useEffect, lazy, Suspense } from "react";
+import { lazyWithRetry } from "./utils/dynamicImport";
+
 import { AppTab, Madhab, Tone } from "./types";
 import { Icons } from "./constants";
 import { ChildProvider } from "./contexts/ChildContext";
-const CoreChat = lazy(() => import("./features/CoreChat"));
-const IbadahDashboard = lazy(() => import("./features/IbadahDashboard"));
-const LiveClassRoom = lazy(() => import("./features/LiveClassRoom"));
-const ProfilePage = lazy(() => import("./features/ProfilePage"));
-const AdminDashboard = lazy(() => import("./features/AdminDashboard"));
-const AdminLiveDashboard = lazy(() => import("./features/AdminLiveDashboard"));
-const HomeHub = lazy(() => import("./features/home/HomeHub"));
-const Privacy = lazy(() => import("./pages/Privacy"));
-const Terms = lazy(() => import("./pages/Terms"));
+const CoreChat = lazyWithRetry(() => import("./features/CoreChat"));
+const IbadahDashboard = lazyWithRetry(() => import("./features/IbadahDashboard"));
+const LiveClassRoom = lazyWithRetry(() => import("./features/LiveClassRoom"));
+const ProfilePage = lazyWithRetry(() => import("./features/ProfilePage"));
+const AdminDashboard = lazyWithRetry(() => import("./features/AdminDashboard"));
+const AdminLiveDashboard = lazyWithRetry(() => import("./features/AdminLiveDashboard"));
+const HomeHub = lazyWithRetry(() => import("./features/home/HomeHub"));
+const Privacy = lazyWithRetry(() => import("./pages/Privacy"));
+const Terms = lazyWithRetry(() => import("./pages/Terms"));
+
 import Footer from "./components/Footer";
 import XPRewardEffect from "./components/XPRewardEffect";
 import { User, Settings, Radio, Home, Globe } from "lucide-react";

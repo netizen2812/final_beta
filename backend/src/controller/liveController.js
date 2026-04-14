@@ -1074,28 +1074,10 @@ export const scoreRecitation = async (req, res) => {
             { upsert: true, new: true }
         );
 
-        // Atomic Turn Reset (prevents race conditions during simultaneous status updates)
-        // LOCK: Only proceed if activeChildId matches the expected student
-        const lockBatch = await Batch.findOneAndUpdate(
-            { _id: id, activeChildId: childId },
-            { 
-                $set: { 
-                    activeChildId: null,
-                    currentPromptAnswers: [],
-                    promptEvaluated: false
-                } 
-            },
-            { new: false }
-        );
-
-        if (!lockBatch) {
-            return res.status(400).json({ message: "Turn already scored or expired." });
-        }
-
         // Award Gamification XP for Recitation
         const xpResult = await awardXP(childId, "recitation", { score: xpAward, rawScore: score, batchId: id, sessionId: batch.activeSessionId });
 
-        res.json({ message: "Score saved", nextChildId: null, xpResult });
+        res.json({ message: "Score saved", xpResult });
     } catch (error) {
         res.status(500).json({ error: error.message });
     }

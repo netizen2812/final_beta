@@ -1,5 +1,5 @@
-import React from 'react';
-import { BookOpen } from 'lucide-react';
+import React, { useState } from 'react';
+import { BookOpen, Award, CheckCircle2 } from 'lucide-react';
 
 interface ScholarControlPanelProps {
   activeChildId: string | null;
@@ -9,6 +9,7 @@ interface ScholarControlPanelProps {
   onScoreRecitation: (childId: string, batchId: string, rating: number) => void;
   onScoreParticipation: (childId: string, batchId: string) => void;
   onEvaluatePrompt: (correctAnswer: 'yes' | 'no') => void;
+  onSetTurn: (childId: string | null, batchId: string) => void;
   onShowAssignModal: () => void;
   isMobile?: boolean;
 }
@@ -21,12 +22,26 @@ export const ScholarControlPanel: React.FC<ScholarControlPanelProps> = ({
   onScoreRecitation,
   onScoreParticipation,
   onEvaluatePrompt,
+  onSetTurn,
   onShowAssignModal,
   isMobile
 }) => {
+  const [selectedRating, setSelectedRating] = useState<number | null>(null);
+
   if (!activeChildId) return null;
 
   const activeStudentName = activeSessions.find(s => s.childId === activeChildId)?.studentName;
+
+  const handleFinishRecitation = () => {
+    if (selectedRating !== null) {
+      onScoreRecitation(activeChildId, batchId, selectedRating);
+      // Wait a tiny bit for the XP event to broadcast before shutting the view
+      setTimeout(() => {
+        onSetTurn(null, batchId);
+        setSelectedRating(null);
+      }, 500);
+    }
+  };
 
   const renderButtons = () => (
     <div className="space-y-4">
@@ -53,28 +68,47 @@ export const ScholarControlPanel: React.FC<ScholarControlPanelProps> = ({
       </div>
 
       <div className="grid grid-cols-2 gap-2">
-        <button onClick={() => onScoreRecitation(activeChildId, batchId, 4)} className="bg-emerald-500 hover:bg-emerald-400 text-black py-3 rounded-xl font-black text-[9px] uppercase transition-all shadow-lg shadow-emerald-500/20 active:scale-95">Excel (+10)</button>
-        <button onClick={() => onScoreRecitation(activeChildId, batchId, 3)} className="bg-emerald-700 hover:bg-emerald-600 text-white py-3 rounded-xl font-black text-[9px] uppercase transition-all shadow-lg active:scale-95">Good (+7)</button>
-        <button onClick={() => onScoreRecitation(activeChildId, batchId, 2)} className="bg-amber-500 hover:bg-amber-400 text-black py-3 rounded-xl font-black text-[9px] uppercase transition-all shadow-lg shadow-amber-500/20 active:scale-95">Avg (+5)</button>
-        <button onClick={() => onScoreRecitation(activeChildId, batchId, 1)} className="bg-red-900/30 hover:bg-red-800/40 text-red-400 py-3 rounded-xl font-black text-[9px] uppercase transition-all active:scale-95 border border-red-700/30">Need (+2)</button>
-        <button onClick={() => onScoreParticipation(activeChildId, batchId)} className="col-span-1 bg-white/10 hover:bg-white/20 text-emerald-300 py-3 rounded-xl font-black text-[9px] uppercase border border-emerald-700/20 transition-all active:scale-95">Partic (+2)</button>
+        <button onClick={() => setSelectedRating(4)} className={`py-3 rounded-xl font-black text-[9px] uppercase transition-all shadow-lg active:scale-95 ${selectedRating === 4 ? 'bg-emerald-400 text-black ring-2 ring-white shadow-emerald-500/40' : 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30'}`}>Excel (+10)</button>
+        <button onClick={() => setSelectedRating(3)} className={`py-3 rounded-xl font-black text-[9px] uppercase transition-all shadow-lg active:scale-95 ${selectedRating === 3 ? 'bg-emerald-600 text-white ring-2 ring-white shadow-emerald-700/40' : 'bg-emerald-700/20 text-emerald-500 border border-emerald-700/30'}`}>Good (+7)</button>
+        <button onClick={() => setSelectedRating(2)} className={`py-3 rounded-xl font-black text-[9px] uppercase transition-all shadow-lg active:scale-95 ${selectedRating === 2 ? 'bg-amber-400 text-black ring-2 ring-white shadow-amber-500/40' : 'bg-amber-500/20 text-amber-400 border border-amber-500/30'}`}>Avg (+5)</button>
+        <button onClick={() => setSelectedRating(1)} className={`py-3 rounded-xl font-black text-[9px] uppercase transition-all shadow-lg active:scale-95 ${selectedRating === 1 ? 'bg-red-500 text-white ring-2 ring-white shadow-red-500/40' : 'bg-red-900/10 text-red-400 border border-red-500/30'}`}>Need (+2)</button>
+        
+        <button onClick={() => onScoreParticipation(activeChildId, batchId)} className="col-span-1 bg-white/5 hover:bg-white/10 text-emerald-300 py-3 rounded-xl font-black text-[9px] uppercase border border-emerald-700/10 transition-all active:scale-95">Partic (+2)</button>
         <button onClick={onShowAssignModal} className="bg-indigo-600/60 hover:bg-indigo-500 text-white py-3 rounded-xl font-black text-[9px] uppercase flex items-center justify-center gap-2 transition-all active:scale-95 border border-indigo-500/30"><BookOpen size={14}/> Lesson</button>
       </div>
+
+      <button 
+        disabled={selectedRating === null}
+        onClick={handleFinishRecitation}
+        className={`w-full py-4 rounded-[1.5rem] font-black text-[10px] uppercase tracking-widest flex items-center justify-center gap-2 transition-all duration-500 ${selectedRating !== null ? 'bg-gradient-to-r from-emerald-500 to-emerald-700 text-white shadow-xl shadow-emerald-500/30' : 'bg-white/5 text-white/20 cursor-not-allowed border border-white/5'}`}
+      >
+        {selectedRating !== null ? <><Award size={16}/> Finish & Award XP</> : 'Select a Score First'}
+      </button>
     </div>
   );
 
   if (isMobile) {
     return (
       <div className="fixed bottom-0 left-0 right-0 bg-[#011a11]/95 backdrop-blur-3xl border-t border-emerald-700/30 rounded-t-[2.5rem] z-30 flex flex-col gap-3 p-5 animate-in slide-in-from-bottom duration-500">
-        <div className="w-12 h-1 bg-emerald-700/40 rounded-full mx-auto mb-1" />
-        <div className="grid grid-cols-2 gap-2">
-           <button onClick={() => onScoreRecitation(activeChildId, batchId, 4)} className="bg-emerald-500 text-black py-3 rounded-2xl font-black text-[10px] uppercase transition-all active:scale-95">Excel (+10)</button>
-           <button onClick={() => onScoreRecitation(activeChildId, batchId, 3)} className="bg-emerald-700 text-white py-3 rounded-2xl font-black text-[10px] uppercase transition-all active:scale-95">Good (+7)</button>
+        <div className="w-12 h-1 bg-emerald-700/40 rounded-full mx-auto mb-2" />
+        <div className="grid grid-cols-4 gap-2 mb-2">
+           {[4,3,2,1].map(r => (
+             <button 
+               key={r} 
+               onClick={() => setSelectedRating(r)}
+               className={`py-3 rounded-xl font-black text-[8px] uppercase transition-all ${selectedRating === r ? 'bg-emerald-500 text-black' : 'bg-white/5 text-white/40 border border-white/5'}`}
+             >
+               {r === 4 ? '+10' : r === 3 ? '+7' : r === 2 ? '+5' : '+2'}
+             </button>
+           ))}
         </div>
-        <div className="flex gap-2">
-           <button onClick={() => onScoreParticipation(activeChildId, batchId)} className="bg-white/10 text-emerald-300 px-6 py-3 rounded-2xl font-black text-[10px] uppercase border border-emerald-700/20 grow">Participation</button>
-           <button onClick={onShowAssignModal} className="bg-indigo-600/60 text-white px-6 py-3 rounded-2xl font-black text-[10px] uppercase border border-indigo-500/30 shrink-0">Lesson</button>
-        </div>
+        <button 
+           disabled={selectedRating === null}
+           onClick={handleFinishRecitation}
+           className={`py-4 rounded-2xl font-black text-[10px] uppercase tracking-widest flex items-center justify-center gap-2 transition-all ${selectedRating !== null ? 'bg-emerald-500 text-black' : 'bg-white/5 text-white/10'}`}
+        >
+          {selectedRating !== null ? <CheckCircle2 size={16}/> : ''} Finish Recitation
+        </button>
       </div>
     );
   }

@@ -106,9 +106,11 @@ const QuranPage: React.FC<QuranPageProps> = ({
   const [selectedJuz, setSelectedJuz] = useState<number | null>(null);
   const [surahContent, setSurahContent] = useState<Ayah[]>([]);
   const [isLoading, setIsLoading] = useState(false);
+  const [loadError, setLoadError] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
   const readingContainerRef = useRef<HTMLDivElement>(null);
   const scrollThrottleRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const fetchIdRef = useRef(0);
 
   // Audio State
   const [isPlaying, setIsPlaying] = useState(false);
@@ -127,19 +129,20 @@ const QuranPage: React.FC<QuranPageProps> = ({
         const ayahIndex = surahContent.findIndex(a => a.numberInSurah === sessionCurrentAyah);
         if (ayahIndex !== -1) {
           setCurrentAyahIndex(ayahIndex);
-          const el = document.getElementById(`ayah-${ayahIndex}`);
-          el?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+          // 🛡️ Added micro-delay to ensure DOM is ready on mobile
+          setTimeout(() => {
+            const el = document.getElementById(`ayah-${ayahIndex}`);
+            el?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+          }, 100);
         }
-      } else {
+      } else if (!isLoading) {
         // Different surah OR surahs list not yet loaded — fetch directly by number (always safe)
-        // Also update selectedSurah from local cache if available
         const surahObj = surahs.find(s => s.number === sessionCurrentSurah);
         if (surahObj) setSelectedSurah(surahObj);
-        // Always fetch — fetchSurahContent sets selectedSurah fallback internally via setView/setSurahContent
         fetchSurahContent(sessionCurrentSurah, sessionCurrentAyah);
       }
     }
-  }, [sessionCurrentSurah, sessionCurrentAyah]);
+  }, [sessionCurrentSurah, sessionCurrentAyah, surahs.length]);
 
   // Autoscroll to active ayah precisely when index is updated (e.g. from nextAyah, next button, audio, or prop sync)
   useEffect(() => {
@@ -294,13 +297,20 @@ const QuranPage: React.FC<QuranPageProps> = ({
   };
 
   const fetchSurahContent = async (number: number, targetAyahNumber?: number) => {
+    const currentFetchId = ++fetchIdRef.current;
     setIsLoading(true);
+    setSurahContent([]); // Clear old content immediately to free memory on mobile
     setSelectedJuz(null);
+
     try {
       const res = await fetch(`${APPLICATION_API_URL}/api/ibadah/quran/surah/${number}?lang=${i18n.language}`);
       const data = await res.json();
+      
+      // 🛡️ Race condition check: Only proceed if this is still the latest fetch
+      if (currentFetchId !== fetchIdRef.current) return;
 
       const { text, trans, audio } = data;
+      if (!text?.data?.ayahs) throw new Error("Invalid Quran data received");
 
       const combined: Ayah[] = text.data.ayahs.map((ayah: any, idx: number) => {
         let cleanedText = ayah.text;
@@ -312,13 +322,14 @@ const QuranPage: React.FC<QuranPageProps> = ({
           number: ayah.number,
           numberInSurah: ayah.numberInSurah,
           text: cleanedText,
-          translation: trans.data.ayahs[idx].text,
-          audio: audio.data.ayahs[idx].audio
+          translation: trans.data.ayahs[idx]?.text || "Translation not available",
+          audio: audio.data.ayahs[idx]?.audio
         };
       });
 
       setSurahContent(combined);
       setView('reading');
+      setLoadError(null);
 
       if (targetAyahNumber) {
         const idx = combined.findIndex(a => a.numberInSurah === targetAyahNumber);
@@ -331,8 +342,9 @@ const QuranPage: React.FC<QuranPageProps> = ({
       if (onPositionChange) onPositionChange(number, targetAyahNumber || 1);
 
       setIsPlaying(false);
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error fetching surah content:", error);
+      setLoadError("Loading failed. Check your connection.");
     } finally {
       setIsLoading(false);
     }
@@ -751,6 +763,30 @@ const QuranPage: React.FC<QuranPageProps> = ({
               );
             })}
           </div>
+        </div>
+      )}
+
+      {isLoading && (
+        <div className="fixed inset-0 z-[100] bg-white/80 backdrop-blur-md flex flex-col items-center justify-center p-8 animate-in fade-in duration-300">
+           <div className="w-16 h-16 border-4 border-[#0D4433]/20 border-t-[#0D4433] rounded-full animate-spin mb-6" />
+           <h3 className="text-lg font-serif font-bold text-[#0D4433]">Opening the Noble Quran...</h3>
+           <p className="text-xs text-emerald-600/60 font-black uppercase tracking-[0.2em] mt-2">Preparing your lesson</p>
+        </div>
+      )}
+
+      {loadError && (
+        <div className="fixed inset-0 z-[100] bg-white flex flex-col items-center justify-center p-8 animate-in zoom-in duration-300">
+           <div className="w-20 h-20 bg-red-50 text-red-500 rounded-[2rem] flex items-center justify-center mb-6">
+              <Info size={40} />
+           </div>
+           <h3 className="text-xl font-bold text-gray-900">{loadError}</h3>
+           <p className="text-gray-500 text-center max-w-xs mt-2 mb-8 font-medium">This usually happens on weak internet connections or old mobile browsers.</p>
+           <button 
+             onClick={() => selectedSurah ? fetchSurahContent(selectedSurah.number) : viewMode === 'juz' && selectedJuz ? fetchJuzContent(selectedJuz) : onBack()}
+             className="bg-[#0D4433] text-white px-10 py-5 rounded-[2rem] font-black text-xs uppercase tracking-widest shadow-xl active:scale-95 transition-all"
+           >
+             Try Again
+           </button>
         </div>
       )}
 

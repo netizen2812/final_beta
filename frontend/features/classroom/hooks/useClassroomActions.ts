@@ -82,6 +82,15 @@ export const useClassroomActions = (syncChannelRef: React.MutableRefObject<any>,
     } catch (err) { console.error(err); }
   };
 
+  const handleSubmitPrompt = async (childId: string, batchId: string, answer: 'yes' | 'no') => {
+    try {
+      const token = await getToken();
+      await axios.post(`${APPLICATION_API_URL}/api/live/batch/${batchId}/submit-prompt`, { 
+        childId, answer 
+      }, { headers: { Authorization: `Bearer ${token}` } });
+    } catch (err) { console.error(err); }
+  };
+
   const handleEndClass = async (batchId: string) => {
     try {
       const token = await getToken();
@@ -96,6 +105,7 @@ export const useClassroomActions = (syncChannelRef: React.MutableRefObject<any>,
     handleScoreRecitation,
     handleScoreParticipation,
     handleEvaluatePrompt,
+    handleSubmitPrompt,
     handleEndClass
   };
 };

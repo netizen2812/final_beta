@@ -34,6 +34,9 @@ import { useClassroomActions } from './classroom/hooks/useClassroomActions';
 import { ScholarControlPanel } from './classroom/ScholarControlPanel';
 import { StudentSpeedDock } from './classroom/StudentSpeedDock';
 import { ActiveStudentFocus } from './classroom/ActiveStudentFocus';
+import { ObservationControls } from './classroom/ObservationControls';
+import SessionLeaderboard from './SessionLeaderboard';
+import XPRewardEffect from '../components/XPRewardEffect';
 
 const POSITION_THROTTLE_MS = 500;
 
@@ -112,8 +115,9 @@ const LiveClassRoom: React.FC = () => {
     handleScoreRecitation,
     handleScoreParticipation,
     handleEvaluatePrompt,
+    handleSubmitPrompt,
     handleEndClass
-  } = useClassroomActions(getToken, syncChannelRef);
+  } = useClassroomActions(syncChannelRef, getToken);
 
   // 📡 CHANNEL PERSISTENCE (Needed for broadcasts)
   useEffect(() => {
@@ -168,6 +172,9 @@ const LiveClassRoom: React.FC = () => {
 
   const emitPosition = useCallback((surahNumber: number, ayahNumber: number) => {
     if (!currentSession?.batchId || userRole === 'scholar') return;
+    
+    // 🛡️ Prevent observers from "sync fighting" with the active student
+    if (activeChild?.id !== batchState?.activeChildId) return;
     
     // Broadcast for instant scholar visibility
     if (syncChannelRef.current) {
@@ -262,6 +269,7 @@ const LiveClassRoom: React.FC = () => {
                 onScoreRecitation={handleScoreRecitation}
                 onScoreParticipation={handleScoreParticipation}
                 onEvaluatePrompt={(decision) => handleEvaluatePrompt(currentSession.batchId!, decision)}
+                onSetTurn={handleSetTurn}
                 onShowAssignModal={() => setShowAssignModal(true)}
               />
             )}
@@ -276,6 +284,7 @@ const LiveClassRoom: React.FC = () => {
              onScoreRecitation={handleScoreRecitation}
              onScoreParticipation={handleScoreParticipation}
              onEvaluatePrompt={(decision) => handleEvaluatePrompt(currentSession.batchId!, decision)}
+             onSetTurn={handleSetTurn}
              onShowAssignModal={() => setShowAssignModal(true)}
              isMobile
            />
@@ -336,6 +345,20 @@ const LiveClassRoom: React.FC = () => {
            <div className="flex-[3] bg-black/60 backdrop-blur-xl rounded-[2.5rem] overflow-hidden border border-emerald-800/30">
               <AgoraVideoPane appId={currentSession.agoraAppId || ""} token={currentSession.agoraToken || ""} channel={currentSession.channel || currentSession.batchId || ""} uid={getNumericUid(user?.id || '')} role="student" layout="spotlight" scholarId={currentSession.scholarId} />
            </div>
+
+           <div className="w-[300px] flex flex-col gap-4">
+              <ObservationControls 
+                batchId={currentSession.batchId || ""}
+                childId={activeChild?.id || ""}
+                batchState={batchState}
+                onSubmitPrompt={handleSubmitPrompt}
+              />
+              
+              <div className="bg-emerald-950/40 p-6 rounded-[2rem] border border-emerald-700/20 flex flex-col items-center gap-2">
+                 <span className="text-[10px] font-black text-emerald-400 uppercase tracking-widest">Live Session</span>
+                 <span className="text-xs font-mono text-emerald-200/30">{currentSession._id.substr(-6).toUpperCase()}</span>
+              </div>
+           </div>
         </div>
       </div>
     );
@@ -359,8 +382,38 @@ const LiveClassRoom: React.FC = () => {
              )}
              <button onClick={handleExitSession} className="flex items-center gap-2 bg-white/5 text-emerald-200/60 px-4 py-2 rounded-xl text-[9px] font-black uppercase">Exit</button>
           </div>
+          
+          <div className="flex items-center gap-4">
+             {userRole === 'parent' && (
+               <button 
+                 onClick={() => setActiveDrawer('leaderboard')}
+                 className="flex items-center gap-2 bg-amber-500/10 text-amber-400 px-4 py-2 rounded-xl text-[9px] font-black uppercase border border-amber-500/20"
+               >
+                 <Trophy size={14} /> Leaderboard
+               </button>
+             )}
+          </div>
         </div>
         <div className="flex-1 relative overflow-hidden z-10">{renderMainStage()}</div>
+        
+        <XPRewardEffect />
+
+        {activeDrawer === 'leaderboard' && (
+          <div className="fixed inset-0 z-[8000] bg-[#011a11]/95 backdrop-blur-3xl animate-in slide-in-from-right duration-500">
+             <div className="h-full w-full flex flex-col">
+                <div className="flex-none h-16 border-b border-emerald-800/40 flex items-center justify-between px-8">
+                   <h3 className="font-bold flex items-center gap-3"><Trophy className="text-amber-400" /> Class Standings</h3>
+                   <button onClick={() => setActiveDrawer(null)} className="p-2 hover:bg-white/10 rounded-full transition-colors"><XCircle /></button>
+                </div>
+                <div className="flex-1 overflow-hidden">
+                   <SessionLeaderboard 
+                     batchId={currentSession.batchId!} 
+                     sessionId={batchState?.activeSessionId || currentSession.activeSessionId || ""} 
+                   />
+                </div>
+             </div>
+          </div>
+        )}
 
         {showAssignModal && currentSession?.batchId && (
           <div className="fixed inset-0 z-[6000] bg-[#011a11]/95 backdrop-blur-3xl flex items-center justify-center p-6">

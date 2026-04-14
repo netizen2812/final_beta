@@ -1,6 +1,11 @@
-@tailwind base;
-@tailwind components;
-@tailwind utilities;
+@import "tailwindcss";
+
+@theme {
+  --color-islamic-green: #052e16;
+  --color-cream: #fdfcf0;
+  --font-inter: "Inter", sans-serif;
+  --font-amiri: "Amiri", serif;
+}
 
 :root {
 

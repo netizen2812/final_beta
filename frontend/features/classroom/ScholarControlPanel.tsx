@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, memo } from 'react';
 import { BookOpen, Award, CheckCircle2 } from 'lucide-react';
 
 interface ScholarControlPanelProps {
@@ -14,7 +14,7 @@ interface ScholarControlPanelProps {
   isMobile?: boolean;
 }
 
-export const ScholarControlPanel: React.FC<ScholarControlPanelProps> = ({
+const ScholarControlPanelComponent: React.FC<ScholarControlPanelProps> = ({
   activeChildId,
   batchId,
   activeSessions,
@@ -148,3 +148,5 @@ export const ScholarControlPanel: React.FC<ScholarControlPanelProps> = ({
     </div>
   );
 };
+
+export const ScholarControlPanel = memo(ScholarControlPanelComponent);

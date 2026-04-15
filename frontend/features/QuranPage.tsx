@@ -111,6 +111,7 @@ const QuranPage: React.FC<QuranPageProps> = ({
   const readingContainerRef = useRef<HTMLDivElement>(null);
   const scrollThrottleRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const fetchIdRef = useRef(0);
+  const lastJumpedAyahRef = useRef<string | null>(null);
 
   // Audio State
   const [isPlaying, setIsPlaying] = useState(false);
@@ -128,10 +129,14 @@ const QuranPage: React.FC<QuranPageProps> = ({
         // Same surah already loaded — just jump to the right ayah
         const ayahIndex = surahContent.findIndex(a => a.numberInSurah === sessionCurrentAyah);
         if (ayahIndex !== -1) {
-          setCurrentAyahIndex(ayahIndex);
-          // 🛡️ behavior: 'auto' is more stable for rapid sync updates than 'smooth'
-          const el = document.getElementById(`ayah-${ayahIndex}`);
-          el?.scrollIntoView({ behavior: 'auto', block: 'center' });
+          const jumpKey = `${sessionCurrentSurah}-${sessionCurrentAyah}`;
+          if (lastJumpedAyahRef.current !== jumpKey) {
+            lastJumpedAyahRef.current = jumpKey;
+            setCurrentAyahIndex(ayahIndex);
+            // 🛡️ behavior: 'auto' is more stable for rapid sync updates than 'smooth'
+            const el = document.getElementById(`ayah-${ayahIndex}`);
+            el?.scrollIntoView({ behavior: 'auto', block: 'center' });
+          }
         }
       } else if (!isLoading) {
         // Different surah OR surahs list not yet loaded

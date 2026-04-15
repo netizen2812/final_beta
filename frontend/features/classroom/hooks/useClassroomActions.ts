@@ -100,12 +100,12 @@ export const useClassroomActions = (syncChannelRef: React.MutableRefObject<any>,
     } catch (err) { alert("Failed to terminate class. Please retry."); }
   };
 
-  return {
+  return React.useMemo(() => ({
     handleSetTurn,
     handleScoreRecitation,
     handleScoreParticipation,
     handleEvaluatePrompt,
     handleSubmitPrompt,
     handleEndClass
-  };
+  }), [handleSetTurn, handleScoreRecitation, handleScoreParticipation, handleEvaluatePrompt, handleSubmitPrompt, handleEndClass]);
 };

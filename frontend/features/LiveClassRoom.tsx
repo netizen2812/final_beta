@@ -109,6 +109,27 @@ const LiveClassRoom: React.FC = () => {
     }
   );
 
+  const handleQaidaSync = (lang: string, page: number) => {
+    if (userRole === 'scholar' && syncChannelRef.current) {
+      syncChannelRef.current.send({
+        type: 'broadcast',
+        event: 'qaida-sync',
+        payload: { language: lang, pageNumber: page, ts: Date.now() }
+      });
+    }
+  };
+
+  const handleToggleQaida = (isOpen: boolean) => {
+    setShowQaidaViewer(isOpen);
+    if (userRole === 'scholar' && syncChannelRef.current) {
+      syncChannelRef.current.send({
+        type: 'broadcast',
+        event: 'qaida-sync',
+        payload: { isOpen, ts: Date.now() }
+      });
+    }
+  };
+
   // 2. Scholar Action Hook
   const {
     handleSetTurn,
@@ -249,7 +270,7 @@ const LiveClassRoom: React.FC = () => {
                />
                
                <div className="absolute bottom-6 left-6 right-6 flex items-center justify-between gap-3 z-40">
-                 <button onClick={() => setShowQaidaViewer(true)} className="px-5 py-2.5 bg-emerald-500/20 hover:bg-emerald-500/30 text-emerald-300 border border-emerald-500/30 rounded-2xl text-[9px] font-black uppercase tracking-widest transition-all backdrop-blur-xl shadow-lg">📖 Qaida</button>
+                 <button onClick={() => handleToggleQaida(true)} className="px-5 py-2.5 bg-emerald-500/20 hover:bg-emerald-500/30 text-emerald-300 border border-emerald-500/30 rounded-2xl text-[9px] font-black uppercase tracking-widest transition-all backdrop-blur-xl shadow-lg">📖 Qaida</button>
                  <button onClick={() => setConfirmEndClass(currentSession.batchId!)} className="px-6 py-2.5 bg-red-900/30 hover:bg-red-500 text-red-400 hover:text-white border border-red-500/30 rounded-2xl text-[9px] font-black uppercase tracking-widest transition-all backdrop-blur-xl">End Class</button>
                </div>
             </div>
@@ -428,6 +449,19 @@ const LiveClassRoom: React.FC = () => {
                </div>
              </div>
           </div>
+        )}
+
+        {showQaidaViewer && (
+          <QaidaViewer 
+            onClose={() => handleToggleQaida(false)}
+            isScholar={userRole === 'scholar'}
+            batchId={currentSession.batchId}
+            initialLanguage={qaidaSyncData?.language as any}
+            forcedLanguage={qaidaSyncData?.language as any}
+            forcedPage={qaidaSyncData?.pageNumber}
+            onSyncUpdate={handleQaidaSync}
+            followScholar={true}
+          />
         )}
       </div>
     );

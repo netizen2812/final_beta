@@ -31,6 +31,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onNavigateToLive }) => 
     const [searchQuery, setSearchQuery] = useState('');
     const [paidSearchQuery, setPaidSearchQuery] = useState('');
     const [paidTotalCount, setPaidTotalCount] = useState(0);
+    const [paidSource, setPaidSource] = useState<'all' | 'razorpay' | 'manual'>('all');
 
     
     // Pagination state
@@ -143,7 +144,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onNavigateToLive }) => 
         setLoading(true);
         try {
             const token = await getToken();
-            const res = await axios.get(`${APPLICATION_API_URL}/api/admin/users?isPaid=true&page=${paidPage}&limit=50&q=${paidSearchQuery}`, {
+            const res = await axios.get(`${APPLICATION_API_URL}/api/admin/users?isPaid=true&page=${paidPage}&limit=50&q=${paidSearchQuery}&source=${paidSource}`, {
                 headers: { Authorization: `Bearer ${token}` }
             });
 
@@ -170,7 +171,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onNavigateToLive }) => 
         if (tab === 'paid') fetchPaidUsers();
         if (tab === 'batches' || tab === 'sessions') fetchManagementData();
         if (tab === 'ailogs') fetchAiLogs();
-    }, [tab, userPage, batchPage, paidPage, sessionPage, paidSearchQuery]);
+    }, [tab, userPage, batchPage, paidPage, sessionPage, paidSearchQuery, paidSource]);
 
 
     // --- ACTIONS ---
@@ -375,6 +376,15 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onNavigateToLive }) => 
                                 <p className="text-xs text-emerald-600 font-medium">Users with active Live Tarbiyah or AI subscriptions</p>
                             </div>
                             <div className="flex items-center gap-4">
+                                <select 
+                                    className="border border-emerald-200 rounded-lg px-2 py-1.5 text-sm bg-white focus:ring-2 focus:ring-emerald-400 outline-none"
+                                    value={paidSource}
+                                    onChange={(e) => setPaidSource(e.target.value as any)}
+                                >
+                                    <option value="all">All Sources</option>
+                                    <option value="razorpay">Razorpay Only</option>
+                                    <option value="manual">Manual / Admin</option>
+                                </select>
                                 <input 
                                     className="border border-emerald-200 rounded-lg px-3 py-1.5 text-sm bg-white focus:ring-2 focus:ring-emerald-400 outline-none w-64" 
                                     placeholder="Search premium users..." 

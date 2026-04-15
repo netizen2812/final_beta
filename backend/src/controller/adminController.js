@@ -241,6 +241,7 @@ export const getAllUsers = async (req, res) => {
         const skip = (page - 1) * limit;
         const isPaid = req.query.isPaid === 'true';
         const search = req.query.q || "";
+        const source = req.query.source || "all"; // all, razorpay, manual
 
         let $match = {};
         const conditions = [];
@@ -252,6 +253,19 @@ export const getAllUsers = async (req, res) => {
                     { "features.aiPremiumUntil": { $gt: new Date() } }
                 ]
             });
+            
+            if (source === 'razorpay') {
+                conditions.push({ 
+                    processedPayments: { $exists: true, $not: { $size: 0 } } 
+                });
+            } else if (source === 'manual') {
+                conditions.push({ 
+                    $or: [
+                        { processedPayments: { $exists: false } },
+                        { processedPayments: { $size: 0 } }
+                    ]
+                });
+            }
         }
 
         if (search) {

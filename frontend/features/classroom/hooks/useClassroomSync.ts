@@ -98,7 +98,8 @@ export const useClassroomSync = (
       config: { broadcast: { ack: false } }
     })
     .on('broadcast', { event: 'ayah-change' }, ({ payload }) => {
-      if (userRole === 'scholar' && payload.ts > lastSyncTsRef.current) {
+      // 🛡️ Scholar side performance: Only follow if the update comes from the active student
+      if (userRole === 'scholar' && payload.childId === activeChildIdRef.current && payload.ts > lastSyncTsRef.current) {
         lastSyncTsRef.current = payload.ts;
         queryClient.setQueryData(['batchState', batchId, childId], (old: any) => {
           if (!old) return old;

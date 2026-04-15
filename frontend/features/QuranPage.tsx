@@ -129,14 +129,12 @@ const QuranPage: React.FC<QuranPageProps> = ({
         const ayahIndex = surahContent.findIndex(a => a.numberInSurah === sessionCurrentAyah);
         if (ayahIndex !== -1) {
           setCurrentAyahIndex(ayahIndex);
-          // 🛡️ Added micro-delay to ensure DOM is ready on mobile
-          setTimeout(() => {
-            const el = document.getElementById(`ayah-${ayahIndex}`);
-            el?.scrollIntoView({ behavior: 'smooth', block: 'center' });
-          }, 100);
+          // 🛡️ behavior: 'auto' is more stable for rapid sync updates than 'smooth'
+          const el = document.getElementById(`ayah-${ayahIndex}`);
+          el?.scrollIntoView({ behavior: 'auto', block: 'center' });
         }
       } else if (!isLoading) {
-        // Different surah OR surahs list not yet loaded — fetch directly by number (always safe)
+        // Different surah OR surahs list not yet loaded
         const surahObj = surahs.find(s => s.number === sessionCurrentSurah);
         if (surahObj) setSelectedSurah(surahObj);
         fetchSurahContent(sessionCurrentSurah, sessionCurrentAyah);
@@ -339,7 +337,7 @@ const QuranPage: React.FC<QuranPageProps> = ({
       }
 
       // Student live sync: report position after surah load (parent throttles)
-      if (onPositionChange) onPositionChange(number, targetAyahNumber || 1);
+      if (onPositionChange && !readOnly) onPositionChange(number, targetAyahNumber || 1);
 
       setIsPlaying(false);
     } catch (error: any) {

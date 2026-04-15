@@ -763,7 +763,7 @@ export const updateBatchProgress = async (req, res) => {
         const { default: Batch } = await import("../models/Batch.js");
 
         const result = await Batch.updateOne(
-            { _id: batchId, "activeParticipants.childId": childId },
+            { _id: batchId, "activeParticipants.childId": childId, activeChildId: childId },
             {
                 $set: {
                     "activeParticipants.$.currentSurah": Number(surah),

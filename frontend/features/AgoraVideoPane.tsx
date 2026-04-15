@@ -37,6 +37,7 @@ const AgoraVideoPane: React.FC<AgoraVideoPaneProps> = ({
   
   const clientRef = useRef<IAgoraRTCClient | null>(null);
   const localVideoRef = useRef<HTMLDivElement>(null);
+  const tracksRef = useRef<{ video?: ICameraVideoTrack; audio?: IMicrophoneAudioTrack }>({});
 
   useEffect(() => {
     const init = async () => {
@@ -47,6 +48,9 @@ const AgoraVideoPane: React.FC<AgoraVideoPaneProps> = ({
 
       // Event Listeners
       client.on('user-published', async (user, mediaType) => {
+        // DEFENSIVE: Never subscribe to or add self to remote users
+        if (String(user.uid) === String(uid)) return;
+
         await client.subscribe(user, mediaType);
         if (mediaType === 'video') {
           setRemoteUsers(prev => {
@@ -80,7 +84,7 @@ const AgoraVideoPane: React.FC<AgoraVideoPaneProps> = ({
           { encoderConfig: videoProfile }
         );
 
-        
+        tracksRef.current = { video: videoTrack, audio: audioTrack };
         setLocalAudioTrack(audioTrack);
         setLocalVideoTrack(videoTrack);
 
@@ -104,14 +108,17 @@ const AgoraVideoPane: React.FC<AgoraVideoPaneProps> = ({
     init();
 
     return () => {
-      localAudioTrack?.close();
-      localVideoTrack?.close();
+      tracksRef.current.audio?.close();
+      tracksRef.current.video?.close();
+      clientRef.current?.unpublish();
       clientRef.current?.leave();
+      clientRef.current = null;
     };
   }, [appId, token, channel, uid, role]);
 
   useEffect(() => {
     if (localVideoTrack && localVideoRef.current) {
+      localVideoRef.current.innerHTML = ''; // Clear container to prevent duplicate video elements
       localVideoTrack.play(localVideoRef.current);
     }
   }, [localVideoTrack]);
@@ -185,9 +192,9 @@ const AgoraVideoPane: React.FC<AgoraVideoPaneProps> = ({
         )}
       </div>
 
-      {/* FLOATING CONTROL BAR (Only if NOT inset) */}
-      {joined && layout !== 'inset' && (
-        <div className="absolute bottom-6 left-1/2 -translate-x-1/2 px-5 py-3 bg-black/40 backdrop-blur-3xl border border-white/10 rounded-full flex items-center gap-3 opacity-0 group-hover:opacity-100 translate-y-2 group-hover:translate-y-0 transition-all duration-500 shadow-2xl z-50">
+      {/* FLOATING CONTROL BAR (Always visible if joined for touch devices) */}
+      {joined && (
+        <div className="absolute bottom-6 left-1/2 -translate-x-1/2 px-5 py-3 bg-black/60 backdrop-blur-3xl border border-white/20 rounded-full flex items-center gap-3 transition-all duration-500 shadow-2xl z-50">
             <ControlToggle 
                 active={micEnabled} 
                 iconOn={<Mic size={18} />} 
@@ -223,6 +230,7 @@ const RemoteStream: React.FC<{ user: IAgoraRTCRemoteUser; label: string; isMain?
 
   useEffect(() => {
     if (user.videoTrack && containerRef.current) {
+      containerRef.current.innerHTML = ''; // Prevent duplicate remote video instances
       user.videoTrack.play(containerRef.current);
     }
   }, [user.videoTrack]);

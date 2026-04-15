@@ -354,10 +354,7 @@ const LiveClassRoom: React.FC = () => {
                 onSubmitPrompt={handleSubmitPrompt}
               />
               
-              <div className="bg-emerald-950/40 p-6 rounded-[2rem] border border-emerald-700/20 flex flex-col items-center gap-2">
-                 <span className="text-[10px] font-black text-emerald-400 uppercase tracking-widest">Live Session</span>
-                 <span className="text-xs font-mono text-emerald-200/30">{currentSession._id.substr(-6).toUpperCase()}</span>
-              </div>
+              <div className="flex-1" />
            </div>
         </div>
       </div>

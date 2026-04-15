@@ -9,13 +9,14 @@ import {
   Plus,
   Trash2,
   StopCircle,
+  Search,
 } from 'lucide-react';
 
 const API_BASE = import.meta.env.VITE_API_URL || "http://localhost:5000";
 
 const AdminLiveDashboard = () => {
   const { getToken } = useAuth();
-  const [activeTab, setActiveTab] = useState<'requests' | 'batches' | 'debug'>('requests');
+  const [activeTab, setActiveTab] = useState<'batches' | 'debug'>('batches');
 
   return (
     <div className="max-w-6xl mx-auto p-8 space-y-8 animate-in fade-in">
@@ -25,12 +26,6 @@ const AdminLiveDashboard = () => {
           <p className="text-slate-500">Manage access requests and teaching batches.</p>
         </div>
         <div className="flex bg-slate-100 p-1 rounded-xl">
-          <button
-            onClick={() => setActiveTab('requests')}
-            className={`px-4 py-2 rounded-lg text-sm font-bold transition-all ${activeTab === 'requests' ? 'bg-white shadow text-[#052e16]' : 'text-slate-500 hover:text-slate-700'}`}
-          >
-            Access Requests
-          </button>
           <button
             onClick={() => setActiveTab('batches')}
             className={`px-4 py-2 rounded-lg text-sm font-bold transition-all ${activeTab === 'batches' ? 'bg-white shadow text-[#052e16]' : 'text-slate-500 hover:text-slate-700'}`}
@@ -46,7 +41,6 @@ const AdminLiveDashboard = () => {
         </div>
       </div>
 
-      {activeTab === 'requests' && <AccessRequests token={getToken} />}
       {activeTab === 'batches' && <BatchManager token={getToken} />}
       {activeTab === 'debug' && <DebugPanel token={getToken} />}
     </div>
@@ -128,62 +122,6 @@ const DebugPanel = ({ token }: { token: any }) => {
   );
 };
 
-const AccessRequests = ({ token }: { token: any }) => {
-  const [requests, setRequests] = useState<any[]>([]);
-  const [loading, setLoading] = useState(true);
-
-  const fetchRequests = async () => {
-    setLoading(true);
-    try {
-      const t = await token();
-      const res = await axios.get(`${API_BASE}/api/live/access/admin/requests`, {
-        headers: { Authorization: `Bearer ${t}` },
-      });
-      setRequests(Array.isArray(res.data) ? res.data : []);
-    } catch {
-      console.error("Failed to load requests");
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  useEffect(() => {
-    fetchRequests();
-  }, []);
-
-  const handleDecision = async (id: string, decision: 'approve' | 'reject') => {
-    try {
-      const t = await token();
-      await axios.post(`${API_BASE}/api/live/access/admin/requests/${id}/${decision}`, {}, {
-        headers: { Authorization: `Bearer ${t}` },
-      });
-      fetchRequests();
-    } catch {
-      alert("Action failed");
-    }
-  };
-
-  if (loading) return <Loader2 className="animate-spin mx-auto" />;
-
-  return (
-    <div className="grid gap-4">
-      {requests.length === 0 && <p className="text-center text-slate-500">No pending requests.</p>}
-      {requests.map((req) => (
-        <div key={req._id} className="bg-white p-6 rounded-2xl border border-slate-100 flex justify-between items-center">
-          <div>
-            <h3 className="font-bold text-lg">{req.name || req.email}</h3>
-            <p className="text-sm text-slate-500">{req.email}</p>
-            <p className="text-xs text-slate-400 mt-1">Requested: {new Date(req.createdAt).toLocaleDateString()}</p>
-          </div>
-          <div className="flex gap-2">
-            <button onClick={() => handleDecision(req._id, 'approve')} className="p-2 bg-green-50 text-green-600 rounded-full hover:bg-green-100"><Check size={20} /></button>
-            <button onClick={() => handleDecision(req._id, 'reject')} className="p-2 bg-red-50 text-red-600 rounded-full hover:bg-red-100"><X size={20} /></button>
-          </div>
-        </div>
-      ))}
-    </div>
-  );
-};
 
 const BatchManager = ({ token }: { token: any }) => {
   const [batches, setBatches] = useState<any[]>([]);
@@ -194,21 +132,22 @@ const BatchManager = ({ token }: { token: any }) => {
     level: 'Beginner',
     status: 'active',
   });
+  const [batchSearch, setBatchSearch] = useState('');
+  const [scholarSearchQuery, setScholarSearchQuery] = useState('');
   const [scholars, setScholars] = useState<any[]>([]);
   const [showManageStudents, setShowManageStudents] = useState<string | null>(null);
   const [selectedBatch, setSelectedBatch] = useState<any>(null);
   const [studentSearch, setStudentSearch] = useState('');
   const [foundUsers, setFoundUsers] = useState<any[]>([]);
 
-  const fetchScholars = async () => {
+  const fetchScholars = async (query = '') => {
     try {
       const t = await token();
-      const res = await axios.get(`${API_BASE}/api/admin/users`, {
+      const res = await axios.get(`${API_BASE}/api/admin/users?role=scholar&q=${query}&limit=20`, {
         headers: { Authorization: `Bearer ${t}` },
       });
       const data = Array.isArray(res.data) ? res.data : (res.data?.users || []);
-      const scholarList = data.filter((u: any) => u.role === 'scholar');
-      setScholars(scholarList);
+      setScholars(data);
     } catch {
       console.error("Failed to load scholars");
     }
@@ -218,10 +157,18 @@ const BatchManager = ({ token }: { token: any }) => {
     if (showCreate) fetchScholars();
   }, [showCreate]);
 
+  // Handle scholar search in creation form
+  useEffect(() => {
+    if (showCreate && scholarSearchQuery.length > 1) {
+      const delay = setTimeout(() => fetchScholars(scholarSearchQuery), 400);
+      return () => clearTimeout(delay);
+    }
+  }, [scholarSearchQuery]);
+
   const fetchBatches = async () => {
     try {
       const t = await token();
-      const res = await axios.get(`${API_BASE}/api/live/admin/batches`, {
+      const res = await axios.get(`${API_BASE}/api/live/admin/batches?q=${batchSearch}`, {
         headers: { Authorization: `Bearer ${t}` },
       });
       setBatches(Array.isArray(res.data) ? res.data : (res.data?.batches || []));
@@ -229,6 +176,11 @@ const BatchManager = ({ token }: { token: any }) => {
       console.error(err);
     }
   };
+
+  useEffect(() => {
+    const delay = setTimeout(fetchBatches, 300);
+    return () => clearTimeout(delay);
+  }, [batchSearch]);
 
   const searchParents = async () => {
     try {
@@ -328,9 +280,20 @@ const BatchManager = ({ token }: { token: any }) => {
 
   return (
     <div className="space-y-6">
-      <button onClick={() => setShowCreate(!showCreate)} className="bg-[#052e16] text-white px-4 py-2 rounded-lg font-bold flex items-center gap-2">
-        <Plus size={18} /> Create New Batch
-      </button>
+      <div className="flex justify-between items-center bg-white p-4 rounded-2xl border border-slate-100 shadow-sm">
+        <div className="relative w-72">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={16} />
+          <input 
+            className="w-full bg-slate-50 border-none ring-1 ring-slate-200 rounded-xl pl-10 pr-4 py-2 text-sm focus:ring-emerald-500 transition-all font-medium"
+            placeholder="Search batches or scholars..." 
+            value={batchSearch} 
+            onChange={(e) => setBatchSearch(e.target.value)} 
+          />
+        </div>
+        <button onClick={() => setShowCreate(!showCreate)} className="bg-[#052e16] text-white px-6 py-2.5 rounded-xl font-bold flex items-center gap-2 shadow-lg shadow-emerald-900/10 hover:bg-emerald-900 transition-all active:scale-95">
+          <Plus size={18} /> Create New Batch
+        </button>
+      </div>
 
       {showCreate && (
         <div className="bg-white p-6 rounded-2xl border border-emerald-100 shadow-sm space-y-4">
@@ -350,12 +313,28 @@ const BatchManager = ({ token }: { token: any }) => {
             </select>
           </div>
 
-          <select className="w-full border p-2 rounded" value={newItem.scholar} onChange={(e) => setNewItem({ ...newItem, scholar: e.target.value })}>
-            <option value="">Select Scholar</option>
-            {scholars.map((s) => (
-              <option key={s._id} value={s._id}>{s.name} ({s.email})</option>
-            ))}
-          </select>
+          <div className="space-y-2">
+            <label className="text-xs font-bold text-slate-400 uppercase tracking-wider">Assign Scholar</label>
+            <div className="relative">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={14} />
+              <input 
+                className="w-full border-none ring-1 ring-slate-200 p-2 rounded-xl pl-9 text-sm focus:ring-emerald-500 mb-2" 
+                placeholder="Type to search scholars..." 
+                value={scholarSearchQuery} 
+                onChange={(e) => setScholarSearchQuery(e.target.value)} 
+              />
+              <select 
+                className="w-full border-none ring-1 ring-slate-200 p-2 rounded-xl text-sm focus:ring-emerald-500 bg-white" 
+                value={newItem.scholar} 
+                onChange={(e) => setNewItem({ ...newItem, scholar: e.target.value })}
+              >
+                <option value="">{scholars.length === 0 ? 'No scholars found' : 'Select Scholar'}</option>
+                {scholars.map((s) => (
+                  <option key={s._id} value={s._id}>{s.name} ({s.email})</option>
+                ))}
+              </select>
+            </div>
+          </div>
 
           <button onClick={createBatch} className="bg-emerald-600 text-white px-6 py-2 rounded-lg font-bold">Save Batch</button>
         </div>

@@ -416,21 +416,52 @@ export const getAiLogs = async (req, res) => {
 
 // --- EXISTING BATCH/SESSION METHODS (Keep for functionality) ---
 
-// GET /api/admin/batches?page=1&limit=20
+// GET /api/admin/batches?page=1&limit=20&q=search
 export const getBatches = async (req, res) => {
     try {
         const page = parseInt(req.query.page) || 1;
         const limit = parseInt(req.query.limit) || 20;
         const skip = (page - 1) * limit;
+        const search = req.query.q || "";
 
-        const batches = await Batch.find()
+        let query = {};
+        if (search) {
+            const regex = new RegExp(search, 'i');
+            
+            // For a more robust search including scholar names, we need aggregation
+            const matchBatches = await Batch.aggregate([
+                {
+                    $lookup: {
+                        from: "users",
+                        localField: "scholar",
+                        foreignField: "_id",
+                        as: "scholarInfo"
+                    }
+                },
+                {
+                    $match: {
+                        $or: [
+                            { name: regex },
+                            { "scholarInfo.name": regex },
+                            { "scholarInfo.email": regex }
+                        ]
+                    }
+                },
+                { $project: { _id: 1 } }
+            ]);
+            
+            const ids = matchBatches.map(b => b._id);
+            query = { _id: { $in: ids } };
+        }
+
+        const batches = await Batch.find(query)
             .sort({ createdAt: -1 })
             .skip(skip)
             .limit(limit)
-            .populate('scholar', 'name')
+            .populate('scholar', 'name email')
             .populate('students', 'name');
             
-        const total = await Batch.countDocuments();
+        const total = await Batch.countDocuments(query);
 
         res.json({
             batches,

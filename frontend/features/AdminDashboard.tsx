@@ -30,6 +30,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onNavigateToLive }) => 
     const [error, setError] = useState<string | null>(null);
     const [searchQuery, setSearchQuery] = useState('');
     const [paidSearchQuery, setPaidSearchQuery] = useState('');
+    const [paidTotalCount, setPaidTotalCount] = useState(0);
 
     
     // Pagination state
@@ -148,6 +149,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onNavigateToLive }) => 
 
             setUsers(res.data.users || []);
             setPaidTotalPages(res.data.pagination?.pages || 1);
+            setPaidTotalCount(res.data.pagination?.total || 0);
         } catch (e) {
             console.error("Paid users error", e);
         } finally {
@@ -379,8 +381,8 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onNavigateToLive }) => 
                                     value={paidSearchQuery} 
                                     onChange={e => setPaidSearchQuery(e.target.value)} 
                                 />
-                                <div className="bg-emerald-600 text-white font-bold px-4 py-2 rounded-lg text-sm shadow-sm whitespace-nowrap">
-                                    Total: {users.length}
+                                <div className="bg-[#052e16] text-white font-bold px-4 py-2 rounded-xl text-sm shadow-lg shadow-emerald-900/20 whitespace-nowrap">
+                                    Total Premium: {paidTotalCount}
                                 </div>
                             </div>
                         </div>
@@ -391,6 +393,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onNavigateToLive }) => 
                                     <tr>
                                         <th className="px-6 py-4">User</th>
                                         <th className="px-6 py-4">Plan Status</th>
+                                        <th className="px-6 py-4">Payment Ref</th>
                                         <th className="px-6 py-4">Current Role</th>
                                     </tr>
                                 </thead>
@@ -399,30 +402,50 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onNavigateToLive }) => 
                                         const hasLive = u.features?.liveAccess === true;
                                         const aiUntil = u.features?.aiPremiumUntil ? new Date(u.features.aiPremiumUntil) : null;
                                         const hasAi = aiUntil && aiUntil > new Date();
+                                        const lastPayment = u.processedPayments?.[u.processedPayments.length - 1];
 
                                         return (
-                                            <tr key={u._id} className="hover:bg-slate-50 transition-colors">
+                                            <tr key={u._id} className="hover:bg-slate-50 transition-colors group">
                                                 <td className="px-6 py-4 align-top">
                                                     <div className="font-bold text-slate-800">{u.name}</div>
                                                     <div className="text-xs text-slate-500">{u.email}</div>
                                                     <div className="text-[10px] font-mono text-slate-300 mt-1">{u._id}</div>
                                                 </td>
                                                 <td className="px-6 py-4 align-top space-y-2">
-                                                    {hasLive && (
-                                                        <div className="inline-flex items-center gap-1.5 bg-emerald-100 text-emerald-800 px-2.5 py-1 rounded border border-emerald-200 text-xs font-bold w-max">
-                                                            <Video size={12} /> Tarbiyah Lifetime
+                                                    {hasLive ? (
+                                                        <div className="inline-flex items-center gap-2 bg-emerald-500/10 text-emerald-700 px-3 py-1.5 rounded-xl border border-emerald-500/20 text-[11px] font-black uppercase tracking-tight w-max group-hover:bg-emerald-500 group-hover:text-white transition-all">
+                                                            <div className="w-2 h-2 rounded-full bg-emerald-500 group-hover:bg-white animate-pulse" />
+                                                            Live Tarbiyah
                                                         </div>
+                                                    ) : (
+                                                       <div className="text-[10px] text-slate-300 font-bold uppercase tracking-widest">No Live Access</div>
                                                     )}
                                                     {hasAi && (
-                                                        <div className="inline-flex items-center gap-1.5 bg-blue-100 text-blue-800 px-2.5 py-1 rounded border border-blue-200 text-xs font-bold w-max">
-                                                            <MessageCircle size={12} /> AI Premium (Until {aiUntil.toLocaleDateString()})
+                                                        <div className="inline-flex items-center gap-2 bg-indigo-500/10 text-indigo-700 px-3 py-1.5 rounded-xl border border-indigo-500/20 text-[11px] font-black uppercase tracking-tight w-max group-hover:bg-indigo-500 group-hover:text-white transition-all">
+                                                            <MessageCircle size={14} /> AI Until {aiUntil.toLocaleDateString()}
                                                         </div>
                                                     )}
                                                 </td>
                                                 <td className="px-6 py-4 align-top">
-                                                    <span className={`px-2 py-1 rounded uppercase font-bold text-[10px] tracking-wide ${
-                                                        u.role === 'admin' ? 'bg-red-100 text-red-700' :
-                                                        u.role === 'scholar' ? 'bg-purple-100 text-purple-700' : 'bg-slate-100 text-slate-600'
+                                                    {lastPayment ? (
+                                                        <div className="space-y-1">
+                                                            <div className="text-[11px] font-black text-slate-400 uppercase tracking-widest">Razorpay</div>
+                                                            <div className="text-xs font-mono bg-slate-100 px-2 py-1 rounded text-slate-600 border border-slate-200">{lastPayment}</div>
+                                                        </div>
+                                                    ) : (
+                                                        <div className="space-y-1">
+                                                            <div className="text-[11px] font-black text-amber-500 uppercase tracking-widest flex items-center gap-1">
+                                                                <div className="w-1.5 h-1.5 rounded-full bg-amber-500" />
+                                                                Manual / Admin
+                                                            </div>
+                                                            <div className="text-[10px] text-slate-400 italic">No payment record found</div>
+                                                        </div>
+                                                    )}
+                                                </td>
+                                                <td className="px-6 py-4 align-top">
+                                                    <span className={`px-3 py-1 rounded-lg uppercase font-black text-[9px] tracking-widest shadow-sm ${
+                                                        u.role === 'admin' ? 'bg-rose-500 text-white' :
+                                                        u.role === 'scholar' ? 'bg-indigo-600 text-white' : 'bg-slate-100 text-slate-500'
                                                     }`}>
                                                         {u.role || 'parent'}
                                                     </span>

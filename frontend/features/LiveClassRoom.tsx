@@ -92,6 +92,7 @@ const LiveClassRoom: React.FC = () => {
     qaidaSyncData, 
     showQaidaViewer, 
     setShowQaidaViewer,
+    isQaidaActiveGlobally,
     refetchBatchState
   } = useClassroomSync(
     currentSession?.batchId, 
@@ -418,6 +419,15 @@ const LiveClassRoom: React.FC = () => {
           </div>
           
           <div className="flex items-center gap-4">
+             {userRole === 'parent' && isQaidaActiveGlobally && !showQaidaViewer && (
+               <button 
+                 onClick={() => setShowQaidaViewer(true)}
+                 className="flex items-center gap-2 bg-emerald-500/20 text-emerald-400 px-4 py-2 rounded-xl text-[9px] font-black uppercase border border-emerald-500/20 animate-pulse hover:bg-emerald-500/30 transition-all"
+               >
+                 <BookOpen size={14} /> Open Qaida
+               </button>
+             )}
+             
              {userRole === 'parent' && (
                <button 
                  onClick={() => setActiveDrawer('leaderboard')}

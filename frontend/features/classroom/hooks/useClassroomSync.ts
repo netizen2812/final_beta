@@ -36,6 +36,7 @@ export const useClassroomSync = (
   const [activeSessions, setActiveSessions] = useState<any[]>([]);
   const [qaidaSyncData, setQaidaSyncData] = useState({ language: 'english', pageNumber: 1 });
   const [showQaidaViewer, setShowQaidaViewer] = useState(false);
+  const [isQaidaActiveGlobally, setIsQaidaActiveGlobally] = useState(false);
   const lastSeenScoreRef = useRef<number | null>(null);
   const lastSyncTsRef = useRef<number>(0);
   const activeChildIdRef = useRef<string | null>(null);
@@ -130,7 +131,13 @@ export const useClassroomSync = (
       }
     })
     .on('broadcast', { event: 'qaida-sync' }, ({ payload }) => {
-      if (payload.isOpen !== undefined) setShowQaidaViewer(payload.isOpen);
+      if (payload.isOpen !== undefined) {
+        setIsQaidaActiveGlobally(payload.isOpen);
+        // ⚡ Auto-open for students only when the scholar explicitly starts it
+        if (payload.isOpen === true) setShowQaidaViewer(true);
+        // ⚡ Force close for everyone if scholar stops it
+        if (payload.isOpen === false) setShowQaidaViewer(false);
+      }
       if (payload.language && payload.pageNumber) {
         setQaidaSyncData({ language: payload.language, pageNumber: payload.pageNumber });
       }
@@ -157,7 +164,7 @@ export const useClassroomSync = (
             ayah: activeStudent?.currentAyah,
             // 🆕 Include Qaida state in handshake
             qaida: {
-              isOpen: showQaidaViewer,
+              isOpen: showQaidaViewer, // Scholar's local open state is the global state
               language: qaidaSyncData.language,
               pageNumber: qaidaSyncData.pageNumber
             },
@@ -184,7 +191,10 @@ export const useClassroomSync = (
 
         // 🆕 Sync Qaida state from handshake
         if (payload.qaida) {
-          setShowQaidaViewer(payload.qaida.isOpen);
+          setIsQaidaActiveGlobally(payload.qaida.isOpen);
+          // 🆕 Late joiners auto-open if it's active
+          if (payload.qaida.isOpen) setShowQaidaViewer(true);
+          
           if (payload.qaida.language) {
             setQaidaSyncData({ 
               language: payload.qaida.language, 
@@ -216,6 +226,7 @@ export const useClassroomSync = (
     qaidaSyncData,
     showQaidaViewer,
     setShowQaidaViewer,
+    isQaidaActiveGlobally,
     refetchBatchState
   };
 };

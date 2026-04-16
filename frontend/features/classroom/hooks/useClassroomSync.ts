@@ -131,15 +131,19 @@ export const useClassroomSync = (
       }
     })
     .on('broadcast', { event: 'qaida-sync' }, ({ payload }) => {
-      if (payload.isOpen !== undefined) {
-        setIsQaidaActiveGlobally(payload.isOpen);
-        // ⚡ Auto-open for students only when the scholar explicitly starts it
-        if (payload.isOpen === true) setShowQaidaViewer(true);
-        // ⚡ Force close for everyone if scholar stops it
-        if (payload.isOpen === false) setShowQaidaViewer(false);
-      }
-      if (payload.language && payload.pageNumber) {
-        setQaidaSyncData({ language: payload.language, pageNumber: payload.pageNumber });
+      if (payload.ts > lastSyncTsRef.current) {
+        lastSyncTsRef.current = payload.ts;
+        
+        if (payload.isOpen !== undefined) {
+          setIsQaidaActiveGlobally(payload.isOpen);
+          // ⚡ Auto-open for students only when the scholar explicitly starts it
+          if (payload.isOpen === true) setShowQaidaViewer(true);
+          // ⚡ Force close for everyone if scholar stops it
+          if (payload.isOpen === false) setShowQaidaViewer(false);
+        }
+        if (payload.language && payload.pageNumber) {
+          setQaidaSyncData({ language: payload.language, pageNumber: payload.pageNumber });
+        }
       }
     })
     .on('broadcast', { event: 'score-updated' }, ({ payload }) => {

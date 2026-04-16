@@ -120,6 +120,7 @@ export const TarbiyahLobby = ({
   const [showGuestModal, setShowGuestModal] = useState(false);
   const [showSuccessOverlay, setShowSuccessOverlay] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+  const [isInitialLoading, setIsInitialLoading] = useState(true);
   const { openSignUp } = useClerk();
   const { t } = useTranslation();
   const { isLoaded, isSignedIn } = useUser();
@@ -148,7 +149,10 @@ export const TarbiyahLobby = ({
 
         setBatches(batchesRes.data || []);
         setAccessStatus(accessRes.data);
-      } catch (err) {}
+      } catch (err) {
+      } finally {
+        setIsInitialLoading(false);
+      }
     };
     fetchData();
     const hasActiveBatch = batches.some(b => b.status === 'active');
@@ -241,6 +245,27 @@ export const TarbiyahLobby = ({
          handleGuestJoin={() => setShowGuestModal(true)} 
        />
      );
+  }
+
+  // 🔄 INITIAL LOADING STATE: Wait for backend status before making decisions
+  if (isLoggedIn && isInitialLoading && userRole !== 'scholar') {
+    return (
+      <div className="min-h-screen flex flex-col items-center justify-center bg-[#022c22] relative overflow-hidden">
+        <MovingBackground />
+        <div className="relative z-10 flex flex-col items-center gap-6">
+          <div className="relative">
+            <div className="w-20 h-20 rounded-full border-4 border-emerald-500/20 border-t-emerald-500 animate-spin" />
+            <div className="absolute inset-0 flex items-center justify-center">
+              <Sprout className="text-emerald-400" size={32} />
+            </div>
+          </div>
+          <div className="text-center">
+            <p className="text-emerald-400 font-bold uppercase tracking-[0.2em] text-[10px] mb-2">Preparing for Classroom</p>
+            <p className="text-white/40 text-[10px]">Verifying your journey...</p>
+          </div>
+        </div>
+      </div>
+    );
   }
 
   return (

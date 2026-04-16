@@ -235,7 +235,7 @@ const RemoteStream: React.FC<{ user: IAgoraRTCRemoteUser; label: string; isMain?
   useEffect(() => {
     if (user.videoTrack && containerRef.current) {
       containerRef.current.innerHTML = ''; // Prevent duplicate remote video instances
-      user.videoTrack.play(containerRef.current);
+      user.videoTrack.play(containerRef.current, { fit: 'cover' });
     }
   }, [user.videoTrack]);
 

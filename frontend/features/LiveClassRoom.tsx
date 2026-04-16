@@ -75,6 +75,7 @@ const LiveClassRoom: React.FC = () => {
   const [selectedBatchId, setSelectedBatchId] = useState<string | null>(null);
   const [attendedSessionIds, setAttendedSessionIds] = useState<string[]>([]);
   const [attendanceHistory, setAttendanceHistory] = useState<any[]>([]);
+  const [isCinemaMode, setIsCinemaMode] = useState(false);
 
   const syncChannelRef = useRef<any>(null);
   const joinedSessionIdRef = useRef<string | null>(null);
@@ -375,26 +376,72 @@ const LiveClassRoom: React.FC = () => {
     return (
       <div className="flex flex-col h-full relative overflow-hidden">
         <MovingBackground />
-        <div className="relative z-20 px-6 pt-4 pb-2 flex items-center justify-between">
-           <div className="flex flex-col"><h3 className="text-white font-serif font-bold text-lg mb-1">Focus & Learn 🌟</h3><p className="text-emerald-400/80 text-xs">Listen closely to your classmate.</p></div>
-           {leaderboard && <button onClick={() => setActiveDrawer('leaderboard')} className="flex items-center gap-3 px-5 py-2.5 bg-amber-500/10 border border-amber-500/30 rounded-2xl"><Trophy size={16} className="text-amber-400" /><span className="text-[10px] font-black text-amber-400 uppercase">Leaderboard</span></button>}
+        
+        {/* Persistent Floating Controls for Student View */}
+        <div className="absolute top-20 right-6 flex flex-col gap-3 z-[100]">
+           {leaderboard && (
+             <button 
+               onClick={() => setActiveDrawer('leaderboard')} 
+               className="w-12 h-12 bg-amber-500/20 hover:bg-amber-500/40 text-amber-400 border border-amber-500/30 rounded-2xl flex items-center justify-center transition-all backdrop-blur-xl shadow-xl hover:scale-105 active:scale-95"
+               title="Leaderboard"
+             >
+               <Trophy size={20} />
+             </button>
+           )}
+           <button 
+             onClick={() => setIsCinemaMode(!isCinemaMode)} 
+             className={`w-12 h-12 flex items-center justify-center rounded-2xl border transition-all backdrop-blur-xl shadow-xl hover:scale-105 active:scale-95 ${isCinemaMode ? 'bg-emerald-500 text-emerald-950 border-emerald-400' : 'bg-white/10 text-white border-white/20'}`}
+             title={isCinemaMode ? "Show Controls" : "Full Screen Video"}
+           >
+             {isCinemaMode ? <Minimize2 size={20} /> : <Maximize2 size={20} />}
+           </button>
         </div>
+
+        <div className="relative z-20 px-6 pt-4 pb-2 flex items-center justify-between">
+           <div className="flex flex-col">
+             <h3 className="text-white font-serif font-bold text-lg mb-1">Focus & Learn 🌟</h3>
+             <p className="text-emerald-400/80 text-xs">Listen closely to your classmate.</p>
+           </div>
+        </div>
+
         <div className="flex-1 px-4 pb-4 flex flex-col md:flex-row gap-4 overflow-hidden z-10">
-           <div className="flex-[3] bg-black/60 backdrop-blur-xl rounded-[2.5rem] overflow-hidden border border-emerald-800/30">
-              <AgoraVideoPane appId={currentSession.agoraAppId || ""} token={currentSession.agoraToken || ""} channel={currentSession.channel || currentSession.batchId || ""} uid={getNumericUid(user?.id || '')} role="student" layout="spotlight" scholarId={currentSession.scholarId} />
+           <div className={`flex-1 bg-black/60 backdrop-blur-xl rounded-[2.5rem] overflow-hidden border border-emerald-800/30 transition-all duration-700 ${isCinemaMode ? 'md:flex-[4]' : 'md:flex-[3]'}`}>
+              <AgoraVideoPane 
+                appId={currentSession.agoraAppId || ""} 
+                token={currentSession.agoraToken || ""} 
+                channel={currentSession.channel || currentSession.batchId || ""} 
+                uid={getNumericUid(user?.id || '')} 
+                role="student" 
+                layout="spotlight" 
+                scholarId={currentSession.scholarId} 
+              />
            </div>
 
-           <div className="w-[300px] flex flex-col gap-4">
-              <ObservationControls 
-                batchId={currentSession.batchId || ""}
-                childId={activeChild?.id || ""}
-                batchState={batchState}
-                onSubmitPrompt={handleSubmitPrompt}
-              />
-              
-              <div className="flex-1" />
-           </div>
+           {!isCinemaMode && (
+             <div className="w-full md:w-[320px] lg:w-[380px] flex flex-col gap-4 animate-in slide-in-from-right-8 duration-500">
+                <ObservationControls 
+                  batchId={currentSession.batchId || ""}
+                  childId={activeChild?.id || ""}
+                  batchState={batchState}
+                  onSubmitPrompt={handleSubmitPrompt}
+                />
+                {!isMobile && <div className="flex-1" />}
+             </div>
+           )}
         </div>
+
+        {/* Floating Qaida FAB for Students - High Visibility */}
+        {userRole === 'parent' && isQaidaActiveGlobally && !showQaidaViewer && (
+           <div className="absolute bottom-10 left-1/2 -translate-x-1/2 z-[200] animate-bounce">
+              <button 
+                onClick={() => setShowQaidaViewer(true)}
+                className="flex items-center gap-3 bg-emerald-500 text-emerald-950 px-8 py-5 rounded-[2.5rem] text-sm font-black uppercase tracking-widest shadow-2xl shadow-emerald-500/40 hover:bg-emerald-400 transition-all active:scale-95 border-b-4 border-emerald-700"
+              >
+                <BookOpen size={20} /> 
+                Open Live Qaida
+              </button>
+           </div>
+        )}
       </div>
     );
   };
@@ -418,25 +465,14 @@ const LiveClassRoom: React.FC = () => {
              <button onClick={handleExitSession} className="flex items-center gap-2 bg-white/5 text-emerald-200/60 px-4 py-2 rounded-xl text-[9px] font-black uppercase">Exit</button>
           </div>
           
-          <div className="flex items-center gap-4">
-             {userRole === 'parent' && isQaidaActiveGlobally && !showQaidaViewer && (
-               <button 
-                 onClick={() => setShowQaidaViewer(true)}
-                 className="flex items-center gap-2 bg-emerald-500/20 text-emerald-400 px-4 py-2 rounded-xl text-[9px] font-black uppercase border border-emerald-500/20 animate-pulse hover:bg-emerald-500/30 transition-all"
-               >
-                 <BookOpen size={14} /> Open Qaida
-               </button>
-             )}
-             
-             {userRole === 'parent' && (
+              {userRole === 'parent' && (
                <button 
                  onClick={() => setActiveDrawer('leaderboard')}
                  className="flex items-center gap-2 bg-amber-500/10 text-amber-400 px-4 py-2 rounded-xl text-[9px] font-black uppercase border border-amber-500/20"
                >
                  <Trophy size={14} /> Leaderboard
                </button>
-             )}
-          </div>
+              )}
         </div>
         <div className="flex-1 relative overflow-hidden z-10">{renderMainStage()}</div>
         

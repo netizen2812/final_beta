@@ -6,7 +6,7 @@ import {
     batchPing, updateBatchProgress, updatePosition, leaveBatch, getBatchActiveParticipants,
     getBatchState, selectTurn, scoreRecitation, scoreParticipation, getLeaderboard,
     submitPrompt, evaluatePrompt, getScholarBatches, endBatch, getBatchAttendance, getBatchStudents,
-    emergencyLinkRestore, forceEndBatch
+    emergencyLinkRestore, forceEndBatch, getAccessStatus
 } from "../controller/liveController.js";
 import { requireAuth, isAdmin, isScholar } from "../middleware/authmiddleware.js";
 import { canAccessBatch } from "../middleware/batchAccess.js";
@@ -23,6 +23,9 @@ router.post("/webhook/daily", (req, res, next) => {
 
 // Helper: Scholar Status
 router.get("/scholar/status", requireAuth, getScholarStatus);
+
+// USER: Access Status
+router.get("/access/status", requireAuth, getAccessStatus);
 
 // SCHOLAR: My Batches
 router.get("/scholar/batches", requireAuth, isScholar, getScholarBatches);

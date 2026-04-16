@@ -70,6 +70,30 @@ export const getScholarSessions = async (req, res) => {
     res.json({ sessions: [] });
 };
 
+// GET /api/live/access/status - Check if user has Tarbiyah access
+export const getAccessStatus = async (req, res) => {
+    try {
+        const clerkId = req.auth.userId;
+        const user = await User.findOne({ clerkId });
+        if (!user) {
+            return res.status(404).json({ message: "User not found" });
+        }
+
+        // Access if: flag is true, or user is admin, or user is scholar
+        const hasAccess = user.features?.liveAccess || 
+                          user.role === 'admin' || 
+                          user.role === 'scholar';
+
+        res.json({
+            hasAccess,
+            role: user.role
+        });
+    } catch (error) {
+        console.error("Access status error:", error);
+        res.status(500).json({ message: "Server error" });
+    }
+};
+
 // ADMIN: POST /api/live/admin/batch - Create new batch
 export const createBatch = async (req, res) => {
     try {

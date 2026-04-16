@@ -429,7 +429,11 @@ const KidsView = ({ scrollProgress, activeChild, onJoinLive, currentBatchStatus,
             </div>
             <div className="flex-1 w-full space-y-4">
               <div className="flex justify-between items-center">
-                <h2 className="text-2xl font-bold text-white drop-shadow-md">{activeChild ? activeChild.name + "'s Journey" : "Little Explorer"}</h2>
+                <h2 className="text-2xl font-bold text-white drop-shadow-md">
+                  {activeChild 
+                    ? (activeChild.name.toLowerCase().includes('journey') ? activeChild.name : activeChild.name + "'s Journey") 
+                    : "Little Explorer"}
+                </h2>
                 <div className="flex items-center gap-2 bg-orange-500/20 px-4 py-2 rounded-full border border-orange-500/30 text-orange-300 font-bold text-sm">
                   <Flame size={18} fill="currentColor" /> {progress?.streak_days || 0} Day Streak
                 </div>
@@ -719,7 +723,11 @@ const ParentsView = ({ activeChild, getToken }: any) => {
   return (
     <div className="pt-32 pb-20 px-4 max-w-6xl mx-auto z-10 relative">
       <div className="flex flex-col md:flex-row justify-between items-center gap-6 mb-12">
-        <h1 className="text-4xl md:text-5xl font-serif font-bold text-white">{activeChild?.name || 'Child'}'s Journey</h1>
+        <h1 className="text-4xl md:text-5xl font-serif font-bold text-white">
+          {activeChild?.name?.toLowerCase().includes('journey') 
+            ? activeChild.name 
+            : (activeChild?.name || 'Child') + "'s Journey"}
+        </h1>
         <button onClick={() => setShowSetupModal(true)} className="bg-white/10 text-white px-8 py-4 rounded-2xl border border-white/20 font-bold flex items-center gap-3 shadow-xl"> <Settings size={20} /> Setup Progress</button>
       </div>
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-12">

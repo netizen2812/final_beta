@@ -404,8 +404,11 @@ const LiveClassRoom: React.FC = () => {
            </div>
         </div>
 
-        <div className="flex-1 px-4 pb-4 flex flex-col md:flex-row gap-4 overflow-hidden z-10">
-           <div className={`flex-1 bg-black/60 backdrop-blur-xl rounded-[2.5rem] overflow-hidden border border-emerald-800/30 transition-all duration-700 ${isCinemaMode ? 'md:flex-[4]' : 'md:flex-[3]'}`}>
+        <div className="flex-1 relative z-10 overflow-hidden">
+           {/* 📽️ VIDEO LAYER (Fills entire background on mobile) */}
+           <div className={`absolute inset-0 bg-black/60 backdrop-blur-xl transition-all duration-700 z-10 ${
+             isCinemaMode ? 'md:flex-[4]' : 'md:flex-[3]'
+           } ${!isMobile ? 'relative rounded-[2.5rem] border border-emerald-800/30 inset-auto h-full w-full' : ''}`}>
               <AgoraVideoPane 
                 appId={currentSession.agoraAppId || ""} 
                 token={currentSession.agoraToken || ""} 
@@ -417,18 +420,57 @@ const LiveClassRoom: React.FC = () => {
               />
            </div>
 
+           {/* 🎮 CONTROLS LAYER (Floating on Mobile, Sidebar on Desktop) */}
            {!isCinemaMode && (
-             <div className="w-full md:w-[320px] lg:w-[380px] flex flex-col gap-4 animate-in slide-in-from-right-8 duration-500">
-                <ObservationControls 
-                  batchId={currentSession.batchId || ""}
-                  childId={activeChild?.id || ""}
-                  batchState={batchState}
-                  onSubmitPrompt={handleSubmitPrompt}
-                />
+             <div className={`flex flex-col gap-4 animate-in slide-in-from-right-8 duration-500 z-20 ${
+               isMobile 
+                ? 'absolute bottom-6 left-6 right-6 max-h-[40vh] overflow-y-auto pointer-events-none' 
+                : 'w-[320px] lg:w-[380px] h-full relative'
+             }`}>
+                <div className={isMobile ? 'pointer-events-auto' : ''}>
+                  <ObservationControls 
+                    batchId={currentSession.batchId || ""}
+                    childId={activeChild?.id || ""}
+                    batchState={batchState}
+                    onSubmitPrompt={handleSubmitPrompt}
+                  />
+                </div>
                 {!isMobile && <div className="flex-1" />}
              </div>
            )}
         </div>
+
+        {/* 🛠️ Floating Utility Buttons (Always Visible) */}
+        {!isMobile && (
+           <div className="absolute top-20 right-6 flex flex-col gap-3 z-[100]">
+             {leaderboard && (
+               <button 
+                 onClick={() => setActiveDrawer('leaderboard')} 
+                 className="w-12 h-12 bg-amber-500/20 hover:bg-amber-500/40 text-amber-400 border border-amber-500/30 rounded-2xl flex items-center justify-center transition-all backdrop-blur-xl shadow-xl hover:scale-105 active:scale-95"
+               >
+                 <Trophy size={20} />
+               </button>
+             )}
+             <button 
+               onClick={() => setIsCinemaMode(!isCinemaMode)} 
+               className={`w-12 h-12 flex items-center justify-center rounded-2xl border transition-all backdrop-blur-xl shadow-xl hover:scale-105 active:scale-95 ${isCinemaMode ? 'bg-emerald-500 text-emerald-950 border-emerald-400' : 'bg-white/10 text-white border-white/20'}`}
+             >
+               {isCinemaMode ? <Minimize2 size={20} /> : <Maximize2 size={20} />}
+             </button>
+           </div>
+        )}
+
+        {/* 📱 Mobile Specific Toggles */}
+        {isMobile && (
+          <div className="absolute top-4 right-4 flex gap-2 z-[100]">
+             <button 
+               onClick={() => setIsCinemaMode(!isCinemaMode)}
+               className={`w-10 h-10 rounded-full flex items-center justify-center border transition-all backdrop-blur-xl ${isCinemaMode ? 'bg-emerald-500 text-black border-emerald-400' : 'bg-black/40 text-white border-white/20'}`}
+             >
+               {isCinemaMode ? <Minimize2 size={16} /> : <Maximize2 size={16} />}
+             </button>
+          </div>
+        )}
 
         {/* Floating Qaida FAB for Students - High Visibility */}
         {userRole === 'parent' && isQaidaActiveGlobally && !showQaidaViewer && (

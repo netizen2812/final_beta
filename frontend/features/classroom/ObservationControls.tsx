@@ -46,31 +46,31 @@ export const ObservationControls: React.FC<ObservationControlsProps> = ({
   }
 
   return (
-    <div className="bg-[#022c22]/60 backdrop-blur-xl border border-emerald-500/20 rounded-3xl p-8 flex flex-col gap-6 shadow-2xl animate-in slide-in-from-bottom-8 duration-700">
-      <div className="text-center space-y-2">
-        <h3 className="text-xl font-serif font-bold text-white">How is it sounding? 🎧</h3>
-        <p className="text-emerald-400/70 text-sm">Help your classmate by providing feedback.</p>
+    <div className="bg-[#022c22]/60 backdrop-blur-xl border border-emerald-500/20 rounded-3xl p-4 md:p-8 flex flex-col gap-4 md:gap-6 shadow-2xl animate-in slide-in-from-bottom-8 duration-700">
+      <div className="text-center space-y-1 md:space-y-2">
+        <h3 className="text-sm md:text-xl font-serif font-bold text-white leading-none">How is it sounding? 🎧</h3>
+        <p className="text-emerald-400/70 text-[10px] md:text-sm">Help your classmate with feedback.</p>
       </div>
 
-      <div className="grid grid-cols-2 gap-4">
+      <div className="grid grid-cols-2 gap-3 md:gap-4">
         <button
           onClick={() => handleVote('yes')}
-          className="group flex flex-col items-center gap-4 bg-emerald-500/10 hover:bg-emerald-500 hover:text-emerald-950 p-6 rounded-[2rem] border border-emerald-500/30 transition-all duration-300 active:scale-95"
+          className="group flex flex-col items-center gap-2 md:gap-4 bg-emerald-500/10 hover:bg-emerald-500 hover:text-emerald-950 p-4 md:p-6 rounded-2xl md:rounded-[2rem] border border-emerald-500/30 transition-all duration-300 active:scale-95"
         >
-          <div className="w-14 h-14 rounded-2xl bg-emerald-500/20 group-hover:bg-white/20 flex items-center justify-center transition-colors">
-            <ThumbsUp size={28} className="text-emerald-400 group-hover:text-emerald-950" />
+          <div className="w-10 h-10 md:w-14 md:h-14 rounded-xl md:rounded-2xl bg-emerald-500/20 group-hover:bg-white/20 flex items-center justify-center transition-colors">
+            <ThumbsUp size={20} className="text-emerald-400 group-hover:text-emerald-950 md:w-7 md:h-7" />
           </div>
-          <span className="font-black text-[10px] uppercase tracking-widest">Perfect!</span>
+          <span className="font-black text-[8px] md:text-[10px] uppercase tracking-widest">Perfect!</span>
         </button>
 
         <button
           onClick={() => handleVote('no')}
-          className="group flex flex-col items-center gap-4 bg-red-500/10 hover:bg-red-500 hover:text-white p-6 rounded-[2rem] border border-red-500/30 transition-all duration-300 active:scale-95"
+          className="group flex flex-col items-center gap-2 md:gap-4 bg-red-500/10 hover:bg-red-500 hover:text-white p-4 md:p-6 rounded-2xl md:rounded-[2rem] border border-red-500/30 transition-all duration-300 active:scale-95"
         >
-          <div className="w-14 h-14 rounded-2xl bg-red-500/20 group-hover:bg-white/20 flex items-center justify-center transition-colors">
-            <ThumbsDown size={28} className="text-red-400 group-hover:text-white" />
+          <div className="w-10 h-10 md:w-14 md:h-14 rounded-xl md:rounded-2xl bg-red-500/20 group-hover:bg-white/20 flex items-center justify-center transition-colors">
+            <ThumbsDown size={20} className="text-red-400 group-hover:text-white md:w-7 md:h-7" />
           </div>
-          <span className="font-black text-[10px] uppercase tracking-widest">Small Mistake</span>
+          <span className="font-black text-[8px] md:text-[10px] uppercase tracking-widest">Mistake</span>
         </button>
       </div>
       

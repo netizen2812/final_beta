@@ -79,8 +79,10 @@ export const syncUser = async (req, res) => {
     }
 
     // 2. If Clerk Metadata is missing or wrong, PUSH IT to Clerk
-    // This fixes the UI issues for Sarthak/Huzaifa/Scholar1 immediately
-    if (expectedRole !== currentClerkRole && (isRoot || isScholarVal)) {
+    // This fixes the UI issues for scholars and admins immediately
+    const shouldPushToClerk = expectedRole !== currentClerkRole && (isRoot || isScholarVal || user.role === 'scholar' || user.role === 'admin');
+    
+    if (shouldPushToClerk) {
       try {
         await clerkClient.users.updateUserMetadata(clerkId, {
           publicMetadata: { role: expectedRole }

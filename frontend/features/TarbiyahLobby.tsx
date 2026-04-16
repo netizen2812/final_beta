@@ -127,10 +127,12 @@ export const TarbiyahLobby = ({
 
   // FIX: Sync view when userRole loads asynchronously (Clerk user loads after mount)
   useEffect(() => {
-    if (userRole === 'scholar' && (view === 'kids' || view === 'parent')) {
+    const effectiveRole = accessStatus?.role || userRole;
+    if (effectiveRole === 'scholar' && (view === 'kids' || view === 'parent')) {
+      console.log("[TarbiyahLobby] Scholar detected via DB/Metadata. Switching to Dashboard.");
       setView('scholar_dashboard');
     }
-  }, [userRole]);
+  }, [userRole, accessStatus?.role]);
 
   useEffect(() => {
     const fetchData = async () => {

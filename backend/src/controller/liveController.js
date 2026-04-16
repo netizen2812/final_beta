@@ -726,14 +726,16 @@ export const getMySessions = async (req, res) => {
         let batches = [];
 
         if (user.role === 'scholar' || user.role === 'admin') {
+            console.log(`[getMySessions] SCHOLAR FLOW: userEmail=${user.email} id=${user._id}`);
             // Get batches where they are the assigned scholar
             const taughtBatches = await Batch.find({
                 $or: [
                     { scholar: user._id },
-                    { scholarEmail: user.email }
+                    { scholarEmail: user.email?.toLowerCase() }
                 ],
                 status: { $ne: 'archived' }
             }).populate('scholar', 'name').sort({ createdAt: -1 });
+            console.log(`[getMySessions] Found ${taughtBatches.length} taught batches`);
 
             // Also get batches where THEIR own children are enrolled (for admins who are parents)
             const children = await Child.find({ parent_id: user._id });

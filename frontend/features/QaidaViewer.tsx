@@ -127,23 +127,6 @@ export const QaidaViewer: React.FC<QaidaViewerProps> = ({
                    </button>
                 ))}
              </div>
-                {LANGUAGES.map(lang => (
-                   <button
-                     key={lang.id}
-                     onClick={() => {
-                        setLanguage(lang.id as any);
-                        setPageNumber(1);
-                     }}
-                     className={`px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${
-                       language === lang.id 
-                       ? 'bg-emerald-500 text-black shadow-lg' 
-                       : 'text-white/40 hover:text-white/70'
-                     }`}
-                   >
-                     {lang.label}
-                   </button>
-                ))}
-             </div>
 
              <button 
                onClick={onClose}

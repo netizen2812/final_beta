@@ -231,12 +231,20 @@ const BatchManager = ({ token }: { token: any }) => {
         headers: { Authorization: `Bearer ${t}` },
       });
       const res = await axios.get(`${API_BASE}/api/live/admin/batches`, { headers: { Authorization: `Bearer ${t}` } });
-      const updated = res.data.find((b: any) => b._id === selectedBatch._id);
-      setBatches(res.data);
+      const rawData = Array.isArray(res.data) ? res.data : (res.data?.batches || []);
+      
+      // Sanitize data: filter out null students from batches
+      const batchesData = rawData.map((b: any) => ({
+        ...b,
+        students: (b.students || []).filter((s: any) => s != null)
+      }));
+
+      const updated = batchesData.find((b: any) => b._id === selectedBatch._id);
+      setBatches(batchesData);
       setSelectedBatch(updated);
     } catch (err: any) {
       console.error(err);
-      const msg = err.response?.data?.message || err.response?.data?.details || "Failed to add student";
+      const msg = err.response?.data?.message || err.response?.data?.details || err.message || "Failed to add student";
       alert(msg);
     }
   };
@@ -249,11 +257,18 @@ const BatchManager = ({ token }: { token: any }) => {
         headers: { Authorization: `Bearer ${t}` },
       });
       const res = await axios.get(`${API_BASE}/api/live/admin/batches`, { headers: { Authorization: `Bearer ${t}` } });
-      const updated = res.data.find((b: any) => b._id === selectedBatch._id);
-      setBatches(res.data);
+      const rawData = Array.isArray(res.data) ? res.data : (res.data?.batches || []);
+      
+      const batchesData = rawData.map((b: any) => ({
+        ...b,
+        students: (b.students || []).filter((s: any) => s != null)
+      }));
+
+      const updated = batchesData.find((b: any) => b._id === selectedBatch._id);
+      setBatches(batchesData);
       setSelectedBatch(updated);
     } catch {
-      alert("Failed to remove");
+      alert("Failed to remove student");
     }
   };
 
@@ -457,7 +472,7 @@ const BatchManager = ({ token }: { token: any }) => {
               <div className="space-y-4 border-l pl-6">
                 <h4 className="font-bold text-sm text-slate-500 uppercase">Enrolled Students ({selectedBatch.students?.length || 0})</h4>
                 <div className="space-y-2 max-h-80 overflow-y-auto">
-                  {selectedBatch.students?.map((s: any) => (
+                  {selectedBatch.students?.filter((s: any) => s != null).map((s: any) => (
                     <div key={s._id || s} className="flex flex-col bg-slate-50 p-3 rounded-lg border border-slate-100 group">
                       <div className="flex justify-between items-center">
                         <span className="text-xs font-bold text-slate-800">{s.name || 'Unknown Student'}</span>
@@ -494,11 +509,11 @@ const UserRow = ({ user, selectedBatch, addStudent }: { user: any, selectedBatch
         <button
           key={c._id}
           onClick={() => addStudent(c._id)}
-          disabled={selectedBatch.students?.some((s: any) => (s._id || s) === c._id)}
-          className={`w-full text-left text-[11px] p-2 rounded-lg flex justify-between items-center transition-all ${selectedBatch.students?.some((s: any) => (s._id || s) === c._id) ? 'bg-emerald-50 text-emerald-700 border border-emerald-100' : 'bg-slate-50 hover:bg-slate-100 text-slate-600 border border-transparent active:scale-[0.98]'}`}
+          disabled={selectedBatch.students?.some((s: any) => s && (s._id || s) === c._id)}
+          className={`w-full text-left text-[11px] p-2 rounded-lg flex justify-between items-center transition-all ${selectedBatch.students?.some((s: any) => s && (s._id || s) === c._id) ? 'bg-emerald-50 text-emerald-700 border border-emerald-100' : 'bg-slate-50 hover:bg-slate-100 text-slate-600 border border-transparent active:scale-[0.98]'}`}
         >
           <span className="font-medium">{c.name}</span>
-          {selectedBatch.students?.some((s: any) => (s._id || s) === c._id) ? (
+          {selectedBatch.students?.some((s: any) => s && (s._id || s) === c._id) ? (
             <Check size={10} className="text-emerald-500" />
           ) : (
             <Plus size={10} className="text-slate-400" />

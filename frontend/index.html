@@ -177,14 +177,24 @@
 <body class="bg-cream text-slate-900 overflow-x-hidden">
     <div id="root" style="background-color: #052e16; min-height: 100vh;">
         <!-- 🚦 EMERGENCY FALLBACK: If the screen is still blank, this proves JS is not running at all -->
-        <div id="fallback-loader" style="background-color: #052e16; color: #fdfcf0; height: 100vh; width: 100vw; display: flex; flex-direction: column; align-items: center; justify-content: center; font-family: 'Inter', sans-serif; z-index: 9999;">
-            <img src="/imam_logo.png" alt="Logo" style="height: 80px; margin-bottom: 20px;">
-            <h1 style="font-size: 24px; font-weight: 800; letter-spacing: -0.05em; text-transform: lowercase;">loading...</h1>
+        <div id="fallback-loader" style="background-color: #052e16; color: #fdfcf0; height: 100vh; width: 100vw; display: flex; flex-direction: column; align-items: center; justify-content: center; font-family: 'Inter', sans-serif; z-index: 9999; text-align: center; padding: 20px;">
+            <img src="/imam_logo.png" alt="Logo" style="height: 80px; margin-bottom: 24px; animation: pulse 2s infinite;">
+            <h1 style="font-size: 20px; font-weight: 800; letter-spacing: -0.05em; text-transform: lowercase; margin-bottom: 8px;">loading...</h1>
+            <div id="connection-warning" style="display: none; max-width: 280px; animate-in: fade-in; duration: 1000ms;">
+                <p style="font-size: 11px; opacity: 0.7; line-height: 1.5;">If this takes too long, it might be a secure connection (SSL) issue. Please check your internet or try refreshing.</p>
+            </div>
+            <style>
+                @keyframes pulse { 0% { opacity: 1; } 50% { opacity: 0.5; } 100% { opacity: 1; } }
+            </style>
         </div>
         <script>
+            // Show troubleshooting hint after 7 seconds
+            setTimeout(function() {
+                var warning = document.getElementById('connection-warning');
+                if (warning) warning.style.display = 'block';
+            }, 7000);
+
             // 🧪 STUCK LOADER RECOVERY
-            // If React doesn't mount and clear the fallback loader within 15 seconds,
-            // it might be a network glitch or a JS crash. Try one reload.
             setTimeout(function() {
                 var loader = document.getElementById('fallback-loader');
                 if (loader && !window.__REACT_HYDRATED__) {

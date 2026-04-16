@@ -268,26 +268,42 @@ export const addStudentToBatch = async (req, res) => {
             }
 
             if (user) {
-                console.log(`[Batch Enrollment] Auto-creating profile for User: ${user.email}`);
-                const childClerkId = `child_${Date.now()}_batch_auto`;
-                const newChildUser = await User.create({
-                    clerkId: childClerkId,
-                    email: `${childClerkId}@placeholder.com`,
-                    name: "My Journey",
-                    role: 'student',
-                    xp: 0
+                // SAFETY: Skip auto-creation for placeholder accounts
+                if (user.email === 'void@razorpay.com') {
+                    return res.status(400).json({ message: "Cannot create student profiles for placeholder accounts (void@razorpay.com)" });
+                }
+
+                // IDEMPOTENCY CHECK: See if we already have a "My Journey" profile for this parent
+                const existingMyJourney = await Child.findOne({ 
+                    parent_id: user._id, 
+                    name: "My Journey" 
                 });
 
-                child = await Child.create({
-                    parent_id: user._id,
-                    childUserId: newChildUser._id,
-                    name: "My Journey",
-                    age: 10,
-                    gender: "Boy",
-                    learning_level: "Beginner",
-                    child_progress: [{ total_xp: 0, level: 1, streak_days: 0, last_active_date: new Date(), total_sessions_attended: 0 }],
-                    batch: id
-                });
+                if (existingMyJourney) {
+                    console.log(`[Batch Enrollment] Reusing existing "My Journey" profile for: ${user.email}`);
+                    child = existingMyJourney;
+                } else {
+                    console.log(`[Batch Enrollment] Auto-creating profile for User: ${user.email}`);
+                    const childClerkId = `child_${Date.now()}_batch_auto`;
+                    const newChildUser = await User.create({
+                        clerkId: childClerkId,
+                        email: `${childClerkId}@placeholder.com`,
+                        name: "My Journey",
+                        role: 'student',
+                        xp: 0
+                    });
+
+                    child = await Child.create({
+                        parent_id: user._id,
+                        childUserId: newChildUser._id,
+                        name: "My Journey",
+                        age: 10,
+                        gender: "Boy",
+                        learning_level: "Beginner",
+                        child_progress: [{ total_xp: 0, level: 1, streak_days: 0, last_active_date: new Date(), total_sessions_attended: 0 }],
+                        batch: id
+                    });
+                }
                 finalChildId = child._id;
 
                 // Safely update parent access

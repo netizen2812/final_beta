@@ -13,6 +13,23 @@ i18n
         interpolation: {
             escapeValue: false,
         },
+        resources: {
+            en: {
+                common: {
+                    "nav": {
+                        "home": "Home",
+                        "chat": "Chat",
+                        "ibadah": "Ibadah",
+                        "tarbiyah": "Tarbiyah",
+                        "admin": "Admin",
+                        "signIn": "Sign In"
+                    },
+                    "language": {
+                        "label": "Language"
+                    }
+                }
+            }
+        },
         backend: {
             loadPath: '/locales/{{lng}}/{{ns}}.json',
         },

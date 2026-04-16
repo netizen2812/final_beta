@@ -56,11 +56,29 @@ const getTabFromPath = (path: string): AppTab => {
   if (path.startsWith("/home")) return AppTab.HOME;
   return AppTab.HOME;
 };
-const LoadingFallback = () => (
-  <div className="flex-1 flex items-center justify-center p-8">
-    <div className="w-10 h-10 border-4 border-emerald-500/10 border-t-emerald-500 rounded-full animate-spin" />
-  </div>
-);
+const LoadingFallback = () => {
+  const [showTroubleshoot, setShowTroubleshoot] = useState(false);
+
+  useEffect(() => {
+    const timer = setTimeout(() => setShowTroubleshoot(true), 8000);
+    return () => clearTimeout(timer);
+  }, []);
+
+  return (
+    <div className="flex-1 flex flex-col items-center justify-center p-8 text-center">
+      <div className="w-10 h-10 border-4 border-emerald-500/10 border-t-emerald-500 rounded-full animate-spin mb-4" />
+      {showTroubleshoot && (
+        <div className="max-w-xs animate-in fade-in slide-in-from-bottom-2 duration-700">
+          <p className="text-xs font-bold text-[#052e16] mb-1">Still loading?</p>
+          <p className="text-[10px] text-slate-500 leading-relaxed">
+            This might be a temporary network issue or an SSL mismatch. 
+            Try refreshing or checking your connection.
+          </p>
+        </div>
+      )}
+    </div>
+  );
+};
 
 const App: React.FC = () => {
   const [activeTab, setActiveTab] = useState<AppTab>(() => getTabFromPath(window.location.pathname));
@@ -237,9 +255,9 @@ const App: React.FC = () => {
   };
 
   const navItems = [
-    { id: AppTab.HOME, label: t("nav.home"), icon: <Home /> },
-    { id: AppTab.CORE, label: t("nav.chat"), icon: <Icons.Chat /> },
-    { id: AppTab.IBADAH, label: t("nav.ibadah"), icon: <Icons.Prayer /> },
+    { id: AppTab.HOME, label: t("nav.home", "Home"), icon: <Home /> },
+    { id: AppTab.CORE, label: t("nav.chat", "Chat"), icon: <Icons.Chat /> },
+    { id: AppTab.IBADAH, label: t("nav.ibadah", "Ibadah"), icon: <Icons.Prayer /> },
     { id: AppTab.LIVE, label: t("nav.tarbiyah", "Tarbiyah"), icon: <Icons.Book /> },
   ];
 

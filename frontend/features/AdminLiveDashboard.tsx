@@ -149,7 +149,8 @@ const BatchManager = ({ token }: { token: any }) => {
         headers: { Authorization: `Bearer ${t}` },
       });
       const data = Array.isArray(res.data) ? res.data : (res.data?.users || []);
-      setPaidUsers(data);
+      // Filter out placeholder account
+      setPaidUsers(data.filter((u: any) => u.email !== 'void@razorpay.com'));
     } catch {
       console.error("Failed to load paid users");
     }
@@ -215,7 +216,8 @@ const BatchManager = ({ token }: { token: any }) => {
         headers: { Authorization: `Bearer ${t}` },
       });
       const data = Array.isArray(res.data) ? res.data : (res.data?.users || []);
-      setFoundUsers(data);
+      // Filter out placeholder account
+      setFoundUsers(data.filter((u: any) => u.email !== 'void@razorpay.com'));
     } catch (err) {
       console.error(err);
     } finally {

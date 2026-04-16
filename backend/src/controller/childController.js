@@ -13,7 +13,42 @@ export const getChildren = async (req, res) => {
             return res.status(404).json({ message: "User not found" });
         }
 
-        const children = await Child.find({ parent_id: user._id }).sort({ createdAt: -1 });
+        let children = await Child.find({ parent_id: user._id }).sort({ createdAt: -1 });
+
+        // --- ZERO FRICTION AUTO-CREATION ---
+        // If a user has Tarbiyah access (or is admin/scholar) but NO profiles, 
+        // create a default "My Journey" profile for them.
+        if (children.length === 0 && (user.features?.liveAccess || user.role === 'admin' || user.role === 'scholar')) {
+            console.log(`[Auto-Profile] Initializing "My Journey" for user: ${user.email}`);
+            
+            // Create a child User record (for XP/Gamification stability)
+            const childClerkId = `child_${Date.now()}_auto`;
+            const newChildUser = await User.create({
+                clerkId: childClerkId,
+                email: `${childClerkId}@placeholder.com`,
+                name: "My Journey",
+                role: 'student',
+                xp: 0
+            });
+
+            const newChild = await Child.create({
+                parent_id: user._id,
+                childUserId: newChildUser._id,
+                name: "My Journey",
+                age: 0,
+                gender: "Boy",
+                learning_level: "Beginner",
+                child_progress: [{
+                    total_xp: 0,
+                    level: 1,
+                    streak_days: 0,
+                    last_active_date: new Date(),
+                    total_sessions_attended: 0
+                }],
+            });
+
+            children = [newChild];
+        }
 
         res.json(children);
     } catch (error) {

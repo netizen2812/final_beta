@@ -403,9 +403,12 @@ const KidsView = ({ scrollProgress, activeChild, onJoinLive, currentBatchStatus,
   if (isLoggedIn && !userRole.includes('scholar')) {
     if (loadingChildren) return <div className="min-h-screen flex items-center justify-center bg-[#022c22]"><Loader2 className="animate-spin text-emerald-400" size={48} /></div>;
     
-    // Only show onboarding if they are logged in but have no children or no premium (unless they are a guest)
-    if (!hasPremium || (accessStatus?.hasAccess && (!childrenList || childrenList.length === 0))) {
-       return <TarbiyahOnboarding getToken={getToken} isPaid={accessStatus?.hasAccess} />;
+    // REDUCED FRICTION: 
+    // We no longer redirect paid users to onboarding just because they have no children.
+    // The backend now auto-creates a "My Journey" profile for them if they have access.
+    // We only show onboarding to UNPAID parents.
+    if (!hasPremium) {
+       return <TarbiyahOnboarding getToken={getToken} isPaid={false} />;
     }
   }
 

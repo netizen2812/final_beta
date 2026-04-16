@@ -804,6 +804,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onNavigateToLive }) => 
                             scholarResults={scholarResults}
                             isSearchingScholars={isSearchingScholars}
                             saving={savingBatch}
+                            getToken={getToken}
                         />
                     </div>
                 </div>
@@ -814,7 +815,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onNavigateToLive }) => 
 
 // --- SUBSIDIARY COMPONENTS ---
 
-const BatchForm = ({ initialData, selectedScholar: initialScholar, onSave, onCancel, searchScholars, scholarResults, isSearchingScholars, saving }: any) => {
+const BatchForm = ({ initialData, selectedScholar: initialScholar, onSave, onCancel, searchScholars, scholarResults, isSearchingScholars, saving, getToken }: any) => {
     const [name, setName] = useState(initialData?.name || '');
     const [level, setLevel] = useState(initialData?.level || 'Beginner');
     const [status, setStatus] = useState(initialData?.status || 'upcoming');
@@ -822,6 +823,85 @@ const BatchForm = ({ initialData, selectedScholar: initialScholar, onSave, onCan
     const [time, setTime] = useState(initialData?.schedule?.time || '18:00 UTC');
     const [selectedScholar, setSelectedScholar] = useState<any>(initialScholar || null);
     const [showScholarResults, setShowScholarResults] = useState(false);
+    
+    // Student Management State
+    const [activeTab, setActiveTab] = useState<'settings' | 'students'>('settings');
+    const [enrolledStudents, setEnrolledStudents] = useState<any[]>(initialData?.students || []);
+    const [studentSearch, setStudentSearch] = useState('');
+    const [studentResults, setStudentResults] = useState<any[]>([]);
+    const [isSearchingStudents, setIsSearchingStudents] = useState(false);
+    const [isLoadingStudents, setIsLoadingStudents] = useState(false);
+
+    useEffect(() => {
+        if (initialData?._id && activeTab === 'students') {
+            fetchEnrolledStudents();
+        }
+    }, [activeTab, initialData?._id]);
+
+    const fetchEnrolledStudents = async () => {
+        try {
+            setIsLoadingStudents(true);
+            const token = await getToken();
+            const res = await axios.get(`${APPLICATION_API_URL}/api/live/batch/${initialData._id}/students`, {
+                headers: { Authorization: `Bearer ${token}` }
+            });
+            setEnrolledStudents(res.data);
+        } catch (err) {
+            console.error("Fetch enrolled students error", err);
+        } finally {
+            setIsLoadingStudents(false);
+        }
+    };
+
+    const handleSearchStudents = async (query: string) => {
+        setStudentSearch(query);
+        if (query.length < 2) {
+            setStudentResults([]);
+            return;
+        }
+        try {
+            setIsSearchingStudents(true);
+            const token = await getToken();
+            const res = await axios.get(`${APPLICATION_API_URL}/api/admin/users?q=${query}&limit=10`, {
+                headers: { Authorization: `Bearer ${token}` }
+            });
+            setStudentResults(res.data.users || []);
+        } catch (err) {
+            console.error("Student search error", err);
+        } finally {
+            setIsSearchingStudents(false);
+        }
+    };
+
+    const handleAddStudent = async (id: string) => {
+        try {
+            const token = await getToken();
+            const res = await axios.post(`${APPLICATION_API_URL}/api/live/admin/batch/${initialData._id}/add-student`, { childId: id }, {
+                headers: { Authorization: `Bearer ${token}` }
+            });
+            alert("Student enrolled successfully!");
+            setStudentSearch('');
+            setStudentResults([]);
+            fetchEnrolledStudents();
+        } catch (err) {
+            console.error("Add student error", err);
+            alert("Failed to enroll student.");
+        }
+    };
+
+    const handleRemoveStudent = async (childId: string) => {
+        if (!confirm("Are you sure you want to remove this student?")) return;
+        try {
+            const token = await getToken();
+            await axios.post(`${APPLICATION_API_URL}/api/live/admin/batch/${initialData._id}/remove-student`, { childId }, {
+                headers: { Authorization: `Bearer ${token}` }
+            });
+            setEnrolledStudents(prev => prev.filter(s => s._id !== childId));
+        } catch (err) {
+            console.error("Remove student error", err);
+            alert("Failed to remove student.");
+        }
+    };
 
     const toggleDay = (day: string) => {
         setDays(prev => prev.includes(day) ? prev.filter(d => d !== day) : [...prev, day]);
@@ -843,154 +923,266 @@ const BatchForm = ({ initialData, selectedScholar: initialScholar, onSave, onCan
     const ALL_DAYS = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
 
     return (
-        <form onSubmit={handleSubmit} className="p-8 space-y-6">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <div className="space-y-4">
-                    <label className="block">
-                        <span className="text-xs font-bold text-slate-500 uppercase tracking-wider">Batch Name</span>
-                        <input 
-                            required 
-                            type="text" 
-                            className="mt-1 block w-full rounded-xl border-slate-200 shadow-sm focus:border-emerald-500 focus:ring-emerald-500 p-3 bg-slate-50" 
-                            placeholder="e.g. Quran Beginners A"
-                            value={name}
-                            onChange={e => setName(e.target.value)}
-                        />
-                    </label>
-                    <div className="grid grid-cols-2 gap-4">
-                        <label className="block">
-                            <span className="text-xs font-bold text-slate-500 uppercase tracking-wider">Default Level</span>
-                            <select 
-                                className="mt-1 block w-full rounded-xl border-slate-200 shadow-sm focus:border-emerald-500 focus:ring-emerald-500 p-3 bg-slate-50"
-                                value={level}
-                                onChange={e => setLevel(e.target.value)}
-                            >
-                                <option>Beginner</option>
-                                <option>Intermediate</option>
-                                <option>Advanced</option>
-                            </select>
-                        </label>
-                        <label className="block">
-                            <span className="text-xs font-bold text-slate-500 uppercase tracking-wider">Current Status</span>
-                            <select 
-                                className="mt-1 block w-full rounded-xl border-slate-200 shadow-sm focus:border-emerald-500 focus:ring-emerald-500 p-3 bg-slate-50"
-                                value={status}
-                                onChange={e => setStatus(e.target.value)}
-                            >
-                                <option value="active">Active</option>
-                                <option value="upcoming">Upcoming</option>
-                                <option value="archived">Archived</option>
-                                <option value="ended">Ended</option>
-                            </select>
-                        </label>
-                    </div>
-                </div>
+        <div className="flex flex-col h-full overflow-hidden">
+            {/* Modal Tabs */}
+            <div className="flex bg-slate-100/50 p-1 mx-8 mt-4 rounded-xl">
+               <button 
+                onClick={() => setActiveTab('settings')}
+                className={`flex-1 py-2 text-xs font-bold rounded-lg transition-all ${activeTab === 'settings' ? 'bg-white text-emerald-600 shadow-sm' : 'text-slate-500 hover:bg-slate-200/50'}`}
+               >
+                 General Settings
+               </button>
+               {initialData?._id && (
+                  <button 
+                  onClick={() => setActiveTab('students')}
+                  className={`flex-1 py-2 text-xs font-bold rounded-lg transition-all ${activeTab === 'students' ? 'bg-white text-emerald-600 shadow-sm' : 'text-slate-500 hover:bg-slate-200/50'}`}
+                  >
+                    Enrolled Students ({enrolledStudents.length})
+                  </button>
+               )}
+            </div>
 
-                <div className="space-y-4">
-                   <div className="relative">
-                        <span className="text-xs font-bold text-slate-500 uppercase tracking-wider">Assigned Scholar</span>
-                        {selectedScholar ? (
-                            <div className="mt-1 flex items-center justify-between p-3 bg-emerald-50 border border-emerald-100 rounded-xl">
-                                <div>
-                                    <div className="text-sm font-bold text-emerald-900">{selectedScholar.name}</div>
-                                    <div className="text-[10px] text-emerald-600">{selectedScholar.email}</div>
+            <div className="flex-1 overflow-y-auto max-h-[70vh]">
+                {activeTab === 'settings' ? (
+                    <form onSubmit={handleSubmit} className="p-8 space-y-6">
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                            <div className="space-y-4">
+                                <label className="block">
+                                    <span className="text-xs font-bold text-slate-500 uppercase tracking-wider">Batch Name</span>
+                                    <input 
+                                        required 
+                                        type="text" 
+                                        className="mt-1 block w-full rounded-xl border-slate-200 shadow-sm focus:border-emerald-500 focus:ring-emerald-500 p-3 bg-slate-50" 
+                                        placeholder="e.g. Quran Beginners A"
+                                        value={name}
+                                        onChange={e => setName(e.target.value)}
+                                    />
+                                </label>
+                                <div className="grid grid-cols-2 gap-4">
+                                    <label className="block">
+                                        <span className="text-xs font-bold text-slate-500 uppercase tracking-wider">Default Level</span>
+                                        <select 
+                                            className="mt-1 block w-full rounded-xl border-slate-200 shadow-sm focus:border-emerald-500 focus:ring-emerald-500 p-3 bg-slate-50"
+                                            value={level}
+                                            onChange={e => setLevel(e.target.value)}
+                                        >
+                                            <option>Beginner</option>
+                                            <option>Intermediate</option>
+                                            <option>Advanced</option>
+                                        </select>
+                                    </label>
+                                    <label className="block">
+                                        <span className="text-xs font-bold text-slate-500 uppercase tracking-wider">Current Status</span>
+                                        <select 
+                                            className="mt-1 block w-full rounded-xl border-slate-200 shadow-sm focus:border-emerald-500 focus:ring-emerald-500 p-3 bg-slate-50"
+                                            value={status}
+                                            onChange={e => setStatus(e.target.value)}
+                                        >
+                                            <option value="active">Active</option>
+                                            <option value="upcoming">Upcoming</option>
+                                            <option value="archived">Archived</option>
+                                            <option value="ended">Ended</option>
+                                        </select>
+                                    </label>
                                 </div>
-                                <button type="button" onClick={() => setSelectedScholar(null)} className="text-emerald-400 hover:text-red-500"><Plus size={18} className="rotate-45" /></button>
                             </div>
-                        ) : (
+
+                            <div className="space-y-4">
+                               <div className="relative">
+                                    <span className="text-xs font-bold text-slate-500 uppercase tracking-wider">Assigned Scholar</span>
+                                    {selectedScholar ? (
+                                        <div className="mt-1 flex items-center justify-between p-3 bg-emerald-50 border border-emerald-100 rounded-xl">
+                                            <div>
+                                                <div className="text-sm font-bold text-emerald-900">{selectedScholar.name}</div>
+                                                <div className="text-[10px] text-emerald-600">{selectedScholar.email}</div>
+                                            </div>
+                                            <button type="button" onClick={() => setSelectedScholar(null)} className="text-emerald-400 hover:text-red-500"><Plus size={18} className="rotate-45" /></button>
+                                        </div>
+                                    ) : (
+                                        <div className="relative">
+                                            <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={16} />
+                                            <input 
+                                                type="text" 
+                                                className="mt-1 block w-full pl-10 rounded-xl border-slate-200 shadow-sm focus:border-emerald-500 focus:ring-emerald-500 p-3 bg-slate-50" 
+                                                placeholder="Search by name or email..."
+                                                onFocus={() => setShowScholarResults(true)}
+                                                onChange={e => {
+                                                    searchScholars(e.target.value);
+                                                    setShowScholarResults(true);
+                                                }}
+                                            />
+                                            {showScholarResults && scholarResults.length > 0 && (
+                                                <div className="absolute z-[110] left-0 right-0 mt-2 bg-white border border-slate-100 shadow-2xl rounded-2xl max-h-48 overflow-y-auto">
+                                                    {scholarResults.map((s: any) => (
+                                                        <button 
+                                                            key={s._id}
+                                                            type="button"
+                                                            onClick={() => {
+                                                                setSelectedScholar(s);
+                                                                setShowScholarResults(false);
+                                                            }}
+                                                            className="w-full text-left p-3 hover:bg-slate-50 border-b border-slate-50 last:border-0 flex flex-col"
+                                                        >
+                                                            <span className="text-sm font-bold text-slate-800">{s.name}</span>
+                                                            <span className="text-[10px] text-slate-400">{s.email}</span>
+                                                        </button>
+                                                    ))}
+                                                </div>
+                                            )}
+                                            {isSearchingScholars && (
+                                                <div className="absolute right-3 top-1/2 -translate-y-1/2">
+                                                    <RefreshCw size={14} className="animate-spin text-slate-300" />
+                                                </div>
+                                            )}
+                                        </div>
+                                    )}
+                               </div>
+                               <label className="block">
+                                    <span className="text-xs font-bold text-slate-500 uppercase tracking-wider">Class Time</span>
+                                    <div className="flex items-center gap-2 mt-1">
+                                        <Clock size={16} className="text-slate-400" />
+                                        <input 
+                                            required 
+                                            type="text" 
+                                            className="block w-full rounded-xl border-slate-200 shadow-sm focus:border-emerald-500 focus:ring-emerald-500 p-3 bg-slate-50" 
+                                            placeholder="e.g. 18:00 UTC"
+                                            value={time}
+                                            onChange={e => setTime(e.target.value)}
+                                        />
+                                    </div>
+                               </label>
+                            </div>
+                        </div>
+
+                        <div className="space-y-3">
+                            <span className="text-xs font-bold text-slate-500 uppercase tracking-wider">Scheduled Days</span>
+                            <div className="flex flex-wrap gap-2">
+                                {ALL_DAYS.map(day => (
+                                    <button 
+                                        key={day}
+                                        type="button"
+                                        onClick={() => toggleDay(day)}
+                                        className={`px-4 py-2 rounded-xl text-xs font-bold transition-all border ${
+                                            days.includes(day) 
+                                                ? 'bg-emerald-600 border-emerald-500 text-white shadow-md' 
+                                                : 'bg-white border-slate-200 text-slate-600 hover:border-slate-300'
+                                        }`}
+                                    >
+                                        {day.slice(0, 3)}
+                                    </button>
+                                ))}
+                            </div>
+                        </div>
+
+                        <div className="flex gap-4 pt-4">
+                            <button 
+                                type="button" 
+                                onClick={onCancel}
+                                className="flex-1 bg-slate-100 hover:bg-slate-200 text-slate-600 py-4 rounded-2xl font-bold transition-all"
+                            >
+                                Cancel
+                            </button>
+                            <button 
+                                type="submit" 
+                                disabled={saving}
+                                className="flex-1 bg-[#022c22] hover:bg-emerald-900 text-white py-4 rounded-2xl font-bold transition-all flex items-center justify-center gap-2"
+                            >
+                                {saving ? <RefreshCw className="animate-spin" size={20} /> : <CheckCircle size={20} />}
+                                {initialData ? 'Update Batch' : 'Create Batch'}
+                            </button>
+                        </div>
+                    </form>
+                ) : (
+                    <div className="p-8 space-y-6">
+                        {/* 🔎 SEARCH & ADD SECTION */}
+                        <div className="space-y-3">
+                            <span className="text-xs font-bold text-slate-500 uppercase tracking-wider">Enroll New Student / Parent</span>
                             <div className="relative">
                                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={16} />
                                 <input 
                                     type="text" 
-                                    className="mt-1 block w-full pl-10 rounded-xl border-slate-200 shadow-sm focus:border-emerald-500 focus:ring-emerald-500 p-3 bg-slate-50" 
-                                    placeholder="Search by name or email..."
-                                    onFocus={() => setShowScholarResults(true)}
-                                    onChange={e => {
-                                        searchScholars(e.target.value);
-                                        setShowScholarResults(true);
-                                    }}
+                                    className="block w-full pl-10 rounded-xl border-slate-200 shadow-sm focus:border-emerald-500 focus:ring-emerald-500 p-3 bg-slate-50" 
+                                    placeholder="Search by Parent Email or Child Name..."
+                                    value={studentSearch}
+                                    onChange={e => handleSearchStudents(e.target.value)}
                                 />
-                                {showScholarResults && scholarResults.length > 0 && (
-                                    <div className="absolute z-[110] left-0 right-0 mt-2 bg-white border border-slate-100 shadow-2xl rounded-2xl max-h-48 overflow-y-auto">
-                                        {scholarResults.map((s: any) => (
-                                            <button 
-                                                key={s._id}
-                                                type="button"
-                                                onClick={() => {
-                                                    setSelectedScholar(s);
-                                                    setShowScholarResults(false);
-                                                }}
-                                                className="w-full text-left p-3 hover:bg-slate-50 border-b border-slate-50 last:border-0 flex flex-col"
-                                            >
-                                                <span className="text-sm font-bold text-slate-800">{s.name}</span>
-                                                <span className="text-[10px] text-slate-400">{s.email}</span>
-                                            </button>
-                                        ))}
-                                    </div>
-                                )}
-                                {isSearchingScholars && (
+                                {isSearchingStudents && (
                                     <div className="absolute right-3 top-1/2 -translate-y-1/2">
                                         <RefreshCw size={14} className="animate-spin text-slate-300" />
                                     </div>
                                 )}
                             </div>
-                        )}
-                   </div>
-                   <label className="block">
-                        <span className="text-xs font-bold text-slate-500 uppercase tracking-wider">Class Time</span>
-                        <div className="flex items-center gap-2 mt-1">
-                            <Clock size={16} className="text-slate-400" />
-                            <input 
-                                required 
-                                type="text" 
-                                className="block w-full rounded-xl border-slate-200 shadow-sm focus:border-emerald-500 focus:ring-emerald-500 p-3 bg-slate-50" 
-                                placeholder="e.g. 18:00 UTC"
-                                value={time}
-                                onChange={e => setTime(e.target.value)}
-                            />
+
+                            {studentResults.length > 0 && (
+                                <div className="mt-2 bg-white border border-slate-100 shadow-lg rounded-2xl overflow-hidden divide-y divide-slate-50">
+                                    {studentResults.map(u => (
+                                        <div key={u._id} className="p-3 hover:bg-slate-50 transition-colors">
+                                            <div className="flex items-center justify-between">
+                                                <div>
+                                                    <div className="text-sm font-bold text-slate-800">{u.name}</div>
+                                                    <div className="text-[10px] text-slate-400">{u.email}</div>
+                                                </div>
+                                                <div className="flex gap-2">
+                                                    {/* Option 1: Enroll the Parent Directly (Frictionless) */}
+                                                    <button 
+                                                        onClick={() => handleAddStudent(u._id)}
+                                                        className="px-2 py-1 bg-emerald-100 text-emerald-700 text-[10px] font-bold rounded-lg hover:bg-emerald-200 transition-colors"
+                                                    >
+                                                        Enroll Parent
+                                                    </button>
+                                                    {/* Option 2: Enroll Children if they exist */}
+                                                    {u.children?.map((c: any) => (
+                                                        <button 
+                                                            key={c._id}
+                                                            onClick={() => handleAddStudent(c._id)}
+                                                            className="px-2 py-1 bg-blue-100 text-blue-700 text-[10px] font-bold rounded-lg hover:bg-blue-200 transition-colors"
+                                                        >
+                                                            Enroll {c.name}
+                                                        </button>
+                                                    ))}
+                                                </div>
+                                            </div>
+                                        </div>
+                                    ))}
+                                </div>
+                            )}
                         </div>
-                   </label>
-                </div>
-            </div>
 
-            <div className="space-y-3">
-                <span className="text-xs font-bold text-slate-500 uppercase tracking-wider">Scheduled Days</span>
-                <div className="flex flex-wrap gap-2">
-                    {ALL_DAYS.map(day => (
-                        <button 
-                            key={day}
-                            type="button"
-                            onClick={() => toggleDay(day)}
-                            className={`px-4 py-2 rounded-xl text-xs font-bold transition-all border ${
-                                days.includes(day) 
-                                    ? 'bg-emerald-600 border-emerald-500 text-white shadow-md' 
-                                    : 'bg-white border-slate-200 text-slate-600 hover:border-slate-300'
-                            }`}
-                        >
-                            {day.slice(0, 3)}
-                        </button>
-                    ))}
-                </div>
+                        {/* 📋 CURRENT STUDENTS LIST */}
+                        <div className="space-y-4 pt-4">
+                            <h4 className="text-xs font-bold text-slate-400 uppercase tracking-widest">Currently Enrolled</h4>
+                            {isLoadingStudents ? (
+                                <div className="flex justify-center p-8"><RefreshCw className="animate-spin text-slate-300" /></div>
+                            ) : enrolledStudents.length > 0 ? (
+                                <div className="space-y-2">
+                                    {enrolledStudents.map(s => (
+                                        <div key={s._id} className="flex items-center justify-between p-3 bg-slate-50 rounded-xl border border-slate-100">
+                                            <div className="flex items-center gap-3">
+                                                <div className="w-8 h-8 rounded-full bg-slate-200 flex items-center justify-center text-slate-500 font-bold text-sm">
+                                                    {s.name?.[0] || 'S'}
+                                                </div>
+                                                <div>
+                                                    <div className="text-sm font-bold text-slate-800">{s.name}</div>
+                                                    <div className="text-[10px] text-slate-400 font-mono">{s._id}</div>
+                                                </div>
+                                            </div>
+                                            <button 
+                                                onClick={() => handleRemoveStudent(s._id)}
+                                                className="text-slate-300 hover:text-red-500 transition-colors p-2"
+                                            >
+                                                <Plus size={18} className="rotate-45" />
+                                            </button>
+                                        </div>
+                                    ))}
+                                </div>
+                            ) : (
+                                <div className="text-center py-10 text-slate-400 italic text-sm">No students enrolled in this batch yet.</div>
+                            )}
+                        </div>
+                    </div>
+                )}
             </div>
-
-            <div className="flex gap-4 pt-4">
-                <button 
-                    type="button" 
-                    onClick={onCancel}
-                    className="flex-1 bg-slate-100 hover:bg-slate-200 text-slate-600 py-4 rounded-2xl font-bold transition-all"
-                >
-                    Cancel
-                </button>
-                <button 
-                    type="submit" 
-                    disabled={saving}
-                    className="flex-1 bg-[#022c22] hover:bg-emerald-900 text-white py-4 rounded-2xl font-bold transition-all flex items-center justify-center gap-2"
-                >
-                    {saving ? <RefreshCw className="animate-spin" size={20} /> : <CheckCircle size={20} />}
-                    {initialData ? 'Update Batch' : 'Create Batch'}
-                </button>
-            </div>
-        </form>
+        </div>
     );
 };
 

@@ -244,7 +244,7 @@ export const deleteBatch = async (req, res) => {
 export const addStudentToBatch = async (req, res) => {
     try {
         const { id } = req.params;
-        const { childId } = req.body;
+        const { childId } = req.body; // Can be a childId OR a userId
         
         const { default: Batch } = await import("../models/Batch.js");
         const { default: Child } = await import("../models/Child.js");
@@ -253,20 +253,69 @@ export const addStudentToBatch = async (req, res) => {
         const batch = await Batch.findById(id);
         if (!batch) return res.status(404).json({ message: "Batch not found" });
 
-        // 1. Update Batch model (using string comparison for safety)
-        const studentExists = (batch.students || []).map(s => s.toString()).includes(childId.toString());
+        let finalChildId = childId;
+
+        // 1. Resolve ID: Is it a Child or a User?
+        let child = await Child.findById(childId);
+        
+        if (!child) {
+            // Check if it's a Parent User ID instead
+            const user = await User.findById(childId);
+            if (user) {
+                console.log(`[Batch Enrollment] Detected User ID ${childId}. Auto-creating "My Journey" profile.`);
+                
+                // Trigger profile initialization (same logic as getChildren)
+                const childClerkId = `child_${Date.now()}_batch_auto`;
+                const newChildUser = await User.create({
+                    clerkId: childClerkId,
+                    email: `${childClerkId}@placeholder.com`,
+                    name: "My Journey",
+                    role: 'student',
+                    xp: 0
+                });
+
+                child = await Child.create({
+                    parent_id: user._id,
+                    childUserId: newChildUser._id,
+                    name: "My Journey",
+                    age: 0,
+                    gender: "Boy",
+                    learning_level: "Beginner",
+                    child_progress: [{
+                        total_xp: 0,
+                        level: 1,
+                        streak_days: 0,
+                        last_active_date: new Date(),
+                        total_sessions_attended: 0
+                    }],
+                    batch: id // Assign batch directly during creation
+                });
+
+                finalChildId = child._id;
+
+                // Also Ensure Parent has Live Access
+                if (!user.features) user.features = {};
+                user.features.liveAccess = true;
+                user.markModified('features');
+                await user.save();
+            } else {
+                return res.status(404).json({ message: "Neither Child nor User found with this ID" });
+            }
+        }
+
+        // 2. Update Batch model
+        const studentExists = (batch.students || []).map(s => s.toString()).includes(finalChildId.toString());
         if (!studentExists) {
-            batch.students.push(childId);
+            batch.students.push(finalChildId);
             await batch.save();
         }
 
-        // 2. Update Child model (Link to Batch)
-        const child = await Child.findById(childId);
-        if (child) {
+        // 3. Update Child model (Link to Batch if not already linked)
+        if (child && child.batch?.toString() !== id.toString()) {
             child.batch = id;
             await child.save();
 
-            // 3. Grant Parent User Live Access
+            // 4. Ensure Parent User Live Access for existing children too
             const parent = await User.findById(child.parent_id);
             if (parent) {
                 if (!parent.features) parent.features = {};

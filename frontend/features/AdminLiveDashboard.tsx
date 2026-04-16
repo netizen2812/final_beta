@@ -139,6 +139,29 @@ const BatchManager = ({ token }: { token: any }) => {
   const [selectedBatch, setSelectedBatch] = useState<any>(null);
   const [studentSearch, setStudentSearch] = useState('');
   const [foundUsers, setFoundUsers] = useState<any[]>([]);
+  const [paidUsers, setPaidUsers] = useState<any[]>([]);
+  const [isLoadingResults, setIsLoadingResults] = useState(false);
+
+  const fetchPaidUsers = async () => {
+    try {
+      const t = await token();
+      const res = await axios.get(`${API_BASE}/api/admin/users?isPaid=true&source=razorpay&limit=20`, {
+        headers: { Authorization: `Bearer ${t}` },
+      });
+      const data = Array.isArray(res.data) ? res.data : (res.data?.users || []);
+      setPaidUsers(data);
+    } catch {
+      console.error("Failed to load paid users");
+    }
+  };
+
+  useEffect(() => {
+    if (showManageStudents) {
+      fetchPaidUsers();
+      setFoundUsers([]);
+      setStudentSearch('');
+    }
+  }, [showManageStudents]);
 
   const fetchScholars = async (query = '') => {
     try {
@@ -183,18 +206,20 @@ const BatchManager = ({ token }: { token: any }) => {
   }, [batchSearch]);
 
   const searchParents = async () => {
+    if (!studentSearch.trim()) return;
+    setIsLoadingResults(true);
     try {
       const t = await token();
-      const res = await axios.get(`${API_BASE}/api/admin/users`, {
+      // Switch to backend search for better regex/case-insensitive matching
+      const res = await axios.get(`${API_BASE}/api/admin/users/search?q=${studentSearch}`, {
         headers: { Authorization: `Bearer ${t}` },
       });
       const data = Array.isArray(res.data) ? res.data : (res.data?.users || []);
-      const matches = data.filter((u: any) =>
-        u.email.includes(studentSearch) || (u.name && u.name.toLowerCase().includes(studentSearch.toLowerCase()))
-      );
-      setFoundUsers(matches);
+      setFoundUsers(data);
     } catch (err) {
       console.error(err);
+    } finally {
+      setIsLoadingResults(false);
     }
   };
 
@@ -380,30 +405,50 @@ const BatchManager = ({ token }: { token: any }) => {
               <div className="space-y-4">
                 <h4 className="font-bold text-sm text-slate-500 uppercase">Add Student</h4>
                 <div className="flex gap-2">
-                  <input className="border p-2 rounded w-full text-sm" placeholder="Search Parent Email/Name..." value={studentSearch} onChange={(e) => setStudentSearch(e.target.value)} />
-                  <button onClick={searchParents} className="bg-blue-600 text-white px-3 rounded text-sm font-bold">Search</button>
+                  <input 
+                    className="border p-2 rounded w-full text-sm focus:ring-2 focus:ring-blue-500 outline-none" 
+                    placeholder="Search Parent Email/Name..." 
+                    value={studentSearch} 
+                    onChange={(e) => setStudentSearch(e.target.value)} 
+                    onKeyDown={(e) => e.key === 'Enter' && searchParents()}
+                  />
+                  <button 
+                    onClick={searchParents} 
+                    disabled={isLoadingResults}
+                    className="bg-blue-600 text-white px-3 rounded text-sm font-bold hover:bg-blue-700 disabled:bg-blue-300 transition-colors"
+                  >
+                    {isLoadingResults ? '...' : 'Search'}
+                  </button>
                 </div>
-                <div className="space-y-2 max-h-60 overflow-y-auto">
-                  {foundUsers.map((u) => (
-                    <div key={u._id} className="p-2 border rounded hover:bg-slate-50">
-                      <div className="font-bold text-xs">{u.name}</div>
-                      <div className="text-[10px] text-slate-400 mb-2">{u.email}</div>
-                      <div className="space-y-1">
-                        {u.children?.map((c: any) => (
-                          <button
-                            key={c._id}
-                            onClick={() => addStudent(c._id)}
-                            disabled={selectedBatch.students?.includes(c._id)}
-                            className={`w-full text-left text-xs p-1 rounded flex justify-between ${selectedBatch.students?.includes(c._id) ? 'bg-green-100 text-green-700' : 'bg-slate-100 hover:bg-slate-200 user-select-none cursor-pointer'}`}
-                          >
-                            <span>{c.name}</span>
-                            {selectedBatch.students?.includes(c._id) && <Check size={12} />}
-                          </button>
-                        ))}
-                        {(!u.children || u.children.length === 0) && <div className="text-[10px] italic text-slate-400">No children</div>}
-                      </div>
+
+                <div className="space-y-4 max-h-[50vh] overflow-y-auto pr-2 custom-scrollbar">
+                  {/* Search Results */}
+                  {foundUsers.length > 0 && (
+                    <div className="space-y-2">
+                      <p className="text-[10px] font-bold text-blue-500 uppercase tracking-widest pl-1">Search Results</p>
+                      {foundUsers.map((u) => (
+                        <UserRow key={u._id} user={u} selectedBatch={selectedBatch} addStudent={addStudent} />
+                      ))}
                     </div>
-                  ))}
+                  )}
+
+                  {/* Paid Users Quick select */}
+                  {paidUsers.length > 0 && (
+                    <div className="space-y-2">
+                      <p className="text-[10px] font-bold text-emerald-500 uppercase tracking-widest pl-1">Recent Razorpay Users</p>
+                      {paidUsers.filter(u => !foundUsers.some(fu => fu._id === u._id)).map((u) => (
+                        <UserRow key={u._id} user={u} selectedBatch={selectedBatch} addStudent={addStudent} />
+                      ))}
+                    </div>
+                  )}
+
+                  {!isLoadingResults && studentSearch && foundUsers.length === 0 && (
+                     <div className="text-center py-8 text-slate-400 text-sm">No matches found for "{studentSearch}"</div>
+                  )}
+
+                  {!isLoadingResults && !studentSearch && paidUsers.length === 0 && (
+                     <div className="text-center py-8 text-slate-400 text-sm">Search for a parent or wait for paid users...</div>
+                  )}
                 </div>
               </div>
 
@@ -430,5 +475,39 @@ const BatchManager = ({ token }: { token: any }) => {
     </div>
   );
 };
+
+const UserRow = ({ user, selectedBatch, addStudent }: { user: any, selectedBatch: any, addStudent: any }) => (
+  <div className="p-3 border border-slate-100 rounded-xl hover:bg-slate-50/80 transition-all bg-white shadow-sm">
+    <div className="flex justify-between items-start mb-2">
+      <div>
+        <div className="font-bold text-xs text-[#052e16]">{user.name}</div>
+        <div className="text-[10px] text-slate-400">{user.email}</div>
+      </div>
+      {user.processedPayments?.length > 0 && (
+        <span className="text-[8px] bg-emerald-100 text-emerald-700 px-1.5 py-0.5 rounded-full font-bold uppercase">Paid</span>
+      )}
+    </div>
+    <div className="space-y-1">
+      {user.children?.map((c: any) => (
+        <button
+          key={c._id}
+          onClick={() => addStudent(c._id)}
+          disabled={selectedBatch.students?.some((s: any) => (s._id || s) === c._id)}
+          className={`w-full text-left text-[11px] p-2 rounded-lg flex justify-between items-center transition-all ${selectedBatch.students?.some((s: any) => (s._id || s) === c._id) ? 'bg-emerald-50 text-emerald-700 border border-emerald-100' : 'bg-slate-50 hover:bg-slate-100 text-slate-600 border border-transparent active:scale-[0.98]'}`}
+        >
+          <span className="font-medium">{c.name}</span>
+          {selectedBatch.students?.some((s: any) => (s._id || s) === c._id) ? (
+            <Check size={10} className="text-emerald-500" />
+          ) : (
+            <Plus size={10} className="text-slate-400" />
+          )}
+        </button>
+      ))}
+      {(!user.children || user.children.length === 0) && (
+        <div className="text-[10px] italic text-slate-400 p-1 pl-0">Account has no linked students</div>
+      )}
+    </div>
+  </div>
+);
 
 export default AdminLiveDashboard;

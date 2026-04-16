@@ -276,14 +276,14 @@ const LiveClassRoom: React.FC = () => {
 
          <div className="flex-1 relative flex flex-col md:flex-row gap-4 p-4 overflow-hidden z-10">
             <div className={`relative flex-1 bg-black/60 backdrop-blur-xl rounded-[2.5rem] border border-emerald-500/20 shadow-2xl overflow-hidden group transition-all duration-700 ${batchState?.activeChildId ? 'md:flex-[0.4]' : 'md:flex-1'}`}>
-               <AgoraVideoPane
-                 appId={currentSession.agoraAppId || ""}
-                 token={currentSession.agoraToken || ""}
-                 channel={currentSession.channel || currentSession.batchId || ""}
-                 uid={getNumericUid(user?.id || '')}
-                 role="scholar"
-                 layout="grid"
-                 scholarId={currentSession.scholarId}
+               <AgoraVideoPane 
+                  appId={currentSession.agoraAppId || ''} 
+                  token={currentSession.agoraToken || ''} 
+                  channel={currentSession.channel || currentSession.batchId || ''} 
+                  uid={getNumericUid(user?.id || '')}
+                  role="scholar"
+                  layout="grid"
+                  scholarId={currentSession.scholarId || (batchState as any)?.scholarId}
                />
                
                <div className="absolute bottom-6 left-6 right-6 flex items-center justify-between gap-3 z-40">

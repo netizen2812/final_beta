@@ -6,6 +6,7 @@ import AgoraRTC, {
   IAgoraRTCRemoteUser
 } from 'agora-rtc-sdk-ng';
 import { Mic, MicOff, Video, VideoOff, Shield } from 'lucide-react';
+import { getNumericUid } from '../utils/tarbiyahUtils';
 
 interface AgoraVideoPaneProps {
   appId: string;
@@ -123,9 +124,12 @@ const AgoraVideoPane: React.FC<AgoraVideoPaneProps> = ({
     }
   }, [localVideoTrack]);
 
-  // Reliable scholar identification using exact clerk user ID.
+  // Reliable scholar identification using exact clerk user ID (hashed to match Agora UID).
   const scholarUser = role === 'student' 
-    ? remoteUsers.find(u => scholarId ? String(u.uid) === String(scholarId) : true) 
+    ? remoteUsers.find(u => {
+        const numericScholarId = scholarId ? getNumericUid(scholarId) : null;
+        return numericScholarId && String(u.uid) === String(numericScholarId);
+      }) 
     : null;
 
   return (

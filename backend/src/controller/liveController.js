@@ -602,7 +602,7 @@ export const joinBatch = async (req, res) => {
         const child = await Child.findById(childId);
         if (!user || !child) return res.status(404).json({ success: false, message: "User/Student not found" });
 
-        const batch = await Batch.findById(id);
+        const batch = await Batch.findById(id).populate('scholar');
         if (!batch) return res.status(404).json({ success: false, message: "Batch not found" });
 
         if (batch.status !== 'active' || !batch.activeSessionId) {
@@ -704,7 +704,8 @@ export const joinBatch = async (req, res) => {
                 title: batch.name,
                 dailyRoomName: batch.dailyRoomName,
                 agoraToken: agoraToken || null,
-                agoraAppId: AGORA_APP_ID || null
+                agoraAppId: AGORA_APP_ID || null,
+                scholarId: batch.scholar?.clerkId || null
             } 
         });
     } catch (error) {
@@ -1122,7 +1123,8 @@ export const getBatchState = async (req, res) => {
             pastSessions: batch.pastSessions || [],
             agoraToken,
             agoraAppId,
-            channel: id
+            channel: id,
+            scholarId: batch.scholar?.clerkId || null
         });
     } catch (error) {
         console.error("Get batch state error:", error);

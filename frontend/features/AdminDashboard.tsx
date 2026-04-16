@@ -971,19 +971,6 @@ const BatchForm = ({ initialData, selectedScholar: initialScholar, onSave, onCan
                                             <option>Advanced</option>
                                         </select>
                                     </label>
-                                    <label className="block">
-                                        <span className="text-xs font-bold text-slate-500 uppercase tracking-wider">Current Status</span>
-                                        <select 
-                                            className="mt-1 block w-full rounded-xl border-slate-200 shadow-sm focus:border-emerald-500 focus:ring-emerald-500 p-3 bg-slate-50"
-                                            value={status}
-                                            onChange={e => setStatus(e.target.value)}
-                                        >
-                                            <option value="active">Active</option>
-                                            <option value="upcoming">Upcoming</option>
-                                            <option value="archived">Archived</option>
-                                            <option value="ended">Ended</option>
-                                        </select>
-                                    </label>
                                 </div>
                             </div>
 

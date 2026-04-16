@@ -130,7 +130,7 @@ const BatchManager = ({ token }: { token: any }) => {
     name: '',
     scholar: '',
     level: 'Beginner',
-    status: 'active',
+    status: 'upcoming',
   });
   const [batchSearch, setBatchSearch] = useState('');
   const [scholarSearchQuery, setScholarSearchQuery] = useState('');
@@ -349,11 +349,6 @@ const BatchManager = ({ token }: { token: any }) => {
               <option value="Beginner">Beginner</option>
               <option value="Intermediate">Intermediate</option>
               <option value="Advanced">Advanced</option>
-            </select>
-            <select className="w-full border p-2 rounded" value={newItem.status} onChange={(e) => setNewItem({ ...newItem, status: e.target.value })}>
-              <option value="active">Active</option>
-              <option value="upcoming">Upcoming</option>
-              <option value="archived">Archived</option>
             </select>
           </div>
 

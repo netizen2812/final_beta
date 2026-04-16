@@ -98,6 +98,7 @@ export const getAccessStatus = async (req, res) => {
 export const createBatch = async (req, res) => {
     try {
         let { name, schedule, scholar, level, status } = req.body;
+        if (!status) status = 'upcoming';
 
         // Basic validation
         if (!name || !scholar) {

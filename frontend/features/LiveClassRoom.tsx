@@ -177,15 +177,41 @@ const LiveClassRoom: React.FC = () => {
   useEffect(() => {
     if (user === undefined) return;
     if (user === null) {
-      setUserRole('parent'); // Treats guests as parents
+      setUserRole('parent'); 
       return;
     }
-    const role = user?.publicMetadata?.role;
-    const email = user?.primaryEmailAddress?.emailAddress?.toLowerCase();
-    const isScholar = role === 'scholar' || email === "scholar1.imam@gmail.com";
-    
-    setUserRole(isScholar ? 'scholar' : 'parent');
-    setTarbiyahIsAdmin(role === 'admin');
+
+    const checkRole = async () => {
+      const clerkRole = user?.publicMetadata?.role;
+      const email = user?.primaryEmailAddress?.emailAddress?.toLowerCase();
+      
+      // 1. First check Clerk Metadata
+      if (clerkRole === 'scholar' || clerkRole === 'admin') {
+        setUserRole(clerkRole as any);
+        setTarbiyahIsAdmin(clerkRole === 'admin');
+        return;
+      }
+
+      // 2. Fallback: Check backend directly (Handles timing issues and new scholars)
+      try {
+        const token = await getToken();
+        const res = await axios.get(`${APPLICATION_API_URL}/api/live/access/status`, {
+          headers: { Authorization: `Bearer ${token}` }
+        });
+        if (res.data.role === 'scholar' || res.data.role === 'admin') {
+          console.log(`[LiveClassRoom] Authority verified via Backend: ${res.data.role}`);
+          setUserRole(res.data.role);
+          setTarbiyahIsAdmin(res.data.role === 'admin');
+        } else {
+          setUserRole('parent');
+          setTarbiyahIsAdmin(false);
+        }
+      } catch (err) {
+        setUserRole('parent');
+      }
+    };
+
+    checkRole();
   }, [user]);
 
   // Handle Exit Logic
@@ -203,6 +229,8 @@ const LiveClassRoom: React.FC = () => {
       if (res.data.session) {
         joinedSessionIdRef.current = res.data.session.sessionId || res.data.session._id || null;
         setCurrentSession(res.data.session);
+        // 🔥 Force scholar role immediately if joining via scholar flow
+        setUserRole('scholar');
       }
     } catch (err: any) {
       alert(err.response?.data?.message || "Failed to start live session");
@@ -377,23 +405,27 @@ const LiveClassRoom: React.FC = () => {
       <div className="flex flex-col h-full relative overflow-hidden">
         <MovingBackground />
         
-        {/* Persistent Floating Controls for Student View */}
-        <div className="absolute top-20 right-6 flex flex-col gap-3 z-[100]">
+        {/* 🛠️ Floating Utility Buttons (Unified) */}
+        <div className={`absolute flex flex-col gap-3 z-[100] transition-all duration-500 ${
+          isMobile ? 'top-4 right-4' : 'top-20 right-6'
+        }`}>
            {leaderboard && (
              <button 
                onClick={() => setActiveDrawer('leaderboard')} 
-               className="w-12 h-12 bg-amber-500/20 hover:bg-amber-500/40 text-amber-400 border border-amber-500/30 rounded-2xl flex items-center justify-center transition-all backdrop-blur-xl shadow-xl hover:scale-105 active:scale-95"
+               className={`${isMobile ? 'w-10 h-10' : 'w-12 h-12'} bg-amber-500/20 hover:bg-amber-500/40 text-amber-400 border border-amber-500/30 rounded-2xl flex items-center justify-center transition-all backdrop-blur-2xl shadow-2xl hover:scale-105 active:scale-95`}
                title="Leaderboard"
              >
-               <Trophy size={20} />
+               <Trophy size={isMobile ? 18 : 20} />
              </button>
            )}
            <button 
              onClick={() => setIsCinemaMode(!isCinemaMode)} 
-             className={`w-12 h-12 flex items-center justify-center rounded-2xl border transition-all backdrop-blur-xl shadow-xl hover:scale-105 active:scale-95 ${isCinemaMode ? 'bg-emerald-500 text-emerald-950 border-emerald-400' : 'bg-white/10 text-white border-white/20'}`}
+             className={`${isMobile ? 'w-10 h-10' : 'w-12 h-12'} flex items-center justify-center rounded-2xl border transition-all backdrop-blur-2xl shadow-2xl hover:scale-105 active:scale-95 ${
+               isCinemaMode ? 'bg-emerald-500 text-emerald-950 border-emerald-400' : 'bg-black/40 text-white border-white/20 hover:bg-white/10'
+             }`}
              title={isCinemaMode ? "Show Controls" : "Full Screen Video"}
            >
-             {isCinemaMode ? <Minimize2 size={20} /> : <Maximize2 size={20} />}
+             {isCinemaMode ? <Minimize2 size={isMobile ? 18 : 20} /> : <Maximize2 size={isMobile ? 18 : 20} />}
            </button>
         </div>
 
@@ -435,42 +467,9 @@ const LiveClassRoom: React.FC = () => {
                     onSubmitPrompt={handleSubmitPrompt}
                   />
                 </div>
-                {!isMobile && <div className="flex-1" />}
-             </div>
+              </div>
            )}
         </div>
-
-        {/* 🛠️ Floating Utility Buttons (Always Visible) */}
-        {!isMobile && (
-           <div className="absolute top-20 right-6 flex flex-col gap-3 z-[100]">
-             {leaderboard && (
-               <button 
-                 onClick={() => setActiveDrawer('leaderboard')} 
-                 className="w-12 h-12 bg-amber-500/20 hover:bg-amber-500/40 text-amber-400 border border-amber-500/30 rounded-2xl flex items-center justify-center transition-all backdrop-blur-xl shadow-xl hover:scale-105 active:scale-95"
-               >
-                 <Trophy size={20} />
-               </button>
-             )}
-             <button 
-               onClick={() => setIsCinemaMode(!isCinemaMode)} 
-               className={`w-12 h-12 flex items-center justify-center rounded-2xl border transition-all backdrop-blur-xl shadow-xl hover:scale-105 active:scale-95 ${isCinemaMode ? 'bg-emerald-500 text-emerald-950 border-emerald-400' : 'bg-white/10 text-white border-white/20'}`}
-             >
-               {isCinemaMode ? <Minimize2 size={20} /> : <Maximize2 size={20} />}
-             </button>
-           </div>
-        )}
-
-        {/* 📱 Mobile Specific Toggles */}
-        {isMobile && (
-          <div className="absolute top-4 right-4 flex gap-2 z-[100]">
-             <button 
-               onClick={() => setIsCinemaMode(!isCinemaMode)}
-               className={`w-10 h-10 rounded-full flex items-center justify-center border transition-all backdrop-blur-xl ${isCinemaMode ? 'bg-emerald-500 text-black border-emerald-400' : 'bg-black/40 text-white border-white/20'}`}
-             >
-               {isCinemaMode ? <Minimize2 size={16} /> : <Maximize2 size={16} />}
-             </button>
-          </div>
-        )}
 
         {/* Floating Qaida FAB for Students - High Visibility */}
         {userRole === 'parent' && isQaidaActiveGlobally && !showQaidaViewer && (

@@ -6,7 +6,7 @@ import {
     RefreshCw, TrendingUp, UserCheck, AlertTriangle,
     Play, StopCircle, Lock, Unlock, Server, Database, Search,
     Radio, Calendar, Layers, ChevronDown, ChevronRight, Plus,
-    Clock, MessageCircle, BookOpen, Heart
+    Clock, MessageCircle, BookOpen, Heart, CheckCircle
 } from 'lucide-react';
 import ScholarQuranManager from './ScholarQuranManager';
 
@@ -32,6 +32,20 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onNavigateToLive }) => 
     const [paidSearchQuery, setPaidSearchQuery] = useState('');
     const [paidTotalCount, setPaidTotalCount] = useState(0);
     const [paidSource, setPaidSource] = useState<'all' | 'razorpay' | 'manual'>('all');
+    const [editingPaymentUserId, setEditingPaymentUserId] = useState<string | null>(null);
+    const [manualPaymentId, setManualPaymentId] = useState('');
+    const [isUpdatingPayment, setIsUpdatingPayment] = useState(false);
+
+    // Batch Management State
+    const [isBatchModalOpen, setIsBatchModalOpen] = useState(false);
+    const [editingBatch, setEditingBatch] = useState<any>(null);
+    const [savingBatch, setSavingBatch] = useState(false);
+    
+    // Scholar Search State
+    const [scholarSearchQuery, setScholarSearchQuery] = useState('');
+    const [scholarResults, setScholarResults] = useState<any[]>([]);
+    const [isSearchingScholars, setIsSearchingScholars] = useState(false);
+    const [selectedScholar, setSelectedScholar] = useState<any>(null);
 
     
     // Pagination state
@@ -185,6 +199,82 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onNavigateToLive }) => 
             fetchData(); // Refresh list
         } catch (err: any) {
             alert(err.response?.data?.message || "Failed to update role");
+        }
+    };
+
+    const handleUpdatePaymentRef = async (userId: string) => {
+        if (!manualPaymentId.trim()) return;
+        setIsUpdatingPayment(true);
+        try {
+            const token = await getToken();
+            await axios.patch(`${APPLICATION_API_URL}/api/admin/user/${userId}`, {
+                paymentId: manualPaymentId.trim()
+            }, {
+                headers: { Authorization: `Bearer ${token}` }
+            });
+            setEditingPaymentUserId(null);
+            setManualPaymentId('');
+            fetchPaidUsers(); // Refresh the list
+        } catch (e) {
+            alert("Failed to update payment reference");
+        } finally {
+            setIsUpdatingPayment(false);
+        }
+    };
+
+    const searchScholars = async (query: string) => {
+        setScholarSearchQuery(query);
+        if (query.trim().length === 0) {
+            setScholarResults([]);
+            return;
+        }
+        setIsSearchingScholars(true);
+        try {
+            const token = await getToken();
+            const res = await axios.get(`${APPLICATION_API_URL}/api/admin/users?role=scholar&q=${query}`, {
+                headers: { Authorization: `Bearer ${token}` }
+            });
+            setScholarResults(res.data.users || []);
+        } catch (e) {
+            console.error("Scholar search error", e);
+        } finally {
+            setIsSearchingScholars(false);
+        }
+    };
+
+    const handleSaveBatch = async (batchData: any) => {
+        setSavingBatch(true);
+        try {
+            const token = await getToken();
+            const headers = { Authorization: `Bearer ${token}` };
+            
+            if (editingBatch) {
+                await axios.patch(`${APPLICATION_API_URL}/api/admin/batches/${editingBatch._id}`, batchData, { headers });
+            } else {
+                await axios.post(`${APPLICATION_API_URL}/api/admin/batches`, batchData, { headers });
+            }
+            
+            setIsBatchModalOpen(false);
+            setEditingBatch(null);
+            setSelectedScholar(null);
+            fetchBatches();
+        } catch (e) {
+            alert("Failed to save batch");
+        } finally {
+            setSavingBatch(false);
+        }
+    };
+
+    const handleDeleteBatch = async (batchId: string) => {
+        if (!confirm("Are you sure you want to delete this batch? All history will be lost.")) return;
+        try {
+            const token = await getToken();
+            await axios.delete(`${APPLICATION_API_URL}/api/admin/batches/${batchId}`, {
+                headers: { Authorization: `Bearer ${token}` }
+            });
+            fetchBatches();
+        } catch (e) {
+            alert("Failed to delete batch");
         }
     };
 
@@ -437,19 +527,65 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onNavigateToLive }) => 
                                                     )}
                                                 </td>
                                                 <td className="px-6 py-4 align-top">
-                                                    {lastPayment ? (
-                                                        <div className="space-y-1">
-                                                            <div className="text-[11px] font-black text-slate-400 uppercase tracking-widest">Razorpay</div>
-                                                            <div className="text-xs font-mono bg-slate-100 px-2 py-1 rounded text-slate-600 border border-slate-200">{lastPayment}</div>
+                                                    {editingPaymentUserId === u._id ? (
+                                                        <div className="flex flex-col gap-2">
+                                                            <input 
+                                                                type="text" 
+                                                                value={manualPaymentId}
+                                                                onChange={(e) => setManualPaymentId(e.target.value)}
+                                                                placeholder="pay_..."
+                                                                className="text-[10px] font-mono border-2 border-emerald-500 rounded px-2 py-1 outline-none w-full"
+                                                                autoFocus
+                                                            />
+                                                            <div className="flex gap-2">
+                                                                <button 
+                                                                    onClick={() => handleUpdatePaymentRef(u._id)}
+                                                                    disabled={isUpdatingPayment}
+                                                                    className="bg-emerald-500 text-white text-[9px] font-black px-2 py-1 rounded uppercase hover:bg-emerald-600 disabled:opacity-50"
+                                                                >
+                                                                    {isUpdatingPayment ? 'Saving...' : 'Save'}
+                                                                </button>
+                                                                <button 
+                                                                    onClick={() => { setEditingPaymentUserId(null); setManualPaymentId(''); }}
+                                                                    className="bg-slate-200 text-slate-500 text-[9px] font-black px-2 py-1 rounded uppercase hover:bg-slate-300"
+                                                                >
+                                                                    Cancel
+                                                                </button>
+                                                            </div>
                                                         </div>
                                                     ) : (
-                                                        <div className="space-y-1">
-                                                            <div className="text-[11px] font-black text-amber-500 uppercase tracking-widest flex items-center gap-1">
-                                                                <div className="w-1.5 h-1.5 rounded-full bg-amber-500" />
-                                                                Manual / Admin
-                                                            </div>
-                                                            <div className="text-[10px] text-slate-400 italic">No payment record found</div>
-                                                        </div>
+                                                        <>
+                                                            {lastPayment ? (
+                                                                <div className="space-y-1">
+                                                                    <div className="flex items-center justify-between">
+                                                                        <div className="text-[11px] font-black text-slate-400 uppercase tracking-widest">Razorpay</div>
+                                                                        <button 
+                                                                            onClick={() => { setEditingPaymentUserId(u._id); setManualPaymentId(lastPayment); }}
+                                                                            className="text-[10px] text-emerald-500 hover:text-emerald-600 font-bold opacity-0 group-hover:opacity-100 transition-opacity"
+                                                                        >
+                                                                            Edit
+                                                                        </button>
+                                                                    </div>
+                                                                    <div className="text-xs font-mono bg-slate-100 px-2 py-1 rounded text-slate-600 border border-slate-200">{lastPayment}</div>
+                                                                </div>
+                                                            ) : (
+                                                                <div className="space-y-1">
+                                                                    <div className="flex items-center justify-between">
+                                                                        <div className="text-[11px] font-black text-amber-500 uppercase tracking-widest flex items-center gap-1">
+                                                                            <div className="w-1.5 h-1.5 rounded-full bg-amber-500" />
+                                                                            Manual / Admin
+                                                                        </div>
+                                                                        <button 
+                                                                            onClick={() => { setEditingPaymentUserId(u._id); setManualPaymentId(''); }}
+                                                                            className="text-[10px] text-emerald-500 hover:text-emerald-600 font-bold opacity-0 group-hover:opacity-100 transition-opacity"
+                                                                        >
+                                                                            Add Ref
+                                                                        </button>
+                                                                    </div>
+                                                                    <div className="text-[10px] text-slate-400 italic">No payment record found</div>
+                                                                </div>
+                                                            )}
+                                                        </>
                                                     )}
                                                 </td>
                                                 <td className="px-6 py-4 align-top">
@@ -485,45 +621,30 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onNavigateToLive }) => 
                 {tab === 'ailogs' && (
                     <div className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
                         <div className="p-6 border-b border-slate-100 flex justify-between items-center bg-slate-50">
-                            <h2 className="font-bold text-lg flex items-center gap-2"><MessageCircle size={20} className="text-emerald-600" /> Recent AI Conversations</h2>
-                            <div className="text-xs text-slate-500 bg-white px-3 py-1 rounded-full border border-slate-200 shadow-inner">Showing last 50 conversations</div>
+                            <h2 className="font-bold text-lg flex items-center gap-2"><MessageCircle size={20} className="text-emerald-600" /> AI Conversation Logs</h2>
+                            <button onClick={fetchAiLogs} className="p-2 hover:bg-slate-200 rounded-lg transition-colors"><RefreshCw size={18} /></button>
                         </div>
                         <div className="overflow-x-auto">
                             <table className="w-full text-sm text-left">
                                 <thead className="bg-slate-100 text-slate-600 font-bold uppercase text-[10px] tracking-wider">
                                     <tr>
-                                        <th className="px-6 py-4 w-1/4">User Info</th>
-                                        <th className="px-6 py-4 w-1/3">Question</th>
-                                        <th className="px-6 py-4 w-1/3">AI Response</th>
-                                        <th className="px-6 py-4 whitespace-nowrap">Time</th>
+                                        <th className="px-6 py-4">Timestamp</th>
+                                        <th className="px-6 py-4">Subject</th>
+                                        <th className="px-6 py-4">Scholar / Parent</th>
+                                        <th className="px-6 py-4">Preview</th>
                                     </tr>
                                 </thead>
                                 <tbody className="divide-y divide-slate-100">
                                     {aiLogs.length > 0 ? aiLogs.map(log => (
-                                        <tr key={log._id} className="hover:bg-slate-50 transition-colors group">
-                                            <td className="px-6 py-4 align-top">
-                                                <div className="font-bold text-slate-800 flex items-center gap-2">
-                                                    {log.userName}
-                                                    {log.userRole === 'scholar' && <span className="bg-purple-100 text-purple-700 text-[9px] px-1.5 py-0.5 rounded-sm uppercase tracking-wider">Scholar</span>}
-                                                    {log.userRole === 'admin' && <span className="bg-red-100 text-red-700 text-[9px] px-1.5 py-0.5 rounded-sm uppercase tracking-wider">Admin</span>}
-                                                </div>
-                                                <div className="text-[11px] text-slate-500 mt-1">{log.userEmail}</div>
+                                        <tr key={log._id} className="hover:bg-slate-50 transition-colors">
+                                            <td className="px-6 py-4 font-mono text-[10px] text-slate-500">{new Date(log.createdAt).toLocaleString()}</td>
+                                            <td className="px-6 py-4 font-bold text-slate-700">{log.subject || 'Conversation'}</td>
+                                            <td className="px-6 py-4">
+                                                <div className="text-xs font-bold text-slate-800">{log.userName || 'Unknown'}</div>
+                                                <div className="text-[10px] text-slate-400 capitalize">{log.role || 'User'}</div>
                                             </td>
-                                            <td className="px-6 py-4 align-top">
-                                                <div className="text-slate-700 font-medium bg-slate-100 p-3 rounded-lg border border-slate-200/60 leading-relaxed">
-                                                    "{log.question}"
-                                                </div>
-                                            </td>
-                                            <td className="px-6 py-4 align-top">
-                                                <div className="text-slate-600 bg-emerald-50 p-3 rounded-lg border border-emerald-100/50 leading-relaxed max-h-32 overflow-y-auto custom-scrollbar">
-                                                    {log.answer}
-                                                </div>
-                                            </td>
-                                            <td className="px-6 py-4 align-top text-xs text-slate-500 whitespace-nowrap">
-                                                {new Date(log.timestamp).toLocaleString(undefined, {
-                                                    month: 'short', day: 'numeric',
-                                                    hour: '2-digit', minute: '2-digit'
-                                                })}
+                                            <td className="px-6 py-4 text-slate-500 italic max-w-md truncate">
+                                                {log.messages?.[log.messages.length - 1]?.content || 'Empty history'}
                                             </td>
                                         </tr>
                                     )) : (
@@ -544,7 +665,12 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onNavigateToLive }) => 
                     <div className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
                         <div className="p-6 border-b border-slate-100 flex justify-between items-center bg-slate-50">
                             <h2 className="font-bold text-lg flex items-center gap-2"><Layers size={20} className="text-emerald-600" /> Active Batches</h2>
-                            <button className="bg-emerald-600 text-white px-3 py-1.5 rounded-lg text-xs font-bold flex items-center gap-2"><Plus size={14} /> New Batch</button>
+                            <button 
+                                onClick={() => { setEditingBatch(null); setSelectedScholar(null); setIsBatchModalOpen(true); }}
+                                className="bg-emerald-600 text-white px-3 py-1.5 rounded-lg text-xs font-bold flex items-center gap-2"
+                            >
+                                <Plus size={14} /> New Batch
+                            </button>
                         </div>
                         <div className="overflow-x-auto">
                             <table className="w-full text-sm text-left">
@@ -556,6 +682,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onNavigateToLive }) => 
                                         <th className="px-6 py-4">Schedule</th>
                                         <th className="px-6 py-4">Students</th>
                                         <th className="px-6 py-4">Status</th>
+                                        <th className="px-6 py-4 text-right">Actions</th>
                                     </tr>
                                 </thead>
                                 <tbody className="divide-y divide-slate-100">
@@ -587,9 +714,27 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onNavigateToLive }) => 
                                                     {b.status || 'Active'}
                                                 </span>
                                             </td>
+                                            <td className="px-6 py-4 text-right">
+                                                <div className="flex justify-end gap-2">
+                                                    <button 
+                                                        onClick={() => { setEditingBatch(b); setSelectedScholar(b.scholar); setIsBatchModalOpen(true); }}
+                                                        className="p-1 hover:bg-blue-50 text-blue-600 rounded transition-colors"
+                                                        title="Edit Batch"
+                                                    >
+                                                        <Activity size={16} />
+                                                    </button>
+                                                    <button 
+                                                        onClick={() => handleDeleteBatch(b._id)}
+                                                        className="p-1 hover:bg-red-50 text-red-600 rounded transition-colors"
+                                                        title="Delete Batch"
+                                                    >
+                                                        <AlertTriangle size={16} />
+                                                    </button>
+                                                </div>
+                                            </td>
                                         </tr>
                                     )) : (
-                                        <tr><td colSpan={6} className="px-6 py-10 text-center text-slate-400 italic">No batches found.</td></tr>
+                                        <tr><td colSpan={7} className="px-6 py-10 text-center text-slate-400 italic">No batches found.</td></tr>
                                     )}
                                 </tbody>
                             </table>
@@ -637,7 +782,215 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onNavigateToLive }) => 
 
 
             </div>
+
+            {/* 🛠️ BATCH MANAGEMENT MODAL */}
+            {isBatchModalOpen && (
+                <div className="fixed inset-0 z-[100] bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4">
+                    <div className="bg-white rounded-3xl shadow-2xl w-full max-w-2xl overflow-hidden animate-in fade-in zoom-in duration-200">
+                        <div className="bg-slate-50 p-6 border-b border-slate-100 flex justify-between items-center">
+                            <div>
+                                <h3 className="text-xl font-bold text-slate-800">{editingBatch ? 'Edit Batch' : 'Create New Batch'}</h3>
+                                <p className="text-xs text-slate-500 font-medium">Manage course details and scholar assignments</p>
+                            </div>
+                            <button onClick={() => setIsBatchModalOpen(false)} className="p-2 hover:bg-slate-200 rounded-full transition-colors"><Plus size={24} className="rotate-45 text-slate-400" /></button>
+                        </div>
+                        
+                        <BatchForm 
+                            initialData={editingBatch}
+                            selectedScholar={selectedScholar}
+                            onSave={handleSaveBatch}
+                            onCancel={() => setIsBatchModalOpen(false)}
+                            searchScholars={searchScholars}
+                            scholarResults={scholarResults}
+                            isSearchingScholars={isSearchingScholars}
+                            saving={savingBatch}
+                        />
+                    </div>
+                </div>
+            )}
         </div>
+    );
+};
+
+// --- SUBSIDIARY COMPONENTS ---
+
+const BatchForm = ({ initialData, selectedScholar: initialScholar, onSave, onCancel, searchScholars, scholarResults, isSearchingScholars, saving }: any) => {
+    const [name, setName] = useState(initialData?.name || '');
+    const [level, setLevel] = useState(initialData?.level || 'Beginner');
+    const [status, setStatus] = useState(initialData?.status || 'upcoming');
+    const [days, setDays] = useState<string[]>(initialData?.schedule?.days || []);
+    const [time, setTime] = useState(initialData?.schedule?.time || '18:00 UTC');
+    const [selectedScholar, setSelectedScholar] = useState<any>(initialScholar || null);
+    const [showScholarResults, setShowScholarResults] = useState(false);
+
+    const toggleDay = (day: string) => {
+        setDays(prev => prev.includes(day) ? prev.filter(d => d !== day) : [...prev, day]);
+    };
+
+    const handleSubmit = (e: any) => {
+        e.preventDefault();
+        if (!selectedScholar) return alert("Please select a scholar");
+        onSave({
+            name,
+            level,
+            status,
+            scholar: selectedScholar._id,
+            scholarEmail: selectedScholar.email,
+            schedule: { days, time }
+        });
+    };
+
+    const ALL_DAYS = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
+
+    return (
+        <form onSubmit={handleSubmit} className="p-8 space-y-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div className="space-y-4">
+                    <label className="block">
+                        <span className="text-xs font-bold text-slate-500 uppercase tracking-wider">Batch Name</span>
+                        <input 
+                            required 
+                            type="text" 
+                            className="mt-1 block w-full rounded-xl border-slate-200 shadow-sm focus:border-emerald-500 focus:ring-emerald-500 p-3 bg-slate-50" 
+                            placeholder="e.g. Quran Beginners A"
+                            value={name}
+                            onChange={e => setName(e.target.value)}
+                        />
+                    </label>
+                    <div className="grid grid-cols-2 gap-4">
+                        <label className="block">
+                            <span className="text-xs font-bold text-slate-500 uppercase tracking-wider">Default Level</span>
+                            <select 
+                                className="mt-1 block w-full rounded-xl border-slate-200 shadow-sm focus:border-emerald-500 focus:ring-emerald-500 p-3 bg-slate-50"
+                                value={level}
+                                onChange={e => setLevel(e.target.value)}
+                            >
+                                <option>Beginner</option>
+                                <option>Intermediate</option>
+                                <option>Advanced</option>
+                            </select>
+                        </label>
+                        <label className="block">
+                            <span className="text-xs font-bold text-slate-500 uppercase tracking-wider">Current Status</span>
+                            <select 
+                                className="mt-1 block w-full rounded-xl border-slate-200 shadow-sm focus:border-emerald-500 focus:ring-emerald-500 p-3 bg-slate-50"
+                                value={status}
+                                onChange={e => setStatus(e.target.value)}
+                            >
+                                <option value="active">Active</option>
+                                <option value="upcoming">Upcoming</option>
+                                <option value="archived">Archived</option>
+                                <option value="ended">Ended</option>
+                            </select>
+                        </label>
+                    </div>
+                </div>
+
+                <div className="space-y-4">
+                   <div className="relative">
+                        <span className="text-xs font-bold text-slate-500 uppercase tracking-wider">Assigned Scholar</span>
+                        {selectedScholar ? (
+                            <div className="mt-1 flex items-center justify-between p-3 bg-emerald-50 border border-emerald-100 rounded-xl">
+                                <div>
+                                    <div className="text-sm font-bold text-emerald-900">{selectedScholar.name}</div>
+                                    <div className="text-[10px] text-emerald-600">{selectedScholar.email}</div>
+                                </div>
+                                <button type="button" onClick={() => setSelectedScholar(null)} className="text-emerald-400 hover:text-red-500"><Plus size={18} className="rotate-45" /></button>
+                            </div>
+                        ) : (
+                            <div className="relative">
+                                <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={16} />
+                                <input 
+                                    type="text" 
+                                    className="mt-1 block w-full pl-10 rounded-xl border-slate-200 shadow-sm focus:border-emerald-500 focus:ring-emerald-500 p-3 bg-slate-50" 
+                                    placeholder="Search by name or email..."
+                                    onFocus={() => setShowScholarResults(true)}
+                                    onChange={e => {
+                                        searchScholars(e.target.value);
+                                        setShowScholarResults(true);
+                                    }}
+                                />
+                                {showScholarResults && scholarResults.length > 0 && (
+                                    <div className="absolute z-[110] left-0 right-0 mt-2 bg-white border border-slate-100 shadow-2xl rounded-2xl max-h-48 overflow-y-auto">
+                                        {scholarResults.map((s: any) => (
+                                            <button 
+                                                key={s._id}
+                                                type="button"
+                                                onClick={() => {
+                                                    setSelectedScholar(s);
+                                                    setShowScholarResults(false);
+                                                }}
+                                                className="w-full text-left p-3 hover:bg-slate-50 border-b border-slate-50 last:border-0 flex flex-col"
+                                            >
+                                                <span className="text-sm font-bold text-slate-800">{s.name}</span>
+                                                <span className="text-[10px] text-slate-400">{s.email}</span>
+                                            </button>
+                                        ))}
+                                    </div>
+                                )}
+                                {isSearchingScholars && (
+                                    <div className="absolute right-3 top-1/2 -translate-y-1/2">
+                                        <RefreshCw size={14} className="animate-spin text-slate-300" />
+                                    </div>
+                                )}
+                            </div>
+                        )}
+                   </div>
+                   <label className="block">
+                        <span className="text-xs font-bold text-slate-500 uppercase tracking-wider">Class Time</span>
+                        <div className="flex items-center gap-2 mt-1">
+                            <Clock size={16} className="text-slate-400" />
+                            <input 
+                                required 
+                                type="text" 
+                                className="block w-full rounded-xl border-slate-200 shadow-sm focus:border-emerald-500 focus:ring-emerald-500 p-3 bg-slate-50" 
+                                placeholder="e.g. 18:00 UTC"
+                                value={time}
+                                onChange={e => setTime(e.target.value)}
+                            />
+                        </div>
+                   </label>
+                </div>
+            </div>
+
+            <div className="space-y-3">
+                <span className="text-xs font-bold text-slate-500 uppercase tracking-wider">Scheduled Days</span>
+                <div className="flex flex-wrap gap-2">
+                    {ALL_DAYS.map(day => (
+                        <button 
+                            key={day}
+                            type="button"
+                            onClick={() => toggleDay(day)}
+                            className={`px-4 py-2 rounded-xl text-xs font-bold transition-all border ${
+                                days.includes(day) 
+                                    ? 'bg-emerald-600 border-emerald-500 text-white shadow-md' 
+                                    : 'bg-white border-slate-200 text-slate-600 hover:border-slate-300'
+                            }`}
+                        >
+                            {day.slice(0, 3)}
+                        </button>
+                    ))}
+                </div>
+            </div>
+
+            <div className="flex gap-4 pt-4">
+                <button 
+                    type="button" 
+                    onClick={onCancel}
+                    className="flex-1 bg-slate-100 hover:bg-slate-200 text-slate-600 py-4 rounded-2xl font-bold transition-all"
+                >
+                    Cancel
+                </button>
+                <button 
+                    type="submit" 
+                    disabled={saving}
+                    className="flex-1 bg-[#022c22] hover:bg-emerald-900 text-white py-4 rounded-2xl font-bold transition-all flex items-center justify-center gap-2"
+                >
+                    {saving ? <RefreshCw className="animate-spin" size={20} /> : <CheckCircle size={20} />}
+                    {editingBatch ? 'Update Batch' : 'Create Batch'}
+                </button>
+            </div>
+        </form>
     );
 };
 

@@ -242,6 +242,7 @@ export const getAllUsers = async (req, res) => {
         const isPaid = req.query.isPaid === 'true';
         const search = req.query.q || "";
         const source = req.query.source || "all"; // all, razorpay, manual
+        const role = req.query.role || ""; // parent, scholar, admin
 
         let $match = {};
         const conditions = [];
@@ -276,6 +277,10 @@ export const getAllUsers = async (req, res) => {
                     { name: regex }
                 ]
             });
+        }
+
+        if (role) {
+            conditions.push({ role });
         }
 
         if (conditions.length > 0) {
@@ -322,7 +327,7 @@ export const getAllUsers = async (req, res) => {
 export const updateUser = async (req, res) => {
     try {
         const { id } = req.params;
-        const { role, liveAccess } = req.body; // Accepts role update
+        const { role, liveAccess, paymentId } = req.body; // Accepts optional paymentId
 
         const user = await User.findById(id);
         if (!user) return res.status(404).json({ message: "User not found" });
@@ -339,6 +344,14 @@ export const updateUser = async (req, res) => {
         if (liveAccess !== undefined) {
             if (!user.features) user.features = {};
             user.features.liveAccess = liveAccess;
+        }
+
+        // Add payment reference if provided
+        if (paymentId) {
+            if (!user.processedPayments) user.processedPayments = [];
+            if (!user.processedPayments.includes(paymentId)) {
+                user.processedPayments.push(paymentId);
+            }
         }
 
         await user.save();
@@ -500,6 +513,13 @@ export const updateBatch = async (req, res) => {
     try {
         const batch = await Batch.findByIdAndUpdate(req.params.id, req.body, { new: true });
         res.json(batch);
+    } catch (err) { res.status(500).json({ message: err.message }); }
+};
+
+export const deleteBatch = async (req, res) => {
+    try {
+        await Batch.findByIdAndDelete(req.params.id);
+        res.json({ message: "Batch deleted successfully" });
     } catch (err) { res.status(500).json({ message: err.message }); }
 };
 

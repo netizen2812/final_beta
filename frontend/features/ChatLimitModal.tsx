@@ -2,13 +2,16 @@ import React, { useState } from 'react';
 import { Sparkles, X, Check, Loader2 } from 'lucide-react';
 import { loadRazorpayScript } from '../utils/razorpay';
 import axios from 'axios';
-import { useAuth } from '@clerk/clerk-react';
+import { useAuth, useUser } from '@clerk/clerk-react';
 
 import { APPLICATION_API_URL } from '../lib/api';
 
 export const ChatLimitModal = ({ isOpen, onClose, onSuccess }: { isOpen: boolean; onClose: () => void; onSuccess: () => void }) => {
   const { getToken } = useAuth();
+  const { isLoaded, isSignedIn, user } = useUser();
   const [isLoading, setIsLoading] = useState(false);
+  const [guestEmail, setGuestEmail] = useState('');
+  const [emailError, setEmailError] = useState('');
 
   if (!isOpen) return null;
 
@@ -23,9 +26,20 @@ export const ChatLimitModal = ({ isOpen, onClose, onSuccess }: { isOpen: boolean
       }
 
       const token = await getToken();
+      
+      // If guest, validate email first
+      if (!isSignedIn) {
+          if (!guestEmail || !guestEmail.includes('@')) {
+              setEmailError('Valid email required for access delivery');
+              setIsLoading(false);
+              return;
+          }
+      }
+
       const { data: order } = await axios.post(`${APPLICATION_API_URL}/api/payment/create-order`, {
-        planType: 'AI_MONTHLY'
-      }, { headers: { Authorization: `Bearer ${token}` } });
+        planType: 'AI_MONTHLY',
+        email: !isSignedIn ? guestEmail : undefined
+      }, { headers: token ? { Authorization: `Bearer ${token}` } : {} });
 
       const options = {
         key: import.meta.env.VITE_RAZORPAY_KEY_ID,
@@ -38,8 +52,9 @@ export const ChatLimitModal = ({ isOpen, onClose, onSuccess }: { isOpen: boolean
              // Verify payment
              await axios.post(`${APPLICATION_API_URL}/api/payment/verify`, {
                  ...response,
-                 planType: 'AI_MONTHLY'
-             }, { headers: { Authorization: `Bearer ${token}` } });
+                 planType: 'AI_MONTHLY',
+                 email: !isSignedIn ? guestEmail : undefined
+             }, { headers: token ? { Authorization: `Bearer ${token}` } : {} });
              onSuccess();
              onClose();
         },
@@ -90,6 +105,20 @@ export const ChatLimitModal = ({ isOpen, onClose, onSuccess }: { isOpen: boolean
                      Valid for exactly 30 days
                  </div>
              </div>
+
+             {!isSignedIn && (
+                 <div className="mb-6 text-left space-y-2">
+                      <label className="text-[10px] font-black uppercase text-slate-400 ml-2">Delivery Email (For Access)</label>
+                      <input 
+                        type="email"
+                        value={guestEmail}
+                        onChange={(e) => { setGuestEmail(e.target.value); setEmailError(''); }}
+                        placeholder="your@email.com"
+                        className={`w-full bg-slate-50 border ${emailError ? 'border-red-400' : 'border-slate-200'} rounded-2xl py-3 px-4 text-sm outline-none focus:ring-2 focus:ring-emerald-500/20`}
+                      />
+                      {emailError && <p className="text-red-500 text-[10px] font-bold ml-2 uppercase">{emailError}</p>}
+                 </div>
+             )}
 
              <button 
                 onClick={handleCheckout} 

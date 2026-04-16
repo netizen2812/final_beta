@@ -9,6 +9,7 @@ import {
     getBatches,
     createBatch,
     updateBatch,
+    deleteBatch,
     getSessions,
     createSession,
     forceEndSession,
@@ -36,6 +37,7 @@ router.get("/ai-logs", getAiLogs);
 router.get("/batches", getBatches);
 router.post("/batches", createBatch);
 router.patch("/batches/:id", updateBatch);
+router.delete("/batches/:id", deleteBatch);
 
 // Session Management
 router.get("/sessions", getSessions);

@@ -11,6 +11,7 @@ window.addEventListener('vite:preloadError', (event) => {
 });
 
 import React from "react";
+(window as any).React = React; // Global injection for production build/chunk compatibility
 import ReactDOM from "react-dom/client";
 import "./src/i18n";
 import App from "./App";

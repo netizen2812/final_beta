@@ -234,8 +234,10 @@ const BatchManager = ({ token }: { token: any }) => {
       const updated = res.data.find((b: any) => b._id === selectedBatch._id);
       setBatches(res.data);
       setSelectedBatch(updated);
-    } catch {
-      alert("Failed to add student");
+    } catch (err: any) {
+      console.error(err);
+      const msg = err.response?.data?.message || err.response?.data?.details || "Failed to add student";
+      alert(msg);
     }
   };
 
@@ -504,7 +506,13 @@ const UserRow = ({ user, selectedBatch, addStudent }: { user: any, selectedBatch
         </button>
       ))}
       {(!user.children || user.children.length === 0) && (
-        <div className="text-[10px] italic text-slate-400 p-1 pl-0">Account has no linked students</div>
+        <button
+          onClick={() => addStudent(user._id)}
+          className="w-full text-center text-[10px] p-2 rounded-lg bg-blue-50 text-blue-600 border border-blue-100 font-bold hover:bg-blue-100 transition-all active:scale-95 flex items-center justify-center gap-1"
+        >
+          <Plus size={10} />
+          Initialize & Enroll
+        </button>
       )}
     </div>
   </div>

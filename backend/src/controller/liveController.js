@@ -244,9 +244,8 @@ export const deleteBatch = async (req, res) => {
 export const addStudentToBatch = async (req, res) => {
     try {
         const { id } = req.params;
-        const { childId } = req.body; // Can be a childId OR a userId
+        const { childId } = req.body;
         
-        // Use top-level imports (already at head of file)
         const batch = await Batch.findById(id);
         if (!batch) return res.status(404).json({ message: "Batch not found" });
 
@@ -254,15 +253,13 @@ export const addStudentToBatch = async (req, res) => {
         let child = null;
 
         // 1. Resolve ID: Is it a Child or a User?
-        // We use try-catch for ID casting safety
         try {
             child = await Child.findById(childId);
         } catch (e) {
-            console.warn(`[Batch Enrollment] ${childId} is not a valid Child ObjectId. Checking User collection.`);
+            console.warn(`[Batch Enrollment] ${childId} is not a valid Child ObjectId.`);
         }
         
         if (!child) {
-            // Check if it's a Parent User ID instead
             let user = null;
             try {
                 user = await User.findById(childId);
@@ -271,9 +268,7 @@ export const addStudentToBatch = async (req, res) => {
             }
 
             if (user) {
-                console.log(`[Batch Enrollment] Detected User ID ${childId}. Auto-creating "My Journey" profile.`);
-                
-                // Trigger profile initialization (same logic as getChildren)
+                console.log(`[Batch Enrollment] Auto-creating profile for User: ${user.email}`);
                 const childClerkId = `child_${Date.now()}_batch_auto`;
                 const newChildUser = await User.create({
                     clerkId: childClerkId,
@@ -287,90 +282,95 @@ export const addStudentToBatch = async (req, res) => {
                     parent_id: user._id,
                     childUserId: newChildUser._id,
                     name: "My Journey",
-                    age: 10, // Default age for auto-profiles
+                    age: 10,
                     gender: "Boy",
                     learning_level: "Beginner",
-                    child_progress: [{
-                        total_xp: 0,
-                        level: 1,
-                        streak_days: 0,
-                        last_active_date: new Date(),
-                        total_sessions_attended: 0
-                    }],
-                    batch: id // Assign batch directly during creation
+                    child_progress: [{ total_xp: 0, level: 1, streak_days: 0, last_active_date: new Date(), total_sessions_attended: 0 }],
+                    batch: id
                 });
-
                 finalChildId = child._id;
 
-                // Also Ensure Parent has Live Access
-                if (!user.features) user.features = {};
-                user.features.liveAccess = true;
-                user.markModified('features');
-                await user.save();
+                // Safely update parent access
+                try {
+                    if (!user.features) user.features = {};
+                    user.features.liveAccess = true;
+                    user.markModified('features');
+                    await user.save();
+                } catch (pe) { console.error("Parent access update failed:", pe.message); }
             } else {
-                return res.status(404).json({ message: "Neither Child nor User found with this ID" });
+                return res.status(404).json({ message: "Account not found with this ID" });
             }
         }
 
-        // 2. Update Batch model
-        // SAFETY: Filter out nulls/invalid refs before mapping to prevent .toString() crashes
-        const existingStudentIds = (batch.students || [])
-            .filter(s => s != null)
-            .map(s => s.toString());
-
-        const studentExists = existingStudentIds.includes(finalChildId.toString());
-        if (!studentExists) {
-            batch.students.push(finalChildId);
-            await batch.save();
+        // 2. Update Batch model (Critical)
+        try {
+            const existingStudentIds = (batch.students || []).filter(s => s != null).map(s => s.toString());
+            if (!existingStudentIds.includes(finalChildId.toString())) {
+                batch.students.push(finalChildId);
+                await batch.save();
+            }
+        } catch (batchErr) {
+            console.error("Batch update failed:", batchErr.message);
+            return res.status(500).json({ message: "Failed to update Batch student list", details: batchErr.message });
         }
 
-        // 3. Update Child model (Link to Batch if not already linked)
+        // 3. Update Child model (Non-Critical corrections)
         if (child) {
-            let childChanged = false;
-            
-            if (child.batch?.toString() !== id.toString()) {
-                child.batch = id;
-                childChanged = true;
+            try {
+                let childChanged = false;
+                if (child.batch?.toString() !== id.toString()) {
+                    child.batch = id;
+                    childChanged = true;
+                }
+
+                if (!child.childUserId) {
+                    const fallbackClerkId = `sub_${Date.now()}_${child._id}`;
+                    const fallbackUser = await User.create({
+                        clerkId: fallbackClerkId,
+                        email: `${fallbackClerkId}@placeholder.com`,
+                        name: child.name || "Student",
+                        role: 'student'
+                    });
+                    child.childUserId = fallbackUser._id;
+                    childChanged = true;
+                }
+                
+                // Ensure gender matches ENUM Boy/Girl
+                if (!child.gender || !["Boy", "Girl"].includes(child.gender)) { 
+                    child.gender = "Boy"; 
+                    childChanged = true; 
+                }
+                if (child.age === undefined || child.age === null) { child.age = 10; childChanged = true; }
+                if (!child.name) { child.name = "Student"; childChanged = true; }
+
+                if (childChanged) {
+                    await child.save();
+                }
+            } catch (childErr) {
+                console.error("Child model repair failed:", childErr.message);
+                // We don't return 500 here because the student was already added to the Batch list
             }
 
-            // CRITICAL: Ensure all required fields exist for legacy/orphaned records to prevent Save ValidationError
-            if (!child.childUserId) {
-                console.warn(`[Batch Enrollment] Fixing missing childUserId for ${child._id}`);
-                const fallbackClerkId = `sub_${Date.now()}_${child._id}`;
-                const fallbackUser = await User.create({
-                    clerkId: fallbackClerkId,
-                    email: `${fallbackClerkId}@placeholder.com`,
-                    name: child.name || "Student",
-                    role: 'student'
-                });
-                child.childUserId = fallbackUser._id;
-                childChanged = true;
-            }
-            if (!child.gender) { child.gender = "Boy"; childChanged = true; }
-            if (child.age === undefined || child.age === null) { child.age = 10; childChanged = true; }
-            if (!child.name) { child.name = "Student"; childChanged = true; }
-
-            if (childChanged) {
-                await child.save();
-            }
-
-            // 4. Ensure Parent User Live Access for existing children too
+            // 4. Ensure Parent User Live Access
             if (child.parent_id) {
-                const parent = await User.findById(child.parent_id);
-                if (parent) {
-                    let parentChanged = false;
-                    if (!parent.features) {
-                        parent.features = { liveAccess: true };
-                        parentChanged = true;
-                    } else if (parent.features.liveAccess !== true) {
-                        parent.features.liveAccess = true;
-                        parentChanged = true;
+                try {
+                    const parent = await User.findById(child.parent_id);
+                    if (parent) {
+                        let parentChanged = false;
+                        if (!parent.features) {
+                            parent.features = { liveAccess: true };
+                            parentChanged = true;
+                        } else if (parent.features.liveAccess !== true) {
+                            parent.features.liveAccess = true;
+                            parentChanged = true;
+                        }
+                        if (parentChanged) {
+                            parent.markModified('features');
+                            await parent.save();
+                        }
                     }
-                    
-                    if (parentChanged) {
-                        parent.markModified('features');
-                        await parent.save();
-                    }
+                } catch (parentErr) {
+                    console.error("Parent feature update failed:", parentErr.message);
                 }
             }
         }
@@ -380,7 +380,7 @@ export const addStudentToBatch = async (req, res) => {
         console.error("Add student error details:", error);
         res.status(500).json({ 
             message: "Server error while adding student", 
-            details: process.env.NODE_ENV === 'development' ? error.message : undefined 
+            details: error.message 
         });
     }
 };

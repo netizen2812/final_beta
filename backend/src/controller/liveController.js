@@ -246,21 +246,30 @@ export const addStudentToBatch = async (req, res) => {
         const { id } = req.params;
         const { childId } = req.body; // Can be a childId OR a userId
         
-        const { default: Batch } = await import("../models/Batch.js");
-        const { default: Child } = await import("../models/Child.js");
-        const { default: User } = await import("../models/User.js");
-
+        // Use top-level imports (already at head of file)
         const batch = await Batch.findById(id);
         if (!batch) return res.status(404).json({ message: "Batch not found" });
 
         let finalChildId = childId;
+        let child = null;
 
         // 1. Resolve ID: Is it a Child or a User?
-        let child = await Child.findById(childId);
+        // We use try-catch for ID casting safety
+        try {
+            child = await Child.findById(childId);
+        } catch (e) {
+            console.warn(`[Batch Enrollment] ${childId} is not a valid Child ObjectId. Checking User collection.`);
+        }
         
         if (!child) {
             // Check if it's a Parent User ID instead
-            const user = await User.findById(childId);
+            let user = null;
+            try {
+                user = await User.findById(childId);
+            } catch (e) {
+                return res.status(400).json({ message: "Invalid ID format provided" });
+            }
+
             if (user) {
                 console.log(`[Batch Enrollment] Detected User ID ${childId}. Auto-creating "My Journey" profile.`);
                 
@@ -278,7 +287,7 @@ export const addStudentToBatch = async (req, res) => {
                     parent_id: user._id,
                     childUserId: newChildUser._id,
                     name: "My Journey",
-                    age: 0,
+                    age: 10, // Default age for auto-profiles
                     gender: "Boy",
                     learning_level: "Beginner",
                     child_progress: [{
@@ -304,31 +313,75 @@ export const addStudentToBatch = async (req, res) => {
         }
 
         // 2. Update Batch model
-        const studentExists = (batch.students || []).map(s => s.toString()).includes(finalChildId.toString());
+        // SAFETY: Filter out nulls/invalid refs before mapping to prevent .toString() crashes
+        const existingStudentIds = (batch.students || [])
+            .filter(s => s != null)
+            .map(s => s.toString());
+
+        const studentExists = existingStudentIds.includes(finalChildId.toString());
         if (!studentExists) {
             batch.students.push(finalChildId);
             await batch.save();
         }
 
         // 3. Update Child model (Link to Batch if not already linked)
-        if (child && child.batch?.toString() !== id.toString()) {
-            child.batch = id;
-            await child.save();
+        if (child) {
+            let childChanged = false;
+            
+            if (child.batch?.toString() !== id.toString()) {
+                child.batch = id;
+                childChanged = true;
+            }
+
+            // CRITICAL: Ensure all required fields exist for legacy/orphaned records to prevent Save ValidationError
+            if (!child.childUserId) {
+                console.warn(`[Batch Enrollment] Fixing missing childUserId for ${child._id}`);
+                const fallbackClerkId = `sub_${Date.now()}_${child._id}`;
+                const fallbackUser = await User.create({
+                    clerkId: fallbackClerkId,
+                    email: `${fallbackClerkId}@placeholder.com`,
+                    name: child.name || "Student",
+                    role: 'student'
+                });
+                child.childUserId = fallbackUser._id;
+                childChanged = true;
+            }
+            if (!child.gender) { child.gender = "Boy"; childChanged = true; }
+            if (child.age === undefined || child.age === null) { child.age = 10; childChanged = true; }
+            if (!child.name) { child.name = "Student"; childChanged = true; }
+
+            if (childChanged) {
+                await child.save();
+            }
 
             // 4. Ensure Parent User Live Access for existing children too
-            const parent = await User.findById(child.parent_id);
-            if (parent) {
-                if (!parent.features) parent.features = {};
-                parent.features.liveAccess = true;
-                parent.markModified('features');
-                await parent.save();
+            if (child.parent_id) {
+                const parent = await User.findById(child.parent_id);
+                if (parent) {
+                    let parentChanged = false;
+                    if (!parent.features) {
+                        parent.features = { liveAccess: true };
+                        parentChanged = true;
+                    } else if (parent.features.liveAccess !== true) {
+                        parent.features.liveAccess = true;
+                        parentChanged = true;
+                    }
+                    
+                    if (parentChanged) {
+                        parent.markModified('features');
+                        await parent.save();
+                    }
+                }
             }
         }
 
         res.json(batch);
     } catch (error) {
-        console.error("Add student error:", error);
-        res.status(500).json({ message: "Server error" });
+        console.error("Add student error details:", error);
+        res.status(500).json({ 
+            message: "Server error while adding student", 
+            details: process.env.NODE_ENV === 'development' ? error.message : undefined 
+        });
     }
 };
 

@@ -146,15 +146,21 @@ export const useClassroomSync = (
     })
     // ⚡ Handshake: Scholar responds to sync requests
     .on('broadcast', { event: 'sync-request' }, () => {
-      if (userRole === 'scholar' && batchState?.activeChildId) {
-        const activeStudent = batchState.activeParticipants?.find(p => p.childId === batchState.activeChildId);
+      if (userRole === 'scholar') {
+        const activeStudent = batchState?.activeParticipants?.find(p => p.childId === batchState.activeChildId);
         channel.send({
           type: 'broadcast',
           event: 'current-state',
           payload: {
-            activeChildId: batchState.activeChildId,
+            activeChildId: batchState?.activeChildId,
             surah: activeStudent?.currentSurah,
             ayah: activeStudent?.currentAyah,
+            // 🆕 Include Qaida state in handshake
+            qaida: {
+              isOpen: showQaidaViewer,
+              language: qaidaSyncData.language,
+              pageNumber: qaidaSyncData.pageNumber
+            },
             ts: Date.now()
           }
         });
@@ -164,6 +170,8 @@ export const useClassroomSync = (
     .on('broadcast', { event: 'current-state' }, ({ payload }) => {
       if (userRole === 'parent' && payload.ts > lastSyncTsRef.current) {
         lastSyncTsRef.current = payload.ts;
+        
+        // Sync Batch state
         queryClient.setQueryData(['batchState', batchId, childId], (old: any) => {
            if (!old) return old;
            return { ...old, activeChildId: payload.activeChildId };
@@ -172,6 +180,17 @@ export const useClassroomSync = (
         // ⚡ Trigger local jump if it's my turn
         if (payload.activeChildId === childId && payload.surah) {
           onSync?.(payload.surah, payload.ayah);
+        }
+
+        // 🆕 Sync Qaida state from handshake
+        if (payload.qaida) {
+          setShowQaidaViewer(payload.qaida.isOpen);
+          if (payload.qaida.language) {
+            setQaidaSyncData({ 
+              language: payload.qaida.language, 
+              pageNumber: payload.qaida.pageNumber || 1 
+            });
+          }
         }
       }
     })

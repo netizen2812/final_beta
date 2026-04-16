@@ -109,23 +109,39 @@ const LiveClassRoom: React.FC = () => {
     }
   );
 
-  const handleQaidaSync = (lang: string, page: number) => {
-    if (userRole === 'scholar' && syncChannelRef.current) {
-      syncChannelRef.current.send({
-        type: 'broadcast',
-        event: 'qaida-sync',
-        payload: { language: lang, pageNumber: page, ts: Date.now() }
-      });
+  // 📡 Scholar local state for Qaida (Persisted during session)
+  const [scholarQaidaState, setScholarQaidaState] = useState({ 
+    language: 'english' as 'english' | 'hindi' | 'urdu', 
+    pageNumber: 1 
+  });
+
+  const handleQaidaSync = (lang: any, page: number) => {
+    if (userRole === 'scholar') {
+      setScholarQaidaState({ language: lang, pageNumber: page });
+      
+      if (syncChannelRef.current) {
+        syncChannelRef.current.send({
+          type: 'broadcast',
+          event: 'qaida-sync',
+          payload: { language: lang, pageNumber: page, ts: Date.now() }
+        });
+      }
     }
   };
 
   const handleToggleQaida = (isOpen: boolean) => {
     setShowQaidaViewer(isOpen);
     if (userRole === 'scholar' && syncChannelRef.current) {
+      // 🆕 Broadcast everything in one go for instant student alignment
       syncChannelRef.current.send({
         type: 'broadcast',
         event: 'qaida-sync',
-        payload: { isOpen, ts: Date.now() }
+        payload: { 
+          isOpen, 
+          language: scholarQaidaState.language, 
+          pageNumber: scholarQaidaState.pageNumber, 
+          ts: Date.now() 
+        }
       });
     }
   };
@@ -456,9 +472,9 @@ const LiveClassRoom: React.FC = () => {
             onClose={() => handleToggleQaida(false)}
             isScholar={userRole === 'scholar'}
             batchId={currentSession.batchId}
-            initialLanguage={qaidaSyncData?.language as any}
-            forcedLanguage={qaidaSyncData?.language as any}
-            forcedPage={qaidaSyncData?.pageNumber}
+            initialLanguage={userRole === 'scholar' ? scholarQaidaState.language : (qaidaSyncData?.language as any)}
+            forcedLanguage={userRole === 'scholar' ? undefined : (qaidaSyncData?.language as any)}
+            forcedPage={userRole === 'scholar' ? undefined : (qaidaSyncData?.pageNumber)}
             onSyncUpdate={handleQaidaSync}
             followScholar={true}
           />

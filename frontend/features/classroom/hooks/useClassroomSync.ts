@@ -138,8 +138,9 @@ export const useClassroomSync = (
           setIsQaidaActiveGlobally(payload.isOpen);
           // ⚡ Auto-open for students only when the scholar explicitly starts it
           if (payload.isOpen === true) setShowQaidaViewer(true);
-          // ⚡ Force close for everyone if scholar stops it
-          if (payload.isOpen === false) setShowQaidaViewer(false);
+          // ⚡ We no longer force close for everyone if scholar stops it, 
+          // to allow students to continue reading manually if they wish.
+          // if (payload.isOpen === false) setShowQaidaViewer(false);
         }
         if (payload.language && payload.pageNumber) {
           setQaidaSyncData({ language: payload.language, pageNumber: payload.pageNumber });

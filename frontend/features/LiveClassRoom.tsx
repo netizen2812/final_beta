@@ -507,12 +507,20 @@ const LiveClassRoom: React.FC = () => {
           </div>
           
               {userRole === 'parent' && (
-               <button 
-                 onClick={() => setActiveDrawer('leaderboard')}
-                 className="flex items-center gap-2 bg-amber-500/10 text-amber-400 px-4 py-2 rounded-xl text-[9px] font-black uppercase border border-amber-500/20"
-               >
-                 <Trophy size={14} /> Leaderboard
-               </button>
+                <div className="flex items-center gap-2">
+                  <button 
+                    onClick={() => setShowQaidaViewer(true)}
+                    className="flex items-center gap-2 bg-emerald-500/10 text-emerald-400 px-4 py-2 rounded-xl text-[9px] font-black uppercase border border-emerald-500/20 hover:bg-emerald-500/20 transition-all"
+                  >
+                    <BookOpen size={14} /> Qaida
+                  </button>
+                  <button 
+                    onClick={() => setActiveDrawer('leaderboard')}
+                    className="flex items-center gap-2 bg-amber-500/10 text-amber-400 px-4 py-2 rounded-xl text-[9px] font-black uppercase border border-amber-500/20"
+                  >
+                    <Trophy size={14} /> Leaderboard
+                  </button>
+                </div>
               )}
         </div>
         <div className="flex-1 relative overflow-hidden z-10">{renderMainStage()}</div>

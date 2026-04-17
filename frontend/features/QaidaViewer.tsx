@@ -45,6 +45,14 @@ export const QaidaViewer: React.FC<QaidaViewerProps> = ({
   const [scale, setScale] = useState(1.0);
   const [isLoading, setIsLoading] = useState(true);
   const [syncEnabled, setSyncEnabled] = useState(isScholar);
+  const [isFollowing, setIsFollowing] = useState(followScholar && !isScholar);
+
+  // Update following state if prop changes
+  useEffect(() => {
+    if (!isScholar) {
+       setIsFollowing(followScholar);
+    }
+  }, [followScholar, isScholar]);
 
   const currentLangConfig = LANGUAGES.find(l => l.id === language)!;
 
@@ -57,11 +65,11 @@ export const QaidaViewer: React.FC<QaidaViewerProps> = ({
 
   // 📡 Follow Mode (React to Parent)
   useEffect(() => {
-    if (!isScholar && followScholar) {
+    if (!isScholar && isFollowing) {
       if (forcedLanguage) setLanguage(forcedLanguage);
       if (forcedPage) setPageNumber(forcedPage);
     }
-  }, [forcedLanguage, forcedPage, isScholar, followScholar]);
+  }, [forcedLanguage, forcedPage, isScholar, isFollowing]);
 
 
   const onDocumentLoadSuccess = ({ numPages }: { numPages: number }) => {
@@ -99,7 +107,7 @@ export const QaidaViewer: React.FC<QaidaViewerProps> = ({
                    {isScholar ? (
                      <><Shield size={8} /> Presentation Mode</>
                    ) : (
-                     <><Globe size={8} /> {followScholar ? 'View Locked to Scholar' : 'Self Study'}</>
+                     <><Globe size={8} /> {isFollowing ? 'View Locked to Scholar' : 'Self Study Mode Active'}</>
                    )}
                 </p>
              </div>
@@ -111,7 +119,7 @@ export const QaidaViewer: React.FC<QaidaViewerProps> = ({
                 {LANGUAGES.map(lang => (
                    <button
                      key={lang.id}
-                     disabled={!isScholar && followScholar}
+                     disabled={!isScholar && isFollowing}
                      onClick={() => {
                         setLanguage(lang.id as any);
                         setPageNumber(1);
@@ -174,7 +182,7 @@ export const QaidaViewer: React.FC<QaidaViewerProps> = ({
             <div className="flex items-center gap-4 md:gap-8 w-full md:w-auto justify-between md:justify-start">
                <button 
                  onClick={() => changePage(-1)}
-                 disabled={pageNumber <= 1 || (!isScholar && followScholar)}
+                 disabled={pageNumber <= 1 || (!isScholar && isFollowing)}
                  className="w-12 h-12 md:w-14 md:h-14 rounded-2xl md:rounded-3xl bg-white/5 hover:bg-emerald-500/10 border border-white/10 flex items-center justify-center text-white/40 hover:text-emerald-400 transition-all active:scale-90 disabled:opacity-20 disabled:scale-100"
                >
                   <ChevronLeft size={24} className="md:w-7 md:h-7" />
@@ -190,7 +198,7 @@ export const QaidaViewer: React.FC<QaidaViewerProps> = ({
 
                <button 
                  onClick={() => changePage(1)}
-                 disabled={pageNumber >= currentLangConfig.maxPage || (!isScholar && followScholar)}
+                 disabled={pageNumber >= currentLangConfig.maxPage || (!isScholar && isFollowing)}
                  className="w-12 h-12 md:w-14 md:h-14 rounded-2xl md:rounded-3xl bg-white/5 hover:bg-emerald-500/10 border border-white/10 flex items-center justify-center text-white/40 hover:text-emerald-400 transition-all active:scale-90 disabled:opacity-20 disabled:scale-100"
                >
                   <ChevronRight size={24} className="md:w-7 md:h-7" />
@@ -198,18 +206,18 @@ export const QaidaViewer: React.FC<QaidaViewerProps> = ({
             </div>
 
             {/* Page Slider */}
-            <div className={`flex-1 w-full max-w-md mx-0 md:mx-10 transition-opacity ${!isScholar && followScholar ? 'opacity-30 pointer-events-none' : 'opacity-100'}`}>
+            <div className={`flex-1 w-full max-w-md mx-0 md:mx-10 transition-opacity ${!isScholar && isFollowing ? 'opacity-30 pointer-events-none' : 'opacity-100'}`}>
                <input 
                  type="range"
                  min="1"
                  max={currentLangConfig.maxPage}
                  value={pageNumber}
-                 disabled={!isScholar && followScholar}
+                 disabled={!isScholar && isFollowing}
                  onChange={(e) => setPageNumber(parseInt(e.target.value))}
                  className="w-full appearance-none h-1.5 bg-white/10 rounded-full overflow-hidden [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:w-4 [&::-webkit-slider-thumb]:h-4 [&::-webkit-slider-thumb]:bg-emerald-500 [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:shadow-[0_0_10px_rgba(16,185,129,0.5)] [&::-webkit-slider-thumb]:cursor-pointer [&::-webkit-slider-runnable-track]:h-full transition-all"
                />
                <div className="flex justify-between mt-2 md:mt-3">
-                  <span className="text-[7px] md:text-[8px] text-white/20 font-black uppercase tracking-widest italic">Locked To Maulana</span>
+                  <span className="text-[7px] md:text-[8px] text-white/20 font-black uppercase tracking-widest italic">{isFollowing ? 'Locked To Maulana' : 'Manual Navigation Enabled'}</span>
                   <span className="text-[7px] md:text-[8px] text-white/20 font-black uppercase tracking-widest">End of Qaida</span>
                </div>
             </div>
@@ -224,11 +232,13 @@ export const QaidaViewer: React.FC<QaidaViewerProps> = ({
                 
                 {!isScholar && (
                    <button 
-                     onClick={() => {/* Toggle Follow Mode */}} 
-                     className="px-6 py-3 bg-white/5 border border-white/10 rounded-2xl flex items-center gap-3 group"
+                     onClick={() => setIsFollowing(!isFollowing)} 
+                     className={`px-6 py-3 border rounded-2xl flex items-center gap-3 group transition-all ${isFollowing ? 'bg-emerald-500/20 border-emerald-500/30' : 'bg-white/5 border-white/10'}`}
                    >
-                      <Share2 size={14} className="text-emerald-400 group-hover:scale-110 transition-transform" />
-                      <span className="text-[9px] text-white/60 font-black uppercase tracking-widest">Follow Maulana</span>
+                      <Share2 size={14} className={isFollowing ? 'text-emerald-400' : 'text-white/40'} />
+                      <span className={`text-[9px] font-black uppercase tracking-widest ${isFollowing ? 'text-emerald-400' : 'text-white/60'}`}>
+                        {isFollowing ? 'Following Maulana' : 'Self Study Mode'}
+                      </span>
                    </button>
                 )}
             </div>

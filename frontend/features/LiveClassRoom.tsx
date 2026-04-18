@@ -23,6 +23,7 @@ import ScholarQuranManager from './ScholarQuranManager';
 import AgoraVideoPane from './AgoraVideoPane';
 import { getNumericUid } from '../utils/tarbiyahUtils';
 import { QaidaViewer } from './QaidaViewer';
+import { QuranViewer } from './QuranViewer';
 import { APPLICATION_API_URL } from '../lib/api';
 import { supabase } from '../lib/supabase';
 
@@ -76,6 +77,7 @@ const LiveClassRoom: React.FC = () => {
   const [attendedSessionIds, setAttendedSessionIds] = useState<string[]>([]);
   const [attendanceHistory, setAttendanceHistory] = useState<any[]>([]);
   const [isCinemaMode, setIsCinemaMode] = useState(false);
+  const [showStandaloneQuran, setShowStandaloneQuran] = useState(false);
 
   const syncChannelRef = useRef<any>(null);
   const joinedSessionIdRef = useRef<string | null>(null);
@@ -304,7 +306,7 @@ const LiveClassRoom: React.FC = () => {
         />
 
          <div className="flex-1 relative flex flex-col md:flex-row gap-4 p-4 overflow-hidden z-10">
-            <div className={`relative flex-1 bg-black/60 backdrop-blur-xl rounded-[2.5rem] border border-emerald-500/20 shadow-2xl overflow-hidden group transition-all duration-700 ${batchState?.activeChildId ? 'md:flex-[0.4]' : 'md:flex-1'}`}>
+            <div className={`relative flex-1 bg-black/60 backdrop-blur-xl rounded-[2.5rem] border border-emerald-500/20 shadow-2xl overflow-hidden group transition-all duration-700 ${batchState?.activeChildId ? 'md:flex-[1.5]' : 'md:flex-1'}`}>
                <AgoraVideoPane 
                   appId={currentSession.agoraAppId || ''} 
                   token={currentSession.agoraToken || ''} 
@@ -317,6 +319,7 @@ const LiveClassRoom: React.FC = () => {
                
                <div className="absolute bottom-6 left-6 right-6 flex items-center justify-between gap-3 z-40">
                  <button onClick={() => handleToggleQaida(true)} className="px-5 py-2.5 bg-emerald-500/20 hover:bg-emerald-500/30 text-emerald-300 border border-emerald-500/30 rounded-2xl text-[9px] font-black uppercase tracking-widest transition-all backdrop-blur-xl shadow-lg">📖 Qaida</button>
+                 <button onClick={() => setShowStandaloneQuran(true)} className="px-5 py-2.5 bg-amber-500/20 hover:bg-amber-500/30 text-amber-300 border border-amber-500/30 rounded-2xl text-[9px] font-black uppercase tracking-widest transition-all backdrop-blur-xl shadow-lg">📖 Quran</button>
                  <button onClick={() => setConfirmEndClass(currentSession.batchId!)} className="px-6 py-2.5 bg-red-900/30 hover:bg-red-500 text-red-400 hover:text-white border border-red-500/30 rounded-2xl text-[9px] font-black uppercase tracking-widest transition-all backdrop-blur-xl">End Class</button>
                </div>
             </div>
@@ -504,6 +507,9 @@ const LiveClassRoom: React.FC = () => {
                <button onClick={() => setConfirmEndClass(currentSession.batchId!)} className="flex items-center gap-2 bg-red-900/30 text-red-400 px-4 py-2 rounded-xl text-[9px] font-black uppercase">End Class</button>
              )}
              <button onClick={handleExitSession} className="flex items-center gap-2 bg-white/5 text-emerald-200/60 px-4 py-2 rounded-xl text-[9px] font-black uppercase">Exit</button>
+             <button onClick={() => setShowStandaloneQuran(true)} className="flex items-center gap-2 bg-emerald-500/10 text-emerald-400 px-4 py-2 rounded-xl text-[9px] font-black uppercase border border-emerald-500/20 hover:bg-emerald-500/20 transition-all">
+                <BookOpen size={14} /> Quran
+             </button>
           </div>
           
               {userRole === 'parent' && (
@@ -513,6 +519,12 @@ const LiveClassRoom: React.FC = () => {
                     className="flex items-center gap-2 bg-emerald-500/10 text-emerald-400 px-4 py-2 rounded-xl text-[9px] font-black uppercase border border-emerald-500/20 hover:bg-emerald-500/20 transition-all"
                   >
                     <BookOpen size={14} /> Qaida
+                  </button>
+                  <button 
+                    onClick={() => setShowStandaloneQuran(true)}
+                    className="flex items-center gap-2 bg-emerald-500/10 text-emerald-400 px-4 py-2 rounded-xl text-[9px] font-black uppercase border border-emerald-500/20 hover:bg-emerald-500/20 transition-all"
+                  >
+                    <BookOpen size={14} /> Quran
                   </button>
                   <button 
                     onClick={() => setActiveDrawer('leaderboard')}
@@ -572,6 +584,12 @@ const LiveClassRoom: React.FC = () => {
             forcedPage={userRole === 'scholar' ? undefined : (qaidaSyncData?.pageNumber)}
             onSyncUpdate={handleQaidaSync}
             followScholar={true}
+          />
+        )}
+
+        {showStandaloneQuran && (
+          <QuranViewer 
+            onClose={() => setShowStandaloneQuran(false)}
           />
         )}
       </div>

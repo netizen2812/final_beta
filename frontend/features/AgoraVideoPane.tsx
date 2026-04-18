@@ -148,8 +148,8 @@ const AgoraVideoPane: React.FC<AgoraVideoPaneProps> = ({
           ? (() => {
               const count = remoteUsers.length;
               if (count === 0) return 'flex items-center justify-center';
-              if (count === 1) return 'grid grid-cols-1 max-w-3xl mx-auto items-center content-center h-full';
-              if (count === 2) return 'grid grid-cols-1 md:grid-cols-2 items-center content-center h-full gap-4 max-w-5xl mx-auto';
+              if (count === 1) return 'grid grid-cols-1 max-w-5xl mx-auto items-center content-center h-full';
+              if (count === 2) return 'grid grid-cols-1 md:grid-cols-2 items-center content-center h-full gap-4 max-w-7xl mx-auto';
               if (count <= 4) return 'grid grid-cols-2 grid-rows-2 items-center content-center h-full gap-4';
               if (count <= 6) return 'grid grid-cols-2 md:grid-cols-3 grid-rows-2 items-center content-center h-full gap-3 md:gap-4';
               if (count <= 9) return 'grid grid-cols-2 md:grid-cols-3 grid-rows-3 items-center content-center h-full gap-3';

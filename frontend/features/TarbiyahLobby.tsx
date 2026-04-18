@@ -24,6 +24,7 @@ import { GuestEmailModal } from './GuestEmailModal';
 import { useClerk, useUser } from '@clerk/clerk-react';
 import { quranTracker } from '../utils/quranProgressTracker';
 import { QaidaViewer } from './QaidaViewer';
+import { QuranViewer } from './QuranViewer';
 
 // --- DATA & CONSTANTS ---
 import { APPLICATION_API_URL } from '../lib/api';
@@ -117,6 +118,7 @@ export const TarbiyahLobby = ({
   const [showJoinChoice, setShowJoinChoice] = useState(false);
   const [showScholarManage, setShowScholarManage] = useState<any>(null); // To store batch for scholar managemnt
   const [showQaidaViewer, setShowQaidaViewer] = useState(false);
+  const [showQuranViewer, setShowQuranViewer] = useState(false);
   const [showGuestModal, setShowGuestModal] = useState(false);
   const [showSuccessOverlay, setShowSuccessOverlay] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
@@ -311,6 +313,7 @@ export const TarbiyahLobby = ({
                   onJoinSession={(batch: any) => { if (batch?._id) { setTargetBatchId(batch._id); setView('scholar_journey'); } }} 
                   attendedSessionIds={attendedSessionIds}
                   setShowScholarManage={setShowScholarManage}
+                  setShowQuranViewer={setShowQuranViewer}
                 />
               );
             }
@@ -336,6 +339,7 @@ export const TarbiyahLobby = ({
                   setShowGuestModal={setShowGuestModal}
                   handleRequestAccess={handleRequestAccess}
                   setShowQaidaViewer={setShowQaidaViewer}
+                  setShowQuranViewer={setShowQuranViewer}
                 />
               );
             }
@@ -370,6 +374,12 @@ export const TarbiyahLobby = ({
         />
       )}
 
+      {showQuranViewer && (
+        <QuranViewer 
+          onClose={() => setShowQuranViewer(false)}
+        />
+      )}
+
       {showScholarManage && (
          <div className="fixed inset-0 z-[130] bg-[#022c22]/95 backdrop-blur-2xl flex items-center justify-center p-4">
              <div className="w-full max-w-5xl bg-black/40 border border-emerald-500/20 rounded-[3rem] p-1 shadow-2xl relative max-h-[90vh] overflow-y-auto no-scrollbar">
@@ -394,7 +404,7 @@ export const TarbiyahLobby = ({
   );
 };
 
-const KidsView = ({ scrollProgress, activeChild, onJoinLive, currentBatchStatus, batches, accessStatus, getToken, setShowQuranPractice, setShowJoinChoice, attendedSessionIds = [], attendanceHistory = [], childrenList = [], userRole = 'parent', selectedBatchId, setSelectedBatchId, loadingChildren, setShowGuestModal, handleRequestAccess, setShowQaidaViewer }: any) => {
+const KidsView = ({ scrollProgress, activeChild, onJoinLive, currentBatchStatus, batches, accessStatus, getToken, setShowQuranPractice, setShowJoinChoice, attendedSessionIds = [], attendanceHistory = [], childrenList = [], userRole = 'parent', selectedBatchId, setSelectedBatchId, loadingChildren, setShowGuestModal, handleRequestAccess, setShowQaidaViewer, setShowQuranViewer }: any) => {
   const progress = activeChild?.child_progress?.[0];
   const activeBatch = useMemo(() => {
     if (!batches || batches.length === 0) return null;
@@ -483,25 +493,31 @@ const KidsView = ({ scrollProgress, activeChild, onJoinLive, currentBatchStatus,
         </div>
 
         {/* Quick Study Actions */}
-        <div className="mt-8 grid grid-cols-3 gap-3">
-           <button onClick={() => setShowQuranPractice('REVISE')} className="bg-emerald-900/40 hover:bg-emerald-800/60 backdrop-blur-xl border border-emerald-500/30 text-emerald-100 p-4 rounded-3xl flex flex-col items-center justify-center gap-3 transition-all hover:scale-105 hover:-translate-y-1 shadow-xl group cursor-pointer relative overflow-hidden">
-              <div className="absolute inset-0 bg-gradient-to-tr from-emerald-500/0 via-emerald-400/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
-              <div className="bg-emerald-500/20 p-4 rounded-full text-emerald-300 group-hover:scale-110 group-hover:bg-emerald-500/30 transition-all duration-300 shadow-[0_0_15px_rgba(16,185,129,0.2)]"><BookOpen size={26} strokeWidth={1.5} /></div>
-              <span className="font-bold text-[11px] uppercase tracking-[0.1em] text-emerald-200 group-hover:text-emerald-100 drop-shadow-md">Revise</span>
-           </button>
-           
-           <button onClick={() => setShowQuranPractice('PRACTICE')} className="bg-indigo-900/40 hover:bg-indigo-800/60 backdrop-blur-xl border border-indigo-500/30 text-indigo-100 p-4 rounded-3xl flex flex-col items-center justify-center gap-3 transition-all hover:scale-105 hover:-translate-y-1 shadow-xl group cursor-pointer relative overflow-hidden">
-              <div className="absolute inset-0 bg-gradient-to-tr from-indigo-500/0 via-indigo-400/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
-              <div className="bg-indigo-500/20 p-4 rounded-full text-indigo-300 group-hover:scale-110 group-hover:bg-indigo-500/30 transition-all duration-300 shadow-[0_0_15px_rgba(99,102,241,0.2)]"><Target size={26} strokeWidth={1.5} /></div>
-              <span className="font-bold text-[11px] uppercase tracking-[0.1em] text-indigo-200 group-hover:text-indigo-100 drop-shadow-md">Practice</span>
-           </button>
-           
-           <button onClick={() => setShowQaidaViewer(true)} className="bg-amber-900/40 hover:bg-amber-800/60 backdrop-blur-xl border border-amber-500/30 text-amber-100 p-4 rounded-3xl flex flex-col items-center justify-center gap-3 transition-all hover:scale-105 hover:-translate-y-1 shadow-xl group cursor-pointer relative overflow-hidden">
-              <div className="absolute inset-0 bg-gradient-to-tr from-amber-500/0 via-amber-400/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
-              <div className="bg-amber-500/20 p-4 rounded-full text-amber-300 group-hover:scale-110 group-hover:bg-amber-500/30 transition-all duration-300 shadow-[0_0_15px_rgba(245,158,11,0.2)]"><Book size={26} strokeWidth={1.5} /></div>
-              <span className="font-bold text-[11px] uppercase tracking-[0.1em] text-amber-200 group-hover:text-amber-100 drop-shadow-md">Qaida</span>
-           </button>
-        </div>
+         <div className="mt-8 grid grid-cols-2 md:grid-cols-4 gap-3">
+            <button onClick={() => setShowQuranPractice({ active: true, mode: 'REVISE' })} className="bg-emerald-900/40 hover:bg-emerald-800/60 backdrop-blur-xl border border-emerald-500/30 text-emerald-100 p-4 rounded-3xl flex flex-col items-center justify-center gap-3 transition-all hover:scale-105 hover:-translate-y-1 shadow-xl group cursor-pointer relative overflow-hidden">
+               <div className="absolute inset-0 bg-gradient-to-tr from-emerald-500/0 via-emerald-400/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
+               <div className="bg-emerald-500/20 p-4 rounded-full text-emerald-300 group-hover:scale-110 group-hover:bg-emerald-500/30 transition-all duration-300 shadow-[0_0_15px_rgba(16,185,129,0.2)]"><BookOpen size={26} strokeWidth={1.5} /></div>
+               <span className="font-bold text-[11px] uppercase tracking-[0.1em] text-emerald-200 group-hover:text-emerald-100 drop-shadow-md">Revise</span>
+            </button>
+            
+            <button onClick={() => setShowQuranPractice({ active: true, mode: 'PRACTICE' })} className="bg-indigo-900/40 hover:bg-indigo-800/60 backdrop-blur-xl border border-indigo-500/30 text-indigo-100 p-4 rounded-3xl flex flex-col items-center justify-center gap-3 transition-all hover:scale-105 hover:-translate-y-1 shadow-xl group cursor-pointer relative overflow-hidden">
+               <div className="absolute inset-0 bg-gradient-to-tr from-indigo-500/0 via-indigo-400/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
+               <div className="bg-indigo-500/20 p-4 rounded-full text-indigo-300 group-hover:scale-110 group-hover:bg-indigo-500/30 transition-all duration-300 shadow-[0_0_15px_rgba(99,102,241,0.2)]"><Target size={26} strokeWidth={1.5} /></div>
+               <span className="font-bold text-[11px] uppercase tracking-[0.1em] text-indigo-200 group-hover:text-indigo-100 drop-shadow-md">Practice</span>
+            </button>
+            
+            <button onClick={() => setShowQaidaViewer(true)} className="bg-amber-900/40 hover:bg-amber-800/60 backdrop-blur-xl border border-amber-500/30 text-amber-100 p-4 rounded-3xl flex flex-col items-center justify-center gap-3 transition-all hover:scale-105 hover:-translate-y-1 shadow-xl group cursor-pointer relative overflow-hidden">
+               <div className="absolute inset-0 bg-gradient-to-tr from-amber-500/0 via-amber-400/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
+               <div className="bg-amber-500/20 p-4 rounded-full text-amber-300 group-hover:scale-110 group-hover:bg-amber-500/30 transition-all duration-300 shadow-[0_0_15px_rgba(245,158,11,0.2)]"><Book size={26} strokeWidth={1.5} /></div>
+               <span className="font-bold text-[11px] uppercase tracking-[0.1em] text-amber-200 group-hover:text-amber-100 drop-shadow-md">Qaida</span>
+            </button>
+
+            <button onClick={() => setShowQuranViewer(true)} className="bg-teal-900/40 hover:bg-teal-800/60 backdrop-blur-xl border border-teal-500/30 text-teal-100 p-4 rounded-3xl flex flex-col items-center justify-center gap-3 transition-all hover:scale-105 hover:-translate-y-1 shadow-xl group cursor-pointer relative overflow-hidden">
+               <div className="absolute inset-0 bg-gradient-to-tr from-teal-500/0 via-teal-400/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
+               <div className="bg-teal-500/20 p-4 rounded-full text-teal-300 group-hover:scale-110 group-hover:bg-teal-500/30 transition-all duration-300 shadow-[0_0_15px_rgba(20,184,166,0.2)]"><BookOpen size={26} strokeWidth={1.5} /></div>
+               <span className="font-bold text-[11px] uppercase tracking-[0.1em] text-teal-200 group-hover:text-teal-100 drop-shadow-md">Quran</span>
+            </button>
+         </div>
       </div>
 
       <div className="relative max-w-2xl mx-auto px-4 pb-32">
@@ -650,7 +666,7 @@ const ScholarJourneyView = ({ scrollProgress, batches, onJoinSession, initialBat
   );
 };
 
-const ScholarDashboardView = ({ batches, onJoinSession, setShowScholarManage }: any) => {
+const ScholarDashboardView = ({ batches, onJoinSession, setShowScholarManage, setShowQuranViewer }: any) => {
   return (
     <div className="relative z-10 pt-32 pb-20 max-w-6xl mx-auto px-6 space-y-8 text-center md:text-left">
       <div className="bg-[#052e16]/80 backdrop-blur-md p-8 rounded-[2rem] border border-emerald-800/50 flex flex-col md:flex-row items-center justify-between">
@@ -663,7 +679,10 @@ const ScholarDashboardView = ({ batches, onJoinSession, setShowScholarManage }: 
             <h3 className="font-bold text-2xl text-white mb-4">{batch.name}</h3>
             <div className="mt-auto flex flex-col gap-3">
               <button onClick={() => onJoinSession(batch)} className="w-full bg-emerald-500 text-[#022c22] py-3 rounded-xl font-bold flex items-center justify-center gap-2"> <Play size={14} fill="currentColor" /> {batch.activeSessionId ? 'Re-join Session' : 'Start Class'}</button>
-              <button onClick={() => setShowScholarManage(batch)} className="w-full bg-indigo-600/40 text-white py-3 rounded-xl font-bold border border-indigo-500/30">Manage Assignments</button>
+              <div className="grid grid-cols-2 gap-3">
+                <button onClick={() => setShowScholarManage(batch)} className="bg-indigo-600/40 text-white py-3 rounded-xl font-bold border border-indigo-500/30 text-xs">Assignments</button>
+                <button onClick={() => setShowQuranViewer(true)} className="bg-amber-600/40 text-white py-3 rounded-xl font-bold border border-amber-500/30 text-xs">Open Quran</button>
+              </div>
             </div>
           </div>
         ))}

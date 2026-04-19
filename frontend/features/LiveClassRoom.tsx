@@ -319,7 +319,6 @@ const LiveClassRoom: React.FC = () => {
                
                <div className="absolute bottom-6 left-6 right-6 flex items-center justify-between gap-3 z-40">
                  <button onClick={() => handleToggleQaida(true)} className="px-5 py-2.5 bg-emerald-500/20 hover:bg-emerald-500/30 text-emerald-300 border border-emerald-500/30 rounded-2xl text-[9px] font-black uppercase tracking-widest transition-all backdrop-blur-xl shadow-lg">📖 Qaida</button>
-                 <button onClick={() => setShowStandaloneQuran(true)} className="px-5 py-2.5 bg-amber-500/20 hover:bg-amber-500/30 text-amber-300 border border-amber-500/30 rounded-2xl text-[9px] font-black uppercase tracking-widest transition-all backdrop-blur-xl shadow-lg">📖 Quran</button>
                  <button onClick={() => setConfirmEndClass(currentSession.batchId!)} className="px-6 py-2.5 bg-red-900/30 hover:bg-red-500 text-red-400 hover:text-white border border-red-500/30 rounded-2xl text-[9px] font-black uppercase tracking-widest transition-all backdrop-blur-xl">End Class</button>
                </div>
             </div>
@@ -521,12 +520,6 @@ const LiveClassRoom: React.FC = () => {
                     className="flex items-center gap-2 bg-emerald-500/10 text-emerald-400 px-4 py-2 rounded-xl text-[9px] font-black uppercase border border-emerald-500/20 hover:bg-emerald-500/20 transition-all"
                   >
                     <BookOpen size={14} /> Qaida
-                  </button>
-                  <button 
-                    onClick={() => setShowStandaloneQuran(true)}
-                    className="flex items-center gap-2 bg-emerald-500/10 text-emerald-400 px-4 py-2 rounded-xl text-[9px] font-black uppercase border border-emerald-500/20 hover:bg-emerald-500/20 transition-all"
-                  >
-                    <BookOpen size={14} /> Quran
                   </button>
                   <button 
                     onClick={() => setActiveDrawer('leaderboard')}

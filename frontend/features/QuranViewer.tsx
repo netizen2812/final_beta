@@ -26,8 +26,8 @@ export const QuranViewer: React.FC<QuranViewerProps> = ({ onClose }) => {
           </button>
         </div>
         
-        <div className="flex-1 overflow-hidden">
-          <QuranPage onBack={onClose} />
+        <div id="standalone-quran-modal-container" className="flex-1 overflow-y-auto">
+          <QuranPage onBack={onClose} scrollContainerId="standalone-quran-modal-container" />
         </div>
       </div>
     </div>

@@ -470,7 +470,7 @@ const QuranPage: React.FC<QuranPageProps> = ({
   const inSessionMode = !!onPositionChange || readOnly;
 
   return (
-    <div className={`${inSessionMode ? 'flex flex-col' : 'min-h-screen'} bg-white pb-24 lg:pb-32 animate-in fade-in duration-500 overflow-x-hidden`}>
+    <div className={`${inSessionMode ? 'flex flex-col flex-1 h-full pb-10' : 'min-h-screen pb-24 lg:pb-32'} bg-white animate-in fade-in duration-500 overflow-x-hidden`}>
       <header className="sticky top-0 z-50 bg-white/80 backdrop-blur-xl border-b border-emerald-50 px-4 sm:px-6 lg:px-8 py-4 sm:py-6 flex items-center justify-between">
         <div className="flex items-center gap-4">
           <button

@@ -7,28 +7,11 @@ i18n
     .use(initReactI18next)
     .init({
         fallbackLng: 'en',
-        supportedLngs: ['en', 'hi', 'ur', 'ml', 'bn'],
         ns: ['common'],
         defaultNS: 'common',
+        supportedLngs: ['en', 'hi', 'ur', 'ml', 'bn'],
         interpolation: {
             escapeValue: false,
-        },
-        resources: {
-            en: {
-                common: {
-                    "nav": {
-                        "home": "Home",
-                        "chat": "Chat",
-                        "ibadah": "Ibadah",
-                        "tarbiyah": "Tarbiyah",
-                        "admin": "Admin",
-                        "signIn": "Sign In"
-                    },
-                    "language": {
-                        "label": "Language"
-                    }
-                }
-            }
         },
         backend: {
             loadPath: '/locales/{{lng}}/{{ns}}.json',

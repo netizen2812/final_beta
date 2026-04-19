@@ -70,6 +70,30 @@ export const createChild = async (req, res) => {
             }],
         });
 
+        // --- PENDING ENROLLMENT LOGIC ---
+        if (parentUser.pendingBatchId) {
+            console.log(`[Auto-Enroll] Finalizing enrollment for child ${name} in batch ${parentUser.pendingBatchId}`);
+            try {
+                const Batch = (await import("../models/Batch.js")).default;
+                const batch = await Batch.findById(parentUser.pendingBatchId);
+                if (batch) {
+                    child.batch = parentUser.pendingBatchId;
+                    await child.save();
+                    
+                    if (!batch.students.includes(child._id)) {
+                        batch.students.push(child._id);
+                        await batch.save();
+                    }
+                    
+                    parentUser.pendingBatchId = null;
+                    await parentUser.save();
+                    console.log(`✅ Auto-enrollment successful.`);
+                }
+            } catch (enrollErr) {
+                console.error("Auto-enrollment failed:", enrollErr.message);
+            }
+        }
+
         res.status(201).json(child);
     } catch (error) {
         console.error("Create child error:", error);

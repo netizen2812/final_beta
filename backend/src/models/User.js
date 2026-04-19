@@ -63,6 +63,13 @@ const userSchema = new mongoose.Schema(
       default: 'en'
     },
 
+    // Provisioning: Batch assignment before child profile creation
+    pendingBatchId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'Batch',
+      default: null
+    },
+
     // Payment Idempotency (Prevent replay attacks)
     processedPayments: [{ type: String }]
   },

@@ -288,15 +288,16 @@ export const addStudentToBatch = async (req, res) => {
                   finalChildId = child._id;
                 } else {
                   // If no child exists, we can't add anyone to the batch.students array yet.
-                  // We just grant the parent access and return.
+                  // We grant the parent access AND store the batch intent.
                   try {
                       if (!user.features) user.features = {};
                       user.features.liveAccess = true;
+                      user.pendingBatchId = id; // Store the ID from req.params.id (the batch ID)
                       user.markModified('features');
                       await user.save();
-                  } catch (pe) { console.error("Parent access update failed:", pe.message); }
+                  } catch (pe) { console.error("Parent access/pending assignment update failed:", pe.message); }
                   
-                  return res.json({ message: "Parent access granted. Parent must create a child profile in the lobby to be enrolled in a specific batch." });
+                  return res.json({ message: "Parent access granted. Child profile creation required for final enrollment. Parent will be auto-assigned to this batch upon profile setup." });
                 }
 
                 // Safely update parent access

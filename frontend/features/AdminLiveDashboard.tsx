@@ -141,6 +141,7 @@ const BatchManager = ({ token }: { token: any }) => {
   const [foundUsers, setFoundUsers] = useState<any[]>([]);
   const [paidUsers, setPaidUsers] = useState<any[]>([]);
   const [isLoadingResults, setIsLoadingResults] = useState(false);
+  const [processingId, setProcessingId] = useState<string | null>(null);
 
   const fetchPaidUsers = async () => {
     try {
@@ -227,6 +228,7 @@ const BatchManager = ({ token }: { token: any }) => {
 
   const addStudent = async (childId: string) => {
     if (!selectedBatch) return;
+    setProcessingId(childId);
     try {
       const t = await token();
       await axios.post(`${API_BASE}/api/live/admin/batch/${selectedBatch._id}/add-student`, { childId }, {
@@ -244,10 +246,16 @@ const BatchManager = ({ token }: { token: any }) => {
       const updated = batchesData.find((b: any) => b._id === selectedBatch._id);
       setBatches(batchesData);
       setSelectedBatch(updated);
+
+      // Refresh search results to show new user states
+      await searchParents();
+      await fetchPaidUsers();
     } catch (err: any) {
       console.error(err);
       const msg = err.response?.data?.message || err.response?.data?.details || err.message || "Failed to add student";
       alert(msg);
+    } finally {
+      setProcessingId(null);
     }
   };
 
@@ -269,6 +277,10 @@ const BatchManager = ({ token }: { token: any }) => {
       const updated = batchesData.find((b: any) => b._id === selectedBatch._id);
       setBatches(batchesData);
       setSelectedBatch(updated);
+      
+      // Refresh search results so IDs can be re-added
+      searchParents();
+      fetchPaidUsers();
     } catch {
       alert("Failed to remove student");
     }
@@ -441,7 +453,7 @@ const BatchManager = ({ token }: { token: any }) => {
                     <div className="space-y-2">
                       <p className="text-[10px] font-bold text-blue-500 uppercase tracking-widest pl-1">Search Results</p>
                       {foundUsers.map((u) => (
-                        <UserRow key={u._id} user={u} selectedBatch={selectedBatch} addStudent={addStudent} />
+                        <UserRow key={u._id} user={u} selectedBatch={selectedBatch} addStudent={addStudent} processingId={processingId} />
                       ))}
                     </div>
                   )}
@@ -451,7 +463,7 @@ const BatchManager = ({ token }: { token: any }) => {
                     <div className="space-y-2">
                       <p className="text-[10px] font-bold text-emerald-500 uppercase tracking-widest pl-1">Recent Razorpay Users</p>
                       {paidUsers.filter(u => !foundUsers.some(fu => fu._id === u._id)).map((u) => (
-                        <UserRow key={u._id} user={u} selectedBatch={selectedBatch} addStudent={addStudent} />
+                        <UserRow key={u._id} user={u} selectedBatch={selectedBatch} addStudent={addStudent} processingId={processingId} />
                       ))}
                     </div>
                   )}
@@ -490,44 +502,67 @@ const BatchManager = ({ token }: { token: any }) => {
   );
 };
 
-const UserRow = ({ user, selectedBatch, addStudent }: { user: any, selectedBatch: any, addStudent: any }) => (
-  <div className="p-3 border border-slate-100 rounded-xl hover:bg-slate-50/80 transition-all bg-white shadow-sm">
-    <div className="flex justify-between items-start mb-2">
-      <div>
-        <div className="font-bold text-xs text-[#052e16]">{user.name}</div>
-        <div className="text-[10px] text-slate-400">{user.email}</div>
+const UserRow = ({ user, selectedBatch, addStudent, processingId }: { user: any, selectedBatch: any, addStudent: any, processingId: string | null }) => {
+  const isEnrolled = (childId: string) => selectedBatch.students?.some((s: any) => s && (s._id || s) === childId);
+  const isProvisioned = user.pendingBatchId && String(user.pendingBatchId) === String(selectedBatch._id);
+  const isCurrentlyProcessing = processingId === user._id;
+
+  return (
+    <div className="p-3 border border-slate-100 rounded-xl hover:bg-slate-50/80 transition-all bg-white shadow-sm">
+      <div className="flex justify-between items-start mb-2">
+        <div>
+          <div className="font-bold text-xs text-[#052e16]">{user.name}</div>
+          <div className="text-[10px] text-slate-400">{user.email}</div>
+        </div>
+        {user.processedPayments?.length > 0 && (
+          <span className="text-[8px] bg-emerald-100 text-emerald-700 px-1.5 py-0.5 rounded-full font-bold uppercase">Paid</span>
+        )}
       </div>
-      {user.processedPayments?.length > 0 && (
-        <span className="text-[8px] bg-emerald-100 text-emerald-700 px-1.5 py-0.5 rounded-full font-bold uppercase">Paid</span>
-      )}
+      <div className="space-y-1">
+        {user.children?.map((c: any) => (
+          <button
+            key={c._id}
+            onClick={() => addStudent(c._id)}
+            disabled={isEnrolled(c._id) || processingId === c._id}
+            className={`w-full text-left text-[11px] p-2 rounded-lg flex justify-between items-center transition-all ${isEnrolled(c._id) ? 'bg-emerald-50 text-emerald-700 border border-emerald-100' : 'bg-slate-50 hover:bg-slate-100 text-slate-600 border border-transparent active:scale-[0.98]'}`}
+          >
+            <span className="font-medium">
+              {processingId === c._id ? 'Enrolling...' : c.name}
+            </span>
+            {isEnrolled(c._id) ? (
+              <Check size={10} className="text-emerald-500" />
+            ) : (
+              <Plus size={10} className="text-slate-400" />
+            )}
+          </button>
+        ))}
+        {(!user.children || user.children.length === 0) && (
+          <button
+            onClick={() => addStudent(user._id)}
+            disabled={isProvisioned || isCurrentlyProcessing}
+            className={`w-full text-center text-[10px] p-2 rounded-lg font-bold transition-all flex items-center justify-center gap-1 ${isProvisioned ? 'bg-emerald-50 text-emerald-600 border border-emerald-100 cursor-default' : isCurrentlyProcessing ? 'bg-blue-50 text-blue-400 border border-blue-100 cursor-not-allowed' : 'bg-blue-50 text-blue-600 border border-blue-100 hover:bg-blue-100 active:scale-95'}`}
+          >
+            {isCurrentlyProcessing ? (
+              <>
+                <Loader2 size={10} className="animate-spin" />
+                Preparing...
+              </>
+            ) : isProvisioned ? (
+              <>
+                <Check size={10} />
+                Provisioned
+              </>
+            ) : (
+              <>
+                <Plus size={10} />
+                Initialize & Enroll
+              </>
+            )}
+          </button>
+        )}
+      </div>
     </div>
-    <div className="space-y-1">
-      {user.children?.map((c: any) => (
-        <button
-          key={c._id}
-          onClick={() => addStudent(c._id)}
-          disabled={selectedBatch.students?.some((s: any) => s && (s._id || s) === c._id)}
-          className={`w-full text-left text-[11px] p-2 rounded-lg flex justify-between items-center transition-all ${selectedBatch.students?.some((s: any) => s && (s._id || s) === c._id) ? 'bg-emerald-50 text-emerald-700 border border-emerald-100' : 'bg-slate-50 hover:bg-slate-100 text-slate-600 border border-transparent active:scale-[0.98]'}`}
-        >
-          <span className="font-medium">{c.name}</span>
-          {selectedBatch.students?.some((s: any) => s && (s._id || s) === c._id) ? (
-            <Check size={10} className="text-emerald-500" />
-          ) : (
-            <Plus size={10} className="text-slate-400" />
-          )}
-        </button>
-      ))}
-      {(!user.children || user.children.length === 0) && (
-        <button
-          onClick={() => addStudent(user._id)}
-          className="w-full text-center text-[10px] p-2 rounded-lg bg-blue-50 text-blue-600 border border-blue-100 font-bold hover:bg-blue-100 transition-all active:scale-95 flex items-center justify-center gap-1"
-        >
-          <Plus size={10} />
-          Initialize & Enroll
-        </button>
-      )}
-    </div>
-  </div>
-);
+  );
+};
 
 export default AdminLiveDashboard;

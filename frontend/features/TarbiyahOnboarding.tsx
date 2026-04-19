@@ -60,8 +60,8 @@ export const TarbiyahOnboarding = ({ getToken, isPaid = false, handleGuestJoin }
             <div className="w-20 h-20 bg-emerald-500/20 rounded-3xl flex items-center justify-center mx-auto mb-6 border border-emerald-500/30">
               <User size={40} className="text-emerald-400" />
             </div>
-            <h2 className="text-3xl font-serif font-black mb-2">Welcome Back!</h2>
-            <p className="text-emerald-200/60 font-medium">Let's set up your child's journey profile to get started.</p>
+            <h2 className="text-3xl font-serif font-black mb-2">Almost There! 🌟</h2>
+            <p className="text-emerald-200/60 font-medium px-4">Let's set up your student's profile to unlock their journey map and join the live classes.</p>
           </div>
 
           <form onSubmit={handleCreateProfile} className="space-y-6">

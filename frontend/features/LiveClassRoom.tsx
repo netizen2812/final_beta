@@ -305,7 +305,7 @@ const LiveClassRoom: React.FC = () => {
            onSetTurn={(cid, bid) => handleSetTurn(cid, bid, activeStudentSurah, activeStudentAyah)}
         />
 
-         <div className="flex-1 relative flex flex-col md:flex-row gap-4 p-4 overflow-hidden z-10">
+          <div className="flex-1 relative flex flex-col md:flex-row gap-2 md:gap-4 p-2 md:p-4 overflow-hidden z-10">
             <div className={`relative flex-1 bg-black/60 backdrop-blur-xl rounded-[2.5rem] border border-emerald-500/20 shadow-2xl overflow-hidden group transition-all duration-700 ${batchState?.activeChildId ? 'md:flex-[1.5]' : 'md:flex-1'}`}>
                <AgoraVideoPane 
                   appId={currentSession.agoraAppId || ''} 
@@ -324,11 +324,13 @@ const LiveClassRoom: React.FC = () => {
                </div>
             </div>
 
-            <ActiveStudentFocus 
-               activeChildId={batchState?.activeChildId || null}
-               activeStudentSurah={activeStudentSurah}
-               activeStudentAyah={activeStudentAyah}
-            />
+            <div className={`flex-1 transition-all duration-700 ${!batchState?.activeChildId ? 'hidden md:block md:opacity-0 md:pointer-events-none' : 'block'}`}>
+              <ActiveStudentFocus 
+                 activeChildId={batchState?.activeChildId || null}
+                 activeStudentSurah={activeStudentSurah}
+                 activeStudentAyah={activeStudentAyah}
+              />
+            </div>
 
             {!isMobile && (
               <ScholarControlPanel 

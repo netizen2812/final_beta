@@ -270,6 +270,17 @@ export const TarbiyahLobby = ({
     );
   }
 
+  // 📝 PROFILE WALL: Force profile creation if parent has access but 0 children
+  const hasAccess = accessStatus?.hasAccess || batches.length > 0;
+  if (isLoggedIn && hasAccess && childrenList.length === 0 && !loadingChildren && userRole !== 'scholar') {
+    return (
+      <TarbiyahOnboarding 
+        getToken={getToken} 
+        isPaid={true} 
+      />
+    );
+  }
+
   return (
     <div className="min-h-screen text-white font-sans selection:bg-emerald-500 relative transition-colors duration-1000">
       <MovingBackground />

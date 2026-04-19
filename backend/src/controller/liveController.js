@@ -274,38 +274,30 @@ export const addStudentToBatch = async (req, res) => {
                     return res.status(400).json({ message: "Cannot create student profiles for placeholder accounts (void@razorpay.com)" });
                 }
 
-                // IDEMPOTENCY CHECK: See if we already have a "My Journey" profile for this parent
-                const existingMyJourney = await Child.findOne({ 
-                    parent_id: user._id, 
-                    name: "My Journey" 
-                });
+                // IDEMPOTENCY CHECK: See if we already have a profile for this parent
+                const existingChild = await Child.findOne({ parent_id: user._id });
 
-                if (existingMyJourney) {
-                    console.log(`[Batch Enrollment] Reusing existing "My Journey" profile for: ${user.email}`);
-                    child = existingMyJourney;
+                if (existingChild) {
+                    console.log(`[Batch Enrollment] Reusing existing profile for: ${user.email}`);
+                    child = existingChild;
                 } else {
-                    console.log(`[Batch Enrollment] Auto-creating profile for User: ${user.email}`);
-                    const childClerkId = `child_${Date.now()}_batch_auto`;
-                    const newChildUser = await User.create({
-                        clerkId: childClerkId,
-                        email: `${childClerkId}@placeholder.com`,
-                        name: "My Journey",
-                        role: 'student',
-                        xp: 0
-                    });
-
-                    child = await Child.create({
-                        parent_id: user._id,
-                        childUserId: newChildUser._id,
-                        name: "My Journey",
-                        age: 10,
-                        gender: "Boy",
-                        learning_level: "Beginner",
-                        child_progress: [{ total_xp: 0, level: 1, streak_days: 0, last_active_date: new Date(), total_sessions_attended: 0 }],
-                        batch: id
-                    });
+                    console.log(`[Batch Enrollment] Only granting access to Parent: ${user.email}. No child profile auto-created.`);
                 }
-                finalChildId = child._id;
+                
+                if (child) {
+                  finalChildId = child._id;
+                } else {
+                  // If no child exists, we can't add anyone to the batch.students array yet.
+                  // We just grant the parent access and return.
+                  try {
+                      if (!user.features) user.features = {};
+                      user.features.liveAccess = true;
+                      user.markModified('features');
+                      await user.save();
+                  } catch (pe) { console.error("Parent access update failed:", pe.message); }
+                  
+                  return res.json({ message: "Parent access granted. Parent must create a child profile in the lobby to be enrolled in a specific batch." });
+                }
 
                 // Safely update parent access
                 try {

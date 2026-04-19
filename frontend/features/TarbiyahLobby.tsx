@@ -690,9 +690,8 @@ const ScholarDashboardView = ({ batches, onJoinSession, setShowScholarManage, se
             <h3 className="font-bold text-2xl text-white mb-4">{batch.name}</h3>
             <div className="mt-auto flex flex-col gap-3">
               <button onClick={() => onJoinSession(batch)} className="w-full bg-emerald-500 text-[#022c22] py-3 rounded-xl font-bold flex items-center justify-center gap-2"> <Play size={14} fill="currentColor" /> {batch.activeSessionId ? 'Re-join Session' : 'Start Class'}</button>
-              <div className="grid grid-cols-2 gap-3">
-                <button onClick={() => setShowScholarManage(batch)} className="bg-indigo-600/40 text-white py-3 rounded-xl font-bold border border-indigo-500/30 text-xs">Assignments</button>
-                <button onClick={() => setShowQuranViewer(true)} className="bg-amber-600/40 text-white py-3 rounded-xl font-bold border border-amber-500/30 text-xs">Open Quran</button>
+              <div className="flex flex-col gap-3">
+                <button onClick={() => setShowScholarManage(batch)} className="w-full bg-indigo-600/40 text-white py-3 rounded-xl font-bold border border-indigo-500/30 text-xs">Assignments</button>
               </div>
             </div>
           </div>

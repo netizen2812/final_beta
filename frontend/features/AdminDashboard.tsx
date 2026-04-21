@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useAuth, useUser } from '@clerk/clerk-react';
 import axios from 'axios';
 import {
@@ -6,7 +6,7 @@ import {
     RefreshCw, TrendingUp, UserCheck, AlertTriangle,
     Play, StopCircle, Lock, Unlock, Server, Database, Search,
     Radio, Calendar, Layers, ChevronDown, ChevronRight, Plus,
-    Clock, MessageCircle, BookOpen, Heart, CheckCircle
+    Clock, MessageCircle, BookOpen, Heart, CheckCircle, ChevronUp
 } from 'lucide-react';
 import ScholarQuranManager from './ScholarQuranManager';
 
@@ -35,6 +35,11 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onNavigateToLive }) => 
     const [editingPaymentUserId, setEditingPaymentUserId] = useState<string | null>(null);
     const [manualPaymentId, setManualPaymentId] = useState('');
     const [isUpdatingPayment, setIsUpdatingPayment] = useState(false);
+
+    // Retention trend chart state (lazy — only fetched on expand)
+    const [retentionHistory, setRetentionHistory] = useState<any[]>([]);
+    const [chartExpanded, setChartExpanded] = useState(false);
+    const [chartLoading, setChartLoading] = useState(false);
 
     // Batch Management State
     const [isBatchModalOpen, setIsBatchModalOpen] = useState(false);
@@ -118,6 +123,31 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onNavigateToLive }) => 
             setAnalytics(res.data);
         } catch (e) {
             console.error("Analytics fetch error", e);
+        }
+    };
+
+    const fetchRetentionHistory = async () => {
+        if (chartLoading) return;
+        setChartLoading(true);
+        try {
+            const token = await getToken();
+            const res = await axios.get(`${APPLICATION_API_URL}/api/admin/stats/retention-history`, {
+                headers: { Authorization: `Bearer ${token}` }
+            });
+            setRetentionHistory(res.data || []);
+        } catch (e) {
+            console.error("Retention history fetch error", e);
+        } finally {
+            setChartLoading(false);
+        }
+    };
+
+    const handleToggleChart = () => {
+        const next = !chartExpanded;
+        setChartExpanded(next);
+        // Only fetch once — not on every open
+        if (next && retentionHistory.length === 0) {
+            fetchRetentionHistory();
         }
     };
 
@@ -359,13 +389,60 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onNavigateToLive }) => 
                         </Section>
 
                         {stats && (
+                            <Section title="Retention Metrics (Current)" icon={<UserCheck size={18} />}>
+                                <RetentionCard label="D1 Retention" value={stats.startup.retention.d1} description="New users who returned the next day" color="emerald" />
+                                <RetentionCard label="D7 Retention" value={stats.startup.retention.d7} description="New users still active after 7 days" color="blue" />
+                                <RetentionCard label="D30 Retention" value={stats.startup.retention.d30} description="New users still active after 30 days" color="purple" />
+                                <StatCard label="Habit Strength" value={`${stats.startup.habit.habitPercent}%`} trend={`${stats.startup.habit.threeDayHabitCount} users · 3+ days/week`} />
+                            </Section>
+                        )}
+
+                        {stats && (
                             <Section title="Historical Context" icon={<Database size={18} />}>
-                                <StatCard label="D1 Retention" value={`${stats.startup.retention.d1}%`} />
                                 <StatCard label="Messages / Week" value={stats.depth.msgsPerWeek} />
                                 <StatCard label="Avg Sessions / Child" value={stats.learning.avgLessonsPerChild} />
                                 <StatCard label="Parent DB Views" value={stats.learning.parentViews} />
+                                <StatCard label="Avg Active Days / Week" value={stats.startup.habit.avgActiveDays} trend="Among active users" />
                             </Section>
                         )}
+
+                        {/* Retention Trends Chart — lazy loaded on expand */}
+                        <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
+                            <button
+                                onClick={handleToggleChart}
+                                className="w-full flex items-center justify-between p-5 hover:bg-slate-50 transition-colors"
+                            >
+                                <div className="flex items-center gap-3">
+                                    <div className="bg-emerald-100 p-2 rounded-lg">
+                                        <TrendingUp size={18} className="text-emerald-600" />
+                                    </div>
+                                    <div className="text-left">
+                                        <div className="font-bold text-slate-800 text-sm">Retention Trends (6 Months)</div>
+                                        <div className="text-xs text-slate-400 mt-0.5">D1 &amp; D7 cohort retention over time · Click to expand</div>
+                                    </div>
+                                </div>
+                                <div className="flex items-center gap-2">
+                                    {chartLoading && <RefreshCw size={14} className="animate-spin text-slate-400" />}
+                                    {chartExpanded ? <ChevronUp size={18} className="text-slate-400" /> : <ChevronDown size={18} className="text-slate-400" />}
+                                </div>
+                            </button>
+
+                            {chartExpanded && (
+                                <div className="border-t border-slate-100 p-6">
+                                    {chartLoading ? (
+                                        <div className="flex items-center justify-center h-48 text-slate-400 text-sm">
+                                            <RefreshCw size={20} className="animate-spin mr-2" /> Computing retention history...
+                                        </div>
+                                    ) : retentionHistory.length > 0 ? (
+                                        <RetentionLineChart data={retentionHistory} />
+                                    ) : (
+                                        <div className="flex items-center justify-center h-48 text-slate-400 text-sm italic">
+                                            No historical data found.
+                                        </div>
+                                    )}
+                                </div>
+                            )}
+                        </div>
 
                         {stats && stats.cumulative ? (
                             <Section title="Cumulative Platform Totals" icon={<TrendingUp size={18} />}>
@@ -1217,6 +1294,140 @@ const PaginationControls = ({ currentPage, totalPages, onPageChange }: any) => {
             >
                 Next
             </button>
+        </div>
+    );
+};
+
+const RetentionCard = ({ label, value, description, color }: { label: string; value: number; description: string; color: 'emerald' | 'blue' | 'purple' }) => {
+    const colors = {
+        emerald: { bg: 'bg-emerald-50', border: 'border-emerald-200', text: 'text-emerald-700', bar: 'bg-emerald-500', ring: 'ring-emerald-400' },
+        blue:    { bg: 'bg-blue-50',    border: 'border-blue-200',    text: 'text-blue-700',    bar: 'bg-blue-500',    ring: 'ring-blue-400' },
+        purple:  { bg: 'bg-purple-50',  border: 'border-purple-200',  text: 'text-purple-700',  bar: 'bg-purple-500',  ring: 'ring-purple-400' },
+    };
+    const c = colors[color];
+    const pct = Math.min(value, 100);
+    return (
+        <div className={`bg-white p-5 rounded-xl border ${c.border} shadow-sm flex flex-col gap-3 h-full`}>
+            <div>
+                <div className={`text-3xl font-bold ${c.text}`}>{value}%</div>
+                <div className="text-xs font-semibold text-slate-500 uppercase tracking-wide mt-1">{label}</div>
+            </div>
+            {/* Progress bar */}
+            <div className="h-2 bg-slate-100 rounded-full overflow-hidden">
+                <div
+                    className={`h-full rounded-full ${c.bar} transition-all duration-700`}
+                    style={{ width: `${pct}%` }}
+                />
+            </div>
+            <div className="text-[11px] text-slate-400">{description}</div>
+        </div>
+    );
+};
+
+const RetentionLineChart = ({ data }: { data: Array<{ label: string; newUsers: number; d1: number; d7: number }> }) => {
+    const W = 600;
+    const H = 200;
+    const PAD = { top: 20, right: 20, bottom: 40, left: 44 };
+    const chartW = W - PAD.left - PAD.right;
+    const chartH = H - PAD.top - PAD.bottom;
+
+    const maxY = Math.max(100, ...data.map(d => Math.max(d.d1, d.d7)));
+    const toX = (i: number) => PAD.left + (i / (data.length - 1 || 1)) * chartW;
+    const toY = (v: number) => PAD.top + (1 - v / maxY) * chartH;
+
+    const makePath = (key: 'd1' | 'd7') =>
+        data.map((d, i) => `${i === 0 ? 'M' : 'L'}${toX(i)},${toY(d[key])}`).join(' ');
+
+    const makeArea = (key: 'd1' | 'd7') => {
+        const line = makePath(key);
+        const baseline = `L${toX(data.length - 1)},${toY(0)} L${toX(0)},${toY(0)} Z`;
+        return line + ' ' + baseline;
+    };
+
+    const yTicks = [0, 25, 50, 75, 100];
+
+    return (
+        <div className="space-y-4">
+            {/* Legend */}
+            <div className="flex items-center gap-6 text-xs font-semibold">
+                <span className="flex items-center gap-2"><span className="w-8 h-1 bg-emerald-500 rounded-full inline-block" /> D1 Retention</span>
+                <span className="flex items-center gap-2"><span className="w-8 h-1 bg-blue-500 rounded-full inline-block" /> D7 Retention</span>
+            </div>
+
+            {/* SVG Chart */}
+            <div className="overflow-x-auto">
+                <svg viewBox={`0 0 ${W} ${H}`} className="w-full" style={{ minWidth: '320px', maxHeight: '220px' }}>
+                    <defs>
+                        <linearGradient id="gradD1" x1="0" y1="0" x2="0" y2="1">
+                            <stop offset="0%" stopColor="#10b981" stopOpacity="0.18" />
+                            <stop offset="100%" stopColor="#10b981" stopOpacity="0" />
+                        </linearGradient>
+                        <linearGradient id="gradD7" x1="0" y1="0" x2="0" y2="1">
+                            <stop offset="0%" stopColor="#3b82f6" stopOpacity="0.18" />
+                            <stop offset="100%" stopColor="#3b82f6" stopOpacity="0" />
+                        </linearGradient>
+                    </defs>
+
+                    {/* Y-axis gridlines + labels */}
+                    {yTicks.map(t => (
+                        <g key={t}>
+                            <line
+                                x1={PAD.left} y1={toY(t)} x2={PAD.left + chartW} y2={toY(t)}
+                                stroke="#e2e8f0" strokeWidth="1"
+                            />
+                            <text x={PAD.left - 6} y={toY(t) + 4} textAnchor="end" fontSize="10" fill="#94a3b8">{t}%</text>
+                        </g>
+                    ))}
+
+                    {/* Area fills */}
+                    {data.length > 1 && (
+                        <>
+                            <path d={makeArea('d1')} fill="url(#gradD1)" />
+                            <path d={makeArea('d7')} fill="url(#gradD7)" />
+                        </>
+                    )}
+
+                    {/* Lines */}
+                    {data.length > 1 && (
+                        <>
+                            <path d={makePath('d1')} fill="none" stroke="#10b981" strokeWidth="2.5" strokeLinejoin="round" strokeLinecap="round" />
+                            <path d={makePath('d7')} fill="none" stroke="#3b82f6" strokeWidth="2.5" strokeLinejoin="round" strokeLinecap="round" />
+                        </>
+                    )}
+
+                    {/* Data points + tooltips */}
+                    {data.map((d, i) => (
+                        <g key={i}>
+                            {/* D1 dot */}
+                            <circle cx={toX(i)} cy={toY(d.d1)} r="4" fill="#10b981" stroke="white" strokeWidth="2">
+                                <title>{d.label}: D1 {d.d1}%</title>
+                            </circle>
+                            {/* D7 dot */}
+                            <circle cx={toX(i)} cy={toY(d.d7)} r="4" fill="#3b82f6" stroke="white" strokeWidth="2">
+                                <title>{d.label}: D7 {d.d7}%</title>
+                            </circle>
+                            {/* X-axis label */}
+                            <text x={toX(i)} y={H - 6} textAnchor="middle" fontSize="10" fill="#94a3b8">{d.label}</text>
+                            {/* New users badge */}
+                            {d.newUsers > 0 && (
+                                <text x={toX(i)} y={PAD.top - 6} textAnchor="middle" fontSize="9" fill="#64748b">+{d.newUsers}</text>
+                            )}
+                        </g>
+                    ))}
+                </svg>
+            </div>
+
+            {/* Data table summary */}
+            <div className="grid grid-cols-3 gap-2 text-xs">
+                {data.map((d, i) => (
+                    <div key={i} className="flex flex-col p-2 bg-slate-50 rounded-lg border border-slate-100">
+                        <span className="font-bold text-slate-600">{d.label}</span>
+                        <span className="text-emerald-600">D1: {d.d1}%</span>
+                        <span className="text-blue-600">D7: {d.d7}%</span>
+                        <span className="text-slate-400">{d.newUsers} new users</span>
+                    </div>
+                ))}
+            </div>
         </div>
     );
 };

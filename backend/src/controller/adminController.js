@@ -8,46 +8,60 @@ import { clerkClient } from "@clerk/clerk-sdk-node";
 import Conversation from "../models/Conversation.js";
 
 
-// --- PART 1: REPLACE ADMIN KPIs (TIER-BASED STRUCTURE) ---
+// --- PART 1: ADMIN KPIs (TIER-BASED STRUCTURE) ---
 
 export const getAdminStats = async (req, res) => {
     try {
+        // ✅ FIX 1: Never mutate `now` — create independent Date copies for each window.
         const now = new Date();
-        const startOfDay = new Date(now.setHours(0, 0, 0, 0));
-        const sevenDaysAgo = new Date(now); sevenDaysAgo.setDate(now.getDate() - 7);
-        const thirtyDaysAgo = new Date(now); thirtyDaysAgo.setDate(now.getDate() - 30);
+
+        const startOfDay = new Date(now);
+        startOfDay.setHours(0, 0, 0, 0); // midnight today — does NOT touch `now`
+
+        const sevenDaysAgo = new Date(now);
+        sevenDaysAgo.setDate(now.getDate() - 7);
+
+        const thirtyDaysAgo = new Date(now);
+        thirtyDaysAgo.setDate(now.getDate() - 30);
 
         // 🥇 TIER 1 — CORE STARTUP HEALTH
 
         // 1. Retention (Cohort-based)
-        // Definition: User returns and performs ANY activity after first signup day.
-        // Simplified Logic: D1 = % of users created yesterday who active today. D7 = Created 7 days ago active today.
-        // More Robust Logic: % of users created in [Period] who were active in [Subsequent Period].
-        // Implementing "Day N Retention" snapshot for *users created N days ago*.
-
+        // ✅ FIX 2: Use User.clerkId (not User._id) when querying AnalyticsEvent.
+        // AnalyticsEvent.userId stores Clerk IDs (e.g. "user_2abc..."), not MongoDB ObjectIds.
         const calculateRetention = async (daysAgo) => {
-            const start = new Date(now); start.setDate(now.getDate() - daysAgo - 1); // Window Start
-            const end = new Date(now); end.setDate(now.getDate() - daysAgo);       // Window End
+            const cohortStart = new Date(now);
+            cohortStart.setDate(now.getDate() - daysAgo - 1);
+            cohortStart.setHours(0, 0, 0, 0);
+            const cohortEnd = new Date(now);
+            cohortEnd.setDate(now.getDate() - daysAgo);
+            cohortEnd.setHours(23, 59, 59, 999);
 
-            // Users created between D-(N+1) and D-N
-            const cohortUsers = await User.find({ createdAt: { $gte: start, $lt: end } }).select('_id');
+            // Fetch cohort users — select clerkId (what AnalyticsEvent.userId stores)
+            const cohortUsers = await User.find({
+                createdAt: { $gte: cohortStart, $lt: cohortEnd }
+            }).select('clerkId');
+
             if (cohortUsers.length === 0) return 0;
-            const cohortIds = cohortUsers.map(u => u._id.toString()); // Ensure string for Analytics check
+            const cohortClerkIds = cohortUsers.map(u => u.clerkId).filter(Boolean);
+            if (cohortClerkIds.length === 0) return 0;
 
-            // Users from cohort active in last 24h
+            // Check how many returned today (since midnight)
             const activeCohort = await AnalyticsEvent.distinct('userId', {
-                userId: { $in: cohortIds },
+                userId: { $in: cohortClerkIds },
                 timestamp: { $gte: startOfDay }
             });
 
-            return Math.round((activeCohort.length / cohortUsers.length) * 100);
+            return Math.round((activeCohort.length / cohortClerkIds.length) * 100);
         };
 
-        const retention = {
-            d1: await calculateRetention(1),
-            d7: await calculateRetention(7),
-            d30: await calculateRetention(30)
-        };
+        // Run all 3 retention calculations in parallel
+        const [d1, d7, d30] = await Promise.all([
+            calculateRetention(1),
+            calculateRetention(7),
+            calculateRetention(30),
+        ]);
+        const retention = { d1, d7, d30 };
 
         // 2. Active Users (Real Data)
         const dau = (await AnalyticsEvent.distinct('userId', { timestamp: { $gte: startOfDay } })).length;
@@ -73,8 +87,11 @@ export const getAdminStats = async (req, res) => {
             (dailyActiveTuples.reduce((acc, curr) => acc + curr.daysActive, 0) / dailyActiveTuples.length).toFixed(1)
             : 0;
 
-        const threeDayHabit = dailyActiveTuples.filter(u => u.daysActive >= 3).length;
-        const habitPercent = Math.round((threeDayHabit / (activeUsersCount || 1)) * 100);
+        // ✅ FIX 3: Use dailyActiveTuples.length as denominator — consistent with the data source.
+        const threeDayHabitCount = dailyActiveTuples.filter(u => u.daysActive >= 3).length;
+        const habitPercent = dailyActiveTuples.length > 0
+            ? Math.round((threeDayHabitCount / dailyActiveTuples.length) * 100)
+            : 0;
 
         // 4. Feature Engagement (% of WAU)
         const getFeatureUsage = async (eventType) => {
@@ -169,7 +186,7 @@ export const getAdminStats = async (req, res) => {
             startup: {
                 retention,
                 active: { dau, wau, mau },
-                habit: { avgActiveDays, habitPercent }
+                habit: { avgActiveDays, habitPercent, threeDayHabitCount }
             },
             features: engagement,
             depth: {
@@ -198,6 +215,80 @@ export const getAdminStats = async (req, res) => {
     } catch (error) {
         console.error("Admin stats error:", error);
         res.status(500).json({ message: "Analytics Engine Error" });
+    }
+};
+
+// --- RETENTION HISTORY (Monthly D1 + D7, last 6 months) ---
+// Separate endpoint so it does not impact main page load.
+// Cached for 6 hours server-side to avoid expensive re-computation.
+
+let _retentionHistoryCache = null;
+let _retentionHistoryCacheAt = 0;
+const RETENTION_CACHE_TTL_MS = 6 * 60 * 60 * 1000; // 6 hours
+
+export const getRetentionHistory = async (req, res) => {
+    try {
+        // Serve from cache if still fresh
+        if (_retentionHistoryCache && (Date.now() - _retentionHistoryCacheAt) < RETENTION_CACHE_TTL_MS) {
+            res.set('X-Cache', 'HIT');
+            return res.json(_retentionHistoryCache);
+        }
+
+        const now = new Date();
+        const results = [];
+
+        // Compute D1 + D7 retention for each of the last 6 calendar months
+        for (let i = 5; i >= 0; i--) {
+            const monthStart = new Date(now.getFullYear(), now.getMonth() - i, 1);
+            const monthEnd = new Date(now.getFullYear(), now.getMonth() - i + 1, 1);
+            const label = monthStart.toLocaleString('default', { month: 'short', year: '2-digit' });
+
+            const newUsers = await User.find({
+                createdAt: { $gte: monthStart, $lt: monthEnd }
+            }).select('clerkId');
+
+            let d1Retained = 0;
+            let d7Retained = 0;
+            const validUsers = newUsers.filter(u => u.clerkId);
+
+            if (validUsers.length > 0) {
+                const clerkIds = validUsers.map(u => u.clerkId);
+
+                // D1: returned within 2 days of the month's end
+                const d1WindowEnd = new Date(monthEnd);
+                d1WindowEnd.setDate(monthEnd.getDate() + 2);
+                const d1Active = await AnalyticsEvent.distinct('userId', {
+                    userId: { $in: clerkIds },
+                    timestamp: { $gte: monthEnd, $lt: d1WindowEnd }
+                });
+                d1Retained = Math.round((d1Active.length / validUsers.length) * 100);
+
+                // D7: returned within 8 days of the month's end
+                const d7WindowEnd = new Date(monthEnd);
+                d7WindowEnd.setDate(monthEnd.getDate() + 8);
+                const d7Active = await AnalyticsEvent.distinct('userId', {
+                    userId: { $in: clerkIds },
+                    timestamp: { $gte: monthEnd, $lt: d7WindowEnd }
+                });
+                d7Retained = Math.round((d7Active.length / validUsers.length) * 100);
+            }
+
+            results.push({
+                label,
+                month: monthStart.toISOString(),
+                newUsers: validUsers.length,
+                d1: d1Retained,
+                d7: d7Retained,
+            });
+        }
+
+        _retentionHistoryCache = results;
+        _retentionHistoryCacheAt = Date.now();
+        res.set('X-Cache', 'MISS');
+        res.json(results);
+    } catch (error) {
+        console.error("Retention history error:", error);
+        res.status(500).json({ message: "Failed to compute retention history" });
     }
 };
 

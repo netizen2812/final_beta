@@ -2,6 +2,7 @@ import express from "express";
 import { requireAuth, isAdmin } from "../middleware/authmiddleware.js";
 import {
     getAdminStats,
+    getRetentionHistory,
     searchUsers,
     getAllUsers,
     updateUser,
@@ -23,6 +24,7 @@ router.use(requireAuth, isAdmin);
 
 // Analytics
 router.get("/stats", getAdminStats);
+router.get("/stats/retention-history", getRetentionHistory);
 
 // User Management
 router.get("/users/search", searchUsers);
